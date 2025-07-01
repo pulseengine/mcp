@@ -1,0 +1,26 @@
+[package]
+name = "pulseengine-mcp-protocol"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Core Model Context Protocol types and validation - PulseEngine MCP Framework"
+homepage.workspace = true
+repository.workspace = true
+documentation = "https://docs.rs/pulseengine-mcp-protocol"
+readme = "README.md"
+keywords.workspace = true
+categories = ["api-bindings", "data-structures", "parsing"]
+rust-version.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+thiserror = { workspace = true }
+validator = { workspace = true }
+chrono = { workspace = true }
+async-trait = { workspace = true }
+
+[dev-dependencies]
+tokio-test = "0.4"

@@ -1,0 +1,37 @@
+[package]
+name = "pulseengine-mcp-server"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Generic MCP server infrastructure with pluggable backends - PulseEngine MCP Framework"
+homepage.workspace = true
+repository.workspace = true
+documentation = "https://docs.rs/pulseengine-mcp-server"
+readme = "README.md"
+keywords.workspace = true
+categories = ["web-programming::http-server", "api-bindings"]
+rust-version.workspace = true
+
+[dependencies]
+pulseengine-mcp-protocol = { workspace = true }
+pulseengine-mcp-auth = { workspace = true }
+pulseengine-mcp-transport = { workspace = true }
+pulseengine-mcp-security = { workspace = true }
+pulseengine-mcp-monitoring = { workspace = true }
+
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+async-trait = { workspace = true }
+uuid = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+futures = { workspace = true }
+
+[features]
+default = []
+
+[dev-dependencies]
+tokio-test = "0.4"
