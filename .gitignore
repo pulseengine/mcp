@@ -1,0 +1,37 @@
+# Rust build artifacts
+/target/
+**/target/
+
+# Cargo lock file for libraries (keep for applications)
+# Cargo.lock
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.local
+
+# Backup files
+*.bak
+*.backup
+
+# Coverage reports
+tarpaulin-report.html
+cobertura.xml
+lcov.info
