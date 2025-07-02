@@ -26,7 +26,7 @@ authors = ["PulseEngine Contributors"]
 repository = "https://github.com/pulseengine/mcp"
 homepage = "https://github.com/pulseengine/mcp"
 documentation = "https://docs.rs/pulseengine-mcp-protocol"
-keywords = ["mcp", "model-context-protocol", "framework", "server", "ai"]
+keywords = ["mcp", "protocol", "framework", "server", "ai"]
 categories = ["api-bindings", "development-tools", "asynchronous"]
 
 [workspace.dependencies]
