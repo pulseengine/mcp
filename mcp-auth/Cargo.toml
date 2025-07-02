@@ -14,7 +14,7 @@ categories = ["authentication", "web-programming"]
 rust-version.workspace = true
 
 [dependencies]
-pulseengine-mcp-protocol = "0.3.0"
+pulseengine-mcp-protocol = { workspace = true }
 
 tokio = { workspace = true }
 serde = { workspace = true }

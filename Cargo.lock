@@ -1260,7 +1260,7 @@ dependencies = [
 
 [[package]]
 name = "pulseengine-mcp-auth"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1283,7 +1283,7 @@ dependencies = [
 
 [[package]]
 name = "pulseengine-mcp-cli"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "clap",
  "pulseengine-mcp-cli-derive",
@@ -1301,7 +1301,7 @@ dependencies = [
 
 [[package]]
 name = "pulseengine-mcp-cli-derive"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "async-trait",
  "clap",
@@ -1319,7 +1319,7 @@ dependencies = [
 
 [[package]]
 name = "pulseengine-mcp-logging"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "chrono",
  "hex",
@@ -1337,7 +1337,7 @@ dependencies = [
 
 [[package]]
 name = "pulseengine-mcp-monitoring"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1355,7 +1355,7 @@ dependencies = [
 
 [[package]]
 name = "pulseengine-mcp-protocol"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -1369,7 +1369,7 @@ dependencies = [
 
 [[package]]
 name = "pulseengine-mcp-security"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1391,7 +1391,7 @@ dependencies = [
 
 [[package]]
 name = "pulseengine-mcp-server"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1412,7 +1412,7 @@ dependencies = [
 
 [[package]]
 name = "pulseengine-mcp-transport"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "async-stream",

@@ -1,17 +1,17 @@
 [package]
 name = "pulseengine-mcp-logging"
-version = "0.3.0"
-edition = "2021"
-authors = ["Ralf Anton Beier <ralf_beier@me.com>"]
-license = "MIT OR Apache-2.0"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
 description = "Structured logging framework for MCP servers - PulseEngine MCP Framework"
-homepage = "https://github.com/avrabe/mcp-loxone"
-repository = "https://github.com/avrabe/mcp-loxone"
+homepage.workspace = true
+repository.workspace = true
 documentation = "https://docs.rs/pulseengine-mcp-logging"
 readme = "README.md"
 keywords = ["mcp", "logging", "structured", "metrics", "tracing"]
 categories = ["development-tools::debugging"]
-rust-version = "1.70"
+rust-version.workspace = true
 
 [dependencies]
 # Logging
