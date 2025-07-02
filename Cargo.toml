@@ -18,7 +18,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.3.0"
+version = "0.3.1"
 rust-version = "1.79"
 edition = "2021"
 license = "MIT OR Apache-2.0"
@@ -78,15 +78,15 @@ futures = "0.3"
 futures-util = "0.3"
 
 # Framework internal dependencies (published versions)
-pulseengine-mcp-protocol = { version = "0.3.0", path = "mcp-protocol" }
-pulseengine-mcp-logging = { version = "0.3.0", path = "mcp-logging" }
-pulseengine-mcp-auth = { version = "0.3.0", path = "mcp-auth" }
-pulseengine-mcp-security = { version = "0.3.0", path = "mcp-security" }
-pulseengine-mcp-monitoring = { version = "0.3.0", path = "mcp-monitoring" }
-pulseengine-mcp-transport = { version = "0.3.0", path = "mcp-transport" }
-pulseengine-mcp-cli = { version = "0.3.0", path = "mcp-cli" }
-pulseengine-mcp-cli-derive = { version = "0.3.0", path = "mcp-cli-derive" }
-pulseengine-mcp-server = { version = "0.3.0", path = "mcp-server" }
+pulseengine-mcp-protocol = { version = "0.3.1", path = "mcp-protocol" }
+pulseengine-mcp-logging = { version = "0.3.1", path = "mcp-logging" }
+pulseengine-mcp-auth = { version = "0.3.1", path = "mcp-auth" }
+pulseengine-mcp-security = { version = "0.3.1", path = "mcp-security" }
+pulseengine-mcp-monitoring = { version = "0.3.1", path = "mcp-monitoring" }
+pulseengine-mcp-transport = { version = "0.3.1", path = "mcp-transport" }
+pulseengine-mcp-cli = { version = "0.3.1", path = "mcp-cli" }
+pulseengine-mcp-cli-derive = { version = "0.3.1", path = "mcp-cli-derive" }
+pulseengine-mcp-server = { version = "0.3.1", path = "mcp-server" }
 
 [profile.release]
 opt-level = "s"

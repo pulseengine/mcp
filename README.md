@@ -25,8 +25,8 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-pulseengine-mcp-server = "0.3.0"
-pulseengine-mcp-protocol = "0.3.0"
+pulseengine-mcp-server = "0.3.1"
+pulseengine-mcp-protocol = "0.3.1"
 tokio = { version = "1.0", features = ["full"] }
 async-trait = "0.1"
 ```
