@@ -24,6 +24,7 @@ COPY mcp-cli ./mcp-cli/
 COPY mcp-cli-derive ./mcp-cli-derive/
 COPY mcp-server ./mcp-server/
 COPY mcp-external-validation ./mcp-external-validation/
+COPY examples ./examples/
 
 # Build the validation tools
 RUN cargo build --release --package pulseengine-mcp-external-validation --all-features
