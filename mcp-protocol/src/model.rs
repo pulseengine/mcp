@@ -115,6 +115,7 @@ pub struct ServerCapabilitiesBuilder {
 }
 
 impl ServerCapabilitiesBuilder {
+    #[must_use]
     pub fn enable_tools(mut self) -> Self {
         self.capabilities.tools = Some(ToolsCapability {
             list_changed: Some(true),
@@ -122,6 +123,7 @@ impl ServerCapabilitiesBuilder {
         self
     }
 
+    #[must_use]
     pub fn enable_resources(mut self) -> Self {
         self.capabilities.resources = Some(ResourcesCapability {
             subscribe: Some(true),
@@ -130,6 +132,7 @@ impl ServerCapabilitiesBuilder {
         self
     }
 
+    #[must_use]
     pub fn enable_prompts(mut self) -> Self {
         self.capabilities.prompts = Some(PromptsCapability {
             list_changed: Some(true),
@@ -137,6 +140,7 @@ impl ServerCapabilitiesBuilder {
         self
     }
 
+    #[must_use]
     pub fn enable_logging(mut self) -> Self {
         self.capabilities.logging = Some(LoggingCapability {
             level: Some("info".to_string()),
@@ -144,6 +148,7 @@ impl ServerCapabilitiesBuilder {
         self
     }
 
+    #[must_use]
     pub fn enable_sampling(mut self) -> Self {
         self.capabilities.sampling = Some(SamplingCapability {});
         self
@@ -243,7 +248,7 @@ pub struct TextContent {
 }
 
 impl Content {
-    /// Get text content as TextContent struct for compatibility
+    /// Get text content as `TextContent` struct for compatibility
     pub fn as_text_content(&self) -> Option<TextContent> {
         match self {
             Self::Text { text } => Some(TextContent { text: text.clone() }),

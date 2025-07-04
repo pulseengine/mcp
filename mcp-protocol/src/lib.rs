@@ -55,6 +55,10 @@ pub fn is_protocol_version_supported(version: &str) -> bool {
 }
 
 /// Validate MCP protocol version compatibility
+///
+/// # Errors
+///
+/// Returns an error if the client version is not supported by this server
 pub fn validate_protocol_version(client_version: &str) -> Result<()> {
     if is_protocol_version_supported(client_version) {
         Ok(())
