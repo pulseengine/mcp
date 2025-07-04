@@ -23,10 +23,22 @@ pub struct AuthConfig {
 /// Storage configuration for authentication data
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum StorageConfig {
-    /// File-based storage
+    /// File-based storage with security options
     File {
         /// Path to storage directory
         path: PathBuf,
+        /// File permissions (Unix mode, e.g., 0o600)
+        #[serde(default = "default_file_permissions")]
+        file_permissions: u32,
+        /// Directory permissions (Unix mode, e.g., 0o700)
+        #[serde(default = "default_dir_permissions")]
+        dir_permissions: u32,
+        /// Require secure file system (reject if on network/shared drive)
+        #[serde(default)]
+        require_secure_filesystem: bool,
+        /// Enable file system monitoring for unauthorized changes
+        #[serde(default)]
+        enable_filesystem_monitoring: bool,
     },
     /// Environment variable storage
     Environment {
@@ -37,14 +49,27 @@ pub enum StorageConfig {
     Memory,
 }
 
+fn default_file_permissions() -> u32 {
+    0o600 // Owner read/write only
+}
+
+fn default_dir_permissions() -> u32 {
+    0o700 // Owner read/write/execute only
+}
+
 impl Default for AuthConfig {
     fn default() -> Self {
         Self {
             storage: StorageConfig::File {
                 path: dirs::home_dir()
                     .unwrap_or_else(|| PathBuf::from("."))
-                    .join(".loxone")
-                    .join("auth"),
+                    .join(".pulseengine")
+                    .join("mcp-auth")
+                    .join("keys.enc"),
+                file_permissions: 0o600,
+                dir_permissions: 0o700,
+                require_secure_filesystem: true,
+                enable_filesystem_monitoring: false,
             },
             enabled: true,
             cache_size: 1000,
