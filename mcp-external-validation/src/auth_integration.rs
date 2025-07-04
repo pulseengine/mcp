@@ -9,9 +9,8 @@ use crate::{
     ValidationConfig, ValidationError, ValidationResult,
 };
 use pulseengine_mcp_auth::{
-    AuthenticationManager, RateLimitStats, Role,
+    validation::permissions, AuthenticationManager, RateLimitStats, Role,
     ValidationConfig as AuthValidationConfig,
-    validation::permissions,
 };
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
