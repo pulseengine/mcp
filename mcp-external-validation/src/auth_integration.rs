@@ -5,19 +5,20 @@
 //! validation and security testing.
 
 use crate::{
-    report::{ValidationIssue, IssueSeverity, TestScore},
-    ValidationResult, ValidationConfig, ValidationError,
+    report::{IssueSeverity, TestScore, ValidationIssue},
+    ValidationConfig, ValidationError, ValidationResult,
 };
 use pulseengine_mcp_auth::{
-    AuthenticationManager, ValidationConfig as AuthValidationConfig, 
-    Role, RateLimitStats, permissions
+    AuthenticationManager, RateLimitStats, Role,
+    ValidationConfig as AuthValidationConfig,
+    validation::permissions,
 };
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::time::Duration;
-use tracing::{info, warn, error};
-use reqwest::Client;
+use tracing::{error, info, warn};
 
 /// Authentication integration tester
 pub struct AuthIntegrationTester {
@@ -148,7 +149,7 @@ impl AuthIntegrationTester {
 
     /// Initialize authentication manager for testing
     pub async fn initialize_auth_manager(&mut self) -> ValidationResult<()> {
-        use pulseengine_mcp_auth::{AuthConfig, config::StorageConfig};
+        use pulseengine_mcp_auth::{config::StorageConfig, AuthConfig};
 
         // Create temporary in-memory authentication configuration for testing
         let auth_config = AuthConfig {
@@ -166,9 +167,12 @@ impl AuthIntegrationTester {
             block_duration_minutes: 10,
             session_timeout_minutes: 60,
             strict_ip_validation: true,
+            enable_role_based_rate_limiting: false,
+            role_rate_limits: HashMap::new(),
         };
 
-        match AuthenticationManager::new_with_validation(auth_config, auth_validation_config).await {
+        match AuthenticationManager::new_with_validation(auth_config, auth_validation_config).await
+        {
             Ok(manager) => {
                 info!("Authentication manager initialized for testing");
                 self.auth_manager = Some(manager);
@@ -184,7 +188,10 @@ impl AuthIntegrationTester {
     }
 
     /// Run comprehensive authentication integration tests
-    pub async fn test_auth_integration(&mut self, server_url: &str) -> ValidationResult<AuthIntegrationResult> {
+    pub async fn test_auth_integration(
+        &mut self,
+        server_url: &str,
+    ) -> ValidationResult<AuthIntegrationResult> {
         let start_time = std::time::Instant::now();
         let mut result = AuthIntegrationResult {
             framework_available: false,
@@ -220,16 +227,22 @@ impl AuthIntegrationTester {
             result.rate_limiting = self.test_rate_limiting(&mut result, &mut stats).await;
 
             // Test permission validation
-            result.permission_validation = self.test_permission_validation(&mut result, &mut stats).await;
+            result.permission_validation = self
+                .test_permission_validation(&mut result, &mut stats)
+                .await;
 
             // Test session security
             result.session_security = self.test_session_security(&mut result, &mut stats).await;
 
             // Test integration compatibility
-            result.integration_compatibility = self.test_integration_compatibility(server_url, &mut result, &mut stats).await;
+            result.integration_compatibility = self
+                .test_integration_compatibility(server_url, &mut result, &mut stats)
+                .await;
 
             // Test security configuration
-            result.security_configuration = self.test_security_configuration(&mut result, &mut stats).await;
+            result.security_configuration = self
+                .test_security_configuration(&mut result, &mut stats)
+                .await;
 
             // Get rate limit stats from auth manager
             if let Some(auth_manager) = &self.auth_manager {
@@ -267,10 +280,14 @@ impl AuthIntegrationTester {
     }
 
     /// Test API key management functionality
-    async fn test_api_key_management(&mut self, result: &mut AuthIntegrationResult, stats: &mut AuthStatistics) -> TestScore {
+    async fn test_api_key_management(
+        &mut self,
+        result: &mut AuthIntegrationResult,
+        stats: &mut AuthStatistics,
+    ) -> TestScore {
         let mut passed_tests = 0;
         let total_tests = 4; // Creation, validation, listing, revocation
-        
+
         let auth_manager = match &self.auth_manager {
             Some(manager) => manager,
             None => {
@@ -285,12 +302,15 @@ impl AuthIntegrationTester {
         };
 
         // Test API key creation
-        match auth_manager.create_api_key(
-            "test-admin-key".to_string(),
-            Role::Admin,
-            None,
-            Some(vec!["192.168.1.0/24".to_string()]),
-        ).await {
+        match auth_manager
+            .create_api_key(
+                "test-admin-key".to_string(),
+                Role::Admin,
+                None,
+                Some(vec!["192.168.1.0/24".to_string()]),
+            )
+            .await
+        {
             Ok(key) => {
                 info!("Successfully created test API key: {}", key.id);
                 passed_tests += 1;
@@ -298,7 +318,10 @@ impl AuthIntegrationTester {
 
                 // Test API key validation
                 stats.validation_attempts += 1;
-                match auth_manager.validate_api_key(&key.key, Some("192.168.1.100")).await {
+                match auth_manager
+                    .validate_api_key(&key.key, Some("192.168.1.100"))
+                    .await
+                {
                     Ok(Some(_context)) => {
                         info!("API key validation successful");
                         passed_tests += 1;
@@ -381,10 +404,14 @@ impl AuthIntegrationTester {
     }
 
     /// Test rate limiting functionality
-    async fn test_rate_limiting(&mut self, result: &mut AuthIntegrationResult, stats: &mut AuthStatistics) -> TestScore {
+    async fn test_rate_limiting(
+        &mut self,
+        result: &mut AuthIntegrationResult,
+        stats: &mut AuthStatistics,
+    ) -> TestScore {
         let mut passed_tests = 0;
         let total_tests = 3;
-        
+
         let auth_manager = match &self.auth_manager {
             Some(manager) => manager,
             None => return TestScore::new(0, total_tests),
@@ -396,7 +423,10 @@ impl AuthIntegrationTester {
 
         for i in 1..=5 {
             stats.validation_attempts += 1;
-            match auth_manager.validate_api_key(invalid_key, Some(test_ip)).await {
+            match auth_manager
+                .validate_api_key(invalid_key, Some(test_ip))
+                .await
+            {
                 Err(e) if e.to_string().contains("rate limited") => {
                     info!("Rate limiting triggered on attempt {}", i);
                     passed_tests += 1;
@@ -425,7 +455,10 @@ impl AuthIntegrationTester {
         // Test rate limit statistics
         let rate_stats = auth_manager.get_rate_limit_stats().await;
         if rate_stats.total_tracked_ips > 0 {
-            info!("Rate limiting statistics available: {} tracked IPs", rate_stats.total_tracked_ips);
+            info!(
+                "Rate limiting statistics available: {} tracked IPs",
+                rate_stats.total_tracked_ips
+            );
             passed_tests += 1;
         }
 
@@ -433,7 +466,11 @@ impl AuthIntegrationTester {
     }
 
     /// Test permission validation
-    async fn test_permission_validation(&mut self, result: &mut AuthIntegrationResult, _stats: &mut AuthStatistics) -> TestScore {
+    async fn test_permission_validation(
+        &mut self,
+        result: &mut AuthIntegrationResult,
+        _stats: &mut AuthStatistics,
+    ) -> TestScore {
         let mut passed_tests = 0;
         let total_tests = 3;
         let auth_manager = match &self.auth_manager {
@@ -449,14 +486,15 @@ impl AuthIntegrationTester {
         ];
 
         for (role_name, role, permission) in roles_to_test {
-            match auth_manager.create_api_key(
-                format!("test-{}-key", role_name),
-                role.clone(),
-                None,
-                None,
-            ).await {
+            match auth_manager
+                .create_api_key(format!("test-{}-key", role_name), role.clone(), None, None)
+                .await
+            {
                 Ok(key) => {
-                    match auth_manager.validate_api_key(&key.key, Some("127.0.0.1")).await {
+                    match auth_manager
+                        .validate_api_key(&key.key, Some("127.0.0.1"))
+                        .await
+                    {
                         Ok(Some(context)) => {
                             if context.has_permission(permission) {
                                 info!("Permission validation successful for {} role", role_name);
@@ -465,7 +503,10 @@ impl AuthIntegrationTester {
                                 result.issues.push(ValidationIssue::new(
                                     IssueSeverity::Warning,
                                     "permission-validation".to_string(),
-                                    format!("Role {} missing expected permission {}", role_name, permission),
+                                    format!(
+                                        "Role {} missing expected permission {}",
+                                        role_name, permission
+                                    ),
                                     "auth-integration-tester".to_string(),
                                 ));
                             }
@@ -479,7 +520,7 @@ impl AuthIntegrationTester {
                             ));
                         }
                     }
-                    
+
                     // Clean up
                     let _ = auth_manager.revoke_key(&key.id).await;
                 }
@@ -493,25 +534,35 @@ impl AuthIntegrationTester {
     }
 
     /// Test session security
-    async fn test_session_security(&mut self, result: &mut AuthIntegrationResult, _stats: &mut AuthStatistics) -> TestScore {
+    async fn test_session_security(
+        &mut self,
+        result: &mut AuthIntegrationResult,
+        _stats: &mut AuthStatistics,
+    ) -> TestScore {
         let mut passed_tests = 1; // Base score for having session management
         let total_tests = 3;
-        
+
         // Test IP whitelisting
         let auth_manager = match &self.auth_manager {
             Some(manager) => manager,
             None => return TestScore::new(0, total_tests),
         };
 
-        match auth_manager.create_api_key(
-            "test-ip-restricted-key".to_string(),
-            Role::Operator,
-            None,
-            Some(vec!["192.168.1.0/24".to_string()]),
-        ).await {
+        match auth_manager
+            .create_api_key(
+                "test-ip-restricted-key".to_string(),
+                Role::Operator,
+                None,
+                Some(vec!["192.168.1.0/24".to_string()]),
+            )
+            .await
+        {
             Ok(key) => {
                 // Test with allowed IP
-                match auth_manager.validate_api_key(&key.key, Some("192.168.1.100")).await {
+                match auth_manager
+                    .validate_api_key(&key.key, Some("192.168.1.100"))
+                    .await
+                {
                     Ok(Some(_)) => {
                         info!("IP whitelisting allows authorized IP");
                         passed_tests += 1;
@@ -527,7 +578,10 @@ impl AuthIntegrationTester {
                 }
 
                 // Test with disallowed IP
-                match auth_manager.validate_api_key(&key.key, Some("10.0.0.100")).await {
+                match auth_manager
+                    .validate_api_key(&key.key, Some("10.0.0.100"))
+                    .await
+                {
                     Err(_) => {
                         info!("IP whitelisting correctly blocks unauthorized IP");
                         passed_tests += 1;
@@ -554,15 +608,26 @@ impl AuthIntegrationTester {
     }
 
     /// Test integration compatibility with external systems
-    async fn test_integration_compatibility(&mut self, _server_url: &str, result: &mut AuthIntegrationResult, _stats: &mut AuthStatistics) -> TestScore {
+    async fn test_integration_compatibility(
+        &mut self,
+        _server_url: &str,
+        result: &mut AuthIntegrationResult,
+        _stats: &mut AuthStatistics,
+    ) -> TestScore {
         let mut passed_tests = 0;
         let total_tests = 4;
 
         // Test HTTP header extraction
         let mut headers = HashMap::new();
-        headers.insert("authorization".to_string(), "Bearer test_token_123".to_string());
+        headers.insert(
+            "authorization".to_string(),
+            "Bearer test_token_123".to_string(),
+        );
         headers.insert("x-api-key".to_string(), "test_api_key_456".to_string());
-        headers.insert("x-forwarded-for".to_string(), "192.168.1.1, 10.0.0.1".to_string());
+        headers.insert(
+            "x-forwarded-for".to_string(),
+            "192.168.1.1, 10.0.0.1".to_string(),
+        );
 
         // Test authentication header extraction
         let extracted_token = pulseengine_mcp_auth::validation::extract_api_key(&headers, None);
@@ -605,7 +670,11 @@ impl AuthIntegrationTester {
     }
 
     /// Test security configuration
-    async fn test_security_configuration(&mut self, result: &mut AuthIntegrationResult, _stats: &mut AuthStatistics) -> TestScore {
+    async fn test_security_configuration(
+        &mut self,
+        result: &mut AuthIntegrationResult,
+        _stats: &mut AuthStatistics,
+    ) -> TestScore {
         let mut passed_tests = 1; // Base score for having configuration
         let total_tests = 4;
 
@@ -640,7 +709,8 @@ impl AuthIntegrationTester {
         }
 
         // Test dangerous input rejection
-        match pulseengine_mcp_auth::validation::validate_input_format("dangerous@input", 20, false) {
+        match pulseengine_mcp_auth::validation::validate_input_format("dangerous@input", 20, false)
+        {
             Err(_) => {
                 info!("Input validation correctly rejects dangerous characters");
                 passed_tests += 1;
@@ -681,14 +751,16 @@ impl AuthIntegrationTester {
         vec![
             AuthTestScenario {
                 name: "API Key Lifecycle".to_string(),
-                description: "Test complete API key lifecycle: create, validate, list, revoke".to_string(),
+                description: "Test complete API key lifecycle: create, validate, list, revoke"
+                    .to_string(),
                 test_type: AuthTestType::ApiKeyLifecycle,
                 expected_outcome: AuthTestOutcome::Success,
                 test_data: json!({"role": "admin", "expires_days": 30}),
             },
             AuthTestScenario {
                 name: "Rate Limiting".to_string(),
-                description: "Test rate limiting with multiple failed authentication attempts".to_string(),
+                description: "Test rate limiting with multiple failed authentication attempts"
+                    .to_string(),
                 test_type: AuthTestType::RateLimiting,
                 expected_outcome: AuthTestOutcome::RateLimited,
                 test_data: json!({"max_attempts": 5, "test_ip": "192.168.1.200"}),
@@ -712,6 +784,8 @@ impl AuthIntegrationTester {
 }
 
 /// Create default authentication integration tester
-pub async fn create_auth_integration_tester(config: ValidationConfig) -> ValidationResult<AuthIntegrationTester> {
+pub async fn create_auth_integration_tester(
+    config: ValidationConfig,
+) -> ValidationResult<AuthIntegrationTester> {
     AuthIntegrationTester::new(config)
 }
