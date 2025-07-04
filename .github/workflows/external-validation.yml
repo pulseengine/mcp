@@ -80,9 +80,15 @@ jobs:
         # Download and install MCP Inspector
         # Note: MCP Inspector may not be publicly available yet, so we skip if it fails
         if curl -L https://github.com/anthropics/mcp-inspector/releases/latest/download/mcp-inspector-${{ runner.os }}.tar.gz -o mcp-inspector.tar.gz 2>/dev/null && [ -s mcp-inspector.tar.gz ]; then
-          tar -xzf mcp-inspector.tar.gz
-          chmod +x mcp-inspector
-          echo "$PWD" >> $GITHUB_PATH
+          # Validate that the downloaded file is actually a valid gzip archive
+          if file mcp-inspector.tar.gz | grep -q "gzip compressed"; then
+            tar -xzf mcp-inspector.tar.gz
+            chmod +x mcp-inspector
+            echo "$PWD" >> $GITHUB_PATH
+            echo "MCP Inspector installed successfully"
+          else
+            echo "Downloaded file is not a valid gzip archive, skipping installation"
+          fi
         else
           echo "MCP Inspector not available, skipping installation"
         fi
