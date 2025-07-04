@@ -48,7 +48,7 @@ pub fn encrypt_data(data: &[u8], key: &[u8; 32]) -> Result<EncryptedData, Encryp
 
     Ok(EncryptedData {
         ciphertext: BASE64.encode(&ciphertext),
-        nonce: BASE64.encode(&nonce),
+        nonce: BASE64.encode(nonce),
         algorithm: "AES-256-GCM".to_string(),
     })
 }

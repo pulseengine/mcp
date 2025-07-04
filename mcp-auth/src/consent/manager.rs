@@ -144,6 +144,7 @@ impl ConsentManager {
     }
 
     /// Request consent from a subject with individual parameters
+    #[allow(clippy::too_many_arguments)]
     pub async fn request_consent_individual(
         &self,
         subject_id: String,
@@ -530,6 +531,7 @@ impl ConsentManager {
     }
 
     /// Create an audit entry
+    #[allow(clippy::too_many_arguments)]
     async fn create_audit_entry(
         &self,
         record: &ConsentRecord,

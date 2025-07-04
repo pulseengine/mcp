@@ -65,6 +65,7 @@ struct SecretsListResponse {
 struct SecretListItem {
     #[serde(rename = "secretKey")]
     secret_key: String,
+    #[allow(dead_code)]
     version: Option<u32>,
 }
 

@@ -69,7 +69,7 @@ impl std::fmt::Display for ConsentType {
             ConsentType::AutomatedDecisionMaking => write!(f, "Automated Decision Making"),
             ConsentType::SessionStorage => write!(f, "Session Storage"),
             ConsentType::AuditLogging => write!(f, "Audit Logging"),
-            ConsentType::Custom(desc) => write!(f, "Custom: {}", desc),
+            ConsentType::Custom(desc) => write!(f, "Custom: {desc}"),
         }
     }
 }

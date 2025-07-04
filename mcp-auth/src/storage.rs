@@ -77,7 +77,9 @@ pub struct FileStorage {
     path: PathBuf,
     encryption_key: [u8; 32],
     file_permissions: u32,
+    #[allow(dead_code)]
     dir_permissions: u32,
+    #[allow(dead_code)]
     require_secure_filesystem: bool,
     enable_filesystem_monitoring: bool,
 }

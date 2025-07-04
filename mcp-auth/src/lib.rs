@@ -3,6 +3,12 @@
 //! A comprehensive, drop-in security framework for Model Context Protocol (MCP) servers
 //! providing enterprise-grade authentication, authorization, session management, and security monitoring.
 //!
+#![allow(clippy::uninlined_format_args)]
+#![allow(clippy::needless_borrows_for_generic_args)]
+#![allow(clippy::manual_strip)]
+#![allow(clippy::redundant_closure)]
+#![allow(clippy::explicit_auto_deref)]
+#![allow(clippy::inherent_to_string)]
 //! ## Quick Start
 //!
 //! ### Simple Development Setup

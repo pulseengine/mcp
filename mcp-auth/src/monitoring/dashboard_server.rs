@@ -600,6 +600,7 @@ impl DashboardServer {
     }
 
     /// Validate token format
+    #[allow(dead_code)]
     fn is_valid_token_format(&self, token: &str) -> bool {
         // Basic validation - tokens should be alphanumeric and at least 16 characters
         token.len() >= 16
