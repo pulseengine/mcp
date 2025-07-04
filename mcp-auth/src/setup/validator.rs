@@ -3,8 +3,8 @@
 //! This module performs various system checks to ensure the environment
 //! is suitable for running the authentication framework.
 
-use std::path::Path;
 use crate::setup::SetupError;
+use std::path::Path;
 
 /// System validation results
 #[derive(Debug, Clone)]
@@ -25,34 +25,40 @@ pub fn validate_system() -> Result<ValidationResult, SetupError> {
         has_keyring_support: true,
         warnings: Vec::new(),
     };
-    
+
     // Check OS support
     #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
     {
         result.os_supported = false;
-        result.warnings.push("Unsupported operating system. Some features may not work correctly.".to_string());
+        result.warnings.push(
+            "Unsupported operating system. Some features may not work correctly.".to_string(),
+        );
     }
-    
+
     // Check secure random availability
     if !check_secure_random() {
         result.has_secure_random = false;
         return Err(SetupError::ValidationFailed(
-            "Secure random number generation not available".to_string()
+            "Secure random number generation not available".to_string(),
         ));
     }
-    
+
     // Check write permissions
     if let Err(e) = check_write_permissions() {
         result.has_write_permissions = false;
-        result.warnings.push(format!("Limited write permissions: {}", e));
+        result
+            .warnings
+            .push(format!("Limited write permissions: {}", e));
     }
-    
+
     // Check keyring support
     if !check_keyring_support() {
         result.has_keyring_support = false;
-        result.warnings.push("System keyring not available. Master key must be stored in environment.".to_string());
+        result.warnings.push(
+            "System keyring not available. Master key must be stored in environment.".to_string(),
+        );
     }
-    
+
     // Check filesystem security
     #[cfg(unix)]
     {
@@ -60,14 +66,14 @@ pub fn validate_system() -> Result<ValidationResult, SetupError> {
             result.warnings.push(warning);
         }
     }
-    
+
     Ok(result)
 }
 
 /// Check if secure random number generation is available
 fn check_secure_random() -> bool {
     use rand::RngCore;
-    
+
     let mut rng = rand::thread_rng();
     let mut buf = [0u8; 16];
     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -87,12 +93,12 @@ fn check_write_permissions() -> Result<(), String> {
             return Ok(());
         }
     }
-    
+
     // Try current directory
     if check_dir_writable(Path::new(".")) {
         return Ok(());
     }
-    
+
     Err("Cannot write to home directory or current directory".to_string())
 }
 
@@ -107,7 +113,7 @@ fn check_dir_writable(path: &Path) -> bool {
         }
         return false;
     }
-    
+
     // Check if we can create a temp file
     let test_file = path.join(".mcp_auth_test");
     match std::fs::write(&test_file, b"test") {
@@ -124,7 +130,7 @@ fn check_keyring_support() -> bool {
     #[cfg(feature = "keyring")]
     {
         use keyring::Entry;
-        
+
         match Entry::new("mcp_auth_test", "test_user") {
             Ok(entry) => {
                 // Try to set and delete a test value
@@ -136,7 +142,7 @@ fn check_keyring_support() -> bool {
             Err(_) => {}
         }
     }
-    
+
     false
 }
 
@@ -144,13 +150,13 @@ fn check_keyring_support() -> bool {
 #[cfg(unix)]
 fn check_filesystem_security() -> Option<String> {
     use std::os::unix::fs::MetadataExt;
-    
+
     // Check if home directory has secure permissions
     if let Some(home) = dirs::home_dir() {
         if let Ok(metadata) = std::fs::metadata(&home) {
             let mode = metadata.mode();
             let perms = mode & 0o777;
-            
+
             // Warn if home directory is world-readable
             if perms & 0o007 != 0 {
                 return Some(format!(
@@ -160,7 +166,7 @@ fn check_filesystem_security() -> Option<String> {
             }
         }
     }
-    
+
     None
 }
 
@@ -204,12 +210,12 @@ impl std::fmt::Display for SystemInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_secure_random() {
         assert!(check_secure_random());
     }
-    
+
     #[test]
     fn test_system_info() {
         let info = get_system_info();

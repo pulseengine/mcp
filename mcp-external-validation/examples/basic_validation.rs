@@ -15,9 +15,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Check validator status
     let status = validator.get_validator_status().await?;
     println!("Validator Status:");
-    println!("  MCP Validator: {}", if status.mcp_validator_available { "Available" } else { "Unavailable" });
-    println!("  JSON-RPC Validator: {}", if status.jsonrpc_validator_available { "Available" } else { "Unavailable" });
-    println!("  Inspector: {}", if status.inspector_available { "Available" } else { "Unavailable" });
+    println!(
+        "  MCP Validator: {}",
+        if status.mcp_validator_available {
+            "Available"
+        } else {
+            "Unavailable"
+        }
+    );
+    println!(
+        "  JSON-RPC Validator: {}",
+        if status.jsonrpc_validator_available {
+            "Available"
+        } else {
+            "Unavailable"
+        }
+    );
+    println!(
+        "  Inspector: {}",
+        if status.inspector_available {
+            "Available"
+        } else {
+            "Unavailable"
+        }
+    );
 
     // Example server URL (replace with actual server)
     let server_url = "http://localhost:3000";
@@ -41,7 +62,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("Validation completed!");
             println!("Status: {}", report.status_string());
             println!("Issues found: {}", report.issues().len());
-            
+
             for issue in report.issues() {
                 println!("  - [{:?}] {}: {}", issue.severity, issue.category, issue.description);
             }

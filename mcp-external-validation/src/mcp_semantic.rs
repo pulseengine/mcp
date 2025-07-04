@@ -5,8 +5,8 @@
 //! transitions, and protocol compliance.
 
 use crate::{
-    report::{ValidationIssue, IssueSeverity, TestScore},
-    ValidationResult, ValidationConfig,
+    report::{IssueSeverity, TestScore, ValidationIssue},
+    ValidationConfig, ValidationResult,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -95,7 +95,10 @@ impl McpSemanticValidator {
         &mut self,
         messages: &[Value],
     ) -> ValidationResult<McpSemanticResult> {
-        info!("Starting MCP protocol semantic validation for {} messages", messages.len());
+        info!(
+            "Starting MCP protocol semantic validation for {} messages",
+            messages.len()
+        );
 
         let mut result = McpSemanticResult {
             initialization: TestScore::new(0, 0),
@@ -118,7 +121,10 @@ impl McpSemanticValidator {
         // Validate overall protocol compliance
         self.validate_protocol_flow(&mut result)?;
 
-        info!("MCP semantic validation completed with {} issues", result.issues.len());
+        info!(
+            "MCP semantic validation completed with {} issues",
+            result.issues.len()
+        );
         Ok(result)
     }
 
@@ -142,20 +148,23 @@ impl McpSemanticValidator {
     ) -> ValidationResult<()> {
         // Classify the message
         let message_context = self.classify_message(message, index);
-        
+
         // Track the message in our sequence
         self.message_sequence.push(message_context.clone());
 
         // Validate based on message type and current state
         match message_context.message_type {
             MessageType::Request => {
-                self.validate_request_message(message, index, result).await?;
+                self.validate_request_message(message, index, result)
+                    .await?;
             }
             MessageType::Response => {
-                self.validate_response_message(message, index, result).await?;
+                self.validate_response_message(message, index, result)
+                    .await?;
             }
             MessageType::Notification => {
-                self.validate_notification_message(message, index, result).await?;
+                self.validate_notification_message(message, index, result)
+                    .await?;
             }
             MessageType::Error => {
                 self.validate_error_message(message, index, result).await?;
@@ -169,7 +178,7 @@ impl McpSemanticValidator {
     fn classify_message(&self, message: &Value, _index: usize) -> MessageContext {
         let timestamp = std::time::SystemTime::now();
         let id = message.get("id").cloned();
-        
+
         let message_type = if message.get("method").is_some() {
             if id.is_some() {
                 MessageType::Request
@@ -184,7 +193,8 @@ impl McpSemanticValidator {
             MessageType::Request // Default fallback
         };
 
-        let method = message.get("method")
+        let method = message
+            .get("method")
             .and_then(|m| m.as_str())
             .map(|s| s.to_string());
 
@@ -249,7 +259,13 @@ impl McpSemanticValidator {
                 }
             }
 
-            if result.issues.iter().filter(|i| i.category == "method_compliance").count() == 0 {
+            if result
+                .issues
+                .iter()
+                .filter(|i| i.category == "method_compliance")
+                .count()
+                == 0
+            {
                 result.method_compliance.passed += 1;
             }
         }
@@ -271,7 +287,10 @@ impl McpSemanticValidator {
             result.issues.push(ValidationIssue::new(
                 IssueSeverity::Error,
                 "initialization".to_string(),
-                format!("Message {}: Multiple initialize requests not allowed", index),
+                format!(
+                    "Message {}: Multiple initialize requests not allowed",
+                    index
+                ),
                 "mcp-semantic".to_string(),
             ));
             return Ok(());
@@ -289,7 +308,10 @@ impl McpSemanticValidator {
                     result.issues.push(ValidationIssue::new(
                         IssueSeverity::Warning,
                         "initialization".to_string(),
-                        format!("Message {}: Unsupported protocol version: {}", index, version),
+                        format!(
+                            "Message {}: Unsupported protocol version: {}",
+                            index, version
+                        ),
                         "mcp-semantic".to_string(),
                     ));
                 }
@@ -422,12 +444,16 @@ impl McpSemanticValidator {
         result.state_transitions.total += 1;
 
         // Check that initialization happened first if we have initialize messages
-        let has_initialize = self.message_sequence.iter()
+        let has_initialize = self
+            .message_sequence
+            .iter()
             .any(|msg| msg.method.as_ref().map_or(false, |m| m == "initialize"));
 
         if has_initialize {
             // Find first initialize message
-            let first_initialize_index = self.message_sequence.iter()
+            let first_initialize_index = self
+                .message_sequence
+                .iter()
                 .position(|msg| msg.method.as_ref().map_or(false, |m| m == "initialize"));
 
             // Check that no non-initialization messages come before initialize
@@ -504,8 +530,7 @@ impl McpSemanticValidator {
         if let Some(id) = response_id {
             // Find the most recent request with matching ID
             for msg in self.message_sequence.iter().rev() {
-                if msg.message_type == MessageType::Request 
-                   && msg.id.as_ref() == Some(id) {
+                if msg.message_type == MessageType::Request && msg.id.as_ref() == Some(id) {
                     return msg.method.clone();
                 }
             }
@@ -514,28 +539,41 @@ impl McpSemanticValidator {
     }
 
     // Specific validation implementations
-    fn validate_initialized_notification(&mut self, _message: &Value, index: usize, result: &mut McpSemanticResult) -> ValidationResult<()> {
+    fn validate_initialized_notification(
+        &mut self,
+        _message: &Value,
+        index: usize,
+        result: &mut McpSemanticResult,
+    ) -> ValidationResult<()> {
         result.initialization.total += 1;
-        
+
         if self.initialized {
             result.issues.push(ValidationIssue::new(
                 IssueSeverity::Error,
                 "initialization".to_string(),
-                format!("Message {}: Already initialized, duplicate notification", index),
+                format!(
+                    "Message {}: Already initialized, duplicate notification",
+                    index
+                ),
                 "mcp-semantic".to_string(),
             ));
             return Ok(());
         }
 
         // Check for initialization context
-        let has_prior_initialize = self.message_sequence.iter()
+        let has_prior_initialize = self
+            .message_sequence
+            .iter()
             .any(|msg| msg.method.as_ref().map_or(false, |m| m == "initialize"));
-        
+
         if !has_prior_initialize {
             result.issues.push(ValidationIssue::new(
                 IssueSeverity::Error,
                 "initialization".to_string(),
-                format!("Message {}: Initialized notification without prior initialize request", index),
+                format!(
+                    "Message {}: Initialized notification without prior initialize request",
+                    index
+                ),
                 "mcp-semantic".to_string(),
             ));
             return Ok(());
@@ -546,7 +584,12 @@ impl McpSemanticValidator {
         Ok(())
     }
 
-    fn validate_tools_list_request(&self, _message: &Value, index: usize, result: &mut McpSemanticResult) -> ValidationResult<()> {
+    fn validate_tools_list_request(
+        &self,
+        _message: &Value,
+        index: usize,
+        result: &mut McpSemanticResult,
+    ) -> ValidationResult<()> {
         if !self.initialized {
             result.issues.push(ValidationIssue::new(
                 IssueSeverity::Error,
@@ -559,7 +602,12 @@ impl McpSemanticValidator {
         Ok(())
     }
 
-    fn validate_tools_call_request(&self, message: &Value, index: usize, result: &mut McpSemanticResult) -> ValidationResult<()> {
+    fn validate_tools_call_request(
+        &self,
+        message: &Value,
+        index: usize,
+        result: &mut McpSemanticResult,
+    ) -> ValidationResult<()> {
         if !self.initialized {
             result.issues.push(ValidationIssue::new(
                 IssueSeverity::Error,
@@ -569,7 +617,7 @@ impl McpSemanticValidator {
             ));
             return Ok(());
         }
-        
+
         // Validate tool name is provided
         if let Some(params) = message.get("params") {
             if let Some(name) = params.get("name").and_then(|n| n.as_str()) {
@@ -585,7 +633,10 @@ impl McpSemanticValidator {
                 result.issues.push(ValidationIssue::new(
                     IssueSeverity::Error,
                     "method_compliance".to_string(),
-                    format!("Message {}: tools/call missing required 'name' parameter", index),
+                    format!(
+                        "Message {}: tools/call missing required 'name' parameter",
+                        index
+                    ),
                     "mcp-semantic".to_string(),
                 ));
             }
@@ -593,36 +644,55 @@ impl McpSemanticValidator {
         Ok(())
     }
 
-    fn validate_resources_list_request(&self, _message: &Value, index: usize, result: &mut McpSemanticResult) -> ValidationResult<()> {
+    fn validate_resources_list_request(
+        &self,
+        _message: &Value,
+        index: usize,
+        result: &mut McpSemanticResult,
+    ) -> ValidationResult<()> {
         if !self.initialized {
             result.issues.push(ValidationIssue::new(
                 IssueSeverity::Error,
                 "state_transitions".to_string(),
-                format!("Message {}: resources/list called before initialization", index),
+                format!(
+                    "Message {}: resources/list called before initialization",
+                    index
+                ),
                 "mcp-semantic".to_string(),
             ));
         }
         Ok(())
     }
 
-    fn validate_resources_read_request(&self, message: &Value, index: usize, result: &mut McpSemanticResult) -> ValidationResult<()> {
+    fn validate_resources_read_request(
+        &self,
+        message: &Value,
+        index: usize,
+        result: &mut McpSemanticResult,
+    ) -> ValidationResult<()> {
         if !self.initialized {
             result.issues.push(ValidationIssue::new(
                 IssueSeverity::Error,
                 "state_transitions".to_string(),
-                format!("Message {}: resources/read called before initialization", index),
+                format!(
+                    "Message {}: resources/read called before initialization",
+                    index
+                ),
                 "mcp-semantic".to_string(),
             ));
             return Ok(());
         }
-        
+
         // Validate URI is provided
         if let Some(params) = message.get("params") {
             if params.get("uri").is_none() {
                 result.issues.push(ValidationIssue::new(
                     IssueSeverity::Error,
                     "method_compliance".to_string(),
-                    format!("Message {}: resources/read missing required 'uri' parameter", index),
+                    format!(
+                        "Message {}: resources/read missing required 'uri' parameter",
+                        index
+                    ),
                     "mcp-semantic".to_string(),
                 ));
             }
@@ -630,36 +700,55 @@ impl McpSemanticValidator {
         Ok(())
     }
 
-    fn validate_prompts_list_request(&self, _message: &Value, index: usize, result: &mut McpSemanticResult) -> ValidationResult<()> {
+    fn validate_prompts_list_request(
+        &self,
+        _message: &Value,
+        index: usize,
+        result: &mut McpSemanticResult,
+    ) -> ValidationResult<()> {
         if !self.initialized {
             result.issues.push(ValidationIssue::new(
                 IssueSeverity::Error,
                 "state_transitions".to_string(),
-                format!("Message {}: prompts/list called before initialization", index),
+                format!(
+                    "Message {}: prompts/list called before initialization",
+                    index
+                ),
                 "mcp-semantic".to_string(),
             ));
         }
         Ok(())
     }
 
-    fn validate_prompts_get_request(&self, message: &Value, index: usize, result: &mut McpSemanticResult) -> ValidationResult<()> {
+    fn validate_prompts_get_request(
+        &self,
+        message: &Value,
+        index: usize,
+        result: &mut McpSemanticResult,
+    ) -> ValidationResult<()> {
         if !self.initialized {
             result.issues.push(ValidationIssue::new(
                 IssueSeverity::Error,
                 "state_transitions".to_string(),
-                format!("Message {}: prompts/get called before initialization", index),
+                format!(
+                    "Message {}: prompts/get called before initialization",
+                    index
+                ),
                 "mcp-semantic".to_string(),
             ));
             return Ok(());
         }
-        
+
         // Validate name is provided
         if let Some(params) = message.get("params") {
             if params.get("name").is_none() {
                 result.issues.push(ValidationIssue::new(
                     IssueSeverity::Error,
                     "method_compliance".to_string(),
-                    format!("Message {}: prompts/get missing required 'name' parameter", index),
+                    format!(
+                        "Message {}: prompts/get missing required 'name' parameter",
+                        index
+                    ),
                     "mcp-semantic".to_string(),
                 ));
             }
@@ -667,12 +756,22 @@ impl McpSemanticValidator {
         Ok(())
     }
 
-    fn validate_ping_request(&self, _message: &Value, _index: usize, _result: &mut McpSemanticResult) -> ValidationResult<()> {
+    fn validate_ping_request(
+        &self,
+        _message: &Value,
+        _index: usize,
+        _result: &mut McpSemanticResult,
+    ) -> ValidationResult<()> {
         // Ping can be called at any time
         Ok(())
     }
 
-    fn validate_logging_request(&self, message: &Value, index: usize, result: &mut McpSemanticResult) -> ValidationResult<()> {
+    fn validate_logging_request(
+        &self,
+        message: &Value,
+        index: usize,
+        result: &mut McpSemanticResult,
+    ) -> ValidationResult<()> {
         // Validate log level if provided
         if let Some(params) = message.get("params") {
             if let Some(level) = params.get("level").and_then(|l| l.as_str()) {
@@ -689,19 +788,33 @@ impl McpSemanticValidator {
         Ok(())
     }
 
-    fn validate_sampling_request(&self, _message: &Value, index: usize, result: &mut McpSemanticResult) -> ValidationResult<()> {
+    fn validate_sampling_request(
+        &self,
+        _message: &Value,
+        index: usize,
+        result: &mut McpSemanticResult,
+    ) -> ValidationResult<()> {
         if !self.initialized {
             result.issues.push(ValidationIssue::new(
                 IssueSeverity::Error,
                 "state_transitions".to_string(),
-                format!("Message {}: sampling/createMessage called before initialization", index),
+                format!(
+                    "Message {}: sampling/createMessage called before initialization",
+                    index
+                ),
                 "mcp-semantic".to_string(),
             ));
         }
         Ok(())
     }
 
-    fn validate_custom_method(&self, method: &str, _message: &Value, index: usize, result: &mut McpSemanticResult) -> ValidationResult<()> {
+    fn validate_custom_method(
+        &self,
+        method: &str,
+        _message: &Value,
+        index: usize,
+        result: &mut McpSemanticResult,
+    ) -> ValidationResult<()> {
         // Check if method follows MCP naming conventions
         if !method.contains('/') {
             result.issues.push(ValidationIssue::new(
@@ -714,20 +827,25 @@ impl McpSemanticValidator {
         Ok(())
     }
 
-    fn validate_initialize_response(&mut self, message: &Value, index: usize, result: &mut McpSemanticResult) -> ValidationResult<()> {
+    fn validate_initialize_response(
+        &mut self,
+        message: &Value,
+        index: usize,
+        result: &mut McpSemanticResult,
+    ) -> ValidationResult<()> {
         result.initialization.total += 1;
-        
+
         if let Some(response_result) = message.get("result") {
             // Validate required fields
             self.validate_required_field(response_result, "protocolVersion", index, result)?;
             self.validate_required_field(response_result, "capabilities", index, result)?;
             self.validate_required_field(response_result, "serverInfo", index, result)?;
-            
+
             // Store server capabilities
             if let Some(capabilities) = response_result.get("capabilities") {
                 self.server_capabilities = self.extract_capabilities(capabilities);
             }
-            
+
             result.initialization.passed += 1;
         } else {
             result.issues.push(ValidationIssue::new(
@@ -740,7 +858,12 @@ impl McpSemanticValidator {
         Ok(())
     }
 
-    fn validate_tools_list_response(&mut self, message: &Value, _index: usize, _result: &mut McpSemanticResult) -> ValidationResult<()> {
+    fn validate_tools_list_response(
+        &mut self,
+        message: &Value,
+        _index: usize,
+        _result: &mut McpSemanticResult,
+    ) -> ValidationResult<()> {
         if let Some(response_result) = message.get("result") {
             if let Some(tools) = response_result.get("tools").and_then(|t| t.as_array()) {
                 for tool in tools {
@@ -753,7 +876,12 @@ impl McpSemanticValidator {
         Ok(())
     }
 
-    fn validate_resources_list_response(&mut self, message: &Value, _index: usize, _result: &mut McpSemanticResult) -> ValidationResult<()> {
+    fn validate_resources_list_response(
+        &mut self,
+        message: &Value,
+        _index: usize,
+        _result: &mut McpSemanticResult,
+    ) -> ValidationResult<()> {
         if let Some(response_result) = message.get("result") {
             if let Some(resources) = response_result.get("resources").and_then(|r| r.as_array()) {
                 for resource in resources {
@@ -766,7 +894,12 @@ impl McpSemanticValidator {
         Ok(())
     }
 
-    fn validate_prompts_list_response(&mut self, message: &Value, _index: usize, _result: &mut McpSemanticResult) -> ValidationResult<()> {
+    fn validate_prompts_list_response(
+        &mut self,
+        message: &Value,
+        _index: usize,
+        _result: &mut McpSemanticResult,
+    ) -> ValidationResult<()> {
         if let Some(response_result) = message.get("result") {
             if let Some(prompts) = response_result.get("prompts").and_then(|p| p.as_array()) {
                 for prompt in prompts {
@@ -779,27 +912,43 @@ impl McpSemanticValidator {
         Ok(())
     }
 
-    fn validate_generic_response(&self, message: &Value, index: usize, result: &mut McpSemanticResult) -> ValidationResult<()> {
+    fn validate_generic_response(
+        &self,
+        message: &Value,
+        index: usize,
+        result: &mut McpSemanticResult,
+    ) -> ValidationResult<()> {
         // Generic response validation - check it has either result or error
         if message.get("result").is_none() && message.get("error").is_none() {
             result.issues.push(ValidationIssue::new(
                 IssueSeverity::Error,
                 "schema_compliance".to_string(),
-                format!("Message {}: Response missing both 'result' and 'error'", index),
+                format!(
+                    "Message {}: Response missing both 'result' and 'error'",
+                    index
+                ),
                 "mcp-semantic".to_string(),
             ));
         }
         Ok(())
     }
 
-    fn validate_cancelled_notification(&self, message: &Value, index: usize, result: &mut McpSemanticResult) -> ValidationResult<()> {
+    fn validate_cancelled_notification(
+        &self,
+        message: &Value,
+        index: usize,
+        result: &mut McpSemanticResult,
+    ) -> ValidationResult<()> {
         // Validate request ID is provided
         if let Some(params) = message.get("params") {
             if params.get("requestId").is_none() {
                 result.issues.push(ValidationIssue::new(
                     IssueSeverity::Error,
                     "method_compliance".to_string(),
-                    format!("Message {}: cancelled notification missing 'requestId'", index),
+                    format!(
+                        "Message {}: cancelled notification missing 'requestId'",
+                        index
+                    ),
                     "mcp-semantic".to_string(),
                 ));
             }
@@ -807,14 +956,22 @@ impl McpSemanticValidator {
         Ok(())
     }
 
-    fn validate_progress_notification(&self, message: &Value, index: usize, result: &mut McpSemanticResult) -> ValidationResult<()> {
+    fn validate_progress_notification(
+        &self,
+        message: &Value,
+        index: usize,
+        result: &mut McpSemanticResult,
+    ) -> ValidationResult<()> {
         // Validate progress token and value
         if let Some(params) = message.get("params") {
             if params.get("progressToken").is_none() {
                 result.issues.push(ValidationIssue::new(
                     IssueSeverity::Error,
                     "method_compliance".to_string(),
-                    format!("Message {}: progress notification missing 'progressToken'", index),
+                    format!(
+                        "Message {}: progress notification missing 'progressToken'",
+                        index
+                    ),
                     "mcp-semantic".to_string(),
                 ));
             }
@@ -822,17 +979,32 @@ impl McpSemanticValidator {
         Ok(())
     }
 
-    fn validate_message_notification(&self, _message: &Value, _index: usize, _result: &mut McpSemanticResult) -> ValidationResult<()> {
+    fn validate_message_notification(
+        &self,
+        _message: &Value,
+        _index: usize,
+        _result: &mut McpSemanticResult,
+    ) -> ValidationResult<()> {
         // Message notifications are generally free-form
         Ok(())
     }
 
-    fn validate_resources_updated_notification(&self, _message: &Value, _index: usize, _result: &mut McpSemanticResult) -> ValidationResult<()> {
+    fn validate_resources_updated_notification(
+        &self,
+        _message: &Value,
+        _index: usize,
+        _result: &mut McpSemanticResult,
+    ) -> ValidationResult<()> {
         // Resources updated notifications don't require specific validation
         Ok(())
     }
 
-    fn validate_tools_list_changed_notification(&self, _message: &Value, _index: usize, _result: &mut McpSemanticResult) -> ValidationResult<()> {
+    fn validate_tools_list_changed_notification(
+        &self,
+        _message: &Value,
+        _index: usize,
+        _result: &mut McpSemanticResult,
+    ) -> ValidationResult<()> {
         // Tools list changed notifications don't require specific validation
         Ok(())
     }
@@ -853,7 +1025,7 @@ mod tests {
     #[tokio::test]
     async fn test_initialize_sequence_validation() {
         let mut validator = McpSemanticValidator::new(ValidationConfig::default());
-        
+
         let messages = vec![
             json!({
                 "jsonrpc": "2.0",
@@ -876,7 +1048,10 @@ mod tests {
             }),
         ];
 
-        let result = validator.validate_protocol_semantics(&messages).await.unwrap();
+        let result = validator
+            .validate_protocol_semantics(&messages)
+            .await
+            .unwrap();
         // The validation counts both request and response
         assert_eq!(result.initialization.passed, 2);
         assert_eq!(result.initialization.total, 2);
@@ -885,28 +1060,32 @@ mod tests {
     #[tokio::test]
     async fn test_invalid_protocol_version() {
         let mut validator = McpSemanticValidator::new(ValidationConfig::default());
-        
-        let messages = vec![
-            json!({
-                "jsonrpc": "2.0",
-                "method": "initialize",
-                "params": {
-                    "protocolVersion": "invalid-version",
-                    "capabilities": {},
-                    "clientInfo": {"name": "test", "version": "1.0"}
-                },
-                "id": 1
-            }),
-        ];
 
-        let result = validator.validate_protocol_semantics(&messages).await.unwrap();
-        assert!(result.issues.iter().any(|i| i.description.contains("Unsupported protocol version")));
+        let messages = vec![json!({
+            "jsonrpc": "2.0",
+            "method": "initialize",
+            "params": {
+                "protocolVersion": "invalid-version",
+                "capabilities": {},
+                "clientInfo": {"name": "test", "version": "1.0"}
+            },
+            "id": 1
+        })];
+
+        let result = validator
+            .validate_protocol_semantics(&messages)
+            .await
+            .unwrap();
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.description.contains("Unsupported protocol version")));
     }
 
     #[tokio::test]
     async fn test_method_before_initialization() {
         let mut validator = McpSemanticValidator::new(ValidationConfig::default());
-        
+
         let messages = vec![
             json!({
                 "jsonrpc": "2.0",
@@ -925,7 +1104,13 @@ mod tests {
             }),
         ];
 
-        let result = validator.validate_protocol_semantics(&messages).await.unwrap();
-        assert!(result.issues.iter().any(|i| i.description.contains("called before initialization")));
+        let result = validator
+            .validate_protocol_semantics(&messages)
+            .await
+            .unwrap();
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.description.contains("called before initialization")));
     }
 }

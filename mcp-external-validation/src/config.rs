@@ -113,10 +113,10 @@ pub struct TestingConfig {
 
     /// Custom timeout for individual tests
     pub test_timeout: u64,
-    
+
     /// Enable Python SDK compatibility testing
     pub python_sdk_compatibility: bool,
-    
+
     /// Fuzzing configuration
     pub fuzzing: FuzzingConfig,
 }
@@ -126,19 +126,19 @@ pub struct TestingConfig {
 pub struct FuzzingConfig {
     /// Maximum iterations per fuzz target
     pub max_iterations: usize,
-    
+
     /// Random seed for reproducible fuzzing
     pub seed: Option<u64>,
-    
+
     /// Enable all fuzz targets
     pub all_targets: bool,
-    
+
     /// Specific targets to fuzz
     pub targets: Vec<String>,
-    
+
     /// Save crash inputs for reproduction
     pub save_crashes: bool,
-    
+
     /// Directory to save crash inputs
     pub crash_dir: PathBuf,
 }
@@ -193,7 +193,10 @@ impl Default for JsonRpcConfig {
 impl Default for ProtocolConfig {
     fn default() -> Self {
         Self {
-            versions: crate::SUPPORTED_MCP_VERSIONS.iter().map(|s| s.to_string()).collect(),
+            versions: crate::SUPPORTED_MCP_VERSIONS
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
             strict_compliance: true,
             test_backward_compatibility: true,
             test_forward_compatibility: false,
@@ -235,13 +238,13 @@ impl Default for FuzzingConfig {
 impl ValidationConfig {
     /// Load configuration from file
     pub fn from_file<P: AsRef<std::path::Path>>(path: P) -> ValidationResult<Self> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| ValidationError::ConfigurationError {
+        let content =
+            std::fs::read_to_string(path).map_err(|e| ValidationError::ConfigurationError {
                 message: format!("Failed to read config file: {}", e),
             })?;
 
-        let config: Self = toml::from_str(&content)
-            .map_err(|e| ValidationError::ConfigurationError {
+        let config: Self =
+            toml::from_str(&content).map_err(|e| ValidationError::ConfigurationError {
                 message: format!("Failed to parse config file: {}", e),
             })?;
 
@@ -263,17 +266,20 @@ impl ValidationConfig {
         }
 
         if let Ok(timeout) = std::env::var("MCP_TEST_TIMEOUT") {
-            config.testing.test_timeout = timeout.parse()
-                .map_err(|e| ValidationError::ConfigurationError {
-                    message: format!("Invalid MCP_TEST_TIMEOUT: {}", e),
-                })?;
+            config.testing.test_timeout =
+                timeout
+                    .parse()
+                    .map_err(|e| ValidationError::ConfigurationError {
+                        message: format!("Invalid MCP_TEST_TIMEOUT: {}", e),
+                    })?;
         }
 
         if let Ok(port) = std::env::var("MCP_INSPECTOR_PORT") {
-            config.inspector.port = port.parse()
-                .map_err(|e| ValidationError::ConfigurationError {
-                    message: format!("Invalid MCP_INSPECTOR_PORT: {}", e),
-                })?;
+            config.inspector.port =
+                port.parse()
+                    .map_err(|e| ValidationError::ConfigurationError {
+                        message: format!("Invalid MCP_INSPECTOR_PORT: {}", e),
+                    })?;
         }
 
         config.validate()?;
@@ -385,8 +391,8 @@ impl ValidationConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::NamedTempFile;
     use std::io::Write;
+    use tempfile::NamedTempFile;
 
     #[test]
     fn test_default_config() {
@@ -399,11 +405,11 @@ mod tests {
     #[test]
     fn test_config_validation() {
         let mut config = ValidationConfig::default();
-        
+
         // Test invalid URL
         config.validator.api_url = "not-a-url".to_string();
         assert!(config.validate().is_err());
-        
+
         // Test invalid port
         config.validator.api_url = "https://api.example.com".to_string();
         config.inspector.port = 0;
@@ -456,7 +462,8 @@ save_crashes = true
 crash_dir = "crashes"
 targets = []
             "#
-        ).unwrap();
+        )
+        .unwrap();
 
         let config = ValidationConfig::from_file(file.path()).unwrap();
         assert_eq!(config.validator.api_url, "https://test.example.com");
@@ -470,7 +477,13 @@ targets = []
     #[test]
     fn test_timeout_durations() {
         let config = ValidationConfig::default();
-        assert_eq!(config.timeout_duration(), Duration::from_secs(DEFAULT_TIMEOUT_SECONDS));
-        assert_eq!(config.validator_timeout_duration(), Duration::from_secs(DEFAULT_TIMEOUT_SECONDS));
+        assert_eq!(
+            config.timeout_duration(),
+            Duration::from_secs(DEFAULT_TIMEOUT_SECONDS)
+        );
+        assert_eq!(
+            config.validator_timeout_duration(),
+            Duration::from_secs(DEFAULT_TIMEOUT_SECONDS)
+        );
     }
 }

@@ -5,16 +5,19 @@
 //! vulnerability scanning.
 
 use crate::{
-    report::{ValidationIssue, IssueSeverity, TestScore},
-    ValidationResult, ValidationConfig, ValidationError,
+    report::{IssueSeverity, TestScore, ValidationIssue},
+    ValidationConfig, ValidationError, ValidationResult,
+};
+use reqwest::{
+    header::{HeaderMap, HeaderValue, AUTHORIZATION},
+    Client,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::time::Duration;
-use tracing::{info, warn, error, debug};
-use reqwest::{Client, header::{HeaderMap, HeaderValue, AUTHORIZATION}};
 use tokio::time::timeout;
+use tracing::{debug, error, info, warn};
 
 /// Security validation tester
 pub struct SecurityTester {
@@ -247,7 +250,8 @@ impl SecurityTester {
         };
 
         // Test transport security
-        self.test_transport_security(server_url, &mut result).await?;
+        self.test_transport_security(server_url, &mut result)
+            .await?;
 
         // Test security headers
         self.test_security_headers(server_url, &mut result).await?;
@@ -262,7 +266,8 @@ impl SecurityTester {
         self.test_input_validation(server_url, &mut result).await?;
 
         // Test session management
-        self.test_session_management(server_url, &mut result).await?;
+        self.test_session_management(server_url, &mut result)
+            .await?;
 
         // Run vulnerability scans
         self.run_vulnerability_scan(server_url, &mut result).await?;
@@ -271,23 +276,23 @@ impl SecurityTester {
         self.test_rate_limiting(server_url, &mut result).await?;
 
         // Calculate overall security score
-        let total_tests = result.authentication.total +
-            result.authorization.total +
-            result.input_validation.total +
-            result.transport_security.total +
-            result.session_management.total +
-            result.vulnerability_scan.total +
-            result.security_headers.total +
-            result.rate_limiting.total;
+        let total_tests = result.authentication.total
+            + result.authorization.total
+            + result.input_validation.total
+            + result.transport_security.total
+            + result.session_management.total
+            + result.vulnerability_scan.total
+            + result.security_headers.total
+            + result.rate_limiting.total;
 
-        let passed_tests = result.authentication.passed +
-            result.authorization.passed +
-            result.input_validation.passed +
-            result.transport_security.passed +
-            result.session_management.passed +
-            result.vulnerability_scan.passed +
-            result.security_headers.passed +
-            result.rate_limiting.passed;
+        let passed_tests = result.authentication.passed
+            + result.authorization.passed
+            + result.input_validation.passed
+            + result.transport_security.passed
+            + result.session_management.passed
+            + result.vulnerability_scan.passed
+            + result.security_headers.passed
+            + result.rate_limiting.passed;
 
         result.security_score = if total_tests > 0 {
             (passed_tests as f64 / total_tests as f64) * 100.0
@@ -321,12 +326,15 @@ impl SecurityTester {
         if url.scheme() == "https" {
             result.transport_security.passed += 1;
         } else {
-            result.issues.push(ValidationIssue::new(
-                IssueSeverity::Error,
-                "transport".to_string(),
-                "Server not using HTTPS".to_string(),
-                "security-tester".to_string(),
-            ).with_suggestion("Use HTTPS for all MCP server communications".to_string()));
+            result.issues.push(
+                ValidationIssue::new(
+                    IssueSeverity::Error,
+                    "transport".to_string(),
+                    "Server not using HTTPS".to_string(),
+                    "security-tester".to_string(),
+                )
+                .with_suggestion("Use HTTPS for all MCP server communications".to_string()),
+            );
         }
 
         // Test TLS version and cipher suites (would require more sophisticated testing)
@@ -347,13 +355,19 @@ impl SecurityTester {
         match self.http_client.get(server_url).send().await {
             Ok(response) => {
                 let headers = response.headers();
-                
+
                 // Check for important security headers
                 let security_headers = [
                     ("strict-transport-security", "HSTS header missing"),
-                    ("x-content-type-options", "X-Content-Type-Options header missing"),
+                    (
+                        "x-content-type-options",
+                        "X-Content-Type-Options header missing",
+                    ),
                     ("x-frame-options", "X-Frame-Options header missing"),
-                    ("content-security-policy", "Content-Security-Policy header missing"),
+                    (
+                        "content-security-policy",
+                        "Content-Security-Policy header missing",
+                    ),
                     ("referrer-policy", "Referrer-Policy header missing"),
                 ];
 
@@ -399,7 +413,7 @@ impl SecurityTester {
 
         for scenario in auth_scenarios {
             result.authentication.total += 1;
-            
+
             match self.test_auth_scenario(server_url, &scenario).await {
                 Ok(passed) => {
                     if passed {
@@ -426,7 +440,7 @@ impl SecurityTester {
     fn check_framework_auth_issues(&self, result: &mut SecurityResult) {
         // Check for pulseengine_mcp_auth API key management completeness
         result.authentication.total += 1;
-        
+
         // Try to run the framework completeness check via the CLI
         match std::process::Command::new("mcp-auth-cli")
             .arg("check")
@@ -437,8 +451,13 @@ impl SecurityTester {
             Ok(output) if output.status.success() => {
                 // Parse the JSON output to check completeness
                 if let Ok(completeness_str) = String::from_utf8(output.stdout) {
-                    if let Ok(completeness) = serde_json::from_str::<serde_json::Value>(&completeness_str) {
-                        if let Some(production_ready) = completeness.get("production_ready").and_then(|v| v.as_bool()) {
+                    if let Ok(completeness) =
+                        serde_json::from_str::<serde_json::Value>(&completeness_str)
+                    {
+                        if let Some(production_ready) = completeness
+                            .get("production_ready")
+                            .and_then(|v| v.as_bool())
+                        {
                             if production_ready {
                                 // Framework has complete API key management
                                 result.authentication.passed += 1;
@@ -477,7 +496,7 @@ impl SecurityTester {
                 // CLI not available or failed, fall back to static check
             }
         }
-        
+
         // Framework check failed or incomplete - report the critical issue
         result.issues.push(ValidationIssue::new(
             IssueSeverity::Critical,
@@ -505,7 +524,7 @@ impl SecurityTester {
                 "validate_key(key: &str) -> Result<KeyValidation>"
             ])
         ));
-        
+
         // Mark this test as failed since it's a critical framework limitation
         result.authentication.passed += 0;
     }
@@ -517,11 +536,12 @@ impl SecurityTester {
         scenario: &AuthenticationScenario,
     ) -> ValidationResult<bool> {
         let mut headers = HeaderMap::new();
-        
+
         match scenario {
             AuthenticationScenario::NoAuth => {
                 // Test accessing protected resources without auth
-                let response = self.http_client
+                let response = self
+                    .http_client
                     .post(format!("{}/rpc", server_url))
                     .json(&json!({
                         "jsonrpc": "2.0",
@@ -530,20 +550,24 @@ impl SecurityTester {
                     }))
                     .send()
                     .await?;
-                
+
                 // Check if authentication is actually enforced
                 if response.status().is_success() {
                     // Server allows access without auth - likely disabled due to framework issue
                     warn!("Server accepts requests without authentication - likely disabled due to framework limitations");
                     return Ok(false);
                 }
-                
+
                 // Should require authentication
                 Ok(response.status().as_u16() == 401 || response.status().as_u16() == 403)
             }
             AuthenticationScenario::InvalidCredentials => {
-                headers.insert(AUTHORIZATION, HeaderValue::from_static("Bearer invalid-token"));
-                let response = self.http_client
+                headers.insert(
+                    AUTHORIZATION,
+                    HeaderValue::from_static("Bearer invalid-token"),
+                );
+                let response = self
+                    .http_client
                     .post(format!("{}/rpc", server_url))
                     .headers(headers)
                     .json(&json!({
@@ -553,7 +577,7 @@ impl SecurityTester {
                     }))
                     .send()
                     .await?;
-                
+
                 // Should reject invalid credentials
                 Ok(response.status().as_u16() == 401)
             }
@@ -562,8 +586,12 @@ impl SecurityTester {
                 Ok(true) // Placeholder
             }
             AuthenticationScenario::MalformedToken => {
-                headers.insert(AUTHORIZATION, HeaderValue::from_static("Bearer malformed.token.here"));
-                let response = self.http_client
+                headers.insert(
+                    AUTHORIZATION,
+                    HeaderValue::from_static("Bearer malformed.token.here"),
+                );
+                let response = self
+                    .http_client
                     .post(format!("{}/rpc", server_url))
                     .headers(headers)
                     .json(&json!({
@@ -573,7 +601,7 @@ impl SecurityTester {
                     }))
                     .send()
                     .await?;
-                
+
                 // Should reject malformed tokens
                 Ok(response.status().as_u16() == 401)
             }
@@ -608,17 +636,24 @@ impl SecurityTester {
             // Oversized input
             ("oversized_input", "x".repeat(1024 * 1024)), // 1MB string
             // Special characters
-            ("special_chars", r#"!@#$%^&*()_+-=[]{}|;':",./<>?"#.to_string()),
+            (
+                "special_chars",
+                r#"!@#$%^&*()_+-=[]{}|;':",./<>?"#.to_string(),
+            ),
             // Unicode edge cases
-            ("unicode_edge", "𝕳𝖊𝖑𝖑𝖔 𝖂𝖔𝖗𝖑𝖉 🔥 \u{200B} \u{FEFF}".to_string()),
+            (
+                "unicode_edge",
+                "𝕳𝖊𝖑𝖑𝖔 𝖂𝖔𝖗𝖑𝖉 🔥 \u{200B} \u{FEFF}".to_string(),
+            ),
             // Null bytes
             ("null_bytes", "test\0data".to_string()),
         ];
 
         for (test_name, payload) in test_inputs {
             result.input_validation.total += 1;
-            
-            let response = self.http_client
+
+            let response = self
+                .http_client
                 .post(format!("{}/rpc", server_url))
                 .json(&json!({
                     "jsonrpc": "2.0",
@@ -630,7 +665,7 @@ impl SecurityTester {
                 }))
                 .send()
                 .await;
-            
+
             match response {
                 Ok(resp) => {
                     // Server should handle gracefully
@@ -688,27 +723,25 @@ impl SecurityTester {
         for vuln_test in &self.vulnerability_tests {
             for payload in &vuln_test.payloads {
                 result.vulnerability_scan.total += 1;
-                
-                let response = self.test_vulnerability_payload(
-                    server_url,
-                    &vuln_test.vulnerability_type,
-                    payload,
-                ).await;
-                
+
+                let response = self
+                    .test_vulnerability_payload(server_url, &vuln_test.vulnerability_type, payload)
+                    .await;
+
                 match response {
                     Ok(is_vulnerable) => {
                         if !is_vulnerable {
                             result.vulnerability_scan.passed += 1;
                         } else {
-                            result.issues.push(ValidationIssue::new(
-                                IssueSeverity::Critical,
-                                "vulnerability".to_string(),
-                                format!("{} vulnerability detected", vuln_test.name),
-                                "security-tester".to_string(),
-                            ).with_detail(
-                                "payload".to_string(),
-                                json!(payload)
-                            ));
+                            result.issues.push(
+                                ValidationIssue::new(
+                                    IssueSeverity::Critical,
+                                    "vulnerability".to_string(),
+                                    format!("{} vulnerability detected", vuln_test.name),
+                                    "security-tester".to_string(),
+                                )
+                                .with_detail("payload".to_string(), json!(payload)),
+                            );
                         }
                     }
                     Err(e) => {
@@ -731,9 +764,9 @@ impl SecurityTester {
         payload: &str,
     ) -> ValidationResult<bool> {
         let test_request = match vuln_type {
-            VulnerabilityType::SqlInjection |
-            VulnerabilityType::CommandInjection |
-            VulnerabilityType::JsonInjection => {
+            VulnerabilityType::SqlInjection
+            | VulnerabilityType::CommandInjection
+            | VulnerabilityType::JsonInjection => {
                 json!({
                     "jsonrpc": "2.0",
                     "method": "tools/call",
@@ -771,7 +804,8 @@ impl SecurityTester {
             }
         };
 
-        let response = self.http_client
+        let response = self
+            .http_client
             .post(format!("{}/rpc", server_url))
             .json(&test_request)
             .timeout(Duration::from_secs(5))
@@ -781,24 +815,28 @@ impl SecurityTester {
         match response {
             Ok(resp) => {
                 let body = resp.text().await.unwrap_or_default();
-                
+
                 // Check for signs of vulnerability in response
                 let is_vulnerable = match vuln_type {
                     VulnerabilityType::SqlInjection => {
-                        body.contains("SQL") || body.contains("syntax error") ||
-                        body.contains("mysql") || body.contains("postgres")
+                        body.contains("SQL")
+                            || body.contains("syntax error")
+                            || body.contains("mysql")
+                            || body.contains("postgres")
                     }
                     VulnerabilityType::CommandInjection => {
-                        body.contains("uid=") || body.contains("root:") ||
-                        body.contains("command not found")
+                        body.contains("uid=")
+                            || body.contains("root:")
+                            || body.contains("command not found")
                     }
                     VulnerabilityType::PathTraversal => {
-                        body.contains("root:") || body.contains("[boot loader]") ||
-                        body.contains("daemon:")
+                        body.contains("root:")
+                            || body.contains("[boot loader]")
+                            || body.contains("daemon:")
                     }
                     _ => false,
                 };
-                
+
                 Ok(is_vulnerable)
             }
             Err(_) => Ok(false), // Connection error might mean payload was blocked
@@ -820,7 +858,7 @@ impl SecurityTester {
         for i in 0..50 {
             let client = self.http_client.clone();
             let url = format!("{}/rpc", server_url);
-            
+
             let fut = async move {
                 let response = client
                     .post(&url)
@@ -831,29 +869,33 @@ impl SecurityTester {
                     }))
                     .send()
                     .await;
-                
+
                 response.map(|r| r.status().as_u16())
             };
-            
+
             futures.push(fut);
         }
 
         let results = futures::future::join_all(futures).await;
-        
+
         // Check if any requests were rate limited
-        let rate_limited = results.iter()
+        let rate_limited = results
+            .iter()
             .filter_map(|r| r.as_ref().ok())
             .any(|&status| status == 429);
-        
+
         if rate_limited {
             result.rate_limiting.passed += 1;
         } else {
-            result.issues.push(ValidationIssue::new(
-                IssueSeverity::Warning,
-                "rate-limiting".to_string(),
-                "No rate limiting detected".to_string(),
-                "security-tester".to_string(),
-            ).with_suggestion("Implement rate limiting to prevent abuse".to_string()));
+            result.issues.push(
+                ValidationIssue::new(
+                    IssueSeverity::Warning,
+                    "rate-limiting".to_string(),
+                    "No rate limiting detected".to_string(),
+                    "security-tester".to_string(),
+                )
+                .with_suggestion("Implement rate limiting to prevent abuse".to_string()),
+            );
         }
 
         Ok(())
@@ -868,11 +910,15 @@ mod tests {
     fn test_vulnerability_test_creation() {
         let tests = SecurityTester::create_vulnerability_tests();
         assert!(!tests.is_empty());
-        
+
         // Verify we have tests for major vulnerability types
-        let has_sql = tests.iter().any(|t| matches!(t.vulnerability_type, VulnerabilityType::SqlInjection));
-        let has_cmd = tests.iter().any(|t| matches!(t.vulnerability_type, VulnerabilityType::CommandInjection));
-        
+        let has_sql = tests
+            .iter()
+            .any(|t| matches!(t.vulnerability_type, VulnerabilityType::SqlInjection));
+        let has_cmd = tests
+            .iter()
+            .any(|t| matches!(t.vulnerability_type, VulnerabilityType::CommandInjection));
+
         assert!(has_sql);
         assert!(has_cmd);
     }

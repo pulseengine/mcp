@@ -1,9 +1,9 @@
 //! Authentication models
 
+use crate::crypto::hashing::Salt;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fmt;
-use crate::crypto::hashing::Salt;
 
 /// API key for authentication with comprehensive metadata
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,25 +38,30 @@ pub struct ApiKey {
 
 impl ApiKey {
     /// Create a new API key with secure random generation
-    pub fn new(name: String, role: Role, expires_at: Option<DateTime<Utc>>, ip_whitelist: Vec<String>) -> Self {
-        use crate::crypto::keys::{generate_key_id, generate_secure_key};
+    pub fn new(
+        name: String,
+        role: Role,
+        expires_at: Option<DateTime<Utc>>,
+        ip_whitelist: Vec<String>,
+    ) -> Self {
         use crate::crypto::hashing::{generate_salt, hash_api_key};
-        
+        use crate::crypto::keys::{generate_key_id, generate_secure_key};
+
         let role_str = match &role {
             Role::Admin => "admin",
-            Role::Operator => "op", 
+            Role::Operator => "op",
             Role::Monitor => "mon",
             Role::Device { .. } => "dev",
             Role::Custom { .. } => "custom",
         };
-        
+
         let id = generate_key_id(role_str);
         let secret = generate_secure_key();
-        
+
         // Generate salt and hash for secure storage
         let salt = generate_salt();
         let secret_hash = hash_api_key(&secret, &salt);
-        
+
         Self {
             id,
             name,
@@ -92,11 +97,14 @@ impl ApiKey {
         self.last_used = Some(Utc::now());
         self.usage_count += 1;
     }
-    
+
     /// Verify if the provided key matches the stored hash
-    pub fn verify_key(&self, provided_key: &str) -> Result<bool, crate::crypto::hashing::HashingError> {
+    pub fn verify_key(
+        &self,
+        provided_key: &str,
+    ) -> Result<bool, crate::crypto::hashing::HashingError> {
         use crate::crypto::hashing::verify_api_key;
-        
+
         if let (Some(ref hash), Some(ref salt)) = (&self.secret_hash, &self.salt) {
             verify_api_key(provided_key, hash, salt)
         } else {
@@ -104,7 +112,7 @@ impl ApiKey {
             Ok(provided_key == self.key)
         }
     }
-    
+
     /// Convert to secure storage format (without plain text key)
     pub fn to_secure_storage(&self) -> SecureApiKey {
         SecureApiKey {
@@ -170,7 +178,7 @@ impl SecureApiKey {
             usage_count: self.usage_count,
         }
     }
-    
+
     /// Check if the key is expired
     pub fn is_expired(&self) -> bool {
         if let Some(expires_at) = self.expires_at {
@@ -184,11 +192,14 @@ impl SecureApiKey {
     pub fn is_valid(&self) -> bool {
         self.active && !self.is_expired()
     }
-    
+
     /// Verify if the provided key matches the stored hash
-    pub fn verify_key(&self, provided_key: &str) -> Result<bool, crate::crypto::hashing::HashingError> {
+    pub fn verify_key(
+        &self,
+        provided_key: &str,
+    ) -> Result<bool, crate::crypto::hashing::HashingError> {
         use crate::crypto::hashing::verify_api_key;
-        
+
         if let (Some(ref hash), Some(ref salt)) = (&self.secret_hash, &self.salt) {
             verify_api_key(provided_key, hash, salt)
         } else {
@@ -331,7 +342,9 @@ pub struct AuthContext {
 impl AuthContext {
     /// Check if this context has a specific permission
     pub fn has_permission(&self, permission: &str) -> bool {
-        self.roles.iter().any(|role| role.has_permission(permission))
+        self.roles
+            .iter()
+            .any(|role| role.has_permission(permission))
     }
 
     /// Get all permissions for this context

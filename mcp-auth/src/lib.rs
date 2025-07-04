@@ -1,6 +1,6 @@
 //! # MCP Authentication and Authorization Framework
 //!
-//! A comprehensive, drop-in security framework for Model Context Protocol (MCP) servers 
+//! A comprehensive, drop-in security framework for Model Context Protocol (MCP) servers
 //! providing enterprise-grade authentication, authorization, session management, and security monitoring.
 //!
 //! ## Quick Start
@@ -285,20 +285,48 @@ pub mod vault;
 
 // Re-export main types
 pub use config::AuthConfig;
-pub use consent::{ConsentRecord, ConsentType, ConsentStatus, LegalBasis, ConsentError, ConsentSummary, ConsentAuditEntry};
-pub use consent::manager::{ConsentManager, ConsentConfig, ConsentStorage, MemoryConsentStorage};
-pub use manager::{AuthenticationManager, ValidationConfig, RateLimitStats, RoleRateLimitConfig, RoleRateLimitStats};
-pub use manager_vault::{VaultAuthenticationManager, VaultAuthManagerError, VaultStatus};
-pub use middleware::{McpAuthMiddleware, McpAuthConfig, AuthExtractionError, SessionMiddleware, SessionMiddlewareConfig, SessionRequestContext, SessionMiddlewareError};
-pub use models::{ApiKey, SecureApiKey, AuthContext, AuthResult, Role, KeyCreationRequest, KeyUsageStats, ApiCompletenessCheck};
-pub use monitoring::{SecurityMonitor, SecurityEvent, SecurityEventType, SecurityMetrics, SecurityAlert, AlertRule, AlertThreshold, AlertAction, SecurityDashboard, SystemHealth, SecurityMonitorConfig, MonitoringError, create_default_alert_rules};
-pub use performance::{PerformanceTest, PerformanceConfig, PerformanceResults, TestOperation};
-pub use permissions::{McpPermission, McpPermissionChecker, PermissionConfig, PermissionError, ToolPermissionConfig, ResourcePermissionConfig, PermissionRule, PermissionAction};
-pub use security::{RequestSecurityValidator, RequestSecurityConfig, SecurityValidationError, RequestLimitsConfig, InputSanitizer, SecurityViolation};
-pub use session::{SessionManager, SessionConfig, Session, SessionError, SessionStorage, MemorySessionStorage, SessionStats};
+pub use consent::manager::{ConsentConfig, ConsentManager, ConsentStorage, MemoryConsentStorage};
+pub use consent::{
+    ConsentAuditEntry, ConsentError, ConsentRecord, ConsentStatus, ConsentSummary, ConsentType,
+    LegalBasis,
+};
+pub use manager::{
+    AuthenticationManager, RateLimitStats, RoleRateLimitConfig, RoleRateLimitStats,
+    ValidationConfig,
+};
+pub use manager_vault::{VaultAuthManagerError, VaultAuthenticationManager, VaultStatus};
+pub use middleware::{
+    AuthExtractionError, McpAuthConfig, McpAuthMiddleware, SessionMiddleware,
+    SessionMiddlewareConfig, SessionMiddlewareError, SessionRequestContext,
+};
+pub use models::{
+    ApiCompletenessCheck, ApiKey, AuthContext, AuthResult, KeyCreationRequest, KeyUsageStats, Role,
+    SecureApiKey,
+};
+pub use monitoring::{
+    create_default_alert_rules, AlertAction, AlertRule, AlertThreshold, MonitoringError,
+    SecurityAlert, SecurityDashboard, SecurityEvent, SecurityEventType, SecurityMetrics,
+    SecurityMonitor, SecurityMonitorConfig, SystemHealth,
+};
+pub use performance::{PerformanceConfig, PerformanceResults, PerformanceTest, TestOperation};
+pub use permissions::{
+    McpPermission, McpPermissionChecker, PermissionAction, PermissionConfig, PermissionError,
+    PermissionRule, ResourcePermissionConfig, ToolPermissionConfig,
+};
+pub use security::{
+    InputSanitizer, RequestLimitsConfig, RequestSecurityConfig, RequestSecurityValidator,
+    SecurityValidationError, SecurityViolation,
+};
+pub use session::{
+    MemorySessionStorage, Session, SessionConfig, SessionError, SessionManager, SessionStats,
+    SessionStorage,
+};
 pub use storage::{EnvironmentStorage, FileStorage, StorageBackend};
-pub use transport::{AuthExtractor, TransportAuthContext, AuthExtractionResult, HttpAuthExtractor, HttpAuthConfig, StdioAuthExtractor, StdioAuthConfig, WebSocketAuthExtractor, WebSocketAuthConfig};
-pub use vault::{VaultConfig, VaultIntegration, VaultType, VaultError, VaultClientInfo};
+pub use transport::{
+    AuthExtractionResult, AuthExtractor, HttpAuthConfig, HttpAuthExtractor, StdioAuthConfig,
+    StdioAuthExtractor, TransportAuthContext, WebSocketAuthConfig, WebSocketAuthExtractor,
+};
+pub use vault::{VaultClientInfo, VaultConfig, VaultError, VaultIntegration, VaultType};
 
 /// Initialize default authentication configuration
 pub fn default_config() -> AuthConfig {

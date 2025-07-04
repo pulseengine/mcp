@@ -4,16 +4,16 @@
 //! real-time metrics, alerting, threat detection, and security dashboards.
 
 use crate::{
-    AuthContext,
-    security::{SecurityViolation, SecurityViolationType, SecuritySeverity},
+    security::{SecuritySeverity, SecurityViolation, SecurityViolationType},
     session::Session,
+    AuthContext,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
-use tokio::sync::RwLock;
 use thiserror::Error;
-use tracing::{debug, warn, error, info};
+use tokio::sync::RwLock;
+use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
 /// Errors that can occur during security monitoring
@@ -21,16 +21,16 @@ use uuid::Uuid;
 pub enum MonitoringError {
     #[error("Alert not found: {alert_id}")]
     AlertNotFound { alert_id: String },
-    
+
     #[error("Metric not found: {metric_name}")]
     MetricNotFound { metric_name: String },
-    
+
     #[error("Configuration error: {reason}")]
     ConfigError { reason: String },
-    
+
     #[error("Storage error: {0}")]
     StorageError(String),
-    
+
     #[error("Serialization error: {0}")]
     SerializationError(String),
 }
@@ -43,23 +43,23 @@ pub enum SecurityEventType {
     AuthFailure,
     InvalidApiKey,
     ExpiredToken,
-    
+
     /// Session events
     SessionCreated,
     SessionExpired,
     SessionTerminated,
     MaxSessionsExceeded,
-    
+
     /// Security violations
     InjectionAttempt,
     SizeLimit,
     RateLimit,
     UnauthorizedAccess,
-    
+
     /// Permission events
     PermissionDenied,
     RoleEscalation,
-    
+
     /// System events
     SystemError,
     ConfigChange,
@@ -70,30 +70,30 @@ pub enum SecurityEventType {
 pub struct SecurityEvent {
     /// Unique event identifier
     pub event_id: String,
-    
+
     /// Event type
     pub event_type: SecurityEventType,
-    
+
     /// Event severity
     pub severity: SecuritySeverity,
-    
+
     /// Event timestamp
     pub timestamp: chrono::DateTime<chrono::Utc>,
-    
+
     /// User/session context
     pub user_id: Option<String>,
     pub session_id: Option<String>,
     pub api_key_id: Option<String>,
-    
+
     /// Request context
     pub client_ip: Option<String>,
     pub user_agent: Option<String>,
     pub method: Option<String>,
-    
+
     /// Event details
     pub description: String,
     pub metadata: HashMap<String, String>,
-    
+
     /// Geographic information (if available)
     pub country: Option<String>,
     pub city: Option<String>,
@@ -101,7 +101,11 @@ pub struct SecurityEvent {
 
 impl SecurityEvent {
     /// Create a new security event
-    pub fn new(event_type: SecurityEventType, severity: SecuritySeverity, description: String) -> Self {
+    pub fn new(
+        event_type: SecurityEventType,
+        severity: SecuritySeverity,
+        description: String,
+    ) -> Self {
         Self {
             event_id: Uuid::new_v4().to_string(),
             event_type,
@@ -119,14 +123,14 @@ impl SecurityEvent {
             city: None,
         }
     }
-    
+
     /// Add user context to event
     pub fn with_user_context(mut self, auth_context: &AuthContext) -> Self {
         self.user_id = auth_context.user_id.clone();
         self.api_key_id = auth_context.api_key_id.clone();
         self
     }
-    
+
     /// Add session context to event
     pub fn with_session_context(mut self, session: &Session) -> Self {
         self.session_id = Some(session.session_id.clone());
@@ -135,7 +139,7 @@ impl SecurityEvent {
         self.user_agent = session.user_agent.clone();
         self
     }
-    
+
     /// Add request context to event
     pub fn with_request_context(
         mut self,
@@ -148,7 +152,7 @@ impl SecurityEvent {
         self.method = method;
         self
     }
-    
+
     /// Add metadata to event
     pub fn with_metadata(mut self, key: String, value: String) -> Self {
         self.metadata.insert(key, value);
@@ -162,38 +166,38 @@ pub struct SecurityMetrics {
     /// Time period for these metrics
     pub period_start: chrono::DateTime<chrono::Utc>,
     pub period_end: chrono::DateTime<chrono::Utc>,
-    
+
     /// Authentication metrics
     pub auth_success_count: u64,
     pub auth_failure_count: u64,
     pub invalid_api_key_count: u64,
     pub expired_token_count: u64,
-    
+
     /// Session metrics
     pub sessions_created: u64,
     pub sessions_expired: u64,
     pub sessions_terminated: u64,
     pub active_sessions: u64,
-    
+
     /// Security violation metrics
     pub injection_attempts: u64,
     pub size_limit_violations: u64,
     pub rate_limit_violations: u64,
     pub unauthorized_access_attempts: u64,
-    
+
     /// Permission metrics
     pub permission_denied_count: u64,
     pub role_escalation_attempts: u64,
-    
+
     /// Top source IPs by event count
     pub top_source_ips: Vec<(String, u64)>,
-    
+
     /// Top user agents by event count
     pub top_user_agents: Vec<(String, u64)>,
-    
+
     /// Top methods by event count
     pub top_methods: Vec<(String, u64)>,
-    
+
     /// Geographic distribution
     pub country_distribution: HashMap<String, u64>,
 }
@@ -231,31 +235,31 @@ impl Default for SecurityMetrics {
 pub struct AlertRule {
     /// Unique alert rule identifier
     pub rule_id: String,
-    
+
     /// Alert rule name
     pub name: String,
-    
+
     /// Alert description
     pub description: String,
-    
+
     /// Event types to monitor
     pub event_types: Vec<SecurityEventType>,
-    
+
     /// Minimum severity level
     pub min_severity: SecuritySeverity,
-    
+
     /// Threshold for triggering alert
     pub threshold: AlertThreshold,
-    
+
     /// Time window for threshold evaluation
     pub time_window: chrono::Duration,
-    
+
     /// Alert cooldown period
     pub cooldown: chrono::Duration,
-    
+
     /// Whether this rule is enabled
     pub enabled: bool,
-    
+
     /// Alert actions to take
     pub actions: Vec<AlertAction>,
 }
@@ -265,12 +269,19 @@ pub struct AlertRule {
 pub enum AlertThreshold {
     /// Count threshold (e.g., more than 10 events)
     Count(u64),
-    
+
     /// Rate threshold (e.g., more than 5 events per minute)
-    Rate { count: u64, duration: chrono::Duration },
-    
+    Rate {
+        count: u64,
+        duration: chrono::Duration,
+    },
+
     /// Percentage threshold (e.g., more than 50% failures)
-    Percentage { numerator_events: Vec<SecurityEventType>, denominator_events: Vec<SecurityEventType>, threshold: f64 },
+    Percentage {
+        numerator_events: Vec<SecurityEventType>,
+        denominator_events: Vec<SecurityEventType>,
+        threshold: f64,
+    },
 }
 
 /// Actions to take when alert is triggered
@@ -278,21 +289,28 @@ pub enum AlertThreshold {
 pub enum AlertAction {
     /// Log the alert
     Log { level: String },
-    
+
     /// Send email notification
     Email { recipients: Vec<String> },
-    
+
     /// Send webhook notification
-    Webhook { url: String, payload_template: String },
-    
+    Webhook {
+        url: String,
+        payload_template: String,
+    },
+
     /// Block IP address
     BlockIp { duration: chrono::Duration },
-    
+
     /// Disable user
     DisableUser { user_id: String },
-    
+
     /// Rate limit user
-    RateLimit { user_id: String, limit: u32, duration: chrono::Duration },
+    RateLimit {
+        user_id: String,
+        limit: u32,
+        duration: chrono::Duration,
+    },
 }
 
 /// Active security alert
@@ -300,31 +318,31 @@ pub enum AlertAction {
 pub struct SecurityAlert {
     /// Unique alert identifier
     pub alert_id: String,
-    
+
     /// Alert rule that triggered this alert
     pub rule_id: String,
-    
+
     /// Alert rule name
     pub rule_name: String,
-    
+
     /// Alert triggered timestamp
     pub triggered_at: chrono::DateTime<chrono::Utc>,
-    
+
     /// Alert resolved timestamp (if resolved)
     pub resolved_at: Option<chrono::DateTime<chrono::Utc>>,
-    
+
     /// Alert severity
     pub severity: SecuritySeverity,
-    
+
     /// Alert description
     pub description: String,
-    
+
     /// Events that triggered this alert
     pub triggering_events: Vec<String>, // Event IDs
-    
+
     /// Alert metadata
     pub metadata: HashMap<String, String>,
-    
+
     /// Actions taken for this alert
     pub actions_taken: Vec<String>,
 }
@@ -334,25 +352,25 @@ pub struct SecurityAlert {
 pub struct SecurityMonitorConfig {
     /// Maximum number of events to keep in memory
     pub max_events_in_memory: usize,
-    
+
     /// Maximum number of alerts to keep in memory
     pub max_alerts_in_memory: usize,
-    
+
     /// How long to keep events in memory
     pub event_retention: chrono::Duration,
-    
+
     /// How long to keep alerts in memory
     pub alert_retention: chrono::Duration,
-    
+
     /// Metrics aggregation interval
     pub metrics_interval: chrono::Duration,
-    
+
     /// Enable geographic IP lookup
     pub enable_geolocation: bool,
-    
+
     /// Enable real-time monitoring
     pub enable_realtime: bool,
-    
+
     /// Enable alert processing
     pub enable_alerts: bool,
 }
@@ -394,37 +412,37 @@ impl SecurityMonitor {
             last_cleanup: Arc::new(RwLock::new(chrono::Utc::now())),
         }
     }
-    
+
     /// Create with default configuration
     pub fn with_default_config() -> Self {
         Self::new(SecurityMonitorConfig::default())
     }
-    
+
     /// Record a security event
     pub async fn record_event(&self, event: SecurityEvent) {
         debug!("Recording security event: {:?}", event.event_type);
-        
+
         let mut events = self.events.write().await;
         events.push_back(event.clone());
-        
+
         // Enforce memory limits
         while events.len() > self.config.max_events_in_memory {
             events.pop_front();
         }
-        
+
         drop(events);
-        
+
         // Process alerts if enabled
         if self.config.enable_alerts {
             self.process_alerts_for_event(&event).await;
         }
-        
+
         // Update real-time metrics
         if self.config.enable_realtime {
             self.update_realtime_metrics(&event).await;
         }
     }
-    
+
     /// Record a security violation
     pub async fn record_violation(&self, violation: &SecurityViolation) {
         let event_type = match violation.violation_type {
@@ -434,24 +452,24 @@ impl SecurityMonitor {
             SecurityViolationType::UnauthorizedMethod => SecurityEventType::UnauthorizedAccess,
             _ => SecurityEventType::SystemError,
         };
-        
+
         let mut event = SecurityEvent::new(
             event_type,
             violation.severity.clone(),
             violation.description.clone(),
         );
-        
+
         if let Some(field) = &violation.field {
             event = event.with_metadata("field".to_string(), field.clone());
         }
-        
+
         if let Some(value) = &violation.value {
             event = event.with_metadata("value".to_string(), value.clone());
         }
-        
+
         self.record_event(event).await;
     }
-    
+
     /// Record authentication event
     pub async fn record_auth_event(
         &self,
@@ -462,22 +480,24 @@ impl SecurityMonitor {
         description: String,
     ) {
         let severity = match event_type {
-            SecurityEventType::AuthFailure | SecurityEventType::InvalidApiKey => SecuritySeverity::Medium,
+            SecurityEventType::AuthFailure | SecurityEventType::InvalidApiKey => {
+                SecuritySeverity::Medium
+            }
             SecurityEventType::ExpiredToken => SecuritySeverity::Low,
             SecurityEventType::AuthSuccess => SecuritySeverity::Low,
             _ => SecuritySeverity::Medium,
         };
-        
+
         let mut event = SecurityEvent::new(event_type, severity, description)
             .with_request_context(client_ip, user_agent, None);
-        
+
         if let Some(auth) = auth_context {
             event = event.with_user_context(auth);
         }
-        
+
         self.record_event(event).await;
     }
-    
+
     /// Record session event
     pub async fn record_session_event(
         &self,
@@ -490,25 +510,21 @@ impl SecurityMonitor {
             SecurityEventType::SessionExpired => SecuritySeverity::Low,
             _ => SecuritySeverity::Low,
         };
-        
-        let event = SecurityEvent::new(event_type, severity, description)
-            .with_session_context(session);
-        
+
+        let event =
+            SecurityEvent::new(event_type, severity, description).with_session_context(session);
+
         self.record_event(event).await;
     }
-    
+
     /// Get recent security events
     pub async fn get_recent_events(&self, limit: Option<usize>) -> Vec<SecurityEvent> {
         let events = self.events.read().await;
         let limit = limit.unwrap_or(100);
-        
-        events.iter()
-            .rev()
-            .take(limit)
-            .cloned()
-            .collect()
+
+        events.iter().rev().take(limit).cloned().collect()
     }
-    
+
     /// Get events by type
     pub async fn get_events_by_type(
         &self,
@@ -519,15 +535,16 @@ impl SecurityMonitor {
         let events = self.events.read().await;
         let since = since.unwrap_or_else(|| chrono::Utc::now() - chrono::Duration::hours(24));
         let limit = limit.unwrap_or(1000);
-        
-        events.iter()
+
+        events
+            .iter()
             .filter(|e| e.event_type == event_type && e.timestamp >= since)
             .rev()
             .take(limit)
             .cloned()
             .collect()
     }
-    
+
     /// Get events by user
     pub async fn get_events_by_user(
         &self,
@@ -538,18 +555,18 @@ impl SecurityMonitor {
         let events = self.events.read().await;
         let since = since.unwrap_or_else(|| chrono::Utc::now() - chrono::Duration::hours(24));
         let limit = limit.unwrap_or(1000);
-        
-        events.iter()
+
+        events
+            .iter()
             .filter(|e| {
-                e.user_id.as_ref().map(|u| u == user_id).unwrap_or(false) 
-                && e.timestamp >= since
+                e.user_id.as_ref().map(|u| u == user_id).unwrap_or(false) && e.timestamp >= since
             })
             .rev()
             .take(limit)
             .cloned()
             .collect()
     }
-    
+
     /// Generate security metrics for a time period
     pub async fn generate_metrics(
         &self,
@@ -562,11 +579,11 @@ impl SecurityMonitor {
             period_end: end,
             ..Default::default()
         };
-        
+
         let mut ip_counts = HashMap::new();
         let mut user_agent_counts = HashMap::new();
         let mut method_counts = HashMap::new();
-        
+
         for event in events.iter() {
             if event.timestamp >= start && event.timestamp <= end {
                 // Count by event type
@@ -581,53 +598,58 @@ impl SecurityMonitor {
                     SecurityEventType::InjectionAttempt => metrics.injection_attempts += 1,
                     SecurityEventType::SizeLimit => metrics.size_limit_violations += 1,
                     SecurityEventType::RateLimit => metrics.rate_limit_violations += 1,
-                    SecurityEventType::UnauthorizedAccess => metrics.unauthorized_access_attempts += 1,
+                    SecurityEventType::UnauthorizedAccess => {
+                        metrics.unauthorized_access_attempts += 1
+                    }
                     SecurityEventType::PermissionDenied => metrics.permission_denied_count += 1,
                     SecurityEventType::RoleEscalation => metrics.role_escalation_attempts += 1,
                     _ => {}
                 }
-                
+
                 // Aggregate IP addresses
                 if let Some(ip) = &event.client_ip {
                     *ip_counts.entry(ip.clone()).or_insert(0) += 1;
                 }
-                
+
                 // Aggregate user agents
                 if let Some(ua) = &event.user_agent {
                     *user_agent_counts.entry(ua.clone()).or_insert(0) += 1;
                 }
-                
+
                 // Aggregate methods
                 if let Some(method) = &event.method {
                     *method_counts.entry(method.clone()).or_insert(0) += 1;
                 }
-                
+
                 // Aggregate countries
                 if let Some(country) = &event.country {
-                    *metrics.country_distribution.entry(country.clone()).or_insert(0) += 1;
+                    *metrics
+                        .country_distribution
+                        .entry(country.clone())
+                        .or_insert(0) += 1;
                 }
             }
         }
-        
+
         // Sort and take top items
         metrics.top_source_ips = Self::top_items(ip_counts, 10);
         metrics.top_user_agents = Self::top_items(user_agent_counts, 10);
         metrics.top_methods = Self::top_items(method_counts, 10);
-        
+
         metrics
     }
-    
+
     /// Get current security dashboard data
     pub async fn get_dashboard_data(&self) -> SecurityDashboard {
         let now = chrono::Utc::now();
         let hour_ago = now - chrono::Duration::hours(1);
         let day_ago = now - chrono::Duration::days(1);
-        
+
         let hourly_metrics = self.generate_metrics(hour_ago, now).await;
         let daily_metrics = self.generate_metrics(day_ago, now).await;
         let recent_events = self.get_recent_events(Some(50)).await;
         let active_alerts = self.get_active_alerts().await;
-        
+
         SecurityDashboard {
             timestamp: now,
             hourly_metrics,
@@ -637,27 +659,28 @@ impl SecurityMonitor {
             system_health: self.get_system_health().await,
         }
     }
-    
+
     /// Add alert rule
     pub async fn add_alert_rule(&self, rule: AlertRule) {
         let mut rules = self.alert_rules.write().await;
         rules.push(rule);
         info!("Added new alert rule");
     }
-    
+
     /// Get active alerts
     pub async fn get_active_alerts(&self) -> Vec<SecurityAlert> {
         let alerts = self.alerts.read().await;
-        alerts.iter()
+        alerts
+            .iter()
             .filter(|a| a.resolved_at.is_none())
             .cloned()
             .collect()
     }
-    
+
     /// Resolve alert
     pub async fn resolve_alert(&self, alert_id: &str) -> Result<(), MonitoringError> {
         let mut alerts = self.alerts.write().await;
-        
+
         if let Some(alert) = alerts.iter_mut().find(|a| a.alert_id == alert_id) {
             alert.resolved_at = Some(chrono::Utc::now());
             info!("Resolved alert: {}", alert_id);
@@ -668,15 +691,17 @@ impl SecurityMonitor {
             })
         }
     }
-    
+
     /// Start background monitoring tasks
     pub async fn start_background_tasks(&self) -> tokio::task::JoinHandle<()> {
         let monitor = self.clone();
-        
+
         tokio::spawn(async move {
-            let mut cleanup_interval = tokio::time::interval(chrono::Duration::hours(1).to_std().unwrap());
-            let mut metrics_interval = tokio::time::interval(monitor.config.metrics_interval.to_std().unwrap());
-            
+            let mut cleanup_interval =
+                tokio::time::interval(chrono::Duration::hours(1).to_std().unwrap());
+            let mut metrics_interval =
+                tokio::time::interval(monitor.config.metrics_interval.to_std().unwrap());
+
             loop {
                 tokio::select! {
                     _ = cleanup_interval.tick() => {
@@ -693,26 +718,25 @@ impl SecurityMonitor {
             }
         })
     }
-    
+
     // Helper methods
-    
+
     fn top_items(mut counts: HashMap<String, u64>, limit: usize) -> Vec<(String, u64)> {
         let mut items: Vec<(String, u64)> = counts.drain().collect();
         items.sort_by(|a, b| b.1.cmp(&a.1));
         items.truncate(limit);
         items
     }
-    
+
     async fn process_alerts_for_event(&self, event: &SecurityEvent) {
         let rules = self.alert_rules.read().await;
-        
+
         for rule in rules.iter() {
             if !rule.enabled {
                 continue;
             }
-            
-            if rule.event_types.contains(&event.event_type) 
-                && event.severity >= rule.min_severity {
+
+            if rule.event_types.contains(&event.event_type) && event.severity >= rule.min_severity {
                 // Check if threshold is met
                 if self.check_alert_threshold(rule, event).await {
                     self.trigger_alert(rule, event).await;
@@ -720,36 +744,39 @@ impl SecurityMonitor {
             }
         }
     }
-    
+
     async fn check_alert_threshold(&self, rule: &AlertRule, _event: &SecurityEvent) -> bool {
         let now = chrono::Utc::now();
         let window_start = now - rule.time_window;
-        
+
         let events = self.events.read().await;
-        let relevant_events: Vec<&SecurityEvent> = events.iter()
+        let relevant_events: Vec<&SecurityEvent> = events
+            .iter()
             .filter(|e| {
                 e.timestamp >= window_start
                     && rule.event_types.contains(&e.event_type)
                     && e.severity >= rule.min_severity
             })
             .collect();
-        
+
         match &rule.threshold {
-            AlertThreshold::Count(threshold) => {
-                relevant_events.len() as u64 >= *threshold
-            }
-            AlertThreshold::Rate { count, duration: _ } => {
-                relevant_events.len() as u64 >= *count
-            }
-            AlertThreshold::Percentage { numerator_events, denominator_events, threshold } => {
-                let numerator = relevant_events.iter()
+            AlertThreshold::Count(threshold) => relevant_events.len() as u64 >= *threshold,
+            AlertThreshold::Rate { count, duration: _ } => relevant_events.len() as u64 >= *count,
+            AlertThreshold::Percentage {
+                numerator_events,
+                denominator_events,
+                threshold,
+            } => {
+                let numerator = relevant_events
+                    .iter()
                     .filter(|e| numerator_events.contains(&e.event_type))
                     .count() as f64;
-                
-                let denominator = relevant_events.iter()
+
+                let denominator = relevant_events
+                    .iter()
                     .filter(|e| denominator_events.contains(&e.event_type))
                     .count() as f64;
-                
+
                 if denominator > 0.0 {
                     (numerator / denominator) * 100.0 >= *threshold
                 } else {
@@ -758,7 +785,7 @@ impl SecurityMonitor {
             }
         }
     }
-    
+
     async fn trigger_alert(&self, rule: &AlertRule, event: &SecurityEvent) {
         let alert = SecurityAlert {
             alert_id: Uuid::new_v4().to_string(),
@@ -772,70 +799,76 @@ impl SecurityMonitor {
             metadata: HashMap::new(),
             actions_taken: Vec::new(),
         };
-        
-        warn!("Security alert triggered: {} - {}", alert.rule_name, alert.description);
-        
+
+        warn!(
+            "Security alert triggered: {} - {}",
+            alert.rule_name, alert.description
+        );
+
         let mut alerts = self.alerts.write().await;
         alerts.push(alert);
-        
+
         // Enforce memory limits
         while alerts.len() > self.config.max_alerts_in_memory {
             alerts.remove(0);
         }
     }
-    
+
     async fn update_realtime_metrics(&self, _event: &SecurityEvent) {
         // Update real-time metrics cache
         // This would typically update counters, rates, etc.
         debug!("Updated real-time metrics");
     }
-    
+
     async fn cleanup_old_data(&self) -> Result<(), MonitoringError> {
         let now = chrono::Utc::now();
         let event_cutoff = now - self.config.event_retention;
         let alert_cutoff = now - self.config.alert_retention;
-        
+
         // Cleanup old events
         let mut events = self.events.write().await;
         let original_count = events.len();
         events.retain(|e| e.timestamp >= event_cutoff);
         let events_removed = original_count - events.len();
-        
+
         drop(events);
-        
+
         // Cleanup old alerts
         let mut alerts = self.alerts.write().await;
         let original_alert_count = alerts.len();
         alerts.retain(|a| a.triggered_at >= alert_cutoff);
         let alerts_removed = original_alert_count - alerts.len();
-        
+
         if events_removed > 0 || alerts_removed > 0 {
-            info!("Cleaned up {} old events and {} old alerts", events_removed, alerts_removed);
+            info!(
+                "Cleaned up {} old events and {} old alerts",
+                events_removed, alerts_removed
+            );
         }
-        
+
         Ok(())
     }
-    
+
     async fn update_metrics_cache(&self) -> Result<(), MonitoringError> {
         let now = chrono::Utc::now();
         let hour_ago = now - chrono::Duration::hours(1);
-        
+
         let metrics = self.generate_metrics(hour_ago, now).await;
-        
+
         let mut cache = self.metrics_cache.write().await;
         cache.insert("hourly".to_string(), metrics);
-        
+
         // Keep only recent metrics in cache
         let day_ago = now - chrono::Duration::days(1);
         cache.retain(|_, metrics| metrics.period_start >= day_ago);
-        
+
         Ok(())
     }
-    
+
     async fn get_system_health(&self) -> SystemHealth {
         let events = self.events.read().await;
         let alerts = self.alerts.read().await;
-        
+
         SystemHealth {
             events_in_memory: events.len(),
             active_alerts: alerts.iter().filter(|a| a.resolved_at.is_none()).count(),
@@ -843,15 +876,15 @@ impl SecurityMonitor {
             memory_usage_mb: self.estimate_memory_usage().await,
         }
     }
-    
+
     async fn estimate_memory_usage(&self) -> u64 {
         // Rough estimate of memory usage in MB
         let events = self.events.read().await;
         let alerts = self.alerts.read().await;
-        
+
         let event_size_estimate = events.len() * 1024; // ~1KB per event
-        let alert_size_estimate = alerts.len() * 512;  // ~512B per alert
-        
+        let alert_size_estimate = alerts.len() * 512; // ~512B per alert
+
         ((event_size_estimate + alert_size_estimate) / 1024 / 1024) as u64
     }
 }
@@ -896,13 +929,18 @@ pub fn create_default_alert_rules() -> Vec<AlertRule> {
             rule_id: "high_auth_failures".to_string(),
             name: "High Authentication Failures".to_string(),
             description: "Multiple authentication failures detected".to_string(),
-            event_types: vec![SecurityEventType::AuthFailure, SecurityEventType::InvalidApiKey],
+            event_types: vec![
+                SecurityEventType::AuthFailure,
+                SecurityEventType::InvalidApiKey,
+            ],
             min_severity: SecuritySeverity::Medium,
             threshold: AlertThreshold::Count(10),
             time_window: chrono::Duration::minutes(5),
             cooldown: chrono::Duration::minutes(15),
             enabled: true,
-            actions: vec![AlertAction::Log { level: "warn".to_string() }],
+            actions: vec![AlertAction::Log {
+                level: "warn".to_string(),
+            }],
         },
         AlertRule {
             rule_id: "injection_attempts".to_string(),
@@ -915,8 +953,12 @@ pub fn create_default_alert_rules() -> Vec<AlertRule> {
             cooldown: chrono::Duration::minutes(30),
             enabled: true,
             actions: vec![
-                AlertAction::Log { level: "error".to_string() },
-                AlertAction::BlockIp { duration: chrono::Duration::hours(1) },
+                AlertAction::Log {
+                    level: "error".to_string(),
+                },
+                AlertAction::BlockIp {
+                    duration: chrono::Duration::hours(1),
+                },
             ],
         },
         AlertRule {
@@ -929,7 +971,9 @@ pub fn create_default_alert_rules() -> Vec<AlertRule> {
             time_window: chrono::Duration::minutes(5),
             cooldown: chrono::Duration::minutes(10),
             enabled: true,
-            actions: vec![AlertAction::Log { level: "warn".to_string() }],
+            actions: vec![AlertAction::Log {
+                level: "warn".to_string(),
+            }],
         },
     ]
 }
@@ -937,63 +981,67 @@ pub fn create_default_alert_rules() -> Vec<AlertRule> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[tokio::test]
     async fn test_security_monitor_creation() {
         let monitor = SecurityMonitor::with_default_config();
-        
+
         // Test that monitor was created successfully
         assert!(monitor.config.enable_realtime);
         assert!(monitor.config.enable_alerts);
     }
-    
+
     #[tokio::test]
     async fn test_event_recording() {
         let monitor = SecurityMonitor::with_default_config();
-        
+
         let event = SecurityEvent::new(
             SecurityEventType::AuthFailure,
             SecuritySeverity::Medium,
             "Test authentication failure".to_string(),
         );
-        
+
         monitor.record_event(event).await;
-        
+
         let events = monitor.get_recent_events(Some(10)).await;
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].event_type, SecurityEventType::AuthFailure);
     }
-    
+
     #[tokio::test]
     async fn test_metrics_generation() {
         let monitor = SecurityMonitor::with_default_config();
-        
+
         // Record some test events
-        monitor.record_event(SecurityEvent::new(
-            SecurityEventType::AuthSuccess,
-            SecuritySeverity::Low,
-            "Success".to_string(),
-        )).await;
-        
-        monitor.record_event(SecurityEvent::new(
-            SecurityEventType::AuthFailure,
-            SecuritySeverity::Medium,
-            "Failure".to_string(),
-        )).await;
-        
+        monitor
+            .record_event(SecurityEvent::new(
+                SecurityEventType::AuthSuccess,
+                SecuritySeverity::Low,
+                "Success".to_string(),
+            ))
+            .await;
+
+        monitor
+            .record_event(SecurityEvent::new(
+                SecurityEventType::AuthFailure,
+                SecuritySeverity::Medium,
+                "Failure".to_string(),
+            ))
+            .await;
+
         let now = chrono::Utc::now();
         let hour_ago = now - chrono::Duration::hours(1);
-        
+
         let metrics = monitor.generate_metrics(hour_ago, now).await;
-        
+
         assert_eq!(metrics.auth_success_count, 1);
         assert_eq!(metrics.auth_failure_count, 1);
     }
-    
+
     #[tokio::test]
     async fn test_alert_rules() {
         let monitor = SecurityMonitor::with_default_config();
-        
+
         let rule = AlertRule {
             rule_id: "test_rule".to_string(),
             name: "Test Rule".to_string(),
@@ -1004,38 +1052,44 @@ mod tests {
             time_window: chrono::Duration::minutes(5),
             cooldown: chrono::Duration::minutes(1),
             enabled: true,
-            actions: vec![AlertAction::Log { level: "warn".to_string() }],
+            actions: vec![AlertAction::Log {
+                level: "warn".to_string(),
+            }],
         };
-        
+
         monitor.add_alert_rule(rule).await;
-        
+
         // Record an event that should trigger the alert
-        monitor.record_event(SecurityEvent::new(
-            SecurityEventType::AuthFailure,
-            SecuritySeverity::Medium,
-            "Test failure".to_string(),
-        )).await;
-        
+        monitor
+            .record_event(SecurityEvent::new(
+                SecurityEventType::AuthFailure,
+                SecuritySeverity::Medium,
+                "Test failure".to_string(),
+            ))
+            .await;
+
         // Give some time for alert processing
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-        
+
         let active_alerts = monitor.get_active_alerts().await;
         assert!(!active_alerts.is_empty());
     }
-    
+
     #[tokio::test]
     async fn test_dashboard_data() {
         let monitor = SecurityMonitor::with_default_config();
-        
+
         // Record some events
-        monitor.record_event(SecurityEvent::new(
-            SecurityEventType::SessionCreated,
-            SecuritySeverity::Low,
-            "Session created".to_string(),
-        )).await;
-        
+        monitor
+            .record_event(SecurityEvent::new(
+                SecurityEventType::SessionCreated,
+                SecuritySeverity::Low,
+                "Session created".to_string(),
+            ))
+            .await;
+
         let dashboard = monitor.get_dashboard_data().await;
-        
+
         assert!(dashboard.recent_events.len() > 0);
         assert_eq!(dashboard.hourly_metrics.sessions_created, 1);
     }

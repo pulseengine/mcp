@@ -20,28 +20,28 @@ pub use crate::auth_integration::AuthIntegrationResult;
 pub struct ComplianceReport {
     /// Server URL that was tested
     pub server_url: String,
-    
+
     /// Timestamp when validation was performed
     pub timestamp: SystemTime,
-    
+
     /// Total duration of validation
     pub duration: Duration,
-    
+
     /// Protocol version tested
     pub protocol_version: String,
-    
+
     /// Overall compliance status
     pub status: ComplianceStatus,
-    
+
     /// List of validation issues found
     pub issues: Vec<ValidationIssue>,
-    
+
     /// Detailed test results by category
     pub test_results: HashMap<String, TestCategoryResult>,
-    
+
     /// Performance metrics collected during testing
     pub performance: PerformanceMetrics,
-    
+
     /// External validator results
     pub external_results: ExternalValidatorResults,
 }
@@ -64,22 +64,22 @@ pub enum ComplianceStatus {
 pub struct ValidationIssue {
     /// Severity level of the issue
     pub severity: IssueSeverity,
-    
+
     /// Category of the issue (e.g., "protocol", "transport", "security")
     pub category: String,
-    
+
     /// Human-readable description of the issue
     pub description: String,
-    
+
     /// Specific location where issue was found (optional)
     pub location: Option<String>,
-    
+
     /// Suggested fix for the issue
     pub suggestion: Option<String>,
-    
+
     /// External validator that found this issue
     pub validator: String,
-    
+
     /// Additional context or details
     pub details: HashMap<String, serde_json::Value>,
 }
@@ -102,19 +102,19 @@ pub enum IssueSeverity {
 pub struct TestCategoryResult {
     /// Category name (e.g., "MCP Protocol", "JSON-RPC", "Transport")
     pub category: String,
-    
+
     /// Number of tests passed
     pub passed: u32,
-    
+
     /// Number of tests failed
     pub failed: u32,
-    
+
     /// Number of tests skipped
     pub skipped: u32,
-    
+
     /// Duration of tests in this category
     pub duration: Duration,
-    
+
     /// Specific test details
     pub tests: Vec<IndividualTestResult>,
 }
@@ -124,16 +124,16 @@ pub struct TestCategoryResult {
 pub struct IndividualTestResult {
     /// Test name
     pub name: String,
-    
+
     /// Test result
     pub result: TestResult,
-    
+
     /// Duration of the test
     pub duration: Duration,
-    
+
     /// Error message if test failed
     pub error: Option<String>,
-    
+
     /// Additional test details
     pub details: HashMap<String, serde_json::Value>,
 }
@@ -152,28 +152,28 @@ pub enum TestResult {
 pub struct PerformanceMetrics {
     /// Average response time for tool calls (milliseconds)
     pub avg_response_time_ms: f64,
-    
+
     /// 95th percentile response time (milliseconds)
     pub p95_response_time_ms: f64,
-    
+
     /// 99th percentile response time (milliseconds)
     pub p99_response_time_ms: f64,
-    
+
     /// Maximum response time observed (milliseconds)
     pub max_response_time_ms: f64,
-    
+
     /// Number of requests that timed out
     pub timeouts: u32,
-    
+
     /// Number of requests that failed
     pub failures: u32,
-    
+
     /// Total number of requests made
     pub total_requests: u32,
-    
+
     /// Throughput (requests per second)
     pub throughput_rps: f64,
-    
+
     /// Memory usage statistics (if available)
     pub memory_usage: Option<MemoryStats>,
 }
@@ -183,10 +183,10 @@ pub struct PerformanceMetrics {
 pub struct MemoryStats {
     /// Peak memory usage (bytes)
     pub peak_memory_bytes: u64,
-    
+
     /// Average memory usage (bytes)
     pub avg_memory_bytes: u64,
-    
+
     /// Memory usage at end of test (bytes)
     pub final_memory_bytes: u64,
 }
@@ -196,28 +196,28 @@ pub struct MemoryStats {
 pub struct ExternalValidatorResults {
     /// MCP Validator results
     pub mcp_validator: Option<McpValidatorResult>,
-    
+
     /// JSON-RPC validator results
     pub jsonrpc_validator: Option<JsonRpcValidatorResult>,
-    
+
     /// MCP Inspector results
     pub inspector: Option<InspectorResult>,
-    
+
     /// Python SDK compatibility results
     pub python_compat: Option<PythonCompatResult>,
-    
+
     /// MCP protocol semantic validation results
     pub mcp_semantic: Option<McpSemanticResult>,
-    
+
     /// Cross-language compatibility results
     pub cross_language: Option<CrossLanguageResult>,
-    
+
     /// Ecosystem integration results
     pub ecosystem: Option<EcosystemResult>,
-    
+
     /// Security validation results
     pub security: Option<SecurityResult>,
-    
+
     /// Authentication integration results
     pub auth_integration: Option<AuthIntegrationResult>,
 }
@@ -227,16 +227,16 @@ pub struct ExternalValidatorResults {
 pub struct McpValidatorResult {
     /// HTTP compliance test results (7/7 tests)
     pub http_compliance: TestScore,
-    
+
     /// OAuth 2.1 framework results (6/6 tests)
     pub oauth_framework: TestScore,
-    
+
     /// Protocol features results (7/7 tests)
     pub protocol_features: TestScore,
-    
+
     /// Multi-protocol support (3/3 versions)
     pub multi_protocol: TestScore,
-    
+
     /// Backward compatibility score
     pub backward_compatibility: TestScore,
 }
@@ -246,13 +246,13 @@ pub struct McpValidatorResult {
 pub struct JsonRpcValidatorResult {
     /// Schema validation score
     pub schema_validation: TestScore,
-    
+
     /// Message format compliance
     pub message_format: TestScore,
-    
+
     /// Error handling compliance
     pub error_handling: TestScore,
-    
+
     /// Request/response correlation
     pub correlation: TestScore,
 }
@@ -264,7 +264,7 @@ impl JsonRpcValidatorResult {
         let format_issues = self.message_format.total - self.message_format.passed;
         let error_issues = self.error_handling.total - self.error_handling.passed;
         let correlation_issues = self.correlation.total - self.correlation.passed;
-        
+
         schema_issues + format_issues + error_issues + correlation_issues
     }
 }
@@ -274,19 +274,19 @@ impl JsonRpcValidatorResult {
 pub struct InspectorResult {
     /// Successfully connected to server
     pub connection_success: bool,
-    
+
     /// Authentication worked correctly
     pub auth_success: bool,
-    
+
     /// Tools were discovered and callable
     pub tools_discoverable: bool,
-    
+
     /// Resources were accessible
     pub resources_accessible: bool,
-    
+
     /// Export configurations worked
     pub export_success: bool,
-    
+
     /// Inspector-specific issues found
     pub inspector_issues: Vec<String>,
 }
@@ -296,16 +296,16 @@ pub struct InspectorResult {
 pub struct PythonCompatResult {
     /// Message format compatibility
     pub message_compatibility: bool,
-    
+
     /// Transport layer compatibility
     pub transport_compatibility: bool,
-    
+
     /// Authentication compatibility
     pub auth_compatibility: bool,
-    
+
     /// Feature parity score (0.0 to 1.0)
     pub feature_parity: f32,
-    
+
     /// Specific compatibility issues
     pub compat_issues: Vec<String>,
 }
@@ -315,22 +315,22 @@ pub struct PythonCompatResult {
 pub struct PythonSdkResult {
     /// Python SDK version
     pub sdk_version: String,
-    
+
     /// Connection compatible
     pub connection_compatible: bool,
-    
+
     /// Tools compatible
     pub tools_compatible: bool,
-    
+
     /// Resources compatible
     pub resources_compatible: bool,
-    
+
     /// Transport compatible
     pub transport_compatible: bool,
-    
+
     /// Error handling compatible
     pub error_handling_compatible: bool,
-    
+
     /// Overall compatibility score (0-100)
     pub compatibility_score: f64,
 }
@@ -340,10 +340,10 @@ pub struct PythonSdkResult {
 pub struct TestScore {
     /// Number of tests passed
     pub passed: u32,
-    
+
     /// Total number of tests
     pub total: u32,
-    
+
     /// Score as percentage (0.0 to 1.0)
     pub score: f32,
 }
@@ -366,7 +366,10 @@ impl ComplianceReport {
 
     /// Check if the server is compliant
     pub fn is_compliant(&self) -> bool {
-        matches!(self.status, ComplianceStatus::Compliant | ComplianceStatus::Warning)
+        matches!(
+            self.status,
+            ComplianceStatus::Compliant | ComplianceStatus::Warning
+        )
     }
 
     /// Get all issues found during validation
@@ -376,7 +379,10 @@ impl ComplianceReport {
 
     /// Get issues by severity level
     pub fn issues_by_severity(&self, severity: IssueSeverity) -> Vec<&ValidationIssue> {
-        self.issues.iter().filter(|i| i.severity == severity).collect()
+        self.issues
+            .iter()
+            .filter(|i| i.severity == severity)
+            .collect()
     }
 
     /// Get critical and error issues
@@ -401,17 +407,25 @@ impl ComplianceReport {
             }
             IssueSeverity::Info => {} // Don't change status for info
         }
-        
+
         self.issues.push(issue);
     }
 
     /// Mark validation as completed successfully
     pub fn mark_completed(&mut self, duration: Duration) {
         self.duration = duration;
-        
+
         // If no critical issues were found, mark as compliant or warning
-        if !self.issues.iter().any(|i| matches!(i.severity, IssueSeverity::Critical | IssueSeverity::Error)) {
-            self.status = if self.issues.iter().any(|i| i.severity == IssueSeverity::Warning) {
+        if !self
+            .issues
+            .iter()
+            .any(|i| matches!(i.severity, IssueSeverity::Critical | IssueSeverity::Error))
+        {
+            self.status = if self
+                .issues
+                .iter()
+                .any(|i| i.severity == IssueSeverity::Warning)
+            {
                 ComplianceStatus::Warning
             } else {
                 ComplianceStatus::Compliant
@@ -422,13 +436,13 @@ impl ComplianceReport {
     /// Get overall test statistics
     pub fn test_statistics(&self) -> (u32, u32, u32) {
         let (mut passed, mut failed, mut skipped) = (0, 0, 0);
-        
+
         for result in self.test_results.values() {
             passed += result.passed;
             failed += result.failed;
             skipped += result.skipped;
         }
-        
+
         (passed, failed, skipped)
     }
 
@@ -436,7 +450,7 @@ impl ComplianceReport {
     pub fn summary(&self) -> String {
         let (passed, failed, skipped) = self.test_statistics();
         let total = passed + failed + skipped;
-        
+
         format!(
             "MCP Compliance Report: {} - {}/{} tests passed, {} issues found",
             self.status_string(),
@@ -535,8 +549,12 @@ impl TestScore {
         } else {
             0.0
         };
-        
-        Self { passed, total, score }
+
+        Self {
+            passed,
+            total,
+            score,
+        }
     }
 
     /// Check if all tests passed
@@ -611,8 +629,14 @@ mod tests {
         .with_detail("error_code".to_string(), serde_json::json!(500));
 
         assert_eq!(issue.severity, IssueSeverity::Error);
-        assert_eq!(issue.suggestion, Some("Check server is running".to_string()));
+        assert_eq!(
+            issue.suggestion,
+            Some("Check server is running".to_string())
+        );
         assert_eq!(issue.location, Some("http://localhost:3000".to_string()));
-        assert_eq!(issue.details.get("error_code"), Some(&serde_json::json!(500)));
+        assert_eq!(
+            issue.details.get("error_code"),
+            Some(&serde_json::json!(500))
+        );
     }
 }

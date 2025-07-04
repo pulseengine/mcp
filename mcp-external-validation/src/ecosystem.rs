@@ -5,15 +5,15 @@
 //! compatibility beyond protocol compliance.
 
 use crate::{
-    report::{ValidationIssue, IssueSeverity, TestScore},
-    ValidationResult, ValidationConfig, ValidationError,
+    report::{IssueSeverity, TestScore, ValidationIssue},
+    ValidationConfig, ValidationError, ValidationResult,
 };
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::process::Command;
-use tracing::{info, error, debug};
-use reqwest::Client;
+use tracing::{debug, error, info};
 
 /// Ecosystem integration tester
 pub struct EcosystemTester {
@@ -154,75 +154,75 @@ impl EcosystemTester {
             http_client,
             available_components: HashMap::new(),
         };
-        
+
         // Detect available ecosystem components
         tester.detect_ecosystem_components()?;
-        
+
         Ok(tester)
     }
-    
+
     /// Detect available ecosystem components
     fn detect_ecosystem_components(&mut self) -> ValidationResult<()> {
         info!("Detecting available MCP ecosystem components");
-        
+
         // Check for Claude Desktop
         if let Ok(info) = self.detect_claude_desktop() {
-            self.available_components.insert(EcosystemComponent::ClaudeDesktop, info);
+            self.available_components
+                .insert(EcosystemComponent::ClaudeDesktop, info);
         }
-        
+
         // Check for VSCode MCP extension
         if let Ok(info) = self.detect_vscode_mcp() {
-            self.available_components.insert(EcosystemComponent::VSCodeExtension, info);
+            self.available_components
+                .insert(EcosystemComponent::VSCodeExtension, info);
         }
-        
+
         // Check for Cline
         if let Ok(info) = self.detect_cline() {
-            self.available_components.insert(EcosystemComponent::Cline, info);
+            self.available_components
+                .insert(EcosystemComponent::Cline, info);
         }
-        
+
         // Check for Continue.dev
         if let Ok(info) = self.detect_continue_dev() {
-            self.available_components.insert(EcosystemComponent::ContinueDev, info);
+            self.available_components
+                .insert(EcosystemComponent::ContinueDev, info);
         }
-        
+
         // Check for Zed editor
         if let Ok(info) = self.detect_zed_editor() {
-            self.available_components.insert(EcosystemComponent::ZedEditor, info);
+            self.available_components
+                .insert(EcosystemComponent::ZedEditor, info);
         }
-        
+
         // Check for Jupyter with MCP kernel
         if let Ok(info) = self.detect_jupyter_mcp() {
-            self.available_components.insert(EcosystemComponent::JupyterNotebook, info);
+            self.available_components
+                .insert(EcosystemComponent::JupyterNotebook, info);
         }
-        
+
         info!(
             "Detected {} ecosystem components: {:?}",
             self.available_components.len(),
             self.available_components.keys().collect::<Vec<_>>()
         );
-        
+
         Ok(())
     }
-    
+
     /// Detect Claude Desktop installation
     fn detect_claude_desktop(&self) -> ValidationResult<ComponentInfo> {
         let locations = if cfg!(target_os = "macos") {
-            vec![
-                "/Applications/Claude.app",
-                "~/Applications/Claude.app",
-            ]
+            vec!["/Applications/Claude.app", "~/Applications/Claude.app"]
         } else if cfg!(target_os = "windows") {
             vec![
                 "C:\\Program Files\\Claude",
                 "C:\\Program Files (x86)\\Claude",
             ]
         } else {
-            vec![
-                "/usr/local/bin/claude",
-                "/opt/claude",
-            ]
+            vec!["/usr/local/bin/claude", "/opt/claude"]
         };
-        
+
         for location in locations {
             let path = shellexpand::tilde(location);
             if std::path::Path::new(path.as_ref()).exists() {
@@ -235,19 +235,19 @@ impl EcosystemTester {
                 });
             }
         }
-        
+
         Err(ValidationError::ConfigurationError {
             message: "Claude Desktop not found".to_string(),
         })
     }
-    
+
     /// Get Claude Desktop version
     fn get_claude_version(&self, _path: &str) -> Option<String> {
         // This would read version from app bundle or executable
         // For now, return a placeholder
         Some("unknown".to_string())
     }
-    
+
     /// Detect VSCode MCP extension
     fn detect_vscode_mcp(&self) -> ValidationResult<ComponentInfo> {
         // Check if VSCode is installed and has MCP extension
@@ -256,7 +256,7 @@ impl EcosystemTester {
         } else {
             "code"
         };
-        
+
         if let Ok(output) = Command::new(vscode_cmd)
             .args(&["--list-extensions"])
             .output()
@@ -272,12 +272,12 @@ impl EcosystemTester {
                 });
             }
         }
-        
+
         Err(ValidationError::ConfigurationError {
             message: "VSCode MCP extension not found".to_string(),
         })
     }
-    
+
     /// Detect Cline CLI
     fn detect_cline(&self) -> ValidationResult<ComponentInfo> {
         if let Ok(output) = Command::new("cline").arg("--version").output() {
@@ -292,12 +292,12 @@ impl EcosystemTester {
                 });
             }
         }
-        
+
         Err(ValidationError::ConfigurationError {
             message: "Cline CLI not found".to_string(),
         })
     }
-    
+
     /// Detect Continue.dev
     fn detect_continue_dev(&self) -> ValidationResult<ComponentInfo> {
         // Continue.dev is typically a VSCode/IDE extension
@@ -306,7 +306,7 @@ impl EcosystemTester {
             message: "Continue.dev detection not implemented".to_string(),
         })
     }
-    
+
     /// Detect Zed editor with MCP support
     fn detect_zed_editor(&self) -> ValidationResult<ComponentInfo> {
         let zed_locations = if cfg!(target_os = "macos") {
@@ -314,7 +314,7 @@ impl EcosystemTester {
         } else {
             vec!["/usr/local/bin/zed", "/opt/zed"]
         };
-        
+
         for location in zed_locations {
             let path = shellexpand::tilde(location);
             if std::path::Path::new(path.as_ref()).exists() {
@@ -327,12 +327,12 @@ impl EcosystemTester {
                 });
             }
         }
-        
+
         Err(ValidationError::ConfigurationError {
             message: "Zed editor not found".to_string(),
         })
     }
-    
+
     /// Detect Jupyter with MCP kernel
     fn detect_jupyter_mcp(&self) -> ValidationResult<ComponentInfo> {
         if let Ok(output) = Command::new("jupyter")
@@ -350,19 +350,19 @@ impl EcosystemTester {
                 });
             }
         }
-        
+
         Err(ValidationError::ConfigurationError {
             message: "Jupyter with MCP kernel not found".to_string(),
         })
     }
-    
+
     /// Run comprehensive ecosystem integration tests
     pub async fn test_ecosystem_integration(
         &self,
         server_url: &str,
     ) -> ValidationResult<EcosystemResult> {
         info!("Starting ecosystem integration testing for {}", server_url);
-        
+
         let mut result = EcosystemResult {
             component_results: Vec::new(),
             scenario_results: Vec::new(),
@@ -372,12 +372,15 @@ impl EcosystemTester {
             ecosystem_score: 0.0,
             issues: Vec::new(),
         };
-        
+
         // Test against available ecosystem components
         for (component, info) in &self.available_components {
             if info.available {
                 info!("Testing against {:?}", component);
-                match self.test_component_integration(*component, server_url).await {
+                match self
+                    .test_component_integration(*component, server_url)
+                    .await
+                {
                     Ok(component_result) => {
                         result.component_results.push(component_result);
                     }
@@ -393,7 +396,7 @@ impl EcosystemTester {
                 }
             }
         }
-        
+
         // Test real-world scenarios
         let scenarios = self.get_test_scenarios();
         for scenario in scenarios {
@@ -410,40 +413,43 @@ impl EcosystemTester {
                 }
             }
         }
-        
+
         // Test for common pitfalls
         self.test_common_pitfalls(server_url, &mut result).await?;
-        
+
         // Validate best practices
-        self.validate_best_practices(server_url, &mut result).await?;
-        
+        self.validate_best_practices(server_url, &mut result)
+            .await?;
+
         // Calculate overall ecosystem score
-        let total_tests = result.component_results.len() +
-            result.pattern_validation.total as usize +
-            result.pitfall_detection.total as usize +
-            result.best_practices.total as usize;
-        
-        let passed_tests = result.component_results.iter()
+        let total_tests = result.component_results.len()
+            + result.pattern_validation.total as usize
+            + result.pitfall_detection.total as usize
+            + result.best_practices.total as usize;
+
+        let passed_tests = result
+            .component_results
+            .iter()
             .filter(|r| r.basic_ops_work)
-            .count() +
-            result.pattern_validation.passed as usize +
-            result.pitfall_detection.passed as usize +
-            result.best_practices.passed as usize;
-        
+            .count()
+            + result.pattern_validation.passed as usize
+            + result.pitfall_detection.passed as usize
+            + result.best_practices.passed as usize;
+
         result.ecosystem_score = if total_tests > 0 {
             (passed_tests as f64 / total_tests as f64) * 100.0
         } else {
             0.0
         };
-        
+
         info!(
             "Ecosystem integration testing completed: {:.1}% compatible",
             result.ecosystem_score
         );
-        
+
         Ok(result)
     }
-    
+
     /// Test integration with a specific ecosystem component
     async fn test_component_integration(
         &self,
@@ -459,7 +465,7 @@ impl EcosystemTester {
             performance_acceptable: false,
             issues: Vec::new(),
         };
-        
+
         match component {
             EcosystemComponent::ClaudeDesktop => {
                 // Test Claude Desktop specific integration
@@ -475,7 +481,8 @@ impl EcosystemTester {
             }
             EcosystemComponent::PopularServers => {
                 // Test against popular MCP server implementations
-                self.test_popular_servers_compatibility(server_url, &mut result).await?;
+                self.test_popular_servers_compatibility(server_url, &mut result)
+                    .await?;
             }
             _ => {
                 result.issues.push(format!(
@@ -484,10 +491,10 @@ impl EcosystemTester {
                 ));
             }
         }
-        
+
         Ok(result)
     }
-    
+
     /// Test compatibility with popular MCP servers
     async fn test_popular_servers_compatibility(
         &self,
@@ -505,33 +512,33 @@ impl EcosystemTester {
             ("fetch", "HTTP fetch server"),
             ("puppeteer", "Browser automation server"),
         ];
-        
+
         let mut compatible_count = 0;
         let total_servers = popular_servers.len();
-        
+
         for (server_type, description) in &popular_servers {
             debug!("Testing compatibility with {} server", server_type);
-            
+
             // Simulate compatibility test
             // In real implementation, this would test actual protocol compatibility
             compatible_count += 1;
         }
-        
+
         result.connected = true;
         result.basic_ops_work = compatible_count > total_servers / 2;
         result.advanced_features_work = compatible_count == total_servers;
         result.performance_acceptable = true;
-        
+
         if compatible_count < total_servers {
             result.issues.push(format!(
                 "Compatible with {}/{} popular MCP servers",
                 compatible_count, total_servers
             ));
         }
-        
+
         Ok(())
     }
-    
+
     /// Get test scenarios
     fn get_test_scenarios(&self) -> Vec<TestScenario> {
         vec![
@@ -567,7 +574,7 @@ impl EcosystemTester {
             },
         ]
     }
-    
+
     /// Test a specific scenario
     async fn test_scenario(
         &self,
@@ -576,7 +583,7 @@ impl EcosystemTester {
     ) -> ValidationResult<ScenarioTestResult> {
         let start_time = std::time::Instant::now();
         let mut findings = Vec::new();
-        
+
         let passed = match scenario.test_fn {
             TestFunction::FileSystemWorkflow => {
                 // Test common file system operations
@@ -612,7 +619,7 @@ impl EcosystemTester {
                 true
             }
         };
-        
+
         Ok(ScenarioTestResult {
             scenario: scenario.name.clone(),
             description: scenario.description.clone(),
@@ -621,7 +628,7 @@ impl EcosystemTester {
             findings,
         })
     }
-    
+
     /// Test for common pitfalls
     async fn test_common_pitfalls(
         &self,
@@ -629,7 +636,7 @@ impl EcosystemTester {
         result: &mut EcosystemResult,
     ) -> ValidationResult<()> {
         info!("Testing for common MCP implementation pitfalls");
-        
+
         let pitfalls = [
             ("unclosed_connections", "Leaving connections open"),
             ("memory_leaks", "Memory leaks in long-running servers"),
@@ -640,18 +647,18 @@ impl EcosystemTester {
             ("rate_limit_bypass", "Rate limiting bypass"),
             ("error_info_leak", "Sensitive information in errors"),
         ];
-        
+
         for (pitfall_id, description) in &pitfalls {
             result.pitfall_detection.total += 1;
-            
+
             // Test for specific pitfall
             let has_pitfall = match *pitfall_id {
                 "unclosed_connections" => self.test_connection_cleanup(server_url).await?,
                 "memory_leaks" => false, // Would require longer testing
-                "blocking_io" => false, // Would require code analysis
-                _ => false, // Other pitfalls would have specific tests
+                "blocking_io" => false,  // Would require code analysis
+                _ => false,              // Other pitfalls would have specific tests
             };
-            
+
             if !has_pitfall {
                 result.pitfall_detection.passed += 1;
             } else {
@@ -663,17 +670,17 @@ impl EcosystemTester {
                 ));
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Test connection cleanup
     async fn test_connection_cleanup(&self, server_url: &str) -> ValidationResult<bool> {
         // Test if server properly cleans up connections
         // This is a simplified test - real implementation would be more thorough
         Ok(false) // Assume no issues for now
     }
-    
+
     /// Validate best practices
     async fn validate_best_practices(
         &self,
@@ -681,7 +688,7 @@ impl EcosystemTester {
         result: &mut EcosystemResult,
     ) -> ValidationResult<()> {
         info!("Validating MCP best practices compliance");
-        
+
         let best_practices = [
             ("semantic_versioning", "Uses semantic versioning"),
             ("capability_declaration", "Properly declares capabilities"),
@@ -692,17 +699,17 @@ impl EcosystemTester {
             ("security_headers", "Proper security headers"),
             ("logging_standards", "Follows logging standards"),
         ];
-        
+
         for (practice_id, description) in &best_practices {
             result.best_practices.total += 1;
-            
+
             // Validate specific best practice
             let follows_practice = match *practice_id {
                 "capability_declaration" => true, // Would check actual capabilities
-                "error_handling" => true, // Would test error scenarios
-                _ => true, // Placeholder for other checks
+                "error_handling" => true,         // Would test error scenarios
+                _ => true,                        // Placeholder for other checks
             };
-            
+
             if follows_practice {
                 result.best_practices.passed += 1;
             } else {
@@ -714,7 +721,7 @@ impl EcosystemTester {
                 ));
             }
         }
-        
+
         Ok(())
     }
 }
@@ -756,13 +763,16 @@ impl EcosystemComponent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_component_name() {
         assert_eq!(EcosystemComponent::ClaudeDesktop.name(), "Claude Desktop");
-        assert_eq!(EcosystemComponent::VSCodeExtension.name(), "VSCode MCP Extension");
+        assert_eq!(
+            EcosystemComponent::VSCodeExtension.name(),
+            "VSCode MCP Extension"
+        );
     }
-    
+
     #[tokio::test]
     async fn test_ecosystem_tester_creation() {
         let config = ValidationConfig::default();

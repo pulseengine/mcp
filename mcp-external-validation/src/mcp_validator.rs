@@ -4,8 +4,8 @@
 //! (Janix-ai/mcp-protocol-validator) to ensure compliance with MCP specifications.
 
 use crate::{
-    report::{McpValidatorResult, TestScore, ValidationIssue, IssueSeverity},
-    ValidationError, ValidationResult, ValidationConfig,
+    report::{IssueSeverity, McpValidatorResult, TestScore, ValidationIssue},
+    ValidationConfig, ValidationError, ValidationResult,
 };
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -23,13 +23,13 @@ pub struct McpValidatorClient {
 struct ValidatorRequest {
     /// Server URL to validate
     server_url: String,
-    
+
     /// Protocol version to test
     protocol_version: String,
-    
+
     /// Test categories to run
     test_categories: Vec<String>,
-    
+
     /// Additional configuration
     config: ValidatorRequestConfig,
 }
@@ -39,13 +39,13 @@ struct ValidatorRequest {
 struct ValidatorRequestConfig {
     /// Timeout for individual tests (seconds)
     timeout: u64,
-    
+
     /// Enable strict compliance checking
     strict_mode: bool,
-    
+
     /// Test OAuth 2.1 authentication
     test_oauth: bool,
-    
+
     /// Test backward compatibility
     test_backward_compat: bool,
 }
@@ -55,16 +55,16 @@ struct ValidatorRequestConfig {
 struct ValidatorResponse {
     /// Overall validation status
     status: String,
-    
+
     /// Detailed test results
     results: ValidatorTestResults,
-    
+
     /// List of issues found
     issues: Vec<ValidatorIssue>,
-    
+
     /// Performance metrics
     performance: ValidatorPerformance,
-    
+
     /// Validation metadata
     metadata: ValidatorMetadata,
 }
@@ -74,19 +74,19 @@ struct ValidatorResponse {
 struct ValidatorTestResults {
     /// HTTP compliance tests (should be 7/7)
     http_compliance: TestResultDetail,
-    
+
     /// OAuth 2.1 framework tests (should be 6/6)
     oauth_framework: TestResultDetail,
-    
+
     /// Protocol features tests (should be 7/7)
     protocol_features: TestResultDetail,
-    
+
     /// Multi-protocol support (should be 3/3)
     multi_protocol: TestResultDetail,
-    
+
     /// Backward compatibility tests
     backward_compatibility: TestResultDetail,
-    
+
     /// Security features tests
     security_features: Option<TestResultDetail>,
 }
@@ -96,16 +96,16 @@ struct ValidatorTestResults {
 struct TestResultDetail {
     /// Number of tests passed
     passed: u32,
-    
+
     /// Total number of tests
     total: u32,
-    
+
     /// Test duration in milliseconds
     duration_ms: u64,
-    
+
     /// Specific test failures
     failures: Vec<TestFailure>,
-    
+
     /// Additional test metadata
     metadata: Option<serde_json::Value>,
 }
@@ -115,14 +115,14 @@ struct TestResultDetail {
 struct TestFailure {
     /// Test name that failed
     test_name: String,
-    
+
     /// Failure reason
     reason: String,
-    
+
     /// Expected vs actual values
     expected: Option<serde_json::Value>,
     actual: Option<serde_json::Value>,
-    
+
     /// Suggested fix
     suggestion: Option<String>,
 }
@@ -132,19 +132,19 @@ struct TestFailure {
 struct ValidatorIssue {
     /// Issue severity
     severity: String,
-    
+
     /// Issue category
     category: String,
-    
+
     /// Issue description
     description: String,
-    
+
     /// Location where issue was found
     location: Option<String>,
-    
+
     /// Suggested resolution
     suggestion: Option<String>,
-    
+
     /// Additional issue details
     details: Option<serde_json::Value>,
 }
@@ -154,16 +154,16 @@ struct ValidatorIssue {
 struct ValidatorPerformance {
     /// Total validation time (milliseconds)
     total_time_ms: u64,
-    
+
     /// Average response time (milliseconds)
     avg_response_time_ms: f64,
-    
+
     /// Maximum response time (milliseconds)
     max_response_time_ms: f64,
-    
+
     /// Number of requests made
     total_requests: u32,
-    
+
     /// Number of failed requests
     failed_requests: u32,
 }
@@ -173,13 +173,13 @@ struct ValidatorPerformance {
 struct ValidatorMetadata {
     /// Validator version used
     validator_version: String,
-    
+
     /// Timestamp of validation
     timestamp: String,
-    
+
     /// Server capabilities detected
     server_capabilities: Vec<String>,
-    
+
     /// Transport methods tested
     transport_methods: Vec<String>,
 }
@@ -245,16 +245,18 @@ impl McpValidatorClient {
             });
         }
 
-        let validator_response: ValidatorResponse = response.json().await.map_err(|e| {
-            ValidationError::InvalidResponseFormat {
-                details: format!("Failed to parse validator response: {}", e),
-            }
-        })?;
+        let validator_response: ValidatorResponse =
+            response
+                .json()
+                .await
+                .map_err(|e| ValidationError::InvalidResponseFormat {
+                    details: format!("Failed to parse validator response: {}", e),
+                })?;
 
         debug!("Received validation response: {:?}", validator_response);
 
         let result = self.convert_validator_response(validator_response)?;
-        
+
         info!("MCP validation completed successfully");
         Ok(result)
     }
@@ -300,11 +302,13 @@ impl McpValidatorClient {
             });
         }
 
-        let info: ValidatorInfo = response.json().await.map_err(|e| {
-            ValidationError::InvalidResponseFormat {
-                details: format!("Failed to parse validator info: {}", e),
-            }
-        })?;
+        let info: ValidatorInfo =
+            response
+                .json()
+                .await
+                .map_err(|e| ValidationError::InvalidResponseFormat {
+                    details: format!("Failed to parse validator info: {}", e),
+                })?;
 
         Ok(info)
     }
@@ -368,7 +372,8 @@ impl McpValidatorClient {
                 }
 
                 if let Some(details) = issue.details {
-                    validation_issue = validation_issue.with_detail("raw_details".to_string(), details);
+                    validation_issue =
+                        validation_issue.with_detail("raw_details".to_string(), details);
                 }
 
                 validation_issue
@@ -382,16 +387,16 @@ impl McpValidatorClient {
 pub struct ValidatorInfo {
     /// Validator service version
     pub version: String,
-    
+
     /// Supported MCP protocol versions
     pub supported_protocols: Vec<String>,
-    
+
     /// Available test categories
     pub test_categories: Vec<String>,
-    
+
     /// Service capabilities
     pub capabilities: Vec<String>,
-    
+
     /// API rate limits
     pub rate_limits: Option<RateLimits>,
 }
@@ -401,10 +406,10 @@ pub struct ValidatorInfo {
 pub struct RateLimits {
     /// Requests per minute
     pub requests_per_minute: u32,
-    
+
     /// Burst limit
     pub burst_limit: u32,
-    
+
     /// Reset time in seconds
     pub reset_time_seconds: u32,
 }
@@ -450,7 +455,7 @@ mod tests {
 
         let config = ValidationConfig::default();
         let client = McpValidatorClient::new(config).unwrap();
-        
+
         // This will fail if service is not available, which is expected
         let _ = client.test_connectivity().await;
     }

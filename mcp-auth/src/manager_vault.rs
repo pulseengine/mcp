@@ -4,10 +4,10 @@
 //! master keys and configuration from external vault systems like Infisical.
 
 use crate::{
-    AuthConfig, AuthenticationManager, ValidationConfig,
-    vault::{VaultIntegration, VaultConfig, VaultError},
-    manager::AuthError,
     config::StorageConfig,
+    manager::AuthError,
+    vault::{VaultConfig, VaultError, VaultIntegration},
+    AuthConfig, AuthenticationManager, ValidationConfig,
 };
 use std::collections::HashMap;
 use tracing::{debug, info, warn};
@@ -30,7 +30,10 @@ impl VaultAuthenticationManager {
         let vault_integration = if let Some(vault_cfg) = vault_config {
             match VaultIntegration::new(vault_cfg).await {
                 Ok(integration) => {
-                    info!("Successfully connected to vault: {}", integration.client_info().name);
+                    info!(
+                        "Successfully connected to vault: {}",
+                        integration.client_info().name
+                    );
                     Some(integration)
                 }
                 Err(e) => {
@@ -63,7 +66,10 @@ impl VaultAuthenticationManager {
                 }
                 Err(e) => {
                     if fallback_to_env {
-                        warn!("Failed to get master key from vault ({}), checking environment", e);
+                        warn!(
+                            "Failed to get master key from vault ({}), checking environment",
+                            e
+                        );
                         Self::get_master_key_from_env()?
                     } else {
                         return Err(VaultAuthManagerError::VaultError(e));
@@ -88,9 +94,10 @@ impl VaultAuthenticationManager {
         let validation_config = validation_config.unwrap_or_default();
 
         // Create the authentication manager
-        let auth_manager = AuthenticationManager::new_with_validation(auth_config, validation_config)
-            .await
-            .map_err(VaultAuthManagerError::AuthError)?;
+        let auth_manager =
+            AuthenticationManager::new_with_validation(auth_config, validation_config)
+                .await
+                .map_err(VaultAuthManagerError::AuthError)?;
 
         Ok(Self {
             auth_manager,
@@ -119,7 +126,10 @@ impl VaultAuthenticationManager {
         if let Some(timeout) = vault_config.get("PULSEENGINE_MCP_SESSION_TIMEOUT") {
             if let Ok(timeout_secs) = timeout.parse::<u64>() {
                 auth_config.session_timeout_secs = timeout_secs;
-                debug!("Applied vault config: session_timeout_secs = {}", timeout_secs);
+                debug!(
+                    "Applied vault config: session_timeout_secs = {}",
+                    timeout_secs
+                );
             }
         }
 
@@ -133,7 +143,10 @@ impl VaultAuthenticationManager {
         if let Some(rate_limit) = vault_config.get("PULSEENGINE_MCP_RATE_LIMIT_WINDOW") {
             if let Ok(window_secs) = rate_limit.parse::<u64>() {
                 auth_config.rate_limit_window_secs = window_secs;
-                debug!("Applied vault config: rate_limit_window_secs = {}", window_secs);
+                debug!(
+                    "Applied vault config: rate_limit_window_secs = {}",
+                    window_secs
+                );
             }
         }
 
@@ -162,7 +175,10 @@ impl VaultAuthenticationManager {
     /// Test vault connectivity
     pub async fn test_vault_connection(&self) -> Result<(), VaultAuthManagerError> {
         if let Some(vault) = &self.vault_integration {
-            vault.test_connection().await.map_err(VaultAuthManagerError::VaultError)
+            vault
+                .test_connection()
+                .await
+                .map_err(VaultAuthManagerError::VaultError)
         } else {
             Err(VaultAuthManagerError::VaultNotConfigured)
         }
@@ -173,18 +189,23 @@ impl VaultAuthenticationManager {
         if let Some(vault) = &self.vault_integration {
             // Clear vault cache to get fresh values
             vault.clear_cache().await;
-            
+
             // Get updated configuration
-            let vault_config = vault.get_api_config().await
+            let vault_config = vault
+                .get_api_config()
+                .await
                 .map_err(VaultAuthManagerError::VaultError)?;
-            
-            info!("Refreshed {} configuration values from vault", vault_config.len());
-            
+
+            info!(
+                "Refreshed {} configuration values from vault",
+                vault_config.len()
+            );
+
             // Note: We can't update the existing auth_manager config as it's immutable
             // In a real implementation, you might want to recreate the auth_manager
             // or make the configuration mutable
             warn!("Configuration refresh requires recreating the authentication manager");
-            
+
             Ok(())
         } else {
             Err(VaultAuthManagerError::VaultNotConfigured)
@@ -195,7 +216,9 @@ impl VaultAuthenticationManager {
     pub async fn store_secret(&self, name: &str, value: &str) -> Result<(), VaultAuthManagerError> {
         if let Some(vault) = &self.vault_integration {
             if let Some(client) = vault.vault_integration() {
-                client.set_secret(name, value).await
+                client
+                    .set_secret(name, value)
+                    .await
                     .map_err(VaultAuthManagerError::VaultError)
             } else {
                 Err(VaultAuthManagerError::VaultNotConfigured)
@@ -208,7 +231,9 @@ impl VaultAuthenticationManager {
     /// Get a secret from the vault
     pub async fn get_secret(&self, name: &str) -> Result<String, VaultAuthManagerError> {
         if let Some(vault) = &self.vault_integration {
-            vault.get_secret_cached(name).await
+            vault
+                .get_secret_cached(name)
+                .await
                 .map_err(VaultAuthManagerError::VaultError)
         } else {
             Err(VaultAuthManagerError::VaultNotConfigured)
@@ -219,7 +244,9 @@ impl VaultAuthenticationManager {
     pub async fn list_vault_secrets(&self) -> Result<Vec<String>, VaultAuthManagerError> {
         if let Some(vault) = &self.vault_integration {
             if let Some(client) = vault.vault_integration() {
-                client.list_secrets().await
+                client
+                    .list_secrets()
+                    .await
                     .map_err(VaultAuthManagerError::VaultError)
             } else {
                 Err(VaultAuthManagerError::VaultNotConfigured)
@@ -263,16 +290,16 @@ impl std::ops::Deref for VaultAuthenticationManager {
 pub enum VaultAuthManagerError {
     #[error("Vault error: {0}")]
     VaultError(VaultError),
-    
+
     #[error("Authentication manager error: {0}")]
     AuthError(AuthError),
-    
+
     #[error("Master key not found in vault or environment")]
     MasterKeyNotFound,
-    
+
     #[error("Vault is not configured")]
     VaultNotConfigured,
-    
+
     #[error("Configuration error: {0}")]
     ConfigError(String),
 }
@@ -292,13 +319,13 @@ impl std::fmt::Display for VaultStatus {
         writeln!(f, "  Enabled: {}", self.enabled)?;
         writeln!(f, "  Connected: {}", self.connected)?;
         writeln!(f, "  Fallback Enabled: {}", self.fallback_enabled)?;
-        
+
         if let Some(info) = &self.client_info {
             writeln!(f, "  Client: {} v{}", info.name, info.version)?;
             writeln!(f, "  Type: {}", info.vault_type)?;
             writeln!(f, "  Read Only: {}", info.read_only)?;
         }
-        
+
         Ok(())
     }
 }
@@ -317,7 +344,7 @@ impl VaultIntegration {
 mod tests {
     use super::*;
     use crate::config::StorageConfig;
-    
+
     #[test]
     fn test_vault_status_display() {
         let status = VaultStatus {
@@ -331,13 +358,13 @@ mod tests {
             }),
             fallback_enabled: true,
         };
-        
+
         let output = status.to_string();
         assert!(output.contains("Enabled: true"));
         assert!(output.contains("Connected: true"));
         assert!(output.contains("Test Vault"));
     }
-    
+
     #[test]
     fn test_apply_vault_config() {
         let mut auth_config = AuthConfig {
@@ -354,13 +381,19 @@ mod tests {
             max_failed_attempts: 5,
             rate_limit_window_secs: 900,
         };
-        
+
         let mut vault_config = HashMap::new();
-        vault_config.insert("PULSEENGINE_MCP_SESSION_TIMEOUT".to_string(), "7200".to_string());
-        vault_config.insert("PULSEENGINE_MCP_MAX_FAILED_ATTEMPTS".to_string(), "3".to_string());
-        
+        vault_config.insert(
+            "PULSEENGINE_MCP_SESSION_TIMEOUT".to_string(),
+            "7200".to_string(),
+        );
+        vault_config.insert(
+            "PULSEENGINE_MCP_MAX_FAILED_ATTEMPTS".to_string(),
+            "3".to_string(),
+        );
+
         VaultAuthenticationManager::apply_vault_config(&mut auth_config, &vault_config);
-        
+
         assert_eq!(auth_config.session_timeout_secs, 7200);
         assert_eq!(auth_config.max_failed_attempts, 3);
     }

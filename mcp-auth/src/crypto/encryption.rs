@@ -26,13 +26,13 @@ pub struct EncryptedData {
 pub enum EncryptionError {
     #[error("Encryption failed: {0}")]
     EncryptionFailed(String),
-    
+
     #[error("Decryption failed: {0}")]
     DecryptionFailed(String),
-    
+
     #[error("Invalid key: {0}")]
     InvalidKey(String),
-    
+
     #[error("Invalid data format: {0}")]
     InvalidFormat(String),
 }
@@ -41,11 +41,11 @@ pub enum EncryptionError {
 pub fn encrypt_data(data: &[u8], key: &[u8; 32]) -> Result<EncryptedData, EncryptionError> {
     let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key));
     let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
-    
+
     let ciphertext = cipher
         .encrypt(&nonce, data)
         .map_err(|e| EncryptionError::EncryptionFailed(e.to_string()))?;
-    
+
     Ok(EncryptedData {
         ciphertext: BASE64.encode(&ciphertext),
         nonce: BASE64.encode(&nonce),
@@ -56,22 +56,23 @@ pub fn encrypt_data(data: &[u8], key: &[u8; 32]) -> Result<EncryptedData, Encryp
 /// Decrypt data using AES-256-GCM
 pub fn decrypt_data(encrypted: &EncryptedData, key: &[u8; 32]) -> Result<Vec<u8>, EncryptionError> {
     if encrypted.algorithm != "AES-256-GCM" {
-        return Err(EncryptionError::InvalidFormat(
-            format!("Unsupported algorithm: {}", encrypted.algorithm)
-        ));
+        return Err(EncryptionError::InvalidFormat(format!(
+            "Unsupported algorithm: {}",
+            encrypted.algorithm
+        )));
     }
-    
+
     let ciphertext = BASE64
         .decode(&encrypted.ciphertext)
         .map_err(|e| EncryptionError::InvalidFormat(format!("Invalid ciphertext base64: {e}")))?;
-    
+
     let nonce_bytes = BASE64
         .decode(&encrypted.nonce)
         .map_err(|e| EncryptionError::InvalidFormat(format!("Invalid nonce base64: {e}")))?;
-    
+
     let nonce = Nonce::from_slice(&nonce_bytes);
     let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key));
-    
+
     cipher
         .decrypt(nonce, ciphertext.as_ref())
         .map_err(|e| EncryptionError::DecryptionFailed(e.to_string()))
@@ -84,13 +85,13 @@ pub fn decrypt_data(encrypted: &EncryptedData, key: &[u8; 32]) -> Result<Vec<u8>
 pub fn derive_encryption_key(master_key: &[u8], context: &str) -> [u8; 32] {
     use hkdf::Hkdf;
     use sha2::Sha256;
-    
+
     let hkdf = Hkdf::<Sha256>::new(None, master_key);
     let mut okm = [0u8; 32];
     let info = format!("pulseengine-mcp-auth-{context}");
     hkdf.expand(info.as_bytes(), &mut okm)
         .expect("32 bytes is a valid length for HKDF-SHA256");
-    
+
     okm
 }
 
@@ -111,59 +112,59 @@ pub fn secure_zero(data: &mut [u8]) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_encryption_decryption() {
         let key = generate_encryption_key();
         let plaintext = b"sensitive-api-key-data";
-        
+
         // Encrypt
         let encrypted = encrypt_data(plaintext, &key).unwrap();
         assert!(!encrypted.ciphertext.is_empty());
         assert!(!encrypted.nonce.is_empty());
         assert_eq!(encrypted.algorithm, "AES-256-GCM");
-        
+
         // Decrypt
         let decrypted = decrypt_data(&encrypted, &key).unwrap();
         assert_eq!(decrypted, plaintext);
     }
-    
+
     #[test]
     fn test_encryption_with_wrong_key() {
         let key1 = generate_encryption_key();
         let key2 = generate_encryption_key();
         let plaintext = b"sensitive-api-key-data";
-        
+
         // Encrypt with key1
         let encrypted = encrypt_data(plaintext, &key1).unwrap();
-        
+
         // Try to decrypt with key2 - should fail
         let result = decrypt_data(&encrypted, &key2);
         assert!(result.is_err());
     }
-    
+
     #[test]
     fn test_key_derivation() {
         let master_key = b"master-key-material";
-        
+
         let key1 = derive_encryption_key(master_key, "api-keys");
         let key2 = derive_encryption_key(master_key, "api-keys");
         let key3 = derive_encryption_key(master_key, "audit-logs");
-        
+
         // Same context should produce same key
         assert_eq!(key1, key2);
-        
+
         // Different context should produce different key
         assert_ne!(key1, key3);
     }
-    
+
     #[test]
     fn test_secure_zero() {
         let mut sensitive_data = b"sensitive-key".to_vec();
         let original = sensitive_data.clone();
-        
+
         secure_zero(&mut sensitive_data);
-        
+
         // Data should be zeroed
         assert_ne!(sensitive_data, original);
         assert!(sensitive_data.iter().all(|&b| b == 0));

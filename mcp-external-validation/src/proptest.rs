@@ -6,9 +6,9 @@
 #[cfg(feature = "proptest")]
 use proptest::prelude::*;
 #[cfg(feature = "proptest")]
-use proptest::{option, collection};
-#[cfg(feature = "proptest")]
 use proptest::strategy::ValueTree;
+#[cfg(feature = "proptest")]
+use proptest::{collection, option};
 #[cfg(feature = "proptest")]
 use proptest_derive::Arbitrary;
 #[cfg(feature = "proptest")]
@@ -17,10 +17,7 @@ use serde_json::{json, Value};
 use std::collections::HashMap;
 
 #[cfg(feature = "proptest")]
-use crate::{
-    jsonrpc::JsonRpcValidator,
-    ValidationConfig, ValidationResult,
-};
+use crate::{jsonrpc::JsonRpcValidator, ValidationConfig, ValidationResult};
 
 /// Property-based test runner for MCP protocol compliance
 #[cfg(feature = "proptest")]
@@ -35,13 +32,13 @@ pub struct McpPropertyTester {
 pub struct ArbitraryJsonRpcMessage {
     /// JSON-RPC version (should be "2.0")
     pub jsonrpc: ArbitraryJsonRpcVersion,
-    
+
     /// Message type
     pub message_type: ArbitraryMessageType,
-    
+
     /// Request/response ID
     pub id: Option<ArbitraryId>,
-    
+
     /// Additional fields for testing edge cases
     pub extra_fields: HashMap<String, ArbitraryValue>,
 }
@@ -141,9 +138,9 @@ impl Arbitrary for ArbitraryParams {
                 .prop_map(ArbitraryParams::Object),
             collection::vec(ArbitraryValue::arbitrary_with(2), 0..5)
                 .prop_map(ArbitraryParams::Array),
-            ArbitraryValue::arbitrary_with(2)
-                .prop_map(ArbitraryParams::InvalidType),
-        ].boxed()
+            ArbitraryValue::arbitrary_with(2).prop_map(ArbitraryParams::InvalidType),
+        ]
+        .boxed()
     }
 }
 
@@ -172,7 +169,8 @@ impl Arbitrary for ArbitraryValue {
                 any::<bool>().prop_map(ArbitraryValue::Bool),
                 any::<f64>().prop_map(ArbitraryValue::Number),
                 any::<String>().prop_map(ArbitraryValue::String),
-            ].boxed()
+            ]
+            .boxed()
         } else {
             // Recursive cases with reduced depth
             let leaf = prop_oneof![
@@ -181,21 +179,23 @@ impl Arbitrary for ArbitraryValue {
                 any::<f64>().prop_map(ArbitraryValue::Number),
                 any::<String>().prop_map(ArbitraryValue::String),
             ];
-            
+
             let array = collection::vec(ArbitraryValue::arbitrary_with(depth - 1), 0..3)
                 .prop_map(ArbitraryValue::Array);
-            
+
             let object = collection::hash_map(
-                any::<String>(), 
-                ArbitraryValue::arbitrary_with(depth - 1), 
-                0..3
-            ).prop_map(ArbitraryValue::Object);
+                any::<String>(),
+                ArbitraryValue::arbitrary_with(depth - 1),
+                0..3,
+            )
+            .prop_map(ArbitraryValue::Object);
 
             prop_oneof![
                 3 => leaf,
                 1 => array,
                 1 => object,
-            ].boxed()
+            ]
+            .boxed()
         }
     }
 }
@@ -226,11 +226,13 @@ impl Arbitrary for ArbitraryError {
             any::<i32>(),
             any::<String>(),
             option::of(ArbitraryValue::arbitrary_with(1)),
-        ).prop_map(|(code, message, data)| ArbitraryError {
-            code,
-            message,
-            data,
-        }).boxed()
+        )
+            .prop_map(|(code, message, data)| ArbitraryError {
+                code,
+                message,
+                data,
+            })
+            .boxed()
     }
 }
 
@@ -268,7 +270,8 @@ impl Arbitrary for ArbitraryId {
                 .prop_map(ArbitraryId::Array),
             1 => collection::hash_map(any::<String>(), ArbitraryValue::arbitrary_with(1), 0..3)
                 .prop_map(ArbitraryId::Object),
-        ].boxed()
+        ]
+        .boxed()
     }
 }
 
@@ -310,11 +313,13 @@ impl Arbitrary for ArbitraryToolCall {
             any::<String>(),
             collection::hash_map(any::<String>(), ArbitraryValue::arbitrary_with(2), 0..5),
             any::<bool>(),
-        ).prop_map(|(name, arguments, should_succeed)| ArbitraryToolCall {
-            name,
-            arguments,
-            should_succeed,
-        }).boxed()
+        )
+            .prop_map(|(name, arguments, should_succeed)| ArbitraryToolCall {
+                name,
+                arguments,
+                should_succeed,
+            })
+            .boxed()
     }
 }
 
@@ -364,11 +369,15 @@ impl Arbitrary for ArbitraryInitialization {
             any::<String>(),
             collection::hash_map(any::<String>(), ArbitraryValue::arbitrary_with(2), 0..5),
             collection::hash_map(any::<String>(), ArbitraryValue::arbitrary_with(2), 0..5),
-        ).prop_map(|(protocol_version, client_info, capabilities)| ArbitraryInitialization {
-            protocol_version,
-            client_info,
-            capabilities,
-        }).boxed()
+        )
+            .prop_map(
+                |(protocol_version, client_info, capabilities)| ArbitraryInitialization {
+                    protocol_version,
+                    client_info,
+                    capabilities,
+                },
+            )
+            .boxed()
     }
 }
 
@@ -377,7 +386,7 @@ impl McpPropertyTester {
     /// Create a new property tester
     pub fn new(config: ValidationConfig) -> ValidationResult<Self> {
         let jsonrpc_validator = JsonRpcValidator::new(config.clone())?;
-        
+
         Ok(Self {
             config,
             jsonrpc_validator,
@@ -410,10 +419,9 @@ impl McpPropertyTester {
         let mut passed = 0;
 
         // Generate and test random messages
-        let mut runner = proptest::test_runner::TestRunner::new(
-            ProptestConfig::with_cases(total_tests as u32)
-        );
-        
+        let mut runner =
+            proptest::test_runner::TestRunner::new(ProptestConfig::with_cases(total_tests as u32));
+
         for _ in 0..total_tests {
             match any::<ArbitraryJsonRpcMessage>().new_tree(&mut runner) {
                 Ok(value_tree) => {
@@ -422,7 +430,7 @@ impl McpPropertyTester {
                         Ok(_) => passed += 1,
                         Err(e) => failures.push(format!("Roundtrip failed: {}", e)),
                     }
-                },
+                }
                 Err(e) => failures.push(format!("Failed to generate test case: {}", e)),
             }
         }
@@ -441,20 +449,19 @@ impl McpPropertyTester {
         let total_tests = self.config.testing.property_test_cases;
         let mut passed = 0;
 
-        let mut runner = proptest::test_runner::TestRunner::new(
-            ProptestConfig::with_cases(total_tests as u32)
-        );
-        
+        let mut runner =
+            proptest::test_runner::TestRunner::new(ProptestConfig::with_cases(total_tests as u32));
+
         for _ in 0..total_tests {
             match any::<ArbitraryJsonRpcMessage>().new_tree(&mut runner) {
                 Ok(value_tree) => {
                     let msg = value_tree.current();
                     let json_value = Self::convert_to_json(&msg);
-                    
+
                     // Validation should be consistent
                     let validation1 = self.jsonrpc_validator.validate_single_message(&json_value);
                     let validation2 = self.jsonrpc_validator.validate_single_message(&json_value);
-                    
+
                     match (validation1, validation2) {
                         (Ok(issues1), Ok(issues2)) => {
                             if issues1.len() == issues2.len() {
@@ -462,11 +469,11 @@ impl McpPropertyTester {
                             } else {
                                 failures.push("Validation results inconsistent".to_string());
                             }
-                        },
+                        }
                         (Err(_), Err(_)) => passed += 1, // Consistent error
                         _ => failures.push("Validation consistency mismatch".to_string()),
                     }
-                },
+                }
                 Err(e) => failures.push(format!("Failed to generate test case: {}", e)),
             }
         }
@@ -485,21 +492,20 @@ impl McpPropertyTester {
         let total_tests = self.config.testing.property_test_cases;
         let mut passed = 0;
 
-        let mut runner = proptest::test_runner::TestRunner::new(
-            ProptestConfig::with_cases(total_tests as u32)
-        );
-        
+        let mut runner =
+            proptest::test_runner::TestRunner::new(ProptestConfig::with_cases(total_tests as u32));
+
         for _ in 0..total_tests {
             match any::<McpTestScenario>().new_tree(&mut runner) {
                 Ok(value_tree) => {
                     let scenario = value_tree.current();
-                    
+
                     // Test that MCP protocol invariants hold
                     match Self::verify_mcp_invariants(&scenario) {
                         Ok(_) => passed += 1,
                         Err(e) => failures.push(format!("Protocol invariant violated: {}", e)),
                     }
-                },
+                }
                 Err(e) => failures.push(format!("Failed to generate test case: {}", e)),
             }
         }
@@ -515,35 +521,38 @@ impl McpPropertyTester {
     /// Test a single message roundtrip
     fn test_single_roundtrip(msg: &ArbitraryJsonRpcMessage) -> Result<(), String> {
         let json_value = Self::convert_to_json(msg);
-        
+
         // Skip test if the value contains problematic numbers (NaN, infinite, etc.)
         if Self::contains_problematic_numbers(&json_value) {
             return Ok(()); // Skip this test case
         }
-        
+
         // Serialize to string
         let json_string = serde_json::to_string(&json_value)
             .map_err(|e| format!("Serialization failed: {}", e))?;
-        
+
         // Deserialize back
         let parsed_value: Value = serde_json::from_str(&json_string)
             .map_err(|e| format!("Deserialization failed: {}", e))?;
-        
+
         // Should be equal (we're more lenient with floating point comparisons)
         if !Self::values_approximately_equal(&json_value, &parsed_value) {
             return Err("Roundtrip values not equal".to_string());
         }
-        
+
         Ok(())
     }
-    
+
     /// Check if a JSON value contains problematic numbers
     fn contains_problematic_numbers(value: &Value) -> bool {
         match value {
             Value::Number(n) => {
                 if let Some(f) = n.as_f64() {
                     // Skip NaN, infinite, and extremely large/small numbers
-                    f.is_nan() || f.is_infinite() || f.abs() > 1e100 || (f != 0.0 && f.abs() < 1e-100)
+                    f.is_nan()
+                        || f.is_infinite()
+                        || f.abs() > 1e100
+                        || (f != 0.0 && f.abs() < 1e-100)
                 } else {
                     false
                 }
@@ -553,7 +562,7 @@ impl McpPropertyTester {
             _ => false,
         }
     }
-    
+
     /// Compare two JSON values with floating point tolerance
     fn values_approximately_equal(a: &Value, b: &Value) -> bool {
         match (a, b) {
@@ -564,14 +573,19 @@ impl McpPropertyTester {
                 }
             }
             (Value::Object(a_obj), Value::Object(b_obj)) => {
-                a_obj.len() == b_obj.len() &&
-                a_obj.iter().all(|(k, v)| {
-                    b_obj.get(k).map_or(false, |b_v| Self::values_approximately_equal(v, b_v))
-                })
+                a_obj.len() == b_obj.len()
+                    && a_obj.iter().all(|(k, v)| {
+                        b_obj
+                            .get(k)
+                            .map_or(false, |b_v| Self::values_approximately_equal(v, b_v))
+                    })
             }
             (Value::Array(a_arr), Value::Array(b_arr)) => {
-                a_arr.len() == b_arr.len() &&
-                a_arr.iter().zip(b_arr.iter()).all(|(a_v, b_v)| Self::values_approximately_equal(a_v, b_v))
+                a_arr.len() == b_arr.len()
+                    && a_arr
+                        .iter()
+                        .zip(b_arr.iter())
+                        .all(|(a_v, b_v)| Self::values_approximately_equal(a_v, b_v))
             }
             _ => a == b,
         }
@@ -580,17 +594,20 @@ impl McpPropertyTester {
     /// Convert arbitrary message to JSON
     fn convert_to_json(msg: &ArbitraryJsonRpcMessage) -> Value {
         let mut obj = serde_json::Map::new();
-        
+
         // Add jsonrpc field
-        obj.insert("jsonrpc".to_string(), match &msg.jsonrpc {
-            ArbitraryJsonRpcVersion::Valid => json!("2.0"),
-            ArbitraryJsonRpcVersion::Version1_0 => json!("1.0"),
-            ArbitraryJsonRpcVersion::Version1_1 => json!("1.1"),
-            ArbitraryJsonRpcVersion::InvalidString(s) => json!(s),
-            ArbitraryJsonRpcVersion::Number(n) => json!(n),
-            ArbitraryJsonRpcVersion::Null => json!(null),
-        });
-        
+        obj.insert(
+            "jsonrpc".to_string(),
+            match &msg.jsonrpc {
+                ArbitraryJsonRpcVersion::Valid => json!("2.0"),
+                ArbitraryJsonRpcVersion::Version1_0 => json!("1.0"),
+                ArbitraryJsonRpcVersion::Version1_1 => json!("1.1"),
+                ArbitraryJsonRpcVersion::InvalidString(s) => json!(s),
+                ArbitraryJsonRpcVersion::Number(n) => json!(n),
+                ArbitraryJsonRpcVersion::Null => json!(null),
+            },
+        );
+
         // Add message type specific fields
         match &msg.message_type {
             ArbitraryMessageType::Request { method, params } => {
@@ -598,7 +615,7 @@ impl McpPropertyTester {
                 if let Some(p) = params {
                     obj.insert("params".to_string(), Self::convert_params_to_json(p));
                 }
-            },
+            }
             ArbitraryMessageType::Response { result, error } => {
                 if let Some(r) = result {
                     obj.insert("result".to_string(), Self::convert_value_to_json(r));
@@ -606,25 +623,25 @@ impl McpPropertyTester {
                 if let Some(e) = error {
                     obj.insert("error".to_string(), Self::convert_error_to_json(e));
                 }
-            },
+            }
             ArbitraryMessageType::Notification { method, params } => {
                 obj.insert("method".to_string(), Self::convert_method_to_json(method));
                 if let Some(p) = params {
                     obj.insert("params".to_string(), Self::convert_params_to_json(p));
                 }
-            },
+            }
         }
-        
+
         // Add ID if present
         if let Some(id) = &msg.id {
             obj.insert("id".to_string(), Self::convert_id_to_json(id));
         }
-        
+
         // Add extra fields
         for (key, value) in &msg.extra_fields {
             obj.insert(key.clone(), Self::convert_value_to_json(value));
         }
-        
+
         Value::Object(obj)
     }
 
@@ -649,7 +666,7 @@ impl McpPropertyTester {
                     McpMethod::CompletionComplete => "completion/complete",
                     McpMethod::Custom(name) => name,
                 })
-            },
+            }
             ArbitraryMethod::InvalidMethod(s) => json!(s),
             ArbitraryMethod::NonString(v) => Self::convert_value_to_json(v),
         }
@@ -664,10 +681,10 @@ impl McpPropertyTester {
                     json_obj.insert(k.clone(), Self::convert_value_to_json(v));
                 }
                 Value::Object(json_obj)
-            },
+            }
             ArbitraryParams::Array(arr) => {
                 Value::Array(arr.iter().map(Self::convert_value_to_json).collect())
-            },
+            }
             ArbitraryParams::InvalidType(v) => Self::convert_value_to_json(v),
         }
     }
@@ -681,14 +698,14 @@ impl McpPropertyTester {
             ArbitraryValue::String(s) => Value::String(s.clone()),
             ArbitraryValue::Array(arr) => {
                 Value::Array(arr.iter().map(Self::convert_value_to_json).collect())
-            },
+            }
             ArbitraryValue::Object(obj) => {
                 let mut json_obj = serde_json::Map::new();
                 for (k, v) in obj {
                     json_obj.insert(k.clone(), Self::convert_value_to_json(v));
                 }
                 Value::Object(json_obj)
-            },
+            }
         }
     }
 
@@ -713,36 +730,36 @@ impl McpPropertyTester {
             ArbitraryId::Bool(b) => json!(b),
             ArbitraryId::Array(arr) => {
                 Value::Array(arr.iter().map(Self::convert_value_to_json).collect())
-            },
+            }
             ArbitraryId::Object(obj) => {
                 let mut json_obj = serde_json::Map::new();
                 for (k, v) in obj {
                     json_obj.insert(k.clone(), Self::convert_value_to_json(v));
                 }
                 Value::Object(json_obj)
-            },
+            }
         }
     }
 
     /// Verify MCP protocol invariants
     fn verify_mcp_invariants(scenario: &McpTestScenario) -> Result<(), String> {
         // Example invariants:
-        
+
         // 1. Tool names should be non-empty strings
         if scenario.tool_call.name.is_empty() {
             return Err("Tool name cannot be empty".to_string());
         }
-        
+
         // 2. Resource URIs should be valid URI format
         if scenario.resource_access.uri.is_empty() {
             return Err("Resource URI cannot be empty".to_string());
         }
-        
+
         // 3. Protocol version should be valid
         if !scenario.initialization.protocol_version.starts_with("20") {
             return Err("Invalid protocol version format".to_string());
         }
-        
+
         Ok(())
     }
 
@@ -750,14 +767,14 @@ impl McpPropertyTester {
     pub fn generate_mcp_test_scenarios(&self, count: usize) -> Vec<McpTestScenario> {
         let mut scenarios = Vec::new();
         let mut runner = proptest::test_runner::TestRunner::new(ProptestConfig::default());
-        
+
         for _ in 0..count {
             // Generate using proptest
             if let Ok(value_tree) = any::<McpTestScenario>().new_tree(&mut runner) {
                 scenarios.push(value_tree.current());
             }
         }
-        
+
         scenarios
     }
 
@@ -777,7 +794,7 @@ impl McpPropertyTester {
         // Known invalid messages
         let invalid_messages = vec![
             json!({"jsonrpc": "1.0", "method": "test", "id": 1}), // Wrong version
-            json!({"method": "test", "id": 1}), // Missing jsonrpc
+            json!({"method": "test", "id": 1}),                   // Missing jsonrpc
             json!({"jsonrpc": "2.0", "result": "ok", "error": {"code": -1, "message": "err"}, "id": 1}), // Both result and error
             json!({"jsonrpc": "2.0", "id": 1}), // Missing method/result/error
         ];
@@ -790,7 +807,7 @@ impl McpPropertyTester {
                     if !issues.is_empty() {
                         failures.push(format!("Valid message rejected: {:?}", msg));
                     }
-                },
+                }
                 Err(e) => failures.push(format!("Valid message validation failed: {}", e)),
             }
         }
@@ -803,8 +820,8 @@ impl McpPropertyTester {
                     if issues.is_empty() {
                         failures.push(format!("Invalid message accepted: {:?}", msg));
                     }
-                },
-                Err(_) => {}, // Expected to fail
+                }
+                Err(_) => {} // Expected to fail
             }
         }
 
@@ -898,14 +915,15 @@ pub fn any_valid_mcp_message() -> impl Strategy<Value = ArbitraryJsonRpcMessage>
         any::<ArbitraryMessageType>(),
         option::of(any::<ArbitraryId>()),
         collection::hash_map(any::<String>(), ArbitraryValue::arbitrary_with(2), 0..3),
-    ).prop_map(|(jsonrpc, message_type, id, extra_fields)| {
-        ArbitraryJsonRpcMessage {
-            jsonrpc,
-            message_type,
-            id,
-            extra_fields,
-        }
-    })
+    )
+        .prop_map(
+            |(jsonrpc, message_type, id, extra_fields)| ArbitraryJsonRpcMessage {
+                jsonrpc,
+                message_type,
+                id,
+                extra_fields,
+            },
+        )
 }
 
 #[cfg(feature = "proptest")]
@@ -977,9 +995,13 @@ mod tests {
             id: None,
             extra_fields: HashMap::new(),
         };
-        
+
         let result = McpPropertyTester::test_single_roundtrip(&msg);
-        assert!(result.is_ok(), "Simple message roundtrip should succeed: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Simple message roundtrip should succeed: {:?}",
+            result
+        );
     }
 
     proptest! {
@@ -1006,10 +1028,10 @@ mod tests {
     async fn test_regression_cases() {
         let config = ValidationConfig::default();
         let tester = McpPropertyTester::new(config).unwrap();
-        
+
         let result = tester.test_regression_cases().await;
         assert!(result.is_ok());
-        
+
         let test_result = result.unwrap();
         // Some tests should pass, some should fail (by design)
         assert!(test_result.total > 0);

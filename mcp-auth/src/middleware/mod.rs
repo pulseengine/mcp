@@ -6,5 +6,7 @@
 pub mod mcp_auth;
 pub mod session_middleware;
 
-pub use mcp_auth::{McpAuthMiddleware, McpAuthConfig, AuthExtractionError};
-pub use session_middleware::{SessionMiddleware, SessionMiddlewareConfig, SessionRequestContext, SessionMiddlewareError};
+pub use mcp_auth::{AuthExtractionError, McpAuthConfig, McpAuthMiddleware};
+pub use session_middleware::{
+    SessionMiddleware, SessionMiddlewareConfig, SessionMiddlewareError, SessionRequestContext,
+};

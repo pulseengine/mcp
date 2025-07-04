@@ -4,14 +4,14 @@
 //! (@modelcontextprotocol/inspector) for automated testing and validation of MCP servers.
 
 use crate::{
-    report::{InspectorResult, ValidationIssue, IssueSeverity},
-    ValidationError, ValidationResult, ValidationConfig,
+    report::{InspectorResult, IssueSeverity, ValidationIssue},
+    ValidationConfig, ValidationError, ValidationResult,
 };
 use serde::Deserialize;
-use std::process::{Command, Stdio};
 use std::path::PathBuf;
-use tokio::time::timeout;
+use std::process::{Command, Stdio};
 use tokio::process::Command as TokioCommand;
+use tokio::time::timeout;
 use tracing::{debug, info, warn};
 
 /// MCP Inspector client for automated testing  
@@ -26,22 +26,22 @@ pub struct InspectorClient {
 struct RealInspectorOutput {
     /// Inspector session information
     session: Option<InspectorSessionInfo>,
-    
+
     /// Server validation results
     server: Option<ServerValidationResults>,
-    
+
     /// Tools discovered and tested
     tools: Option<Vec<ToolValidationResult>>,
-    
+
     /// Resources discovered and tested
     resources: Option<Vec<ResourceValidationResult>>,
-    
+
     /// Prompts discovered and tested
     prompts: Option<Vec<PromptValidationResult>>,
-    
+
     /// Transport test results
     transport: Option<TransportValidationResult>,
-    
+
     /// Any errors encountered
     errors: Option<Vec<InspectorError>>,
 }
@@ -51,16 +51,16 @@ struct RealInspectorOutput {
 struct InspectorSessionInfo {
     /// Unique session identifier
     id: String,
-    
+
     /// Inspector version
     inspector_version: String,
-    
+
     /// Authentication token for this session
     token: Option<String>,
-    
+
     /// Server URL being tested
     server_url: String,
-    
+
     /// Transport method used
     transport_method: String,
 }
@@ -70,16 +70,16 @@ struct InspectorSessionInfo {
 struct ServerValidationResults {
     /// Server connection successful
     connected: bool,
-    
+
     /// Server initialization successful  
     initialized: bool,
-    
+
     /// Server capabilities properly declared
     capabilities_valid: bool,
-    
+
     /// Server responds to ping
     ping_successful: bool,
-    
+
     /// Authentication status
     authentication: AuthenticationResult,
 }
@@ -89,13 +89,13 @@ struct ServerValidationResults {
 struct AuthenticationResult {
     /// Whether authentication was attempted
     attempted: bool,
-    
+
     /// Whether authentication succeeded
     successful: bool,
-    
+
     /// Authentication method used
     method: Option<String>,
-    
+
     /// Error if authentication failed
     error: Option<String>,
 }
@@ -105,16 +105,16 @@ struct AuthenticationResult {
 struct ToolValidationResult {
     /// Tool name
     name: String,
-    
+
     /// Tool description
     description: Option<String>,
-    
+
     /// Whether tool was callable
     callable: bool,
-    
+
     /// Test call result
     test_result: Option<String>,
-    
+
     /// Any errors during testing
     errors: Option<Vec<String>>,
 }
@@ -124,16 +124,16 @@ struct ToolValidationResult {
 struct ResourceValidationResult {
     /// Resource URI
     uri: String,
-    
+
     /// Resource name
     name: Option<String>,
-    
+
     /// Whether resource was accessible
     accessible: bool,
-    
+
     /// Resource content type
     mime_type: Option<String>,
-    
+
     /// Any errors during testing
     errors: Option<Vec<String>>,
 }
@@ -143,16 +143,16 @@ struct ResourceValidationResult {
 struct PromptValidationResult {
     /// Prompt name
     name: String,
-    
+
     /// Prompt description
     description: Option<String>,
-    
+
     /// Whether prompt was usable
     usable: bool,
-    
+
     /// Arguments the prompt accepts
     arguments: Option<Vec<String>>,
-    
+
     /// Any errors during testing
     errors: Option<Vec<String>>,
 }
@@ -162,13 +162,13 @@ struct PromptValidationResult {
 struct TransportValidationResult {
     /// Transport method (stdio, sse, websocket)
     method: String,
-    
+
     /// Whether transport worked
     working: bool,
-    
+
     /// Connection latency if measured
     latency_ms: Option<u64>,
-    
+
     /// Any transport-specific errors
     errors: Option<Vec<String>>,
 }
@@ -178,15 +178,13 @@ struct TransportValidationResult {
 struct InspectorError {
     /// Error code or type
     code: Option<String>,
-    
+
     /// Human-readable error message
     message: String,
-    
+
     /// Additional error context
     context: Option<serde_json::Value>,
 }
-
-
 
 impl InspectorClient {
     /// Create a new inspector client
@@ -274,7 +272,8 @@ impl InspectorClient {
         // Check if inspector is available first
         if !self.check_inspector_availability().await? {
             return Err(ValidationError::InspectorError {
-                message: "MCP Inspector is not available. Please ensure Node.js is installed.".to_string(),
+                message: "MCP Inspector is not available. Please ensure Node.js is installed."
+                    .to_string(),
             });
         }
 
@@ -289,7 +288,7 @@ impl InspectorClient {
         // Run the real MCP Inspector
         let mut cmd = TokioCommand::new("npx");
         cmd.arg("@modelcontextprotocol/inspector");
-        
+
         // Add server command parts
         for part in server_parts {
             cmd.arg(part);
@@ -299,23 +298,22 @@ impl InspectorClient {
         cmd.env("CLIENT_PORT", self.config.inspector.port.to_string());
         cmd.env("HEADLESS", "true");
         cmd.env("JSON_OUTPUT", "true");
-        
-        cmd.stdout(Stdio::piped())
-           .stderr(Stdio::piped());
 
-        info!("Running: npx @modelcontextprotocol/inspector {}", server_command);
+        cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
 
-        let output = timeout(
-            self.config.inspector_timeout_duration(),
-            cmd.output()
-        )
-        .await
-        .map_err(|_| ValidationError::Timeout {
-            seconds: self.config.inspector.timeout,
-        })?
-        .map_err(|e| ValidationError::InspectorError {
-            message: format!("Failed to run inspector: {}", e),
-        })?;
+        info!(
+            "Running: npx @modelcontextprotocol/inspector {}",
+            server_command
+        );
+
+        let output = timeout(self.config.inspector_timeout_duration(), cmd.output())
+            .await
+            .map_err(|_| ValidationError::Timeout {
+                seconds: self.config.inspector.timeout,
+            })?
+            .map_err(|e| ValidationError::InspectorError {
+                message: format!("Failed to run inspector: {}", e),
+            })?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -325,8 +323,11 @@ impl InspectorClient {
 
         if !output.status.success() {
             return Err(ValidationError::InspectorError {
-                message: format!("Inspector failed with exit code {}: {}", 
-                    output.status.code().unwrap_or(-1), stderr),
+                message: format!(
+                    "Inspector failed with exit code {}: {}",
+                    output.status.code().unwrap_or(-1),
+                    stderr
+                ),
             });
         }
 
@@ -335,12 +336,15 @@ impl InspectorClient {
     }
 
     /// Test multiple MCP server commands
-    pub async fn test_multiple_servers(&self, server_commands: &[&str]) -> ValidationResult<Vec<InspectorResult>> {
+    pub async fn test_multiple_servers(
+        &self,
+        server_commands: &[&str],
+    ) -> ValidationResult<Vec<InspectorResult>> {
         let mut results = Vec::new();
 
         for server_command in server_commands {
             info!("Testing server: {}", server_command);
-            
+
             match self.test_server(server_command).await {
                 Ok(result) => results.push(result),
                 Err(e) => {
@@ -360,30 +364,41 @@ impl InspectorClient {
     }
 
     /// Test a Python MCP server (using uvx)
-    pub async fn test_python_server(&self, package_name: &str, args: &[&str]) -> ValidationResult<InspectorResult> {
+    pub async fn test_python_server(
+        &self,
+        package_name: &str,
+        args: &[&str],
+    ) -> ValidationResult<InspectorResult> {
         let mut server_command = format!("uvx {}", package_name);
         for arg in args {
             server_command.push_str(&format!(" {}", arg));
         }
-        
+
         info!("Testing Python MCP server: {}", server_command);
         self.test_server(&server_command).await
     }
 
     /// Test a Node.js MCP server
-    pub async fn test_node_server(&self, command: &str, args: &[&str]) -> ValidationResult<InspectorResult> {
+    pub async fn test_node_server(
+        &self,
+        command: &str,
+        args: &[&str],
+    ) -> ValidationResult<InspectorResult> {
         let mut server_command = command.to_string();
         for arg in args {
             server_command.push_str(&format!(" {}", arg));
         }
-        
+
         info!("Testing Node.js MCP server: {}", server_command);
         self.test_server(&server_command).await
     }
 
-
     /// Parse the real inspector output
-    fn parse_inspector_output(&self, stdout: &str, stderr: &str) -> ValidationResult<InspectorResult> {
+    fn parse_inspector_output(
+        &self,
+        stdout: &str,
+        stderr: &str,
+    ) -> ValidationResult<InspectorResult> {
         debug!("Parsing inspector output...");
 
         // Look for session token in output (needed for authentication)
@@ -414,33 +429,37 @@ impl InspectorClient {
     }
 
     /// Convert real inspector output to our result format
-    fn convert_real_inspector_output(&self, output: RealInspectorOutput) -> ValidationResult<InspectorResult> {
+    fn convert_real_inspector_output(
+        &self,
+        output: RealInspectorOutput,
+    ) -> ValidationResult<InspectorResult> {
         let mut inspector_issues = Vec::new();
 
         // Extract connection and server info
-        let connection_success = output.server
-            .as_ref()
-            .map(|s| s.connected)
-            .unwrap_or(false);
+        let connection_success = output.server.as_ref().map(|s| s.connected).unwrap_or(false);
 
-        let auth_success = output.server
+        let auth_success = output
+            .server
             .as_ref()
             .map(|s| s.authentication.successful)
             .unwrap_or(false);
 
         // Count tools and resources
-        let tools_discoverable = output.tools
+        let tools_discoverable = output
+            .tools
             .as_ref()
             .map(|tools| !tools.is_empty())
             .unwrap_or(false);
 
-        let resources_accessible = output.resources
+        let resources_accessible = output
+            .resources
             .as_ref()
             .map(|resources| resources.iter().any(|r| r.accessible))
             .unwrap_or(false);
 
         // Check transport
-        let export_success = output.transport
+        let export_success = output
+            .transport
             .as_ref()
             .map(|t| t.working)
             .unwrap_or(false);
@@ -448,9 +467,11 @@ impl InspectorClient {
         // Collect errors as issues
         if let Some(errors) = output.errors {
             for error in errors {
-                inspector_issues.push(format!("{}: {}", 
-                    error.code.unwrap_or_else(|| "Error".to_string()), 
-                    error.message));
+                inspector_issues.push(format!(
+                    "{}: {}",
+                    error.code.unwrap_or_else(|| "Error".to_string()),
+                    error.message
+                ));
             }
         }
 
@@ -465,7 +486,11 @@ impl InspectorClient {
     }
 
     /// Parse text-based inspector output (fallback)
-    fn parse_text_inspector_output(&self, stdout: &str, stderr: &str) -> ValidationResult<InspectorResult> {
+    fn parse_text_inspector_output(
+        &self,
+        stdout: &str,
+        stderr: &str,
+    ) -> ValidationResult<InspectorResult> {
         let mut connection_success = false;
         let mut auth_success = false;
         let mut tools_discoverable = false;
@@ -478,27 +503,29 @@ impl InspectorClient {
 
         for line in combined_output.lines() {
             let line_lower = line.to_lowercase();
-            
+
             if line_lower.contains("connected") && line_lower.contains("successfully") {
                 connection_success = true;
             }
-            
+
             if line_lower.contains("authentication") && line_lower.contains("successful") {
                 auth_success = true;
             }
-            
-            if line_lower.contains("tools") && (line_lower.contains("found") || line_lower.contains("discovered")) {
+
+            if line_lower.contains("tools")
+                && (line_lower.contains("found") || line_lower.contains("discovered"))
+            {
                 tools_discoverable = true;
             }
-            
+
             if line_lower.contains("resources") && line_lower.contains("accessible") {
                 resources_accessible = true;
             }
-            
+
             if line_lower.contains("export") && line_lower.contains("success") {
                 export_success = true;
             }
-            
+
             if line_lower.contains("error") || line_lower.contains("failed") {
                 inspector_issues.push(line.to_string());
             }
@@ -513,7 +540,6 @@ impl InspectorClient {
             inspector_issues,
         })
     }
-
 }
 
 // InspectorClient no longer needs Drop since we use subprocess calls directly
@@ -533,7 +559,7 @@ mod tests {
     fn test_server_command_parsing() {
         let server_command = "uvx mcp-server-git --repository /path/to/repo";
         let parts: Vec<&str> = server_command.split_whitespace().collect();
-        
+
         assert_eq!(parts[0], "uvx");
         assert_eq!(parts[1], "mcp-server-git");
         assert_eq!(parts[2], "--repository");
@@ -581,24 +607,20 @@ mod tests {
                     error: Some("Invalid token".to_string()),
                 },
             }),
-            tools: Some(vec![
-                ToolValidationResult {
-                    name: "test-tool".to_string(),
-                    description: Some("A test tool".to_string()),
-                    callable: true,
-                    test_result: Some("success".to_string()),
-                    errors: None,
-                }
-            ]),
-            resources: Some(vec![
-                ResourceValidationResult {
-                    uri: "file://test.txt".to_string(),
-                    name: Some("test.txt".to_string()),
-                    accessible: true,
-                    mime_type: Some("text/plain".to_string()),
-                    errors: None,
-                }
-            ]),
+            tools: Some(vec![ToolValidationResult {
+                name: "test-tool".to_string(),
+                description: Some("A test tool".to_string()),
+                callable: true,
+                test_result: Some("success".to_string()),
+                errors: None,
+            }]),
+            resources: Some(vec![ResourceValidationResult {
+                uri: "file://test.txt".to_string(),
+                name: Some("test.txt".to_string()),
+                accessible: true,
+                mime_type: Some("text/plain".to_string()),
+                errors: None,
+            }]),
             prompts: None,
             transport: Some(TransportValidationResult {
                 method: "stdio".to_string(),
@@ -606,13 +628,11 @@ mod tests {
                 latency_ms: Some(50),
                 errors: None,
             }),
-            errors: Some(vec![
-                InspectorError {
-                    code: Some("AUTH_FAILED".to_string()),
-                    message: "Authentication failed".to_string(),
-                    context: None,
-                }
-            ]),
+            errors: Some(vec![InspectorError {
+                code: Some("AUTH_FAILED".to_string()),
+                message: "Authentication failed".to_string(),
+                context: None,
+            }]),
         };
 
         let result = client.convert_real_inspector_output(output).unwrap();

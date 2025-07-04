@@ -11,7 +11,7 @@ use rand::{distributions::Alphanumeric, Rng, RngCore};
 pub enum KeyDerivationError {
     #[error("Invalid input: {0}")]
     InvalidInput(String),
-    
+
     #[error("Derivation failed: {0}")]
     DerivationFailed(String),
 }
@@ -24,7 +24,7 @@ pub fn generate_secure_key() -> String {
     // Generate 32 bytes of randomness (256 bits)
     let mut key_bytes = [0u8; 32];
     rand::thread_rng().fill_bytes(&mut key_bytes);
-    
+
     // Encode as URL-safe base64 without padding
     URL_SAFE_NO_PAD.encode(&key_bytes)
 }
@@ -33,7 +33,7 @@ pub fn generate_secure_key() -> String {
 pub fn generate_secure_key_with_length(bytes: usize) -> String {
     let mut key_bytes = vec![0u8; bytes];
     rand::thread_rng().fill_bytes(&mut key_bytes);
-    
+
     URL_SAFE_NO_PAD.encode(&key_bytes)
 }
 
@@ -48,7 +48,7 @@ pub fn generate_key_id(role: &str) -> String {
         .take(8)
         .map(char::from)
         .collect();
-    
+
     format!("lmcp_{}_{timestamp}_{random}", role.to_lowercase())
 }
 
@@ -63,22 +63,24 @@ pub fn derive_key(
 ) -> Result<[u8; 32], KeyDerivationError> {
     use pbkdf2::pbkdf2_hmac;
     use sha2::Sha256;
-    
+
     if input.is_empty() {
         return Err(KeyDerivationError::InvalidInput("Empty input".to_string()));
     }
-    
+
     if salt.is_empty() {
         return Err(KeyDerivationError::InvalidInput("Empty salt".to_string()));
     }
-    
+
     if iterations == 0 {
-        return Err(KeyDerivationError::InvalidInput("Iterations must be > 0".to_string()));
+        return Err(KeyDerivationError::InvalidInput(
+            "Iterations must be > 0".to_string(),
+        ));
     }
-    
+
     let mut key = [0u8; 32];
     pbkdf2_hmac::<Sha256>(input.as_bytes(), salt, iterations, &mut key);
-    
+
     Ok(key)
 }
 
@@ -88,18 +90,19 @@ pub fn derive_key(
 pub fn generate_master_key() -> Result<[u8; 32], KeyDerivationError> {
     // In production, this should come from secure storage (HSM, vault, etc.)
     // For now, we'll check environment variable or generate a new one
-    
+
     if let Ok(master_key_b64) = std::env::var("PULSEENGINE_MCP_MASTER_KEY") {
         let key_bytes = URL_SAFE_NO_PAD
             .decode(&master_key_b64)
             .map_err(|e| KeyDerivationError::InvalidInput(format!("Invalid master key: {}", e)))?;
-        
+
         if key_bytes.len() != 32 {
-            return Err(KeyDerivationError::InvalidInput(
-                format!("Master key must be 32 bytes, got {}", key_bytes.len())
-            ));
+            return Err(KeyDerivationError::InvalidInput(format!(
+                "Master key must be 32 bytes, got {}",
+                key_bytes.len()
+            )));
         }
-        
+
         let mut key = [0u8; 32];
         key.copy_from_slice(&key_bytes);
         Ok(key)
@@ -107,13 +110,13 @@ pub fn generate_master_key() -> Result<[u8; 32], KeyDerivationError> {
         // Generate a new master key
         let mut key = [0u8; 32];
         rand::thread_rng().fill_bytes(&mut key);
-        
+
         // Log warning about using generated key
         tracing::warn!(
             "Generated new master key. Set PULSEENGINE_MCP_MASTER_KEY={} for persistence",
             URL_SAFE_NO_PAD.encode(&key)
         );
-        
+
         Ok(key)
     }
 }
@@ -121,63 +124,63 @@ pub fn generate_master_key() -> Result<[u8; 32], KeyDerivationError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_generate_secure_key() {
         let key1 = generate_secure_key();
         let key2 = generate_secure_key();
-        
+
         // Keys should be different
         assert_ne!(key1, key2);
-        
+
         // Keys should be URL-safe base64 (43 chars for 32 bytes without padding)
         assert_eq!(key1.len(), 43);
         assert!(!key1.contains('+'));
         assert!(!key1.contains('/'));
         assert!(!key1.contains('='));
     }
-    
+
     #[test]
     fn test_generate_key_id() {
         let id1 = generate_key_id("admin");
         let id2 = generate_key_id("admin");
-        
+
         // IDs should be different (different timestamp/random)
         assert_ne!(id1, id2);
-        
+
         // Check format
         assert!(id1.starts_with("lmcp_admin_"));
         assert!(id1.matches('_').count() == 3);
     }
-    
+
     #[test]
     fn test_derive_key() {
         let password = "test-password";
         let salt = b"test-salt-1234567890";
-        
+
         let key1 = derive_key(password, salt, 1000).unwrap();
         let key2 = derive_key(password, salt, 1000).unwrap();
-        
+
         // Same input should produce same key
         assert_eq!(key1, key2);
-        
+
         // Different salt should produce different key
         let key3 = derive_key(password, b"different-salt", 1000).unwrap();
         assert_ne!(key1, key3);
-        
+
         // Different iterations should produce different key
         let key4 = derive_key(password, salt, 2000).unwrap();
         assert_ne!(key1, key4);
     }
-    
+
     #[test]
     fn test_derive_key_validation() {
         // Empty input should fail
         assert!(derive_key("", b"salt", 1000).is_err());
-        
+
         // Empty salt should fail
         assert!(derive_key("password", b"", 1000).is_err());
-        
+
         // Zero iterations should fail
         assert!(derive_key("password", b"salt", 0).is_err());
     }

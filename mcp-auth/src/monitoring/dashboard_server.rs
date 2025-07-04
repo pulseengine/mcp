@@ -3,7 +3,7 @@
 //! This module provides an HTTP server for the security dashboard with
 //! REST API endpoints and real-time WebSocket updates.
 
-use crate::monitoring::{SecurityMonitor, SecurityEventType, SecurityDashboard};
+use crate::monitoring::{SecurityDashboard, SecurityEventType, SecurityMonitor};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -16,16 +16,16 @@ use tracing::{debug, error, info};
 pub enum DashboardError {
     #[error("Server error: {0}")]
     ServerError(String),
-    
+
     #[error("Authentication failed")]
     AuthenticationFailed,
-    
+
     #[error("Authorization failed")]
     AuthorizationFailed,
-    
+
     #[error("Invalid request: {reason}")]
     InvalidRequest { reason: String },
-    
+
     #[error("Monitoring error: {0}")]
     MonitoringError(String),
 }
@@ -35,25 +35,25 @@ pub enum DashboardError {
 pub struct DashboardConfig {
     /// Server bind address
     pub bind_address: SocketAddr,
-    
+
     /// Enable authentication for dashboard access
     pub enable_auth: bool,
-    
+
     /// Dashboard access tokens
     pub access_tokens: Vec<String>,
-    
+
     /// Enable CORS
     pub enable_cors: bool,
-    
+
     /// CORS allowed origins
     pub cors_origins: Vec<String>,
-    
+
     /// Enable real-time WebSocket updates
     pub enable_websocket: bool,
-    
+
     /// WebSocket update interval
     pub websocket_update_interval: chrono::Duration,
-    
+
     /// Maximum concurrent WebSocket connections
     pub max_websocket_connections: usize,
 }
@@ -120,33 +120,39 @@ impl DashboardServer {
             websocket_connections: Arc::new(tokio::sync::RwLock::new(Vec::new())),
         }
     }
-    
+
     /// Create with default configuration
     pub fn with_default_config(monitor: Arc<SecurityMonitor>) -> Self {
         Self::new(DashboardConfig::default(), monitor)
     }
-    
+
     /// Start the dashboard server
     pub async fn start(&self) -> Result<(), DashboardError> {
-        info!("Starting security dashboard server on {}", self.config.bind_address);
-        
+        info!(
+            "Starting security dashboard server on {}",
+            self.config.bind_address
+        );
+
         // In a real implementation, this would start an HTTP server
         // For now, we'll simulate the server functionality
-        
+
         if self.config.enable_websocket {
             self.start_websocket_updates().await;
         }
-        
+
         info!("Security dashboard server started successfully");
         Ok(())
     }
-    
+
     /// Handle dashboard data request
-    pub async fn handle_dashboard_request(&self, auth_token: Option<&str>) -> Result<SecurityDashboard, DashboardError> {
+    pub async fn handle_dashboard_request(
+        &self,
+        auth_token: Option<&str>,
+    ) -> Result<SecurityDashboard, DashboardError> {
         self.authenticate_request(auth_token)?;
         Ok(self.monitor.get_dashboard_data().await)
     }
-    
+
     /// Handle events request
     pub async fn handle_events_request(
         &self,
@@ -154,22 +160,20 @@ impl DashboardServer {
         auth_token: Option<&str>,
     ) -> Result<EventsResponse, DashboardError> {
         self.authenticate_request(auth_token)?;
-        let events = if let Some(event_type) = request.event_types.and_then(|types| types.first().cloned()) {
-            self.monitor.get_events_by_type(
-                event_type,
-                request.start_time,
-                request.limit,
-            ).await
+        let events = if let Some(event_type) =
+            request.event_types.and_then(|types| types.first().cloned())
+        {
+            self.monitor
+                .get_events_by_type(event_type, request.start_time, request.limit)
+                .await
         } else if let Some(user_id) = &request.user_id {
-            self.monitor.get_events_by_user(
-                user_id,
-                request.start_time,
-                request.limit,
-            ).await
+            self.monitor
+                .get_events_by_user(user_id, request.start_time, request.limit)
+                .await
         } else {
             self.monitor.get_recent_events(request.limit).await
         };
-        
+
         Ok(EventsResponse {
             total_count: events.len(),
             page: 1,
@@ -177,7 +181,7 @@ impl DashboardServer {
             events,
         })
     }
-    
+
     /// Handle metrics request
     pub async fn handle_metrics_request(
         &self,
@@ -186,34 +190,38 @@ impl DashboardServer {
     ) -> Result<MetricsResponse, DashboardError> {
         self.authenticate_request(auth_token)?;
         let end_time = request.end_time.unwrap_or_else(chrono::Utc::now);
-        let start_time = request.start_time
+        let start_time = request
+            .start_time
             .unwrap_or_else(|| end_time - chrono::Duration::hours(24));
-        
+
         let metrics = self.monitor.generate_metrics(start_time, end_time).await;
-        
+
         // Generate trend data (simplified)
         let trends = self.generate_trend_data(&metrics).await;
-        
+
         Ok(MetricsResponse { metrics, trends })
     }
-    
+
     /// Handle alerts request
-    pub async fn handle_alerts_request(&self, auth_token: Option<&str>) -> Result<AlertsResponse, DashboardError> {
+    pub async fn handle_alerts_request(
+        &self,
+        auth_token: Option<&str>,
+    ) -> Result<AlertsResponse, DashboardError> {
         self.authenticate_request(auth_token)?;
         let active_alerts = self.monitor.get_active_alerts().await;
-        
+
         // For this implementation, we'll just return active alerts
         // In a real system, you'd also fetch resolved alerts from storage
         let resolved_alerts = Vec::new();
         let alert_rules = Vec::new(); // Would fetch from monitor
-        
+
         Ok(AlertsResponse {
             active_alerts,
             resolved_alerts,
             alert_rules,
         })
     }
-    
+
     /// Generate HTML dashboard page
     pub fn generate_dashboard_html(&self) -> String {
         r#"
@@ -476,26 +484,26 @@ impl DashboardServer {
 </html>
         "#.to_string()
     }
-    
+
     // Private helper methods
-    
+
     async fn start_websocket_updates(&self) {
         let monitor = Arc::clone(&self.monitor);
         let connections = Arc::clone(&self.websocket_connections);
         let interval = self.config.websocket_update_interval;
-        
+
         tokio::spawn(async move {
             let mut update_interval = tokio::time::interval(interval.to_std().unwrap());
-            
+
             loop {
                 update_interval.tick().await;
-                
+
                 let dashboard_data = monitor.get_dashboard_data().await;
                 let connections_guard = connections.read().await;
-                
+
                 // In a real implementation, this would send updates to WebSocket clients
                 debug!(
-                    "Would send WebSocket update to {} connections with {} events, {} alerts", 
+                    "Would send WebSocket update to {} connections with {} events, {} alerts",
                     connections_guard.len(),
                     dashboard_data.recent_events.len(),
                     dashboard_data.active_alerts.len()
@@ -503,44 +511,60 @@ impl DashboardServer {
             }
         });
     }
-    
-    async fn generate_trend_data(&self, _metrics: &crate::monitoring::SecurityMetrics) -> HashMap<String, Vec<f64>> {
+
+    async fn generate_trend_data(
+        &self,
+        _metrics: &crate::monitoring::SecurityMetrics,
+    ) -> HashMap<String, Vec<f64>> {
         // Generate simplified trend data
         let mut trends = HashMap::new();
-        
+
         // Mock trend data for demonstration
-        trends.insert("auth_success".to_string(), vec![10.0, 15.0, 12.0, 18.0, 20.0]);
+        trends.insert(
+            "auth_success".to_string(),
+            vec![10.0, 15.0, 12.0, 18.0, 20.0],
+        );
         trends.insert("auth_failures".to_string(), vec![2.0, 3.0, 1.0, 4.0, 2.0]);
         trends.insert("violations".to_string(), vec![0.0, 1.0, 0.0, 2.0, 1.0]);
-        
+
         trends
     }
-    
+
     fn authenticate_request(&self, token: Option<&str>) -> Result<(), DashboardError> {
         if !self.config.enable_auth {
             return Ok(());
         }
-        
+
         let provided_token = token.ok_or(DashboardError::AuthenticationFailed)?;
-        
+
         // Check if the provided token is in our list of valid access tokens
-        if !self.config.access_tokens.contains(&provided_token.to_string()) {
-            debug!("Invalid dashboard access token provided: {}", provided_token);
+        if !self
+            .config
+            .access_tokens
+            .contains(&provided_token.to_string())
+        {
+            debug!(
+                "Invalid dashboard access token provided: {}",
+                provided_token
+            );
             return Err(DashboardError::AuthenticationFailed);
         }
-        
+
         debug!("Dashboard authentication successful");
         Ok(())
     }
-    
+
     /// Authenticate request with Bearer token
-    pub fn authenticate_bearer_token(&self, auth_header: Option<&str>) -> Result<(), DashboardError> {
+    pub fn authenticate_bearer_token(
+        &self,
+        auth_header: Option<&str>,
+    ) -> Result<(), DashboardError> {
         if !self.config.enable_auth {
             return Ok(());
         }
-        
+
         let header = auth_header.ok_or(DashboardError::AuthenticationFailed)?;
-        
+
         // Extract token from "Bearer <token>" format
         if let Some(token) = header.strip_prefix("Bearer ") {
             self.authenticate_request(Some(token))
@@ -548,14 +572,14 @@ impl DashboardServer {
             Err(DashboardError::AuthenticationFailed)
         }
     }
-    
+
     /// Authenticate request with API key
     pub fn authenticate_api_key(&self, api_key: Option<&str>) -> Result<(), DashboardError> {
         // For now, treat API keys the same as access tokens
         // In a production system, you might have separate API key validation
         self.authenticate_request(api_key)
     }
-    
+
     /// Generate a new access token for dashboard access
     pub fn generate_access_token(&self) -> String {
         use rand::Rng;
@@ -571,14 +595,17 @@ impl DashboardServer {
                 }
             })
             .collect();
-        
+
         format!("dashboard_{}", token)
     }
-    
+
     /// Validate token format
     fn is_valid_token_format(&self, token: &str) -> bool {
         // Basic validation - tokens should be alphanumeric and at least 16 characters
-        token.len() >= 16 && token.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+        token.len() >= 16
+            && token
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
     }
 }
 
@@ -594,37 +621,37 @@ pub struct WebSocketConnection {
 mod tests {
     use super::*;
     use crate::monitoring::{SecurityMonitor, SecurityMonitorConfig};
-    
+
     #[tokio::test]
     async fn test_dashboard_server_creation() {
         let monitor = Arc::new(SecurityMonitor::new(SecurityMonitorConfig::default()));
         let server = DashboardServer::with_default_config(monitor);
-        
+
         assert!(server.config.enable_auth);
         assert!(server.config.enable_websocket);
     }
-    
+
     #[tokio::test]
     async fn test_dashboard_request_handling() {
         let monitor = Arc::new(SecurityMonitor::new(SecurityMonitorConfig::default()));
         let server = DashboardServer::with_default_config(monitor);
-        
+
         // Test with valid token
         let valid_token = Some("dashboard-token-123");
         let dashboard_data = server.handle_dashboard_request(valid_token).await;
         assert!(dashboard_data.is_ok());
-        
+
         // Test with invalid token should fail
         let invalid_token = Some("invalid-token");
         let dashboard_data = server.handle_dashboard_request(invalid_token).await;
         assert!(dashboard_data.is_err());
     }
-    
+
     #[tokio::test]
     async fn test_events_request_handling() {
         let monitor = Arc::new(SecurityMonitor::new(SecurityMonitorConfig::default()));
         let server = DashboardServer::with_default_config(monitor);
-        
+
         let request = DashboardRequest {
             start_time: None,
             end_time: None,
@@ -632,55 +659,63 @@ mod tests {
             user_id: None,
             limit: Some(10),
         };
-        
+
         let valid_token = Some("dashboard-token-123");
         let response = server.handle_events_request(request, valid_token).await;
         assert!(response.is_ok());
     }
-    
+
     #[test]
     fn test_html_generation() {
         let monitor = Arc::new(SecurityMonitor::new(SecurityMonitorConfig::default()));
         let server = DashboardServer::with_default_config(monitor);
-        
+
         let html = server.generate_dashboard_html();
         assert!(html.contains("MCP Security Dashboard"));
         assert!(html.contains("Security Metrics"));
     }
-    
+
     #[test]
     fn test_authentication() {
         let monitor = Arc::new(SecurityMonitor::new(SecurityMonitorConfig::default()));
         let server = DashboardServer::with_default_config(monitor);
-        
+
         // Test valid token
-        assert!(server.authenticate_request(Some("dashboard-token-123")).is_ok());
-        
+        assert!(server
+            .authenticate_request(Some("dashboard-token-123"))
+            .is_ok());
+
         // Test invalid token
         assert!(server.authenticate_request(Some("invalid-token")).is_err());
-        
+
         // Test missing token
         assert!(server.authenticate_request(None).is_err());
-        
+
         // Test Bearer token authentication
-        assert!(server.authenticate_bearer_token(Some("Bearer dashboard-token-123")).is_ok());
-        assert!(server.authenticate_bearer_token(Some("Invalid format")).is_err());
-        
+        assert!(server
+            .authenticate_bearer_token(Some("Bearer dashboard-token-123"))
+            .is_ok());
+        assert!(server
+            .authenticate_bearer_token(Some("Invalid format"))
+            .is_err());
+
         // Test API key authentication
-        assert!(server.authenticate_api_key(Some("dashboard-token-123")).is_ok());
+        assert!(server
+            .authenticate_api_key(Some("dashboard-token-123"))
+            .is_ok());
         assert!(server.authenticate_api_key(Some("invalid-key")).is_err());
     }
-    
+
     #[test]
     fn test_token_generation() {
         let monitor = Arc::new(SecurityMonitor::new(SecurityMonitorConfig::default()));
         let server = DashboardServer::with_default_config(monitor);
-        
+
         let token = server.generate_access_token();
         assert!(token.starts_with("dashboard_"));
         assert!(token.len() > 16);
         assert!(server.is_valid_token_format(&token));
-        
+
         // Test invalid token formats
         assert!(!server.is_valid_token_format("short"));
         assert!(!server.is_valid_token_format("contains@invalid!chars"));

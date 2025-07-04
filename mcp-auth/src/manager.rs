@@ -1,13 +1,19 @@
 //! Authentication manager implementation
 
-use crate::{audit::{AuditLogger, AuditConfig, AuditEvent, AuditEventType, AuditSeverity, events}, config::AuthConfig, jwt::{JwtManager, JwtConfig, TokenPair}, models::*, storage::{StorageBackend, create_storage_backend}};
+use crate::{
+    audit::{events, AuditConfig, AuditEvent, AuditEventType, AuditLogger, AuditSeverity},
+    config::AuthConfig,
+    jwt::{JwtConfig, JwtManager, TokenPair},
+    models::*,
+    storage::{create_storage_backend, StorageBackend},
+};
+use chrono::{DateTime, Utc};
 use pulseengine_mcp_protocol::{Request, Response};
-use std::sync::Arc;
 use std::collections::HashMap;
+use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, warn};
-use chrono::{DateTime, Utc};
 
 /// Simple request context for authentication
 #[derive(Debug, Clone)]
@@ -100,43 +106,58 @@ pub struct ValidationConfig {
 impl Default for ValidationConfig {
     fn default() -> Self {
         let mut role_rate_limits = std::collections::HashMap::new();
-        
+
         // Default role-based rate limits
-        role_rate_limits.insert("admin".to_string(), RoleRateLimitConfig {
-            max_requests_per_window: 1000,
-            window_duration_minutes: 60,
-            burst_allowance: 100,
-            cooldown_duration_minutes: 5,
-        });
-        
-        role_rate_limits.insert("operator".to_string(), RoleRateLimitConfig {
-            max_requests_per_window: 500,
-            window_duration_minutes: 60,
-            burst_allowance: 50,
-            cooldown_duration_minutes: 10,
-        });
-        
-        role_rate_limits.insert("monitor".to_string(), RoleRateLimitConfig {
-            max_requests_per_window: 200,
-            window_duration_minutes: 60,
-            burst_allowance: 20,
-            cooldown_duration_minutes: 15,
-        });
-        
-        role_rate_limits.insert("device".to_string(), RoleRateLimitConfig {
-            max_requests_per_window: 100,
-            window_duration_minutes: 60,
-            burst_allowance: 10,
-            cooldown_duration_minutes: 20,
-        });
-        
-        role_rate_limits.insert("custom".to_string(), RoleRateLimitConfig {
-            max_requests_per_window: 50,
-            window_duration_minutes: 60,
-            burst_allowance: 5,
-            cooldown_duration_minutes: 30,
-        });
-        
+        role_rate_limits.insert(
+            "admin".to_string(),
+            RoleRateLimitConfig {
+                max_requests_per_window: 1000,
+                window_duration_minutes: 60,
+                burst_allowance: 100,
+                cooldown_duration_minutes: 5,
+            },
+        );
+
+        role_rate_limits.insert(
+            "operator".to_string(),
+            RoleRateLimitConfig {
+                max_requests_per_window: 500,
+                window_duration_minutes: 60,
+                burst_allowance: 50,
+                cooldown_duration_minutes: 10,
+            },
+        );
+
+        role_rate_limits.insert(
+            "monitor".to_string(),
+            RoleRateLimitConfig {
+                max_requests_per_window: 200,
+                window_duration_minutes: 60,
+                burst_allowance: 20,
+                cooldown_duration_minutes: 15,
+            },
+        );
+
+        role_rate_limits.insert(
+            "device".to_string(),
+            RoleRateLimitConfig {
+                max_requests_per_window: 100,
+                window_duration_minutes: 60,
+                burst_allowance: 10,
+                cooldown_duration_minutes: 20,
+            },
+        );
+
+        role_rate_limits.insert(
+            "custom".to_string(),
+            RoleRateLimitConfig {
+                max_requests_per_window: 50,
+                window_duration_minutes: 60,
+                burst_allowance: 5,
+                cooldown_duration_minutes: 30,
+            },
+        );
+
         Self {
             max_failed_attempts: 4,
             failed_attempt_window_minutes: 15,
@@ -182,18 +203,23 @@ pub struct RoleRateLimitStats {
 impl AuthenticationManager {
     pub async fn new(config: AuthConfig) -> Result<Self, AuthError> {
         // Create storage backend
-        let storage = create_storage_backend(&config.storage).await
+        let storage = create_storage_backend(&config.storage)
+            .await
             .map_err(|e| AuthError::Storage(e.to_string()))?;
 
         // Create audit logger
         let audit_config = AuditConfig::default();
-        let audit_logger = Arc::new(AuditLogger::new(audit_config).await
-            .map_err(|e| AuthError::Config(format!("Failed to initialize audit logger: {}", e)))?);
+        let audit_logger =
+            Arc::new(AuditLogger::new(audit_config).await.map_err(|e| {
+                AuthError::Config(format!("Failed to initialize audit logger: {}", e))
+            })?);
 
         // Create JWT manager
         let jwt_config = JwtConfig::default();
-        let jwt_manager = Arc::new(JwtManager::new(jwt_config)
-            .map_err(|e| AuthError::Config(format!("Failed to initialize JWT manager: {}", e)))?);
+        let jwt_manager =
+            Arc::new(JwtManager::new(jwt_config).map_err(|e| {
+                AuthError::Config(format!("Failed to initialize JWT manager: {}", e))
+            })?);
 
         let manager = Self {
             storage,
@@ -222,20 +248,28 @@ impl AuthenticationManager {
         Ok(manager)
     }
 
-    pub async fn new_with_validation(config: AuthConfig, validation_config: ValidationConfig) -> Result<Self, AuthError> {
+    pub async fn new_with_validation(
+        config: AuthConfig,
+        validation_config: ValidationConfig,
+    ) -> Result<Self, AuthError> {
         // Create storage backend
-        let storage = create_storage_backend(&config.storage).await
+        let storage = create_storage_backend(&config.storage)
+            .await
             .map_err(|e| AuthError::Storage(e.to_string()))?;
 
         // Create audit logger
         let audit_config = AuditConfig::default();
-        let audit_logger = Arc::new(AuditLogger::new(audit_config).await
-            .map_err(|e| AuthError::Config(format!("Failed to initialize audit logger: {}", e)))?);
+        let audit_logger =
+            Arc::new(AuditLogger::new(audit_config).await.map_err(|e| {
+                AuthError::Config(format!("Failed to initialize audit logger: {}", e))
+            })?);
 
         // Create JWT manager
         let jwt_config = JwtConfig::default();
-        let jwt_manager = Arc::new(JwtManager::new(jwt_config)
-            .map_err(|e| AuthError::Config(format!("Failed to initialize JWT manager: {}", e)))?);
+        let jwt_manager =
+            Arc::new(JwtManager::new(jwt_config).map_err(|e| {
+                AuthError::Config(format!("Failed to initialize JWT manager: {}", e))
+            })?);
 
         let manager = Self {
             storage,
@@ -275,7 +309,9 @@ impl AuthenticationManager {
         let key = ApiKey::new(name, role, expires_at, ip_whitelist.unwrap_or_default());
 
         // Save to storage
-        self.storage.save_key(&key).await
+        self.storage
+            .save_key(&key)
+            .await
             .map_err(|e| AuthError::Storage(e.to_string()))?;
 
         // Update cache
@@ -293,9 +329,13 @@ impl AuthenticationManager {
     }
 
     /// Validate an API key with comprehensive security checks
-    pub async fn validate_api_key(&self, key_secret: &str, client_ip: Option<&str>) -> Result<Option<AuthContext>, AuthError> {
+    pub async fn validate_api_key(
+        &self,
+        key_secret: &str,
+        client_ip: Option<&str>,
+    ) -> Result<Option<AuthContext>, AuthError> {
         let client_ip = client_ip.unwrap_or("unknown");
-        
+
         // Check rate limiting first
         if let Some(blocked_until) = self.check_rate_limit(client_ip).await {
             // Log rate limiting event
@@ -303,36 +343,44 @@ impl AuthenticationManager {
                 AuditEventType::AuthRateLimited,
                 AuditSeverity::Warning,
                 "rate_limiter".to_string(),
-                format!("IP {} blocked due to rate limiting until {}", client_ip, blocked_until.format("%Y-%m-%d %H:%M:%S UTC")),
-            ).with_client_ip(client_ip.to_string());
+                format!(
+                    "IP {} blocked due to rate limiting until {}",
+                    client_ip,
+                    blocked_until.format("%Y-%m-%d %H:%M:%S UTC")
+                ),
+            )
+            .with_client_ip(client_ip.to_string());
             let _ = self.audit_logger.log(audit_event).await;
-            
+
             return Err(AuthError::Failed(format!(
-                "IP {} is rate limited until {}", 
-                client_ip, 
+                "IP {} is rate limited until {}",
+                client_ip,
                 blocked_until.format("%Y-%m-%d %H:%M:%S UTC")
             )));
         }
 
         let key = {
             let cache = self.api_keys_cache.read().await;
-            
+
             // Find key by verifying the provided secret against stored hashes
-            cache.values().find(|key| {
-                // Use secure verification if available, otherwise fallback to plain text
-                key.verify_key(key_secret).unwrap_or_default()
-            }).cloned()
+            cache
+                .values()
+                .find(|key| {
+                    // Use secure verification if available, otherwise fallback to plain text
+                    key.verify_key(key_secret).unwrap_or_default()
+                })
+                .cloned()
         };
-        
+
         let key = match key {
             Some(key) => key,
             None => {
                 self.record_failed_attempt(client_ip).await;
-                
+
                 // Log authentication failure
                 let audit_event = events::auth_failure(client_ip, "Invalid API key");
                 let _ = self.audit_logger.log(audit_event).await;
-                
+
                 return Err(AuthError::Failed("Invalid API key".to_string()));
             }
         };
@@ -340,11 +388,11 @@ impl AuthenticationManager {
         // Validate the key
         if let Err(reason) = self.validate_key_security(&key, client_ip) {
             self.record_failed_attempt(client_ip).await;
-            
+
             // Log authentication failure with reason
             let audit_event = events::auth_failure(client_ip, &reason);
             let _ = self.audit_logger.log(audit_event).await;
-            
+
             return Err(AuthError::Failed(reason));
         }
 
@@ -352,23 +400,32 @@ impl AuthenticationManager {
         if let Ok(is_rate_limited) = self.check_role_rate_limit(&key.role, client_ip).await {
             if is_rate_limited {
                 self.record_failed_attempt(client_ip).await;
-                
+
                 // Log role-based rate limiting
-                let audit_event = events::auth_failure(client_ip, &format!("Role-based rate limit exceeded for role {}", self.get_role_key(&key.role)));
+                let audit_event = events::auth_failure(
+                    client_ip,
+                    &format!(
+                        "Role-based rate limit exceeded for role {}",
+                        self.get_role_key(&key.role)
+                    ),
+                );
                 let _ = self.audit_logger.log(audit_event).await;
-                
-                return Err(AuthError::Failed(format!("Rate limit exceeded for role {}", self.get_role_key(&key.role))));
+
+                return Err(AuthError::Failed(format!(
+                    "Rate limit exceeded for role {}",
+                    self.get_role_key(&key.role)
+                )));
             }
         }
 
         // Clear any failed attempts for this IP
         let mut updated_key = key.clone();
-        
+
         self.clear_failed_attempts(client_ip).await;
 
         // Update key usage
         updated_key.mark_used();
-        
+
         // Update in storage and cache
         if let Err(e) = self.storage.save_key(&updated_key).await {
             warn!("Failed to update key usage statistics: {}", e);
@@ -380,7 +437,7 @@ impl AuthenticationManager {
         // Log successful authentication and key usage
         let auth_event = events::auth_success(&key.id, client_ip);
         let _ = self.audit_logger.log(auth_event).await;
-        
+
         let key_usage_event = events::key_used(&key.id, client_ip);
         let _ = self.audit_logger.log(key_usage_event).await;
 
@@ -394,7 +451,10 @@ impl AuthenticationManager {
     }
 
     /// Validate an API key (legacy method without IP checking)
-    pub async fn validate_api_key_legacy(&self, key_secret: &str) -> Result<Option<AuthContext>, AuthError> {
+    pub async fn validate_api_key_legacy(
+        &self,
+        key_secret: &str,
+    ) -> Result<Option<AuthContext>, AuthError> {
         self.validate_api_key(key_secret, None).await
     }
 
@@ -413,7 +473,9 @@ impl AuthenticationManager {
     /// Update an existing API key
     pub async fn update_key(&self, key: ApiKey) -> Result<(), AuthError> {
         // Save to storage
-        self.storage.save_key(&key).await
+        self.storage
+            .save_key(&key)
+            .await
             .map_err(|e| AuthError::Storage(e.to_string()))?;
 
         // Update cache
@@ -429,7 +491,9 @@ impl AuthenticationManager {
     /// Revoke/delete an API key
     pub async fn revoke_key(&self, key_id: &str) -> Result<bool, AuthError> {
         // Remove from storage
-        self.storage.delete_key(key_id).await
+        self.storage
+            .delete_key(key_id)
+            .await
             .map_err(|e| AuthError::Storage(e.to_string()))?;
 
         // Remove from cache
@@ -536,7 +600,7 @@ impl AuthenticationManager {
                 // Simple IP matching (can be enhanced with CIDR support)
                 allowed_ip == client_ip || allowed_ip == "*"
             });
-            
+
             if !is_ip_allowed {
                 return Err(format!("IP address {client_ip} not allowed for this key"));
             }
@@ -565,11 +629,10 @@ impl AuthenticationManager {
                 "system.status".to_string(),
                 "mcp.resources.read".to_string(),
             ],
-            Role::Device { allowed_devices } => {
-                allowed_devices.iter()
-                    .map(|device| format!("device.{device}"))
-                    .collect()
-            },
+            Role::Device { allowed_devices } => allowed_devices
+                .iter()
+                .map(|device| format!("device.{device}"))
+                .collect(),
             Role::Custom { permissions } => permissions.clone(),
         }
     }
@@ -617,7 +680,9 @@ impl AuthenticationManager {
                 if let Some(cooldown_end) = state.cooldown_ends_at {
                     if now < cooldown_end {
                         role_stats.in_cooldown = true;
-                        if role_stats.cooldown_ends_at.is_none() || cooldown_end > role_stats.cooldown_ends_at.unwrap() {
+                        if role_stats.cooldown_ends_at.is_none()
+                            || cooldown_end > role_stats.cooldown_ends_at.unwrap()
+                        {
                             role_stats.cooldown_ends_at = Some(cooldown_end);
                         }
                     }
@@ -658,7 +723,11 @@ impl AuthenticationManager {
     // Role-based rate limiting methods
 
     /// Check if a role-based request should be rate limited
-    pub async fn check_role_rate_limit(&self, role: &Role, client_ip: &str) -> Result<bool, AuthError> {
+    pub async fn check_role_rate_limit(
+        &self,
+        role: &Role,
+        client_ip: &str,
+    ) -> Result<bool, AuthError> {
         if !self.validation_config.enable_role_based_rate_limiting {
             return Ok(false); // Rate limiting disabled
         }
@@ -668,14 +737,19 @@ impl AuthenticationManager {
             Some(config) => config.clone(),
             None => {
                 // Use default for custom roles or fallback
-                warn!("No rate limit config found for role '{}', using default", role_key);
+                warn!(
+                    "No rate limit config found for role '{}', using default",
+                    role_key
+                );
                 return Ok(false);
             }
         };
 
         let mut role_states = self.role_rate_limit_state.write().await;
-        let role_state_map = role_states.entry(role_key.clone()).or_insert_with(HashMap::new);
-        
+        let role_state_map = role_states
+            .entry(role_key.clone())
+            .or_insert_with(HashMap::new);
+
         let now = Utc::now();
         let state = role_state_map
             .entry(client_ip.to_string())
@@ -692,16 +766,22 @@ impl AuthenticationManager {
         if let Some(cooldown_end) = state.cooldown_ends_at {
             if now < cooldown_end {
                 state.blocked_requests += 1;
-                
+
                 // Log rate limiting event
                 let audit_event = crate::audit::AuditEvent::new(
                     crate::audit::AuditEventType::AuthRateLimited,
                     crate::audit::AuditSeverity::Warning,
                     "role_rate_limiter".to_string(),
-                    format!("Role {} from IP {} blocked (cooldown until {})", role_key, client_ip, cooldown_end.format("%Y-%m-%d %H:%M:%S UTC")),
-                ).with_client_ip(client_ip.to_string());
+                    format!(
+                        "Role {} from IP {} blocked (cooldown until {})",
+                        role_key,
+                        client_ip,
+                        cooldown_end.format("%Y-%m-%d %H:%M:%S UTC")
+                    ),
+                )
+                .with_client_ip(client_ip.to_string());
                 let _ = self.audit_logger.log(audit_event).await;
-                
+
                 return Ok(true); // Still rate limited
             } else {
                 // Cooldown expired, reset state
@@ -713,7 +793,7 @@ impl AuthenticationManager {
 
         // Check if we're in a new time window
         let window_duration = chrono::Duration::minutes(role_config.window_duration_minutes as i64);
-        
+
         // Reset counter if we've moved to a new window
         if let Some(last_window_start) = state.last_window_start {
             if now.signed_duration_since(last_window_start) >= window_duration {
@@ -723,7 +803,7 @@ impl AuthenticationManager {
         } else {
             state.last_window_start = Some(now);
         }
-        
+
         state.current_requests += 1;
         state.total_requests += 1;
 
@@ -732,7 +812,8 @@ impl AuthenticationManager {
         if state.current_requests > effective_limit {
             // Enter cooldown
             state.in_cooldown = true;
-            state.cooldown_ends_at = Some(now + chrono::Duration::minutes(role_config.cooldown_duration_minutes as i64));
+            state.cooldown_ends_at =
+                Some(now + chrono::Duration::minutes(role_config.cooldown_duration_minutes as i64));
             state.blocked_requests += 1;
 
             // Log rate limiting event
@@ -740,27 +821,38 @@ impl AuthenticationManager {
                 crate::audit::AuditEventType::AuthRateLimited,
                 crate::audit::AuditSeverity::Warning,
                 "role_rate_limiter".to_string(),
-                format!("Role {} from IP {} rate limited for {} minutes after {} requests", 
-                    role_key, client_ip, role_config.cooldown_duration_minutes, state.current_requests),
-            ).with_client_ip(client_ip.to_string());
+                format!(
+                    "Role {} from IP {} rate limited for {} minutes after {} requests",
+                    role_key,
+                    client_ip,
+                    role_config.cooldown_duration_minutes,
+                    state.current_requests
+                ),
+            )
+            .with_client_ip(client_ip.to_string());
             let _ = self.audit_logger.log(audit_event).await;
 
             warn!(
                 "Role {} from IP {} rate limited for {} minutes after {} requests",
                 role_key, client_ip, role_config.cooldown_duration_minutes, state.current_requests
             );
-            
+
             return Ok(true); // Rate limited
         }
 
         // Log successful request
-        if state.current_requests % 100 == 0 { // Log every 100th request to avoid spam
+        if state.current_requests % 100 == 0 {
+            // Log every 100th request to avoid spam
             let audit_event = crate::audit::AuditEvent::new(
                 crate::audit::AuditEventType::AuthSuccess,
                 crate::audit::AuditSeverity::Info,
                 "role_rate_limiter".to_string(),
-                format!("Role {} from IP {} processed {} requests in window", role_key, client_ip, state.current_requests),
-            ).with_client_ip(client_ip.to_string());
+                format!(
+                    "Role {} from IP {} processed {} requests in window",
+                    role_key, client_ip, state.current_requests
+                ),
+            )
+            .with_client_ip(client_ip.to_string());
             let _ = self.audit_logger.log(audit_event).await;
         }
 
@@ -779,11 +871,18 @@ impl AuthenticationManager {
     }
 
     /// Update role rate limit configuration
-    pub async fn update_role_rate_limit(&self, role_key: String, config: RoleRateLimitConfig) -> Result<(), AuthError> {
+    pub async fn update_role_rate_limit(
+        &self,
+        role_key: String,
+        config: RoleRateLimitConfig,
+    ) -> Result<(), AuthError> {
         // This would typically require updating the configuration file
         // For now, we'll just log the change since ValidationConfig is not mutable
-        warn!("Role rate limit update requested for '{}' but configuration is immutable", role_key);
-        
+        warn!(
+            "Role rate limit update requested for '{}' but configuration is immutable",
+            role_key
+        );
+
         // Log configuration change
         let audit_event = crate::audit::AuditEvent::new(
             crate::audit::AuditEventType::SystemStartup,
@@ -793,7 +892,7 @@ impl AuthenticationManager {
                 role_key, config.max_requests_per_window, config.window_duration_minutes),
         );
         let _ = self.audit_logger.log(audit_event).await;
-        
+
         Ok(())
     }
 
@@ -802,9 +901,9 @@ impl AuthenticationManager {
         let mut role_states = self.role_rate_limit_state.write().await;
         let now = Utc::now();
         let cleanup_threshold = chrono::Duration::hours(24); // Remove entries older than 24 hours
-        
+
         let mut total_removed = 0;
-        
+
         for (_role_key, ip_states) in role_states.iter_mut() {
             let initial_count = ip_states.len();
             ip_states.retain(|_ip, state| {
@@ -814,25 +913,25 @@ impl AuthenticationManager {
                         return true;
                     }
                 }
-                
+
                 // Keep if window started recently
                 if let Some(window_start) = state.last_window_start {
                     if now.signed_duration_since(window_start) < cleanup_threshold {
                         return true;
                     }
                 }
-                
+
                 // Remove old inactive entries
                 false
             });
-            
+
             let removed = initial_count - ip_states.len();
             total_removed += removed;
         }
-        
+
         // Remove empty role entries
         role_states.retain(|_role, ip_states| !ip_states.is_empty());
-        
+
         if total_removed > 0 {
             debug!("Cleaned up {} old role rate limit entries", total_removed);
         }
@@ -840,7 +939,10 @@ impl AuthenticationManager {
 
     /// Refresh the in-memory cache from storage
     async fn refresh_cache(&self) -> Result<(), AuthError> {
-        let keys = self.storage.load_keys().await
+        let keys = self
+            .storage
+            .load_keys()
+            .await
             .map_err(|e| AuthError::Storage(e.to_string()))?;
 
         let mut cache = self.api_keys_cache.write().await;
@@ -859,7 +961,7 @@ impl AuthenticationManager {
 
         key.active = false;
         self.update_key(key).await?;
-        
+
         info!("Disabled API key: {}", key_id);
         Ok(true)
     }
@@ -873,13 +975,17 @@ impl AuthenticationManager {
 
         key.active = true;
         self.update_key(key).await?;
-        
+
         info!("Enabled API key: {}", key_id);
         Ok(true)
     }
 
     /// Update key expiration date
-    pub async fn update_key_expiration(&self, key_id: &str, expires_at: Option<DateTime<Utc>>) -> Result<bool, AuthError> {
+    pub async fn update_key_expiration(
+        &self,
+        key_id: &str,
+        expires_at: Option<DateTime<Utc>>,
+    ) -> Result<bool, AuthError> {
         let mut key = match self.get_key(key_id).await {
             Some(key) => key,
             None => return Ok(false),
@@ -887,13 +993,17 @@ impl AuthenticationManager {
 
         key.expires_at = expires_at;
         self.update_key(key).await?;
-        
+
         info!("Updated expiration for API key: {}", key_id);
         Ok(true)
     }
 
     /// Update key IP whitelist
-    pub async fn update_key_ip_whitelist(&self, key_id: &str, ip_whitelist: Vec<String>) -> Result<bool, AuthError> {
+    pub async fn update_key_ip_whitelist(
+        &self,
+        key_id: &str,
+        ip_whitelist: Vec<String>,
+    ) -> Result<bool, AuthError> {
         let mut key = match self.get_key(key_id).await {
             Some(key) => key,
             None => return Ok(false),
@@ -901,7 +1011,7 @@ impl AuthenticationManager {
 
         key.ip_whitelist = ip_whitelist;
         self.update_key(key).await?;
-        
+
         info!("Updated IP whitelist for API key: {}", key_id);
         Ok(true)
     }
@@ -909,7 +1019,8 @@ impl AuthenticationManager {
     /// Get keys by role
     pub async fn list_keys_by_role(&self, role: &Role) -> Vec<ApiKey> {
         let cache = self.api_keys_cache.read().await;
-        cache.values()
+        cache
+            .values()
             .filter(|key| &key.role == role)
             .cloned()
             .collect()
@@ -918,7 +1029,8 @@ impl AuthenticationManager {
     /// Get active keys only
     pub async fn list_active_keys(&self) -> Vec<ApiKey> {
         let cache = self.api_keys_cache.read().await;
-        cache.values()
+        cache
+            .values()
             .filter(|key| key.active && !key.is_expired())
             .cloned()
             .collect()
@@ -927,7 +1039,8 @@ impl AuthenticationManager {
     /// Get expired keys
     pub async fn list_expired_keys(&self) -> Vec<ApiKey> {
         let cache = self.api_keys_cache.read().await;
-        cache.values()
+        cache
+            .values()
             .filter(|key| key.is_expired())
             .cloned()
             .collect()
@@ -936,7 +1049,7 @@ impl AuthenticationManager {
     /// Bulk revoke keys (useful for security incidents)
     pub async fn bulk_revoke_keys(&self, key_ids: &[String]) -> Result<Vec<String>, AuthError> {
         let mut revoked = Vec::new();
-        
+
         for key_id in key_ids {
             match self.revoke_key(key_id).await {
                 Ok(true) => revoked.push(key_id.clone()),
@@ -944,7 +1057,7 @@ impl AuthenticationManager {
                 Err(e) => error!("Failed to revoke key {}: {}", key_id, e),
             }
         }
-        
+
         info!("Bulk revoked {} keys", revoked.len());
         Ok(revoked)
     }
@@ -953,9 +1066,9 @@ impl AuthenticationManager {
     pub async fn cleanup_expired_keys(&self) -> Result<u32, AuthError> {
         let expired_keys = self.list_expired_keys().await;
         let key_ids: Vec<String> = expired_keys.iter().map(|k| k.id.clone()).collect();
-        
+
         let revoked = self.bulk_revoke_keys(&key_ids).await?;
-        
+
         info!("Cleaned up {} expired keys", revoked.len());
         Ok(revoked.len() as u32)
     }
@@ -964,22 +1077,22 @@ impl AuthenticationManager {
     pub async fn get_key_usage_stats(&self) -> Result<KeyUsageStats, AuthError> {
         let cache = self.api_keys_cache.read().await;
         let mut stats = KeyUsageStats::default();
-        
+
         for key in cache.values() {
             stats.total_keys += 1;
-            
+
             if key.active {
                 stats.active_keys += 1;
             } else {
                 stats.disabled_keys += 1;
             }
-            
+
             if key.is_expired() {
                 stats.expired_keys += 1;
             }
-            
+
             stats.total_usage_count += key.usage_count;
-            
+
             // Track by role
             match &key.role {
                 Role::Admin => stats.admin_keys += 1,
@@ -989,24 +1102,29 @@ impl AuthenticationManager {
                 Role::Custom { .. } => stats.custom_keys += 1,
             }
         }
-        
+
         Ok(stats)
     }
 
     /// Create multiple API keys for bulk provisioning
-    pub async fn bulk_create_keys(&self, requests: Vec<KeyCreationRequest>) -> Result<Vec<Result<ApiKey, AuthError>>, AuthError> {
+    pub async fn bulk_create_keys(
+        &self,
+        requests: Vec<KeyCreationRequest>,
+    ) -> Result<Vec<Result<ApiKey, AuthError>>, AuthError> {
         let mut results = Vec::new();
-        
+
         for request in requests {
-            let result = self.create_api_key(
-                request.name,
-                request.role,
-                request.expires_at,
-                request.ip_whitelist,
-            ).await;
+            let result = self
+                .create_api_key(
+                    request.name,
+                    request.role,
+                    request.expires_at,
+                    request.ip_whitelist,
+                )
+                .await;
             results.push(result);
         }
-        
+
         Ok(results)
     }
 
@@ -1073,23 +1191,31 @@ impl AuthenticationManager {
         scope: Vec<String>,
     ) -> Result<TokenPair, AuthError> {
         // Get the API key
-        let key = self.get_key(key_id).await
+        let key = self
+            .get_key(key_id)
+            .await
             .ok_or_else(|| AuthError::Failed("API key not found".to_string()))?;
 
         // Verify key is valid
         if !key.is_valid() {
-            return Err(AuthError::Failed("API key is invalid or expired".to_string()));
+            return Err(AuthError::Failed(
+                "API key is invalid or expired".to_string(),
+            ));
         }
 
         // Generate token pair
-        let token_pair = self.jwt_manager.generate_token_pair(
-            key.id.clone(),
-            vec![key.role.clone()],
-            Some(key.id.clone()),
-            client_ip.clone(),
-            session_id.clone(),
-            scope,
-        ).await.map_err(|e| AuthError::Failed(format!("Token generation failed: {e}")))?;
+        let token_pair = self
+            .jwt_manager
+            .generate_token_pair(
+                key.id.clone(),
+                vec![key.role.clone()],
+                Some(key.id.clone()),
+                client_ip.clone(),
+                session_id.clone(),
+                scope,
+            )
+            .await
+            .map_err(|e| AuthError::Failed(format!("Token generation failed: {e}")))?;
 
         // Log token generation
         let audit_event = AuditEvent::new(
@@ -1100,7 +1226,7 @@ impl AuthenticationManager {
         )
         .with_resource(key.id.clone())
         .with_client_ip(client_ip.unwrap_or_else(|| "unknown".to_string()));
-        
+
         let _ = self.audit_logger.log(audit_event).await;
 
         Ok(token_pair)
@@ -1108,12 +1234,15 @@ impl AuthenticationManager {
 
     /// Validate a JWT token and return auth context
     pub async fn validate_jwt_token(&self, token: &str) -> Result<AuthContext, AuthError> {
-        let auth_context = self.jwt_manager
+        let auth_context = self
+            .jwt_manager
             .token_to_auth_context(token)
             .await
             .map_err(|e| match e {
                 crate::jwt::JwtError::Expired => AuthError::Failed("Token expired".to_string()),
-                crate::jwt::JwtError::InvalidFormat => AuthError::Failed("Invalid token format".to_string()),
+                crate::jwt::JwtError::InvalidFormat => {
+                    AuthError::Failed("Invalid token format".to_string())
+                }
                 _ => AuthError::Failed(format!("Token validation failed: {}", e)),
             })?;
 
@@ -1124,7 +1253,7 @@ impl AuthenticationManager {
             "jwt".to_string(),
             format!("JWT token validated for user {:?}", auth_context.user_id),
         );
-        
+
         if let Some(ref user_id) = auth_context.user_id {
             let audit_event = audit_event.with_actor(user_id.clone());
             let _ = self.audit_logger.log(audit_event).await;
@@ -1141,20 +1270,25 @@ impl AuthenticationManager {
         scope: Vec<String>,
     ) -> Result<String, AuthError> {
         // First validate the refresh token to get the key ID
-        let token_info = self.jwt_manager
+        let token_info = self
+            .jwt_manager
             .validate_token(refresh_token)
             .await
             .map_err(|e| AuthError::Failed(format!("Invalid refresh token: {}", e)))?;
 
         // Get current roles from the associated API key
         let roles = if let Some(key_id) = &token_info.claims.key_id {
-            let key = self.get_key(key_id).await
+            let key = self
+                .get_key(key_id)
+                .await
                 .ok_or_else(|| AuthError::Failed("Associated API key not found".to_string()))?;
-            
+
             if !key.is_valid() {
-                return Err(AuthError::Failed("Associated API key is invalid or expired".to_string()));
+                return Err(AuthError::Failed(
+                    "Associated API key is invalid or expired".to_string(),
+                ));
             }
-            
+
             vec![key.role.clone()]
         } else {
             // Fallback to stored roles if no key ID
@@ -1162,7 +1296,8 @@ impl AuthenticationManager {
         };
 
         // Generate new access token
-        let access_token = self.jwt_manager
+        let access_token = self
+            .jwt_manager
             .refresh_access_token(refresh_token, roles, client_ip.clone(), scope)
             .await
             .map_err(|e| AuthError::Failed(format!("Token refresh failed: {}", e)))?;
@@ -1172,11 +1307,14 @@ impl AuthenticationManager {
             AuditEventType::KeyUsed,
             AuditSeverity::Info,
             "jwt".to_string(),
-            format!("JWT access token refreshed for subject {}", token_info.claims.sub),
+            format!(
+                "JWT access token refreshed for subject {}",
+                token_info.claims.sub
+            ),
         )
         .with_actor(token_info.claims.sub)
         .with_client_ip(client_ip.unwrap_or_else(|| "unknown".to_string()));
-        
+
         let _ = self.audit_logger.log(audit_event).await;
 
         Ok(access_token)
@@ -1196,7 +1334,7 @@ impl AuthenticationManager {
             "jwt".to_string(),
             "JWT token revoked".to_string(),
         );
-        
+
         let _ = self.audit_logger.log(audit_event).await;
 
         Ok(())
@@ -1205,7 +1343,7 @@ impl AuthenticationManager {
     /// Clean up expired tokens from blacklist
     pub async fn cleanup_jwt_blacklist(&self) -> Result<usize, AuthError> {
         let cleaned = self.jwt_manager.cleanup_blacklist().await;
-        
+
         if cleaned > 0 {
             let audit_event = AuditEvent::new(
                 AuditEventType::SystemStartup,
@@ -1213,7 +1351,7 @@ impl AuthenticationManager {
                 "jwt".to_string(),
                 format!("Cleaned up {} expired tokens from blacklist", cleaned),
             );
-            
+
             let _ = self.audit_logger.log(audit_event).await;
         }
 

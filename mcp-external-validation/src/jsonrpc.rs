@@ -4,15 +4,15 @@
 //! using external validators and schema validation.
 
 use crate::{
-    report::{JsonRpcValidatorResult, TestScore, ValidationIssue, IssueSeverity},
-    ValidationError, ValidationResult, ValidationConfig,
+    report::{IssueSeverity, JsonRpcValidatorResult, TestScore, ValidationIssue},
+    ValidationConfig, ValidationError, ValidationResult,
 };
 use jsonschema::{Draft, JSONSchema};
 // Note: reqwest::Client used for real message collection
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 // use std::collections::HashMap;  // Removed unused import
-use tokio::io::{AsyncWriteExt};
+use tokio::io::AsyncWriteExt;
 use tracing::{debug, info, warn};
 
 /// JSON-RPC 2.0 validator client (local validation)
@@ -26,13 +26,13 @@ pub struct JsonRpcValidator {
 struct JsonRpcSchemas {
     /// Request message schema
     request_schema: JSONSchema,
-    
+
     /// Response message schema
     response_schema: JSONSchema,
-    
+
     /// Error object schema
     error_schema: JSONSchema,
-    
+
     /// Notification schema
     notification_schema: JSONSchema,
 }
@@ -68,10 +68,10 @@ pub enum JsonRpcMessage {
 pub struct JsonRpcErrorObject {
     /// Error code
     pub code: i32,
-    
+
     /// Error message
     pub message: String,
-    
+
     /// Additional error data
     pub data: Option<Value>,
 }
@@ -97,10 +97,7 @@ impl JsonRpcValidator {
     pub fn new(config: ValidationConfig) -> ValidationResult<Self> {
         let schemas = JsonRpcSchemas::new()?;
 
-        Ok(Self {
-            config,
-            schemas,
-        })
+        Ok(Self { config, schemas })
     }
 
     /// Validate JSON-RPC messages against specification
@@ -108,13 +105,18 @@ impl JsonRpcValidator {
         &self,
         messages: &[Value],
     ) -> ValidationResult<JsonRpcValidatorResult> {
-        info!("Starting JSON-RPC validation for {} messages", messages.len());
+        info!(
+            "Starting JSON-RPC validation for {} messages",
+            messages.len()
+        );
 
         // Validate against local schemas and enhanced rules
         let validation_results = self.validate_comprehensive(messages)?;
 
-        info!("JSON-RPC validation completed with {} issues", 
-            validation_results.get_total_issues());
+        info!(
+            "JSON-RPC validation completed with {} issues",
+            validation_results.get_total_issues()
+        );
         Ok(validation_results)
     }
 
@@ -139,13 +141,22 @@ impl JsonRpcValidator {
     }
 
     /// Collect JSON-RPC messages from a server (public interface for semantic validation)
-    pub async fn collect_messages_from_server(&self, server_url: &str) -> ValidationResult<Vec<Value>> {
-        info!("Collecting messages from server for semantic validation: {}", server_url);
+    pub async fn collect_messages_from_server(
+        &self,
+        server_url: &str,
+    ) -> ValidationResult<Vec<Value>> {
+        info!(
+            "Collecting messages from server for semantic validation: {}",
+            server_url
+        );
         self.collect_server_messages(server_url).await
     }
 
     /// Validate a single JSON-RPC message
-    pub fn validate_single_message(&self, message: &Value) -> ValidationResult<Vec<ValidationIssue>> {
+    pub fn validate_single_message(
+        &self,
+        message: &Value,
+    ) -> ValidationResult<Vec<ValidationIssue>> {
         let mut issues = Vec::new();
 
         // Determine message type and validate accordingly
@@ -155,7 +166,10 @@ impl JsonRpcValidator {
                 issues.push(ValidationIssue::new(
                     IssueSeverity::Error,
                     "jsonrpc".to_string(),
-                    format!("Invalid JSON-RPC version: expected '2.0', got '{}'", jsonrpc),
+                    format!(
+                        "Invalid JSON-RPC version: expected '2.0', got '{}'",
+                        jsonrpc
+                    ),
                     "jsonrpc-validator".to_string(),
                 ));
             }
@@ -199,9 +213,11 @@ impl JsonRpcValidator {
         self.validate_messages(&test_messages).await
     }
 
-
     /// Comprehensive JSON-RPC validation with enhanced features
-    fn validate_comprehensive(&self, messages: &[Value]) -> ValidationResult<JsonRpcValidatorResult> {
+    fn validate_comprehensive(
+        &self,
+        messages: &[Value],
+    ) -> ValidationResult<JsonRpcValidatorResult> {
         let mut schema_passed = 0;
         let mut schema_total = 0;
         let mut format_passed = 0;
@@ -256,14 +272,15 @@ impl JsonRpcValidator {
             if let Some(id) = message.get("id") {
                 let is_request = message.get("method").is_some();
                 let is_response = message.get("result").is_some() || message.get("error").is_some();
-                
+
                 request_response_pairs.push((i, id.clone(), is_request, is_response));
             }
         }
 
         // Second pass: Correlation validation
         if !request_response_pairs.is_empty() {
-            let correlation_results = self.validate_request_response_correlation(&request_response_pairs);
+            let correlation_results =
+                self.validate_request_response_correlation(&request_response_pairs);
             correlation_total = correlation_results.total;
             correlation_passed = correlation_results.passed;
             validation_issues.extend(correlation_results.issues);
@@ -295,7 +312,7 @@ impl JsonRpcValidator {
         self.check_method_naming(message, index, issues);
         self.check_parameter_structure(message, index, issues);
         self.check_error_codes(message, index, issues);
-        
+
         Ok(())
     }
 
@@ -331,7 +348,12 @@ impl JsonRpcValidator {
     }
 
     /// Check method naming conventions
-    fn check_method_naming(&self, message: &Value, index: usize, issues: &mut Vec<ValidationIssue>) {
+    fn check_method_naming(
+        &self,
+        message: &Value,
+        index: usize,
+        issues: &mut Vec<ValidationIssue>,
+    ) {
         if let Some(method) = message.get("method") {
             if let Some(method_str) = method.as_str() {
                 // Check for reserved method names (starting with rpc.)
@@ -339,7 +361,10 @@ impl JsonRpcValidator {
                     issues.push(ValidationIssue::new(
                         IssueSeverity::Error,
                         "method_naming".to_string(),
-                        format!("Message {}: Method name '{}' is reserved", index, method_str),
+                        format!(
+                            "Message {}: Method name '{}' is reserved",
+                            index, method_str
+                        ),
                         "jsonrpc-validator".to_string(),
                     ));
                 }
@@ -359,7 +384,10 @@ impl JsonRpcValidator {
                     issues.push(ValidationIssue::new(
                         IssueSeverity::Warning,
                         "method_naming".to_string(),
-                        format!("Message {}: Method name contains non-ASCII characters", index),
+                        format!(
+                            "Message {}: Method name contains non-ASCII characters",
+                            index
+                        ),
                         "jsonrpc-validator".to_string(),
                     ));
                 }
@@ -368,7 +396,12 @@ impl JsonRpcValidator {
     }
 
     /// Check parameter structure
-    fn check_parameter_structure(&self, message: &Value, index: usize, issues: &mut Vec<ValidationIssue>) {
+    fn check_parameter_structure(
+        &self,
+        message: &Value,
+        index: usize,
+        issues: &mut Vec<ValidationIssue>,
+    ) {
         if let Some(params) = message.get("params") {
             match params {
                 Value::Object(_) | Value::Array(_) => {
@@ -385,12 +418,16 @@ impl JsonRpcValidator {
             }
 
             // Check for empty parameters
-            if (params.is_object() && params.as_object().unwrap().is_empty()) ||
-               (params.is_array() && params.as_array().unwrap().is_empty()) {
+            if (params.is_object() && params.as_object().unwrap().is_empty())
+                || (params.is_array() && params.as_array().unwrap().is_empty())
+            {
                 issues.push(ValidationIssue::new(
                     IssueSeverity::Info,
                     "parameter_structure".to_string(),
-                    format!("Message {}: Empty parameters - consider omitting params field", index),
+                    format!(
+                        "Message {}: Empty parameters - consider omitting params field",
+                        index
+                    ),
                     "jsonrpc-validator".to_string(),
                 ));
             }
@@ -436,9 +473,14 @@ impl JsonRpcValidator {
 
     /// Check if RPC method is allowed
     fn is_allowed_rpc_method(&self, method: &str) -> bool {
-        matches!(method, 
-            "rpc.call" | "rpc.multicall" | "rpc.notification" | 
-            "rpc.ping" | "rpc.info" | "rpc.capabilities"
+        matches!(
+            method,
+            "rpc.call"
+                | "rpc.multicall"
+                | "rpc.notification"
+                | "rpc.ping"
+                | "rpc.info"
+                | "rpc.capabilities"
         )
     }
 
@@ -452,7 +494,7 @@ impl JsonRpcValidator {
         let mut issues = Vec::new();
 
         // Group by ID
-        let mut id_groups: std::collections::HashMap<String, Vec<&(usize, Value, bool, bool)>> = 
+        let mut id_groups: std::collections::HashMap<String, Vec<&(usize, Value, bool, bool)>> =
             std::collections::HashMap::new();
 
         for pair in pairs {
@@ -500,11 +542,18 @@ impl JsonRpcValidator {
             }
         }
 
-        CorrelationResults { passed, total, issues }
+        CorrelationResults {
+            passed,
+            total,
+            issues,
+        }
     }
 
     /// Validate error handling patterns
-    fn validate_error_handling(&self, messages: &[Value]) -> ValidationResult<ErrorHandlingResults> {
+    fn validate_error_handling(
+        &self,
+        messages: &[Value],
+    ) -> ValidationResult<ErrorHandlingResults> {
         let mut passed = 0;
         let mut total = 0;
         let mut issues = Vec::new();
@@ -526,7 +575,10 @@ impl JsonRpcValidator {
                                         issues.push(ValidationIssue::new(
                                             IssueSeverity::Warning,
                                             "error_handling".to_string(),
-                                            format!("Message {}: Non-standard error code {}", i, code_num),
+                                            format!(
+                                                "Message {}: Non-standard error code {}",
+                                                i, code_num
+                                            ),
                                             "jsonrpc-validator".to_string(),
                                         ));
                                     }
@@ -550,7 +602,10 @@ impl JsonRpcValidator {
                             issues.push(ValidationIssue::new(
                                 IssueSeverity::Error,
                                 "error_handling".to_string(),
-                                format!("Message {}: Error object missing required 'message' field", i),
+                                format!(
+                                    "Message {}: Error object missing required 'message' field",
+                                    i
+                                ),
                                 "jsonrpc-validator".to_string(),
                             ));
                         }
@@ -573,15 +628,22 @@ impl JsonRpcValidator {
             }
         }
 
-        Ok(ErrorHandlingResults { passed, total, issues })
+        Ok(ErrorHandlingResults {
+            passed,
+            total,
+            issues,
+        })
     }
 
     /// Collect sample messages from an MCP server
     async fn collect_server_messages(&self, server_url: &str) -> ValidationResult<Vec<Value>> {
-        info!("Collecting real JSON-RPC messages from MCP server: {}", server_url);
-        
+        info!(
+            "Collecting real JSON-RPC messages from MCP server: {}",
+            server_url
+        );
+
         let mut collected_messages = Vec::new();
-        
+
         // Try different collection strategies based on server URL type
         if server_url.starts_with("http://") || server_url.starts_with("https://") {
             // HTTP-based MCP server
@@ -594,17 +656,23 @@ impl JsonRpcValidator {
             collected_messages.extend(self.collect_websocket_messages(server_url).await?);
         } else {
             // Try to infer the protocol or use a fallback
-            warn!("Unknown server URL format: {}, trying HTTP fallback", server_url);
+            warn!(
+                "Unknown server URL format: {}, trying HTTP fallback",
+                server_url
+            );
             collected_messages.extend(self.collect_http_messages(server_url).await?);
         }
-        
+
         // If we couldn't collect any real messages, fall back to generated test messages
         if collected_messages.is_empty() {
             warn!("No messages collected from server, using generated test messages");
             collected_messages = self.generate_comprehensive_test_messages();
         }
-        
-        info!("Collected {} JSON-RPC messages for validation", collected_messages.len());
+
+        info!(
+            "Collected {} JSON-RPC messages for validation",
+            collected_messages.len()
+        );
         Ok(collected_messages)
     }
 
@@ -612,7 +680,7 @@ impl JsonRpcValidator {
     async fn collect_http_messages(&self, server_url: &str) -> ValidationResult<Vec<Value>> {
         info!("Collecting messages from HTTP MCP server: {}", server_url);
         let mut messages = Vec::new();
-        
+
         // Create HTTP client with timeout
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
@@ -643,18 +711,24 @@ impl JsonRpcValidator {
 
         // Send initialization request and collect the exchange
         messages.push(init_request.clone());
-        
+
         match client.post(server_url).json(&init_request).send().await {
             Ok(response) => {
                 if response.status().is_success() {
                     if let Ok(response_json) = response.json::<Value>().await {
                         messages.push(response_json);
-                        
+
                         // Send additional MCP requests to collect more message types
-                        messages.extend(self.collect_standard_mcp_messages(&client, server_url).await?);
+                        messages.extend(
+                            self.collect_standard_mcp_messages(&client, server_url)
+                                .await?,
+                        );
                     }
                 } else {
-                    debug!("Server returned status {}, but continuing with available messages", response.status());
+                    debug!(
+                        "Server returned status {}, but continuing with available messages",
+                        response.status()
+                    );
                 }
             }
             Err(e) => {
@@ -667,13 +741,16 @@ impl JsonRpcValidator {
 
     /// Collect messages from stdio-based MCP server
     async fn collect_stdio_messages(&self, server_url: &str) -> ValidationResult<Vec<Value>> {
-        info!("Collecting messages from stdio MCP server command: {}", server_url);
+        info!(
+            "Collecting messages from stdio MCP server command: {}",
+            server_url
+        );
         let mut messages = Vec::new();
-        
+
         // Extract command from stdio:// URL
         let command = server_url.strip_prefix("stdio://").unwrap_or(server_url);
         let parts: Vec<&str> = command.split_whitespace().collect();
-        
+
         if parts.is_empty() {
             return Err(ValidationError::ConfigurationError {
                 message: "Empty stdio command".to_string(),
@@ -685,10 +762,10 @@ impl JsonRpcValidator {
         if parts.len() > 1 {
             cmd.args(&parts[1..]);
         }
-        
+
         cmd.stdin(std::process::Stdio::piped())
-           .stdout(std::process::Stdio::piped())
-           .stderr(std::process::Stdio::piped());
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped());
 
         match cmd.spawn() {
             Ok(mut child) => {
@@ -709,10 +786,12 @@ impl JsonRpcValidator {
                     });
 
                     messages.push(init_message.clone());
-                    
+
                     // Send the message
                     if let Ok(message_str) = serde_json::to_string(&init_message) {
-                        let _ = stdin.write_all(format!("{}\n", message_str).as_bytes()).await;
+                        let _ = stdin
+                            .write_all(format!("{}\n", message_str).as_bytes())
+                            .await;
                         let _ = stdin.flush().await;
                     }
                 }
@@ -750,18 +829,25 @@ impl JsonRpcValidator {
 
     /// Collect messages from WebSocket-based MCP server
     async fn collect_websocket_messages(&self, server_url: &str) -> ValidationResult<Vec<Value>> {
-        info!("Collecting messages from WebSocket MCP server: {}", server_url);
+        info!(
+            "Collecting messages from WebSocket MCP server: {}",
+            server_url
+        );
         let messages = Vec::new();
-        
+
         // For now, WebSocket collection is a future enhancement
         // Return empty messages and log the attempt
         debug!("WebSocket message collection not yet implemented");
-        
+
         Ok(messages)
     }
 
     /// Collect standard MCP messages after initialization
-    async fn collect_standard_mcp_messages(&self, client: &reqwest::Client, server_url: &str) -> ValidationResult<Vec<Value>> {
+    async fn collect_standard_mcp_messages(
+        &self,
+        client: &reqwest::Client,
+        server_url: &str,
+    ) -> ValidationResult<Vec<Value>> {
         let mut messages = Vec::new();
         let mut request_id = 2;
 
@@ -808,15 +894,17 @@ impl JsonRpcValidator {
 
     /// Check if a JSON value looks like a JSON-RPC message
     fn is_jsonrpc_message(&self, value: &Value) -> bool {
-        value.is_object() && 
-        value.get("jsonrpc").is_some() &&
-        (value.get("method").is_some() || value.get("result").is_some() || value.get("error").is_some())
+        value.is_object()
+            && value.get("jsonrpc").is_some()
+            && (value.get("method").is_some()
+                || value.get("result").is_some()
+                || value.get("error").is_some())
     }
 
     /// Generate comprehensive test messages when real collection fails
     fn generate_comprehensive_test_messages(&self) -> Vec<Value> {
         let mut messages = self.generate_test_messages();
-        
+
         // Add more comprehensive MCP-specific messages
         messages.extend(vec![
             // MCP initialization request
@@ -991,7 +1079,11 @@ impl JsonRpcValidator {
     }
 
     /// Validate with a JSON schema
-    fn validate_with_schema(&self, schema: &JSONSchema, message: &Value) -> Result<(), Vec<String>> {
+    fn validate_with_schema(
+        &self,
+        schema: &JSONSchema,
+        message: &Value,
+    ) -> Result<(), Vec<String>> {
         match schema.validate(message) {
             Ok(_) => Ok(()),
             Err(errors) => Err(errors.map(|e| e.to_string()).collect()),
@@ -1095,7 +1187,6 @@ impl JsonRpcValidator {
 
         Ok(())
     }
-
 }
 
 impl JsonRpcSchemas {
@@ -1292,7 +1383,9 @@ mod tests {
 
         let issues = validator.validate_single_message(&invalid_request).unwrap();
         assert!(!issues.is_empty());
-        assert!(issues.iter().any(|i| i.description.contains("Invalid JSON-RPC version")));
+        assert!(issues
+            .iter()
+            .any(|i| i.description.contains("Invalid JSON-RPC version")));
     }
 
     #[test]
@@ -1318,7 +1411,9 @@ mod tests {
             "id": 1
         });
 
-        let issues = validator.validate_single_message(&invalid_response).unwrap();
+        let issues = validator
+            .validate_single_message(&invalid_response)
+            .unwrap();
         assert!(!issues.is_empty());
     }
 

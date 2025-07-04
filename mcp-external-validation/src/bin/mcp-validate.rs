@@ -64,8 +64,12 @@ async fn main() {
     let cli = Cli::parse();
 
     // Initialize logging
-    let log_level = if cli.verbose { Level::DEBUG } else { Level::INFO };
-    
+    let log_level = if cli.verbose {
+        Level::DEBUG
+    } else {
+        Level::INFO
+    };
+
     tracing_subscriber::fmt()
         .with_max_level(log_level)
         .with_target(false)
@@ -122,10 +126,18 @@ async fn load_config(cli: &Cli) -> Result<ValidationConfig, Box<dyn std::error::
     }
 
     // Filter protocol versions
-    if config.protocols.versions.iter().any(|v| v == &cli.protocol_version) {
+    if config
+        .protocols
+        .versions
+        .iter()
+        .any(|v| v == &cli.protocol_version)
+    {
         config.protocols.versions = vec![cli.protocol_version.clone()];
     } else {
-        warn!("Requested protocol version {} not in config, using default", cli.protocol_version);
+        warn!(
+            "Requested protocol version {} not in config, using default",
+            cli.protocol_version
+        );
     }
 
     Ok(config)
@@ -142,7 +154,7 @@ async fn run_full_validation(validator: &ExternalValidator, cli: &Cli) -> i32 {
             return 1;
         }
     };
-    
+
     let mut validator_mut = match ExternalValidator::with_config(config).await {
         Ok(v) => v,
         Err(e) => {
@@ -155,7 +167,10 @@ async fn run_full_validation(validator: &ExternalValidator, cli: &Cli) -> i32 {
         Ok(report) => {
             // Output results
             match cli.output.as_str() {
-                "json" => println!("{}", serde_json::to_string_pretty(&report).unwrap_or_default()),
+                "json" => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&report).unwrap_or_default()
+                ),
                 "yaml" => println!("{}", serde_yaml::to_string(&report).unwrap_or_default()),
                 _ => print_text_report(&report),
             }
@@ -188,7 +203,11 @@ async fn run_quick_validation(validator: &ExternalValidator, cli: &Cli) -> i32 {
             match status {
                 pulseengine_mcp_external_validation::report::ComplianceStatus::Compliant => 0,
                 pulseengine_mcp_external_validation::report::ComplianceStatus::Warning => {
-                    if cli.strict { 1 } else { 0 }
+                    if cli.strict {
+                        1
+                    } else {
+                        0
+                    }
                 }
                 _ => 1,
             }
@@ -221,9 +240,18 @@ async fn run_benchmark(validator: &ExternalValidator, cli: &Cli) -> i32 {
                 _ => {
                     println!("Benchmark Results:");
                     println!("==================");
-                    println!("Total Duration: {:.2}s", results.total_duration.as_secs_f64());
-                    println!("Iterations: {} (successful: {})", results.iterations, results.successful_iterations);
-                    println!("Average Response Time: {:.2}ms", results.avg_response_time_ms);
+                    println!(
+                        "Total Duration: {:.2}s",
+                        results.total_duration.as_secs_f64()
+                    );
+                    println!(
+                        "Iterations: {} (successful: {})",
+                        results.iterations, results.successful_iterations
+                    );
+                    println!(
+                        "Average Response Time: {:.2}ms",
+                        results.avg_response_time_ms
+                    );
                     println!("Min Response Time: {:.2}ms", results.min_response_time_ms);
                     println!("Max Response Time: {:.2}ms", results.max_response_time_ms);
                     println!("Throughput: {:.2} requests/second", results.throughput_rps);
@@ -255,24 +283,41 @@ fn print_text_report(report: &pulseengine_mcp_external_validation::ComplianceRep
 
     let (passed, failed, skipped) = report.test_statistics();
     let total = passed + failed + skipped;
-    
+
     println!("Test Results:");
     println!("  Total Tests: {}", total);
-    println!("  Passed: {} ({:.1}%)", passed, if total > 0 { passed as f32 / total as f32 * 100.0 } else { 0.0 });
-    println!("  Failed: {} ({:.1}%)", failed, if total > 0 { failed as f32 / total as f32 * 100.0 } else { 0.0 });
+    println!(
+        "  Passed: {} ({:.1}%)",
+        passed,
+        if total > 0 {
+            passed as f32 / total as f32 * 100.0
+        } else {
+            0.0
+        }
+    );
+    println!(
+        "  Failed: {} ({:.1}%)",
+        failed,
+        if total > 0 {
+            failed as f32 / total as f32 * 100.0
+        } else {
+            0.0
+        }
+    );
     println!("  Skipped: {}", skipped);
     println!();
 
     if !report.issues().is_empty() {
         println!("Issues Found ({}):", report.issues().len());
         for (i, issue) in report.issues().iter().enumerate() {
-            println!("  {}. [{:?}] {}: {}", 
-                i + 1, 
-                issue.severity, 
-                issue.category, 
+            println!(
+                "  {}. [{:?}] {}: {}",
+                i + 1,
+                issue.severity,
+                issue.category,
                 issue.description
             );
-            
+
             if let Some(ref suggestion) = issue.suggestion {
                 println!("     Suggestion: {}", suggestion);
             }
@@ -283,10 +328,22 @@ fn print_text_report(report: &pulseengine_mcp_external_validation::ComplianceRep
     // Performance metrics
     if report.performance.total_requests > 0 {
         println!("Performance Metrics:");
-        println!("  Average Response Time: {:.2}ms", report.performance.avg_response_time_ms);
-        println!("  95th Percentile: {:.2}ms", report.performance.p95_response_time_ms);
-        println!("  99th Percentile: {:.2}ms", report.performance.p99_response_time_ms);
-        println!("  Max Response Time: {:.2}ms", report.performance.max_response_time_ms);
+        println!(
+            "  Average Response Time: {:.2}ms",
+            report.performance.avg_response_time_ms
+        );
+        println!(
+            "  95th Percentile: {:.2}ms",
+            report.performance.p95_response_time_ms
+        );
+        println!(
+            "  99th Percentile: {:.2}ms",
+            report.performance.p99_response_time_ms
+        );
+        println!(
+            "  Max Response Time: {:.2}ms",
+            report.performance.max_response_time_ms
+        );
         println!("  Throughput: {:.2} RPS", report.performance.throughput_rps);
         println!("  Timeouts: {}", report.performance.timeouts);
         println!("  Failures: {}", report.performance.failures);
@@ -296,18 +353,21 @@ fn print_text_report(report: &pulseengine_mcp_external_validation::ComplianceRep
     // External validator results
     if let Some(ref mcp_result) = report.external_results.mcp_validator {
         println!("MCP Validator Results:");
-        println!("  HTTP Compliance: {}/{} ({:.1}%)", 
-            mcp_result.http_compliance.passed, 
+        println!(
+            "  HTTP Compliance: {}/{} ({:.1}%)",
+            mcp_result.http_compliance.passed,
             mcp_result.http_compliance.total,
             mcp_result.http_compliance.score * 100.0
         );
-        println!("  OAuth Framework: {}/{} ({:.1}%)", 
-            mcp_result.oauth_framework.passed, 
+        println!(
+            "  OAuth Framework: {}/{} ({:.1}%)",
+            mcp_result.oauth_framework.passed,
             mcp_result.oauth_framework.total,
             mcp_result.oauth_framework.score * 100.0
         );
-        println!("  Protocol Features: {}/{} ({:.1}%)", 
-            mcp_result.protocol_features.passed, 
+        println!(
+            "  Protocol Features: {}/{} ({:.1}%)",
+            mcp_result.protocol_features.passed,
             mcp_result.protocol_features.total,
             mcp_result.protocol_features.score * 100.0
         );
@@ -316,13 +376,15 @@ fn print_text_report(report: &pulseengine_mcp_external_validation::ComplianceRep
 
     if let Some(ref jsonrpc_result) = report.external_results.jsonrpc_validator {
         println!("JSON-RPC Validator Results:");
-        println!("  Schema Validation: {}/{} ({:.1}%)", 
-            jsonrpc_result.schema_validation.passed, 
+        println!(
+            "  Schema Validation: {}/{} ({:.1}%)",
+            jsonrpc_result.schema_validation.passed,
             jsonrpc_result.schema_validation.total,
             jsonrpc_result.schema_validation.score * 100.0
         );
-        println!("  Message Format: {}/{} ({:.1}%)", 
-            jsonrpc_result.message_format.passed, 
+        println!(
+            "  Message Format: {}/{} ({:.1}%)",
+            jsonrpc_result.message_format.passed,
             jsonrpc_result.message_format.total,
             jsonrpc_result.message_format.score * 100.0
         );
@@ -331,12 +393,47 @@ fn print_text_report(report: &pulseengine_mcp_external_validation::ComplianceRep
 
     if let Some(ref inspector_result) = report.external_results.inspector {
         println!("MCP Inspector Results:");
-        println!("  Connection: {}", if inspector_result.connection_success { "✅" } else { "❌" });
-        println!("  Authentication: {}", if inspector_result.auth_success { "✅" } else { "❌" });
-        println!("  Tool Discovery: {}", if inspector_result.tools_discoverable { "✅" } else { "❌" });
-        println!("  Resource Access: {}", if inspector_result.resources_accessible { "✅" } else { "❌" });
-        println!("  Export Functionality: {}", if inspector_result.export_success { "✅" } else { "❌" });
-        
+        println!(
+            "  Connection: {}",
+            if inspector_result.connection_success {
+                "✅"
+            } else {
+                "❌"
+            }
+        );
+        println!(
+            "  Authentication: {}",
+            if inspector_result.auth_success {
+                "✅"
+            } else {
+                "❌"
+            }
+        );
+        println!(
+            "  Tool Discovery: {}",
+            if inspector_result.tools_discoverable {
+                "✅"
+            } else {
+                "❌"
+            }
+        );
+        println!(
+            "  Resource Access: {}",
+            if inspector_result.resources_accessible {
+                "✅"
+            } else {
+                "❌"
+            }
+        );
+        println!(
+            "  Export Functionality: {}",
+            if inspector_result.export_success {
+                "✅"
+            } else {
+                "❌"
+            }
+        );
+
         if !inspector_result.inspector_issues.is_empty() {
             println!("  Issues:");
             for issue in &inspector_result.inspector_issues {

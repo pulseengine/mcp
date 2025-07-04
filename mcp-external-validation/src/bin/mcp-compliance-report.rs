@@ -53,8 +53,12 @@ async fn main() {
     let cli = Cli::parse();
 
     // Initialize logging
-    let log_level = if cli.verbose { Level::DEBUG } else { Level::INFO };
-    
+    let log_level = if cli.verbose {
+        Level::DEBUG
+    } else {
+        Level::INFO
+    };
+
     tracing_subscriber::fmt()
         .with_max_level(log_level)
         .with_target(false)
@@ -195,11 +199,9 @@ async fn load_config(cli: &Cli) -> Result<ValidationConfig, Box<dyn std::error::
 
     // Override protocol versions if specified
     if let Some(ref versions) = cli.protocol_versions {
-        let requested_versions: Vec<String> = versions
-            .split(',')
-            .map(|s| s.trim().to_string())
-            .collect();
-        
+        let requested_versions: Vec<String> =
+            versions.split(',').map(|s| s.trim().to_string()).collect();
+
         config.protocols.versions = requested_versions;
     }
 
@@ -225,36 +227,59 @@ async fn generate_html_report(
     detailed: bool,
 ) -> Result<String, Box<dyn std::error::Error>> {
     let mut html = String::new();
-    
+
     html.push_str("<!DOCTYPE html>\n<html>\n<head>\n");
     html.push_str("<title>MCP Compliance Report</title>\n");
     html.push_str("<style>\n");
     html.push_str(get_report_css());
     html.push_str("</style>\n");
     html.push_str("</head>\n<body>\n");
-    
+
     html.push_str(&format!("<h1>MCP Compliance Report</h1>\n"));
     html.push_str(&format!("<h2>Server: {}</h2>\n", report.server_url));
-    html.push_str(&format!("<p><strong>Status:</strong> <span class=\"status-{}\">{}</span></p>\n", 
-        report.status_string().to_lowercase(), report.status_string()));
-    html.push_str(&format!("<p><strong>Protocol Version:</strong> {}</p>\n", report.protocol_version));
-    html.push_str(&format!("<p><strong>Duration:</strong> {:.2}s</p>\n", report.duration.as_secs_f64()));
-    
+    html.push_str(&format!(
+        "<p><strong>Status:</strong> <span class=\"status-{}\">{}</span></p>\n",
+        report.status_string().to_lowercase(),
+        report.status_string()
+    ));
+    html.push_str(&format!(
+        "<p><strong>Protocol Version:</strong> {}</p>\n",
+        report.protocol_version
+    ));
+    html.push_str(&format!(
+        "<p><strong>Duration:</strong> {:.2}s</p>\n",
+        report.duration.as_secs_f64()
+    ));
+
     let (passed, failed, skipped) = report.test_statistics();
     html.push_str("<h3>Test Summary</h3>\n");
     html.push_str(&format!("<ul>\n"));
-    html.push_str(&format!("<li>Total Tests: {}</li>\n", passed + failed + skipped));
-    html.push_str(&format!("<li>Passed: {} ({:.1}%)</li>\n", passed, if passed + failed > 0 { passed as f32 / (passed + failed) as f32 * 100.0 } else { 0.0 }));
+    html.push_str(&format!(
+        "<li>Total Tests: {}</li>\n",
+        passed + failed + skipped
+    ));
+    html.push_str(&format!(
+        "<li>Passed: {} ({:.1}%)</li>\n",
+        passed,
+        if passed + failed > 0 {
+            passed as f32 / (passed + failed) as f32 * 100.0
+        } else {
+            0.0
+        }
+    ));
     html.push_str(&format!("<li>Failed: {}</li>\n", failed));
     html.push_str(&format!("<li>Skipped: {}</li>\n", skipped));
     html.push_str("</ul>\n");
-    
+
     if !report.issues().is_empty() {
         html.push_str("<h3>Issues</h3>\n");
         html.push_str("<ul>\n");
         for issue in report.issues() {
             html.push_str(&format!("<li class=\"issue-{:?}\">", issue.severity));
-            html.push_str(&format!("[{:?}] {}: {}", issue.severity, issue.category, issue.description));
+            html.push_str(&format!(
+                "[{:?}] {}: {}",
+                issue.severity, issue.category, issue.description
+            ));
             if let Some(ref suggestion) = issue.suggestion {
                 html.push_str(&format!("<br><em>Suggestion: {}</em>", suggestion));
             }
@@ -262,23 +287,35 @@ async fn generate_html_report(
         }
         html.push_str("</ul>\n");
     }
-    
+
     if detailed {
         // Add detailed test results, performance metrics, etc.
         if report.performance.total_requests > 0 {
             html.push_str("<h3>Performance Metrics</h3>\n");
             html.push_str("<table>\n");
             html.push_str("<tr><th>Metric</th><th>Value</th></tr>\n");
-            html.push_str(&format!("<tr><td>Average Response Time</td><td>{:.2}ms</td></tr>\n", report.performance.avg_response_time_ms));
-            html.push_str(&format!("<tr><td>95th Percentile</td><td>{:.2}ms</td></tr>\n", report.performance.p95_response_time_ms));
-            html.push_str(&format!("<tr><td>99th Percentile</td><td>{:.2}ms</td></tr>\n", report.performance.p99_response_time_ms));
-            html.push_str(&format!("<tr><td>Throughput</td><td>{:.2} RPS</td></tr>\n", report.performance.throughput_rps));
+            html.push_str(&format!(
+                "<tr><td>Average Response Time</td><td>{:.2}ms</td></tr>\n",
+                report.performance.avg_response_time_ms
+            ));
+            html.push_str(&format!(
+                "<tr><td>95th Percentile</td><td>{:.2}ms</td></tr>\n",
+                report.performance.p95_response_time_ms
+            ));
+            html.push_str(&format!(
+                "<tr><td>99th Percentile</td><td>{:.2}ms</td></tr>\n",
+                report.performance.p99_response_time_ms
+            ));
+            html.push_str(&format!(
+                "<tr><td>Throughput</td><td>{:.2} RPS</td></tr>\n",
+                report.performance.throughput_rps
+            ));
             html.push_str("</table>\n");
         }
     }
-    
+
     html.push_str("</body>\n</html>\n");
-    
+
     Ok(html)
 }
 
@@ -287,46 +324,82 @@ async fn generate_markdown_report(
     detailed: bool,
 ) -> Result<String, Box<dyn std::error::Error>> {
     let mut md = String::new();
-    
+
     md.push_str("# MCP Compliance Report\n\n");
     md.push_str(&format!("**Server:** {}\n", report.server_url));
     md.push_str(&format!("**Status:** {}\n", report.status_string()));
-    md.push_str(&format!("**Protocol Version:** {}\n", report.protocol_version));
-    md.push_str(&format!("**Duration:** {:.2}s\n\n", report.duration.as_secs_f64()));
-    
+    md.push_str(&format!(
+        "**Protocol Version:** {}\n",
+        report.protocol_version
+    ));
+    md.push_str(&format!(
+        "**Duration:** {:.2}s\n\n",
+        report.duration.as_secs_f64()
+    ));
+
     let (passed, failed, skipped) = report.test_statistics();
     md.push_str("## Test Summary\n\n");
-    md.push_str(&format!("- **Total Tests:** {}\n", passed + failed + skipped));
-    md.push_str(&format!("- **Passed:** {} ({:.1}%)\n", passed, if passed + failed > 0 { passed as f32 / (passed + failed) as f32 * 100.0 } else { 0.0 }));
+    md.push_str(&format!(
+        "- **Total Tests:** {}\n",
+        passed + failed + skipped
+    ));
+    md.push_str(&format!(
+        "- **Passed:** {} ({:.1}%)\n",
+        passed,
+        if passed + failed > 0 {
+            passed as f32 / (passed + failed) as f32 * 100.0
+        } else {
+            0.0
+        }
+    ));
     md.push_str(&format!("- **Failed:** {}\n", failed));
     md.push_str(&format!("- **Skipped:** {}\n\n", skipped));
-    
+
     if !report.issues().is_empty() {
         md.push_str("## Issues Found\n\n");
         for (i, issue) in report.issues().iter().enumerate() {
-            md.push_str(&format!("{}. **[{:?}]** {}: {}\n", 
-                i + 1, issue.severity, issue.category, issue.description));
+            md.push_str(&format!(
+                "{}. **[{:?}]** {}: {}\n",
+                i + 1,
+                issue.severity,
+                issue.category,
+                issue.description
+            ));
             if let Some(ref suggestion) = issue.suggestion {
                 md.push_str(&format!("   - *Suggestion:* {}\n", suggestion));
             }
         }
         md.push_str("\n");
     }
-    
+
     if detailed && report.performance.total_requests > 0 {
         md.push_str("## Performance Metrics\n\n");
         md.push_str("| Metric | Value |\n");
         md.push_str("|--------|-------|\n");
-        md.push_str(&format!("| Average Response Time | {:.2}ms |\n", report.performance.avg_response_time_ms));
-        md.push_str(&format!("| 95th Percentile | {:.2}ms |\n", report.performance.p95_response_time_ms));
-        md.push_str(&format!("| 99th Percentile | {:.2}ms |\n", report.performance.p99_response_time_ms));
-        md.push_str(&format!("| Throughput | {:.2} RPS |\n", report.performance.throughput_rps));
+        md.push_str(&format!(
+            "| Average Response Time | {:.2}ms |\n",
+            report.performance.avg_response_time_ms
+        ));
+        md.push_str(&format!(
+            "| 95th Percentile | {:.2}ms |\n",
+            report.performance.p95_response_time_ms
+        ));
+        md.push_str(&format!(
+            "| 99th Percentile | {:.2}ms |\n",
+            report.performance.p99_response_time_ms
+        ));
+        md.push_str(&format!(
+            "| Throughput | {:.2} RPS |\n",
+            report.performance.throughput_rps
+        ));
         md.push_str("\n");
     }
-    
-    md.push_str(&format!("---\n*Generated by PulseEngine MCP External Validation v{}*\n", 
-        env!("CARGO_PKG_VERSION")));
-    
+
+    md.push_str(&format!(
+        "---\n*Generated by PulseEngine MCP External Validation v{}*\n",
+        env!("CARGO_PKG_VERSION")
+    ));
+
     Ok(md)
 }
 
@@ -348,14 +421,15 @@ async fn generate_comparison_report(
             let mut md = String::new();
             md.push_str("# MCP Server Comparison Report\n\n");
             md.push_str(&format!("**Servers Tested:** {}\n\n", reports.len()));
-            
+
             md.push_str("## Summary\n\n");
             md.push_str("| Server | Status | Tests Passed | Issues |\n");
             md.push_str("|--------|--------|--------------|--------|\n");
-            
+
             for report in reports {
                 let (passed, failed, _) = report.test_statistics();
-                md.push_str(&format!("| {} | {} | {}/{} | {} |\n",
+                md.push_str(&format!(
+                    "| {} | {} | {}/{} | {} |\n",
                     report.server_url,
                     report.status_string(),
                     passed,
@@ -363,7 +437,7 @@ async fn generate_comparison_report(
                     report.issues().len()
                 ));
             }
-            
+
             md.push_str("\n## Detailed Reports\n\n");
             for report in reports {
                 md.push_str(&format!("### {}\n\n", report.server_url));
@@ -371,7 +445,7 @@ async fn generate_comparison_report(
                 md.push_str(&single_report);
                 md.push_str("\n---\n\n");
             }
-            
+
             Ok(md)
         }
         _ => Err(format!("Unsupported comparison format: {}", format).into()),

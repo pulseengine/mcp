@@ -9,12 +9,12 @@ use crate::{
     jsonrpc::JsonRpcValidator,
     mcp_semantic::McpSemanticValidator,
     mcp_validator::McpValidatorClient,
-    security::SecurityTester,
     report::{ComplianceReport, ComplianceStatus, ExternalValidatorResults, PythonCompatResult},
+    security::SecurityTester,
     ValidationError, ValidationResult,
 };
 use std::time::{Duration, Instant};
-use tracing::{info, warn, error};
+use tracing::{error, info, warn};
 
 /// Main external validator that orchestrates all validation components
 pub struct ExternalValidator {
@@ -114,7 +114,10 @@ impl ExternalValidator {
                 Some(tester)
             }
             Err(e) => {
-                warn!("Failed to initialize authentication integration tester: {}", e);
+                warn!(
+                    "Failed to initialize authentication integration tester: {}",
+                    e
+                );
                 None
             }
         };
@@ -158,8 +161,14 @@ impl ExternalValidator {
     }
 
     /// Validate MCP server compliance using all available validators
-    pub async fn validate_compliance(&mut self, server_url: &str) -> ValidationResult<ComplianceReport> {
-        info!("Starting comprehensive MCP compliance validation for {}", server_url);
+    pub async fn validate_compliance(
+        &mut self,
+        server_url: &str,
+    ) -> ValidationResult<ComplianceReport> {
+        info!(
+            "Starting comprehensive MCP compliance validation for {}",
+            server_url
+        );
 
         let start_time = Instant::now();
         let mut report = ComplianceReport::new(
@@ -169,7 +178,7 @@ impl ExternalValidator {
 
         // Test all configured protocol versions
         let versions_to_test: Vec<String> = self.config.protocols.versions.clone();
-        
+
         for version in versions_to_test {
             if !crate::is_version_supported(&version) {
                 warn!("Skipping unsupported protocol version: {}", version);
@@ -177,7 +186,7 @@ impl ExternalValidator {
             }
 
             info!("Testing protocol version: {}", version);
-            
+
             match self.validate_protocol_version(server_url, &version).await {
                 Ok(version_results) => {
                     report.external_results = version_results;
@@ -218,7 +227,10 @@ impl ExternalValidator {
         // MCP Validator
         if let Some(ref validator) = self.mcp_validator {
             info!("Running MCP Validator tests...");
-            match validator.validate_server(server_url, protocol_version).await {
+            match validator
+                .validate_server(server_url, protocol_version)
+                .await
+            {
                 Ok(mcp_result) => {
                     info!("MCP Validator tests completed successfully");
                     results.mcp_validator = Some(mcp_result);
@@ -233,7 +245,11 @@ impl ExternalValidator {
 
         // JSON-RPC Validator
         info!("Running JSON-RPC compliance tests...");
-        match self.jsonrpc_validator.validate_server_messages(server_url).await {
+        match self
+            .jsonrpc_validator
+            .validate_server_messages(server_url)
+            .await
+        {
             Ok(jsonrpc_result) => {
                 info!("JSON-RPC validation completed successfully");
                 results.jsonrpc_validator = Some(jsonrpc_result);
@@ -245,10 +261,17 @@ impl ExternalValidator {
 
         // MCP Protocol Semantic Validation
         info!("Running MCP protocol semantic validation...");
-        match self.jsonrpc_validator.collect_messages_from_server(server_url).await {
+        match self
+            .jsonrpc_validator
+            .collect_messages_from_server(server_url)
+            .await
+        {
             Ok(messages) => {
                 let mut semantic_validator = McpSemanticValidator::new(self.config.clone());
-                match semantic_validator.validate_protocol_semantics(&messages).await {
+                match semantic_validator
+                    .validate_protocol_semantics(&messages)
+                    .await
+                {
                     Ok(semantic_result) => {
                         info!("MCP semantic validation completed successfully");
                         results.mcp_semantic = Some(semantic_result);
@@ -266,7 +289,7 @@ impl ExternalValidator {
         // MCP Inspector
         if let Some(ref inspector) = self.inspector_client {
             info!("Running MCP Inspector tests...");
-            
+
             // For the new inspector, server_url should be treated as a server command
             // For HTTP servers, we'll need to skip for now since inspector expects server commands
             let server_command = if server_url.starts_with("http") {
@@ -294,8 +317,10 @@ impl ExternalValidator {
             info!("Running cross-language compatibility tests...");
             match tester.test_cross_language_compatibility(server_url).await {
                 Ok(cross_lang_result) => {
-                    info!("Cross-language testing completed: {:.1}% interoperability", 
-                          cross_lang_result.interoperability_score);
+                    info!(
+                        "Cross-language testing completed: {:.1}% interoperability",
+                        cross_lang_result.interoperability_score
+                    );
                     results.cross_language = Some(cross_lang_result);
                 }
                 Err(e) => {
@@ -311,8 +336,10 @@ impl ExternalValidator {
             info!("Running ecosystem integration tests...");
             match tester.test_ecosystem_integration(server_url).await {
                 Ok(ecosystem_result) => {
-                    info!("Ecosystem testing completed: {:.1}% ecosystem compatibility", 
-                          ecosystem_result.ecosystem_score);
+                    info!(
+                        "Ecosystem testing completed: {:.1}% ecosystem compatibility",
+                        ecosystem_result.ecosystem_score
+                    );
                     results.ecosystem = Some(ecosystem_result);
                 }
                 Err(e) => {
@@ -328,8 +355,10 @@ impl ExternalValidator {
             info!("Running security validation tests...");
             match tester.test_security(server_url).await {
                 Ok(security_result) => {
-                    info!("Security testing completed: {:.1}% security score", 
-                          security_result.security_score);
+                    info!(
+                        "Security testing completed: {:.1}% security score",
+                        security_result.security_score
+                    );
                     results.security = Some(security_result);
                 }
                 Err(e) => {
@@ -345,8 +374,10 @@ impl ExternalValidator {
             info!("Running authentication integration tests...");
             match tester.test_auth_integration(server_url).await {
                 Ok(auth_result) => {
-                    info!("Authentication integration testing completed: {:.1}% overall score", 
-                          auth_result.overall_score);
+                    info!(
+                        "Authentication integration testing completed: {:.1}% overall score",
+                        auth_result.overall_score
+                    );
                     results.auth_integration = Some(auth_result);
                 }
                 Err(e) => {
@@ -368,14 +399,18 @@ impl ExternalValidator {
                             // Run compatibility tests
                             match tester.test_compatibility(server_url).await {
                                 Ok(python_result) => {
-                                    info!("Python SDK compatibility: {:.1}%", python_result.compatibility_score);
-                                    
+                                    info!(
+                                        "Python SDK compatibility: {:.1}%",
+                                        python_result.compatibility_score
+                                    );
+
                                     // Convert to legacy format for backward compatibility
                                     results.python_compat = Some(PythonCompatResult {
                                         message_compatibility: python_result.connection_compatible,
                                         transport_compatibility: python_result.transport_compatible,
                                         auth_compatibility: true, // Not tested yet
-                                        feature_parity: (python_result.compatibility_score / 100.0) as f32,
+                                        feature_parity: (python_result.compatibility_score / 100.0)
+                                            as f32,
                                         compat_issues: vec![],
                                     });
                                 }
@@ -449,7 +484,7 @@ impl ExternalValidator {
         for url in server_urls {
             let url = url.clone();
             let config = self.config.clone();
-            
+
             let task = tokio::spawn(async move {
                 let mut validator = ExternalValidator::with_config(config).await?;
                 validator.validate_compliance(&url).await
@@ -495,7 +530,10 @@ impl ExternalValidator {
 
         // Check Inspector
         if let Some(ref inspector) = self.inspector_client {
-            status.inspector_available = inspector.check_inspector_availability().await.unwrap_or(false);
+            status.inspector_available = inspector
+                .check_inspector_availability()
+                .await
+                .unwrap_or(false);
         }
 
         Ok(status)
@@ -506,14 +544,14 @@ impl ExternalValidator {
         info!("Running benchmark tests for {}", server_url);
 
         let start_time = Instant::now();
-        
+
         // Run multiple validation rounds
         let mut response_times = Vec::new();
         let iterations = 10;
 
         for i in 0..iterations {
             let iteration_start = Instant::now();
-            
+
             match self.quick_validate(server_url).await {
                 Ok(_) => {
                     let duration = iteration_start.elapsed();
@@ -551,7 +589,10 @@ impl ExternalValidator {
             },
         };
 
-        info!("Benchmark completed: {:.2} avg ms, {:.2} RPS", avg_response_time, results.throughput_rps);
+        info!(
+            "Benchmark completed: {:.2} avg ms, {:.2} RPS",
+            avg_response_time, results.throughput_rps
+        );
         Ok(results)
     }
 }
@@ -561,13 +602,13 @@ impl ExternalValidator {
 pub struct ValidatorStatus {
     /// MCP Validator service is available
     pub mcp_validator_available: bool,
-    
+
     /// JSON-RPC validator is available
     pub jsonrpc_validator_available: bool,
-    
+
     /// MCP Inspector is available
     pub inspector_available: bool,
-    
+
     /// Python SDK compatibility testing is available
     pub python_compat_available: bool,
 }
@@ -577,22 +618,22 @@ pub struct ValidatorStatus {
 pub struct BenchmarkResults {
     /// Total benchmark duration
     pub total_duration: Duration,
-    
+
     /// Number of test iterations
     pub iterations: u32,
-    
+
     /// Number of successful iterations
     pub successful_iterations: u32,
-    
+
     /// Average response time in milliseconds
     pub avg_response_time_ms: f64,
-    
+
     /// Minimum response time in milliseconds
     pub min_response_time_ms: f64,
-    
+
     /// Maximum response time in milliseconds
     pub max_response_time_ms: f64,
-    
+
     /// Throughput in requests per second
     pub throughput_rps: f64,
 }
@@ -618,7 +659,7 @@ mod tests {
     async fn test_validator_status() {
         let config = ValidationConfig::default();
         let validator = ExternalValidator::with_config(config).await.unwrap();
-        
+
         let status = validator.get_validator_status().await.unwrap();
         // JSON-RPC validator should always be available (local)
         assert!(status.jsonrpc_validator_available);
@@ -628,9 +669,12 @@ mod tests {
     async fn test_server_accessibility() {
         let config = ValidationConfig::default();
         let validator = ExternalValidator::with_config(config).await.unwrap();
-        
+
         // Test with a known unreachable URL
-        let accessible = validator.is_server_accessible("http://localhost:99999").await.unwrap();
+        let accessible = validator
+            .is_server_accessible("http://localhost:99999")
+            .await
+            .unwrap();
         assert!(!accessible);
     }
 

@@ -6,6 +6,6 @@
 pub mod session_manager;
 
 pub use session_manager::{
-    SessionManager, SessionConfig, Session, SessionError, SessionStorage,
-    MemorySessionStorage, SessionStats
+    MemorySessionStorage, Session, SessionConfig, SessionError, SessionManager, SessionStats,
+    SessionStorage,
 };

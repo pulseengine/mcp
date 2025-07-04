@@ -6,8 +6,8 @@
 
 use clap::Parser;
 use pulseengine_mcp_cli::{
-    server_builder, AuthMiddleware, CorsPolicy, DefaultLoggingConfig, McpConfig, 
-    RateLimitMiddleware, TransportType
+    server_builder, AuthMiddleware, CorsPolicy, DefaultLoggingConfig, McpConfig,
+    RateLimitMiddleware, TransportType,
 };
 use pulseengine_mcp_protocol::ServerInfo;
 use std::time::Duration;
@@ -145,7 +145,10 @@ fn create_transport_from_config(config: &AdvancedServerConfig) -> TransportType 
         },
         "stdio" => TransportType::Stdio,
         _ => {
-            tracing::warn!("Unknown transport type '{}', defaulting to HTTP", config.transport);
+            tracing::warn!(
+                "Unknown transport type '{}', defaulting to HTTP",
+                config.transport
+            );
             TransportType::Http {
                 port: config.port,
                 host: config.host.clone(),
@@ -208,29 +211,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Add authentication middleware if API key is provided
     if let Some(api_key) = &config.api_key {
         tracing::info!("Adding authentication middleware");
-        server_config_builder = server_config_builder
-            .with_middleware(AuthMiddleware::new(api_key));
+        server_config_builder = server_config_builder.with_middleware(AuthMiddleware::new(api_key));
     }
 
     // Add rate limiting middleware if enabled
     if config.enable_rate_limiting {
-        tracing::info!("Adding rate limiting middleware: {} requests/sec", config.rate_limit_rps);
-        server_config_builder = server_config_builder
-            .with_middleware(RateLimitMiddleware::new(config.rate_limit_rps));
+        tracing::info!(
+            "Adding rate limiting middleware: {} requests/sec",
+            config.rate_limit_rps
+        );
+        server_config_builder =
+            server_config_builder.with_middleware(RateLimitMiddleware::new(config.rate_limit_rps));
     }
 
     // Add metrics endpoint if enabled
     if config.enable_metrics {
         tracing::info!("Adding metrics endpoint: {}", config.metrics_path);
-        server_config_builder = server_config_builder
-            .with_metrics_endpoint(&config.metrics_path);
+        server_config_builder = server_config_builder.with_metrics_endpoint(&config.metrics_path);
     }
 
     // Add health endpoint if enabled
     if config.enable_health {
         tracing::info!("Adding health endpoint: {}", config.health_path);
-        server_config_builder = server_config_builder
-            .with_health_endpoint(&config.health_path);
+        server_config_builder = server_config_builder.with_health_endpoint(&config.health_path);
     }
 
     // Add custom endpoints for demonstration
@@ -243,8 +246,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if config.enable_tls {
         if let (Some(cert_path), Some(key_path)) = (&config.tls_cert, &config.tls_key) {
             tracing::info!("Enabling TLS with cert: {}, key: {}", cert_path, key_path);
-            server_config_builder = server_config_builder
-                .with_tls(cert_path, key_path);
+            server_config_builder = server_config_builder.with_tls(cert_path, key_path);
         } else {
             tracing::warn!("TLS enabled but certificate or key path not provided");
         }
@@ -260,23 +262,42 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!("  Host: {:?}", server_config.host());
     tracing::info!("  CORS enabled: {}", server_config.cors_policy.is_some());
     tracing::info!("  Middleware count: {}", server_config.middleware.len());
-    tracing::info!("  Custom endpoints: {}", server_config.custom_endpoints.len());
+    tracing::info!(
+        "  Custom endpoints: {}",
+        server_config.custom_endpoints.len()
+    );
     tracing::info!("  Metrics endpoint: {:?}", server_config.metrics_endpoint);
     tracing::info!("  Health endpoint: {:?}", server_config.health_endpoint);
     tracing::info!("  Max connections: {}", server_config.max_connections);
-    tracing::info!("  Connection timeout: {:?}", server_config.connection_timeout);
-    tracing::info!("  Compression enabled: {}", server_config.enable_compression);
+    tracing::info!(
+        "  Connection timeout: {:?}",
+        server_config.connection_timeout
+    );
+    tracing::info!(
+        "  Compression enabled: {}",
+        server_config.enable_compression
+    );
     tracing::info!("  TLS configured: {}", server_config.is_tls_configured());
 
     // Demonstrate middleware configuration
     for (i, middleware) in server_config.middleware.iter().enumerate() {
-        tracing::info!("  Middleware {}: {} ({:?})", i + 1, middleware.name, middleware.config);
+        tracing::info!(
+            "  Middleware {}: {} ({:?})",
+            i + 1,
+            middleware.name,
+            middleware.config
+        );
     }
 
     // Demonstrate custom endpoints
     for (i, endpoint) in server_config.custom_endpoints.iter().enumerate() {
-        tracing::info!("  Endpoint {}: {} {} -> {}", 
-            i + 1, endpoint.method, endpoint.path, endpoint.handler_name);
+        tracing::info!(
+            "  Endpoint {}: {} {} -> {}",
+            i + 1,
+            endpoint.method,
+            endpoint.path,
+            endpoint.handler_name
+        );
     }
 
     tracing::info!("This example demonstrates the complete ServerConfig API");

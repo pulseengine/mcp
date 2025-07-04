@@ -180,7 +180,10 @@ mod tests {
     #[test]
     fn test_error_creation() {
         let error = ValidationError::external_validator("test message");
-        assert!(matches!(error, ValidationError::ExternalValidatorError { .. }));
+        assert!(matches!(
+            error,
+            ValidationError::ExternalValidatorError { .. }
+        ));
 
         let error = ValidationError::timeout(30);
         assert!(matches!(error, ValidationError::Timeout { seconds: 30 }));

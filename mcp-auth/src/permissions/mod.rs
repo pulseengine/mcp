@@ -6,6 +6,6 @@
 pub mod mcp_permissions;
 
 pub use mcp_permissions::{
-    McpPermission, McpPermissionChecker, PermissionConfig, PermissionError,
-    ToolPermissionConfig, ResourcePermissionConfig, PermissionRule, PermissionAction
+    McpPermission, McpPermissionChecker, PermissionAction, PermissionConfig, PermissionError,
+    PermissionRule, ResourcePermissionConfig, ToolPermissionConfig,
 };
