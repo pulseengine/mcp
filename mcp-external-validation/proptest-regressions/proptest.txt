@@ -1,0 +1,9 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 163e4273a8b4551610e7dfe84c9f8ffcdb79da6a331a9c67d1ed78ff57d45e01 # shrinks to msg = ArbitraryJsonRpcMessage { jsonrpc: Valid, message_type: Request { method: McpMethod(Initialize), params: None }, id: None, extra_fields: {"": Number(1.652861634312128e-69)} }
+cc 15a2c24b2692ba429747df4f219d00e2a8f0d11f2caacad224b8371b3d826979 # shrinks to msg = ArbitraryJsonRpcMessage { jsonrpc: Valid, message_type: Request { method: McpMethod(Initialize), params: None }, id: None, extra_fields: {"": Number(-2.814993955749676e206)} }
+cc 8bcc29517a6b9b3e97889fba9660d95622de0f4d3f5697633ec0a8d0108fd664 # shrinks to msg = ArbitraryJsonRpcMessage { jsonrpc: Valid, message_type: Request { method: McpMethod(Initialize), params: None }, id: None, extra_fields: {"": Number(1.80717361501e82)} }

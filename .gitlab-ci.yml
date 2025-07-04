@@ -1,0 +1,175 @@
+# GitLab CI/CD configuration for MCP External Validation
+
+stages:
+  - build
+  - test
+  - validate
+  - report
+
+variables:
+  CARGO_HOME: ${CI_PROJECT_DIR}/.cargo
+  RUST_BACKTRACE: "1"
+  MCP_VALIDATOR_API_URL: "https://api.mcp-validator.com"
+  JSONRPC_VALIDATOR_URL: "https://json-rpc.dev/api/validate"
+
+# Cache configuration
+.rust-cache:
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .cargo/
+      - target/
+
+# Build stage
+build:validation-tools:
+  stage: build
+  extends: .rust-cache
+  image: rust:latest
+  script:
+    - rustc --version
+    - cargo --version
+    - cargo build --package pulseengine-mcp-external-validation --all-features --release
+  artifacts:
+    paths:
+      - target/release/mcp-validate
+      - target/release/mcp-compliance-report
+    expire_in: 1 day
+
+# Test stage
+test:unit-tests:
+  stage: test
+  extends: .rust-cache
+  image: rust:latest
+  script:
+    - cargo test --package pulseengine-mcp-external-validation --all-features
+  coverage: '/^\d+.\d+% coverage/'
+
+test:property-tests:
+  stage: test
+  extends: .rust-cache
+  image: rust:latest
+  script:
+    - cargo test --package pulseengine-mcp-external-validation --features proptest -- proptest
+  allow_failure: true
+
+test:python-compatibility:
+  stage: test
+  image: rust:latest
+  before_script:
+    - apt-get update && apt-get install -y python3 python3-pip python3-venv
+    - python3 -m pip install mcp aiohttp websockets pytest pytest-asyncio
+  script:
+    - cargo build --example python_compatibility
+    - cargo run --example python_compatibility
+  artifacts:
+    reports:
+      junit: pytest-report.xml
+
+# Validation stage
+validate:json-rpc:
+  stage: validate
+  image: rust:latest
+  needs: ["build:validation-tools"]
+  script:
+    - ./target/release/mcp-validate http://localhost:3000 --jsonrpc-only
+  when: manual
+
+validate:mcp-protocol:
+  stage: validate
+  image: rust:latest
+  needs: ["build:validation-tools"]
+  script:
+    - ./target/release/mcp-validate http://localhost:3000 --mcp-only
+  when: manual
+
+validate:full-compliance:
+  stage: validate
+  image: rust:latest
+  needs: ["build:validation-tools"]
+  services:
+    - name: your-mcp-server:latest
+      alias: mcp-server
+  script:
+    - sleep 10  # Wait for service to start
+    - ./target/release/mcp-validate http://mcp-server:3000 --all --timeout 60
+  artifacts:
+    paths:
+      - validation-results.json
+    reports:
+      junit: validation-junit.xml
+
+# Report stage
+generate:compliance-report:
+  stage: report
+  image: rust:latest
+  needs: ["validate:full-compliance"]
+  script:
+    - ./target/release/mcp-compliance-report http://mcp-server:3000 --output compliance-report.html --format html
+  artifacts:
+    paths:
+      - compliance-report.html
+    expose_as: 'Compliance Report'
+    expire_in: 30 days
+
+generate:badges:
+  stage: report
+  image: python:3.11-slim
+  needs: ["validate:full-compliance"]
+  script:
+    - pip install pybadges
+    - |
+      python -c "
+      import json
+      from pybadges import badge
+      with open('validation-results.json') as f:
+          results = json.load(f)
+      compliance = results.get('compliance_score', 0)
+      color = 'green' if compliance >= 90 else 'yellow' if compliance >= 70 else 'red'
+      svg = badge(left_text='MCP Compliance', right_text=f'{compliance}%', right_color=color)
+      with open('compliance-badge.svg', 'w') as f:
+          f.write(svg)
+      "
+  artifacts:
+    paths:
+      - compliance-badge.svg
+
+# Security scanning
+security:cargo-audit:
+  stage: test
+  image: rust:latest
+  script:
+    - cargo install cargo-audit
+    - cargo audit
+  allow_failure: true
+
+# Scheduled validation against external servers
+scheduled:external-validation:
+  stage: validate
+  image: rust:latest
+  needs: ["build:validation-tools"]
+  only:
+    - schedules
+  script:
+    - |
+      SERVERS=(
+        "https://mcp-test-server.example.com"
+        "https://reference.mcp-server.org"
+      )
+      
+      for server in "${SERVERS[@]}"; do
+        echo "Validating $server..."
+        ./target/release/mcp-validate "$server" --quick || true
+      done
+
+# Docker image build
+docker:build-validator:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -f Dockerfile.validation -t $CI_REGISTRY_IMAGE/validator:$CI_COMMIT_SHORT_SHA .
+    - docker push $CI_REGISTRY_IMAGE/validator:$CI_COMMIT_SHORT_SHA
+  only:
+    - main
+    - develop

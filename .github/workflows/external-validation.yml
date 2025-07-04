@@ -1,0 +1,282 @@
+name: External Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run daily at 2 AM UTC to catch any external validator changes
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      server_url:
+        description: 'MCP Server URL to validate'
+        required: false
+        default: 'http://localhost:3000'
+      protocol_version:
+        description: 'Protocol version to test'
+        required: false
+        default: '2024-11-05'
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  MCP_VALIDATOR_API_URL: https://api.mcp-validator.com
+  JSONRPC_VALIDATOR_URL: https://json-rpc.dev/api/validate
+
+jobs:
+  validate-framework:
+    name: Validate MCP Framework
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        rust: [stable, nightly]
+        include:
+          - os: ubuntu-latest
+            python: '3.11'
+          - os: macos-latest
+            python: '3.11'
+          - os: windows-latest
+            python: '3.11'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust }}
+        components: rustfmt, clippy
+    
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python }}
+    
+    - name: Cache Rust dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Cache Python dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/pip
+          ~/Library/Caches/pip
+          ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+    
+    - name: Install MCP Inspector (Linux/macOS)
+      if: runner.os != 'Windows'
+      run: |
+        # Download and install MCP Inspector
+        curl -L https://github.com/anthropics/mcp-inspector/releases/latest/download/mcp-inspector-${{ runner.os }}.tar.gz -o mcp-inspector.tar.gz
+        tar -xzf mcp-inspector.tar.gz
+        chmod +x mcp-inspector
+        echo "$PWD" >> $GITHUB_PATH
+    
+    - name: Install MCP Inspector (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        # Download and install MCP Inspector for Windows
+        Invoke-WebRequest -Uri https://github.com/anthropics/mcp-inspector/releases/latest/download/mcp-inspector-Windows.zip -OutFile mcp-inspector.zip
+        Expand-Archive -Path mcp-inspector.zip -DestinationPath .
+        echo "$PWD" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+    
+    - name: Build framework
+      run: cargo build --all-features --verbose
+    
+    - name: Run unit tests
+      run: cargo test --all-features --verbose
+    
+    - name: Run external validation tests
+      run: |
+        cargo test --package pulseengine-mcp-external-validation --all-features --verbose
+        
+    - name: Run property-based tests
+      run: |
+        cargo test --package pulseengine-mcp-external-validation --features proptest --verbose -- proptest
+    
+    - name: Start test MCP server
+      run: |
+        # Build and start a test MCP server in the background
+        cargo build --example basic_server --features full
+        cargo run --example basic_server --features full &
+        echo $! > server.pid
+        sleep 5  # Give server time to start
+      if: matrix.os != 'windows-latest'
+    
+    - name: Start test MCP server (Windows)
+      run: |
+        # Build and start a test MCP server in the background
+        cargo build --example basic_server --features full
+        Start-Process -FilePath "cargo" -ArgumentList "run", "--example", "basic_server", "--features", "full" -PassThru | Out-File -FilePath server.pid
+        Start-Sleep -Seconds 5
+      if: matrix.os == 'windows-latest'
+    
+    - name: Run full compliance validation
+      run: |
+        SERVER_URL="${{ github.event.inputs.server_url || 'http://localhost:3000' }}"
+        cargo run --bin mcp-validate -- "$SERVER_URL" --all --timeout 60
+      env:
+        RUST_LOG: debug
+    
+    - name: Generate compliance report
+      run: |
+        SERVER_URL="${{ github.event.inputs.server_url || 'http://localhost:3000' }}"
+        cargo run --bin mcp-compliance-report -- "$SERVER_URL" --output report.json --format json
+    
+    - name: Upload compliance report
+      uses: actions/upload-artifact@v4
+      with:
+        name: compliance-report-${{ matrix.os }}-${{ matrix.rust }}
+        path: report.json
+    
+    - name: Stop test server
+      if: always() && matrix.os != 'windows-latest'
+      run: |
+        if [ -f server.pid ]; then
+          kill $(cat server.pid) || true
+        fi
+    
+    - name: Stop test server (Windows)
+      if: always() && matrix.os == 'windows-latest'
+      run: |
+        if (Test-Path server.pid) {
+          $pid = Get-Content server.pid
+          Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+        }
+
+  python-sdk-compatibility:
+    name: Python SDK Compatibility
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install Python MCP SDK
+      run: |
+        pip install --upgrade pip
+        pip install mcp aiohttp websockets pytest pytest-asyncio
+    
+    - name: Build framework
+      run: cargo build --all-features
+    
+    - name: Run Python compatibility tests
+      run: |
+        cargo run --example python_compatibility
+      env:
+        RUST_LOG: info
+    
+    - name: Test cross-language scenarios
+      run: |
+        # Run Python client against Rust server
+        cargo run --example basic_server --features full &
+        SERVER_PID=$!
+        sleep 5
+        
+        # Run Python test script
+        python mcp-external-validation/python_tests/run_test.py http://localhost:3000 basic_connection
+        
+        kill $SERVER_PID || true
+
+  external-validator-integration:
+    name: External Validator Integration
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Build validation tools
+      run: cargo build --package pulseengine-mcp-external-validation --all-features
+    
+    - name: Test MCP Validator connectivity
+      run: |
+        # Test if external validators are accessible
+        cargo run --example basic_validation
+      continue-on-error: true
+    
+    - name: Run validation against reference implementations
+      run: |
+        # Test against known good MCP servers
+        SERVERS=(
+          "https://mcp-test-server.example.com"
+          "https://reference.mcp-server.org"
+        )
+        
+        for server in "${SERVERS[@]}"; do
+          echo "Testing $server..."
+          cargo run --bin mcp-validate -- "$server" --quick || true
+        done
+      continue-on-error: true
+
+  security-validation:
+    name: Security Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Run cargo audit
+      run: |
+        cargo install cargo-audit
+        cargo audit
+    
+    - name: Run security lints
+      run: |
+        cargo clippy --all-features -- -D warnings -W clippy::all -W clippy::pedantic
+    
+    - name: Check for security patterns
+      run: |
+        # Check for common security anti-patterns
+        ! grep -r "unwrap()" --include="*.rs" src/ || echo "Warning: Found unwrap() calls"
+        ! grep -r "panic!" --include="*.rs" src/ || echo "Warning: Found panic! macros"
+        ! grep -r "unsafe" --include="*.rs" src/ || echo "Warning: Found unsafe blocks"
+
+  benchmark-validation:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Run benchmarks
+      run: |
+        cargo bench --package pulseengine-mcp-external-validation
+    
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-results
+        path: target/criterion

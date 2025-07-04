@@ -1,0 +1,99 @@
+name: Docker Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}-validator
+
+jobs:
+  build-validation-image:
+    name: Build Validation Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=sha
+    
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile.validation
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  validate-in-container:
+    name: Run Validation in Container
+    needs: build-validation-image
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Run validation container
+      run: |
+        docker run --rm \
+          -v ${{ github.workspace }}:/workspace \
+          -e RUST_LOG=info \
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+          cargo run --bin mcp-validate -- http://test-server:3000 --all
+
+  multi-version-testing:
+    name: Multi-Version Protocol Testing
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        protocol_version: ['2024-11-05', '2025-03-26']
+        transport: ['http', 'websocket', 'stdio']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Test protocol version ${{ matrix.protocol_version }} with ${{ matrix.transport }}
+      run: |
+        cargo test --package pulseengine-mcp-external-validation \
+          --features "all" \
+          -- --test-threads=1 \
+          protocol_${{ matrix.protocol_version }}_${{ matrix.transport }}
+      env:
+        MCP_PROTOCOL_VERSION: ${{ matrix.protocol_version }}
+        MCP_TRANSPORT: ${{ matrix.transport }}
