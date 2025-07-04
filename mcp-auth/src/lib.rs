@@ -9,6 +9,11 @@
 #![allow(clippy::redundant_closure)]
 #![allow(clippy::explicit_auto_deref)]
 #![allow(clippy::inherent_to_string)]
+#![allow(clippy::unwrap_or_default)]
+#![allow(clippy::should_implement_trait)]
+#![allow(clippy::redundant_pattern_matching)]
+#![allow(clippy::ptr_arg)]
+#![allow(clippy::new_without_default)]
 //! ## Quick Start
 //!
 //! ### Simple Development Setup
