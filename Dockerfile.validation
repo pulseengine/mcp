@@ -27,7 +27,7 @@ COPY mcp-external-validation ./mcp-external-validation/
 COPY examples ./examples/
 
 # Build the validation tools
-RUN cargo build --release --package pulseengine-mcp-external-validation --all-features
+RUN cargo build --release --package pulseengine-mcp-external-validation --features "proptest,fuzzing"
 
 # Runtime stage
 FROM debian:bookworm-slim

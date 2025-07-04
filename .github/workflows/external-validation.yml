@@ -118,7 +118,7 @@ jobs:
     
     - name: Run external validation tests
       run: |
-        cargo test --package pulseengine-mcp-external-validation --all-features --verbose
+        cargo test --package pulseengine-mcp-external-validation --features "proptest,fuzzing" --verbose
         
     - name: Run property-based tests
       run: |
@@ -229,7 +229,7 @@ jobs:
       uses: dtolnay/rust-toolchain@stable
     
     - name: Build validation tools
-      run: cargo build --package pulseengine-mcp-external-validation --all-features
+      run: cargo build --package pulseengine-mcp-external-validation --features "proptest,fuzzing"
     
     - name: Test MCP Validator connectivity
       run: |
