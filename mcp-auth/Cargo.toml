@@ -30,11 +30,57 @@ base64 = { workspace = true }
 rand = { workspace = true }
 chrono = { workspace = true }
 dirs = { workspace = true }
+urlencoding = "2.1"
 
-keyring = { workspace = true }
+# Crypto dependencies
+aes-gcm = "0.10"
+hmac = "0.12"
+hkdf = "0.12"
+pbkdf2 = "0.12"
+subtle = "2.5"
+zeroize = "1.7"
+
+keyring = { workspace = true, optional = true }
+clap = { version = "4.4", features = ["derive"] }
+tracing-subscriber = "0.3"
+
+# Setup wizard dependencies
+dialoguer = "0.11"
+colored = "2.1"
+
+# JWT dependencies
+jsonwebtoken = "9.2"
+
+# Vault integration dependencies
+reqwest = { version = "0.11", features = ["json"] }
+
+# Security dependencies for request validation
+regex = "1.10"
+
+# Unix-specific dependencies for file ownership checks
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+# Linux-specific dependencies for filesystem monitoring
+[target.'cfg(target_os = "linux")'.dependencies]
+inotify = "0.11"
 
 [features]
 default = []
+integration-tests = []
+keyring = ["dep:keyring"]
+
+[[bin]]
+name = "mcp-auth-cli"
+path = "src/bin/mcp-auth-cli.rs"
+
+[[bin]]
+name = "mcp-auth-setup"
+path = "src/bin/mcp-auth-setup.rs"
+
+[[bin]]
+name = "mcp-auth-init"
+path = "src/bin/mcp-auth-init.rs"
 
 [dev-dependencies]
 tokio-test = "0.4"

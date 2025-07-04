@@ -9,6 +9,7 @@ members = [
     "mcp-cli",
     "mcp-cli-derive",
     "mcp-server",
+    "mcp-external-validation",
     "examples/hello-world",
     "examples/backend-example",
     "examples/cli-example",
@@ -77,6 +78,16 @@ tungstenite = { version = "0.24" }
 futures = "0.3"
 futures-util = "0.3"
 
+# External validation dependencies
+reqwest = { version = "0.11", features = ["json", "stream"] }
+jsonschema = "0.18"
+schemars = "0.8"
+proptest = "1.0"
+proptest-derive = "0.4"
+tempfile = "3.0"
+assert_matches = "1.5"
+serde_yaml = "0.9"
+
 # Framework internal dependencies (published versions)
 pulseengine-mcp-protocol = { version = "0.3.1", path = "mcp-protocol" }
 pulseengine-mcp-logging = { version = "0.3.1", path = "mcp-logging" }
@@ -87,6 +98,7 @@ pulseengine-mcp-transport = { version = "0.3.1", path = "mcp-transport" }
 pulseengine-mcp-cli = { version = "0.3.1", path = "mcp-cli" }
 pulseengine-mcp-cli-derive = { version = "0.3.1", path = "mcp-cli-derive" }
 pulseengine-mcp-server = { version = "0.3.1", path = "mcp-server" }
+pulseengine-mcp-external-validation = { version = "0.3.1", path = "mcp-external-validation" }
 
 [profile.release]
 opt-level = "s"
@@ -113,4 +125,5 @@ pulseengine-mcp-transport = { path = "mcp-transport" }
 pulseengine-mcp-cli = { path = "mcp-cli" }
 pulseengine-mcp-cli-derive = { path = "mcp-cli-derive" }
 pulseengine-mcp-server = { path = "mcp-server" }
+pulseengine-mcp-external-validation = { path = "mcp-external-validation" }
 
