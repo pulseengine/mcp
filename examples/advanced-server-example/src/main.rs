@@ -6,7 +6,7 @@
 
 use clap::Parser;
 use pulseengine_mcp_cli::{
-    server_builder, AuthMiddleware, CorsPolicy, DefaultLoggingConfig, McpConfig,
+    server_builder, AuthMiddleware, CorsPolicy, DefaultLoggingConfig, McpConfig, McpConfiguration,
     RateLimitMiddleware, TransportType,
 };
 use pulseengine_mcp_protocol::ServerInfo;
@@ -211,7 +211,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Add authentication middleware if API key is provided
     if let Some(api_key) = &config.api_key {
         tracing::info!("Adding authentication middleware");
-        server_config_builder = server_config_builder.with_middleware(AuthMiddleware::new(api_key));
+        server_config_builder =
+            server_config_builder.with_middleware(AuthMiddleware::bearer(api_key));
     }
 
     // Add rate limiting middleware if enabled
@@ -220,8 +221,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "Adding rate limiting middleware: {} requests/sec",
             config.rate_limit_rps
         );
-        server_config_builder =
-            server_config_builder.with_middleware(RateLimitMiddleware::new(config.rate_limit_rps));
+        server_config_builder = server_config_builder
+            .with_middleware(RateLimitMiddleware::per_second(config.rate_limit_rps));
     }
 
     // Add metrics endpoint if enabled
