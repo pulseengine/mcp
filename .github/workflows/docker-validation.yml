@@ -91,7 +91,7 @@ jobs:
     - name: Test protocol version ${{ matrix.protocol_version }} with ${{ matrix.transport }}
       run: |
         cargo test --package pulseengine-mcp-external-validation \
-          --features "all" \
+          --features "proptest,fuzzing" \
           -- --test-threads=1 \
           protocol_${{ matrix.protocol_version }}_${{ matrix.transport }}
       env:
