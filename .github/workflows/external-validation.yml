@@ -144,14 +144,14 @@ jobs:
     - name: Run full compliance validation
       run: |
         SERVER_URL="${{ github.event.inputs.server_url || 'http://localhost:3000' }}"
-        cargo run --bin mcp-validate -- "$SERVER_URL" --all --timeout 60
+        cargo run --bin mcp-validate -- --server-url "$SERVER_URL" --all
       env:
         RUST_LOG: debug
     
     - name: Generate compliance report
       run: |
         SERVER_URL="${{ github.event.inputs.server_url || 'http://localhost:3000' }}"
-        cargo run --bin mcp-compliance-report -- "$SERVER_URL" --output report.json --format json
+        cargo run --bin mcp-compliance-report -- --server-url "$SERVER_URL" --output report.json --format json
     
     - name: Upload compliance report
       uses: actions/upload-artifact@v4
@@ -249,7 +249,7 @@ jobs:
         
         for server in "${SERVERS[@]}"; do
           echo "Testing $server..."
-          cargo run --bin mcp-validate -- "$server" --quick || true
+          cargo run --bin mcp-validate -- --server-url "$server" --quick || true
         done
       continue-on-error: true
 

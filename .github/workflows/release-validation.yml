@@ -79,10 +79,10 @@ jobs:
         sleep 5
         
         # Run comprehensive validation
-        ./release-artifacts/mcp-validate http://localhost:3000 --all --strict
+        ./release-artifacts/mcp-validate --server-url http://localhost:3000 --all --strict
         
         # Generate compliance report
-        ./release-artifacts/mcp-compliance-report http://localhost:3000 \
+        ./release-artifacts/mcp-compliance-report --server-url http://localhost:3000 \
           --output release-compliance-report.html \
           --format html
         

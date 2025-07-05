@@ -137,7 +137,7 @@ jobs:
     
     - name: Run compatibility validation
       run: |
-        cargo run --bin mcp-validate -- http://localhost:3000 --quick
+        cargo run --bin mcp-validate -- --server-url http://localhost:3000 --quick
     
     - name: Stop test server
       if: always()
