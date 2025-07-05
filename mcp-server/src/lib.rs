@@ -5,8 +5,8 @@
 //!
 //! # Quick Start
 //!
-//! ```rust,no_run
-//! use mcp_server::{McpServer, McpBackend, ServerConfig};
+//! ```rust,ignore
+//! use pulseengine_mcp_server::{McpServer, McpBackend, ServerConfig};
 //! use pulseengine_mcp_protocol::*;
 //! use async_trait::async_trait;
 //!
@@ -18,7 +18,7 @@
 //!     type Error = Box<dyn std::error::Error + Send + Sync>;
 //!     type Config = ();
 //!
-//!     async fn initialize(_: ()) -> Result<Self, Self::Error> {
+//!     async fn initialize(_: ()) -> std::result::Result<Self, Self::Error> {
 //!         Ok(MyBackend)
 //!     }
 //!
@@ -34,8 +34,8 @@
 //!         }
 //!     }
 //!
-//!     async fn list_tools(&self, _: PaginatedRequestParam) -> Result<ListToolsResult, Self::Error> {
-//!         Ok(ListToolsResult { tools: vec![], next_cursor: String::new() })
+//!     async fn list_tools(&self, _: PaginatedRequestParam) -> std::result::Result<ListToolsResult, Self::Error> {
+//!         Ok(ListToolsResult { tools: vec![], next_cursor: None })
 //!     }
 //!
 //!     async fn call_tool(&self, _: CallToolRequestParam) -> Result<CallToolResult, Self::Error> {

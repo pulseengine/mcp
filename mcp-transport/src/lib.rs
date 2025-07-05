@@ -5,8 +5,8 @@
 //!
 //! # Quick Start
 //!
-//! ```rust,no_run
-//! use mcp_transport::{TransportConfig, create_transport};
+//! ```rust,ignore
+//! use pulseengine_mcp_transport::{TransportConfig, create_transport};
 //! use pulseengine_mcp_protocol::{Request, Response};
 //!
 //! // Create HTTP transport
@@ -16,7 +16,12 @@
 //! // Define request handler
 //! let handler = Box::new(|request: Request| {
 //!     Box::pin(async move {
-//!         Response::success(serde_json::json!({"result": "handled"}))
+//!         Response {
+//!             jsonrpc: "2.0".to_string(),
+//!             id: request.id.clone(),
+//!             result: Some(serde_json::json!({"result": "handled"})),
+//!             error: None,
+//!         }
 //!     })
 //! });
 //!
