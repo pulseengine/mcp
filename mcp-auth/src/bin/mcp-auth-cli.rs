@@ -1610,9 +1610,9 @@ async fn handle_token_operation(
             let cleaned = auth_manager.cleanup_jwt_blacklist().await?;
 
             if cli.format == "json" {
-                println!(r#"{{"cleaned_tokens": {}}}"#, cleaned);
+                println!(r#"{{"cleaned_tokens": {cleaned}}}"#);
             } else {
-                println!("🧹 Cleaned up {} expired tokens from blacklist", cleaned);
+                println!("🧹 Cleaned up {cleaned} expired tokens from blacklist");
             }
             Ok(())
         }
@@ -1673,7 +1673,7 @@ async fn handle_rate_limit_operation(
                     if let Some(role_config) = default_config.role_rate_limits.get(&role_name) {
                         println!("{}", serde_json::to_string_pretty(role_config)?);
                     } else {
-                        println!(r#"{{"error": "Role '{}' not found"}}"#, role_name);
+                        println!(r#"{{"error": "Role '{role_name}' not found"}}"#);
                     }
                 } else {
                     println!(
@@ -1704,7 +1704,7 @@ async fn handle_rate_limit_operation(
                             role_config.cooldown_duration_minutes
                         );
                     } else {
-                        println!("❌ Role '{}' not found", role_name);
+                        println!("❌ Role '{role_name}' not found");
                     }
                 } else {
                     for (role_name, role_config) in &default_config.role_rate_limits {
@@ -1732,11 +1732,8 @@ async fn handle_rate_limit_operation(
         RateLimitCommands::Test { role, ip, count } => {
             let parsed_role = parse_role(&role, None, None)?;
 
-            println!(
-                "🧪 Testing rate limiting for role '{}' from IP '{}'",
-                role, ip
-            );
-            println!("Simulating {} requests...", count);
+            println!("🧪 Testing rate limiting for role '{role}' from IP '{ip}'");
+            println!("Simulating {count} requests...");
             println!();
 
             let mut blocked_count = 0;
@@ -1748,12 +1745,12 @@ async fn handle_rate_limit_operation(
                         if is_limited {
                             blocked_count += 1;
                             if cli.verbose {
-                                println!("Request {}: ❌ Rate limited", i);
+                                println!("Request {i}: ❌ Rate limited");
                             }
                         } else {
                             success_count += 1;
                             if cli.verbose {
-                                println!("Request {}: ✅ Allowed", i);
+                                println!("Request {i}: ✅ Allowed");
                             }
                         }
                     }
@@ -1836,8 +1833,7 @@ fn parse_role(
             Ok(Role::Custom { permissions: perms })
         }
         _ => Err(format!(
-            "Invalid role: {}. Valid roles: admin, operator, monitor, device, custom",
-            role_str
+            "Invalid role: {role_str}. Valid roles: admin, operator, monitor, device, custom"
         )
         .into()),
     }
@@ -1853,7 +1849,7 @@ async fn handle_vault_operation(
         Ok(integration) => integration,
         Err(e) => {
             if cli.format == "json" {
-                println!(r#"{{"error": "Failed to connect to vault: {}"}}"#, e);
+                println!(r#"{{"error": "Failed to connect to vault: {e}"}}"#);
             } else {
                 println!("❌ Failed to connect to vault: {e}");
             }
@@ -1874,7 +1870,7 @@ async fn handle_vault_operation(
             }
             Err(e) => {
                 if cli.format == "json" {
-                    println!(r#"{{"status": "failed", "error": "{}"}}"#, e);
+                    println!(r#"{{"status": "failed", "error": "{e}"}}"#);
                 } else {
                     println!("❌ Vault connection failed: {e}");
                 }
@@ -1990,7 +1986,7 @@ async fn handle_vault_operation(
             }
             Err(e) => {
                 if cli.format == "json" {
-                    println!(r#"{{"error": "Failed to refresh config: {}"}}"#, e);
+                    println!(r#"{{"error": "Failed to refresh config: {e}"}}"#);
                 } else {
                     println!("❌ Failed to refresh config: {e}");
                 }
@@ -2052,7 +2048,7 @@ async fn handle_consent_operation(
             if cli.format == "json" {
                 println!("{}", serde_json::to_string_pretty(&record)?);
             } else {
-                println!("✅ Consent request created for subject '{}'", subject_id);
+                println!("✅ Consent request created for subject '{subject_id}'");
                 println!("   Consent ID: {}", record.id);
                 println!("   Status: {}", record.status);
                 println!("   Type: {}", record.consent_type);
@@ -2076,7 +2072,7 @@ async fn handle_consent_operation(
             if cli.format == "json" {
                 println!("{}", serde_json::to_string_pretty(&record)?);
             } else {
-                println!("✅ Consent granted for subject '{}'", subject_id);
+                println!("✅ Consent granted for subject '{subject_id}'");
                 println!("   Consent ID: {}", record.id);
                 println!("   Type: {}", record.consent_type);
                 if let Some(granted_at) = record.granted_at {
@@ -2099,7 +2095,7 @@ async fn handle_consent_operation(
             if cli.format == "json" {
                 println!("{}", serde_json::to_string_pretty(&record)?);
             } else {
-                println!("⚠️  Consent withdrawn for subject '{}'", subject_id);
+                println!("⚠️  Consent withdrawn for subject '{subject_id}'");
                 println!("   Consent ID: {}", record.id);
                 println!("   Type: {}", record.consent_type);
                 if let Some(withdrawn_at) = record.withdrawn_at {
@@ -2130,10 +2126,7 @@ async fn handle_consent_operation(
                     println!("{}", serde_json::to_string_pretty(&result)?);
                 } else {
                     let status = if is_valid { "✅ Valid" } else { "❌ Invalid" };
-                    println!(
-                        "{} - Consent for '{}' type '{}'",
-                        status, subject_id, consent_type
-                    );
+                    println!("{status} - Consent for '{subject_id}' type '{consent_type}'");
                 }
             } else {
                 let summary = consent_manager.get_consent_summary(&subject_id).await?;
@@ -2141,7 +2134,7 @@ async fn handle_consent_operation(
                 if cli.format == "json" {
                     println!("{}", serde_json::to_string_pretty(&summary)?);
                 } else {
-                    println!("Consent status for subject '{}':", subject_id);
+                    println!("Consent status for subject '{subject_id}':");
                     println!(
                         "  Overall valid: {}",
                         if summary.is_valid {
@@ -2177,7 +2170,7 @@ async fn handle_consent_operation(
             if cli.format == "json" {
                 println!("{}", serde_json::to_string_pretty(&summary)?);
             } else {
-                println!("📊 Consent Summary for '{}'", subject_id);
+                println!("📊 Consent Summary for '{subject_id}'");
                 println!(
                     "   Overall Status: {}",
                     if summary.is_valid {
@@ -2203,10 +2196,7 @@ async fn handle_consent_operation(
             if cli.format == "json" {
                 println!("{}", serde_json::to_string_pretty(&limited_trail)?);
             } else {
-                println!(
-                    "📋 Audit Trail for '{}' (last {} entries):",
-                    subject_id, limit
-                );
+                println!("📋 Audit Trail for '{subject_id}' (last {limit} entries):");
                 for entry in &limited_trail {
                     println!(
                         "   {} - {} ({})",
@@ -2238,11 +2228,11 @@ async fn handle_consent_operation(
                 if cli.format == "json" {
                     let result = serde_json::json!({
                         "cleaned_count": cleaned_count,
-                        "message": format!("Cleaned up {} expired consent records", cleaned_count)
+                        "message": format!("Cleaned up {cleaned_count} expired consent records")
                     });
                     println!("{}", serde_json::to_string_pretty(&result)?);
                 } else {
-                    println!("🧹 Cleaned up {} expired consent records", cleaned_count);
+                    println!("🧹 Cleaned up {cleaned_count} expired consent records");
                 }
             }
         }
@@ -2265,7 +2255,7 @@ fn parse_consent_type(type_str: &str) -> Result<ConsentType, Box<dyn std::error:
                 let custom_name = type_str.strip_prefix("custom:").unwrap().to_string();
                 Ok(ConsentType::Custom(custom_name))
             } else {
-                Err(format!("Invalid consent type: {}. Valid types: data_processing, marketing, analytics, data_sharing, automated_decision_making, session_storage, audit_logging, custom:name", type_str).into())
+                Err(format!("Invalid consent type: {type_str}. Valid types: data_processing, marketing, analytics, data_sharing, automated_decision_making, session_storage, audit_logging, custom:name").into())
             }
         }
     }
@@ -2279,7 +2269,7 @@ fn parse_legal_basis(basis_str: &str) -> Result<LegalBasis, Box<dyn std::error::
         "vital_interests" => Ok(LegalBasis::VitalInterests),
         "public_task" => Ok(LegalBasis::PublicTask),
         "legitimate_interests" => Ok(LegalBasis::LegitimateInterests),
-        _ => Err(format!("Invalid legal basis: {}. Valid bases: consent, contract, legal_obligation, vital_interests, public_task, legitimate_interests", basis_str).into()),
+        _ => Err(format!("Invalid legal basis: {basis_str}. Valid bases: consent, contract, legal_obligation, vital_interests, public_task, legitimate_interests").into()),
     }
 }
 
@@ -2311,9 +2301,9 @@ async fn handle_performance_operation(
             if cli.format != "json" {
                 println!("🚀 Starting performance test...");
                 println!("   Concurrent Users: {concurrent_users}");
-                println!("   Duration: {} seconds", duration);
-                println!("   Rate: {} req/s per user", rate);
-                println!("   Warmup: {} seconds", warmup);
+                println!("   Duration: {duration} seconds");
+                println!("   Rate: {rate} req/s per user");
+                println!("   Warmup: {warmup} seconds");
                 println!();
             }
 
@@ -2354,7 +2344,7 @@ async fn handle_performance_operation(
             };
 
             if cli.format != "json" {
-                println!("⚡ Running benchmark for '{}'...", operation);
+                println!("⚡ Running benchmark for '{operation}'...");
                 println!("   Iterations: {iterations}");
                 println!("   Workers: {workers}");
                 println!();
@@ -2379,12 +2369,9 @@ async fn handle_performance_operation(
         } => {
             if cli.format != "json" {
                 println!("💪 Starting stress test...");
-                println!(
-                    "   Users: {} to {} (increment: {})",
-                    start_users, max_users, user_increment
-                );
-                println!("   Step Duration: {} seconds", step_duration);
-                println!("   Success Threshold: {}%", success_threshold);
+                println!("   Users: {start_users} to {max_users} (increment: {user_increment})");
+                println!("   Step Duration: {step_duration} seconds");
+                println!("   Success Threshold: {success_threshold}%");
                 println!();
             }
 
@@ -2403,7 +2390,7 @@ async fn handle_performance_operation(
                 };
 
                 if cli.format != "json" {
-                    println!("Testing with {} concurrent users...", current_users);
+                    println!("Testing with {current_users} concurrent users...");
                 }
 
                 let mut test = PerformanceTest::new(config).await?;
@@ -2412,7 +2399,7 @@ async fn handle_performance_operation(
                 let success_rate = results.overall_stats.success_rate;
 
                 if cli.format != "json" {
-                    println!("  Success Rate: {:.1}%", success_rate);
+                    println!("  Success Rate: {success_rate:.1}%");
                     println!("  RPS: {:.1}", results.overall_stats.overall_rps);
                 }
 
@@ -2421,13 +2408,9 @@ async fn handle_performance_operation(
                 if success_rate < success_threshold {
                     if cli.format != "json" {
                         println!(
-                            "⚠️  Success rate ({:.1}%) below threshold ({}%)",
-                            success_rate, success_threshold
+                            "⚠️  Success rate ({success_rate:.1}%) below threshold ({success_threshold}%)"
                         );
-                        println!(
-                            "💥 System reached breaking point at {} users",
-                            current_users
-                        );
+                        println!("💥 System reached breaking point at {current_users} users");
                     }
                     break;
                 }
@@ -2518,7 +2501,7 @@ fn parse_single_test_operation(
         "check_consent" => Ok(TestOperation::CheckConsent),
         "grant_consent" => Ok(TestOperation::GrantConsent),
         "vault_operations" => Ok(TestOperation::VaultOperations),
-        _ => Err(format!("Invalid operation: {}. Valid operations: validate_api_key, create_api_key, list_api_keys, rate_limit_check, generate_jwt_token, validate_jwt_token, check_consent, grant_consent, vault_operations", operation).into()),
+        _ => Err(format!("Invalid operation: {operation}. Valid operations: validate_api_key, create_api_key, list_api_keys, rate_limit_check, generate_jwt_token, validate_jwt_token, check_consent, grant_consent, vault_operations").into()),
     }
 }
 
@@ -2596,7 +2579,7 @@ fn print_performance_summary(results: &pulseengine_mcp_auth::PerformanceResults)
 }
 
 fn print_benchmark_results(results: &pulseengine_mcp_auth::PerformanceResults, operation: &str) {
-    println!("⚡ Benchmark Results for '{}'", operation);
+    println!("⚡ Benchmark Results for '{operation}'");
     println!("════════════════════════════════");
 
     if let Some(op_results) = results.operation_results.values().next() {
