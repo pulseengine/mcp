@@ -2474,7 +2474,7 @@ async fn handle_performance_operation(
                 "json" => serde_json::to_string_pretty(&results)?,
                 "text" => generate_text_report(&results),
                 "html" => generate_html_report(&results),
-                _ => return Err(format!("Unsupported format: {}", report_format).into()),
+                _ => return Err(format!("Unsupported format: {report_format}").into()),
             };
 
             if let Some(output_file) = output {
