@@ -43,7 +43,7 @@
 //! - **Input validation**: Comprehensive request validation with schemas
 //! - **Rate limiting**: Per-IP and per-user rate limiting
 //! - **CORS management**: Configurable cross-origin policies
-//! - **Size limits**: Prevent DoS through large requests
+//! - **Size limits**: Prevent `DoS` through large requests
 //! - **Injection protection**: SQL injection and script injection prevention
 //! - **Production hardened**: Battle-tested security measures
 

@@ -241,7 +241,7 @@ impl InputSanitizer {
     /// Build command injection detection patterns
     fn build_command_patterns() -> Vec<Regex> {
         let patterns = [
-            r#"[;&|`$()]"#,
+            r"[;&|`$()]",
             r"(?i)(cmd|powershell|bash|sh)\s",
             r"\.\.\/",
             r"(?i)(\bcat\b|\bls\b|\bpwd\b|\bwhoami\b|\bps\b|\btop\b)",
@@ -915,8 +915,8 @@ impl RequestSecurityConfig {
                 max_request_size: 100 * 1024 * 1024, // 100MB
                 max_parameters: 1000,
                 max_parameter_size: 10 * 1024 * 1024, // 10MB
-                max_string_length: 100000,
-                max_array_length: 10000,
+                max_string_length: 100_000,
+                max_array_length: 10_000,
                 max_object_depth: 20,
                 max_object_keys: 1000,
             },

@@ -77,7 +77,7 @@ impl MiddlewareStack {
             let sec_context = pulseengine_mcp_security::middleware::RequestContext {
                 request_id: context.request_id,
             };
-            request = security.process_request(request, &sec_context).await?;
+            request = security.process_request(request, &sec_context)?;
         }
 
         // Authentication middleware
@@ -144,7 +144,7 @@ impl MiddlewareStack {
             let sec_context = pulseengine_mcp_security::middleware::RequestContext {
                 request_id: context.request_id,
             };
-            response = security.process_response(response, &sec_context).await?;
+            response = security.process_response(response, &sec_context)?;
         }
 
         Ok(response)
