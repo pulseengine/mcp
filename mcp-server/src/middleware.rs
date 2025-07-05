@@ -101,7 +101,7 @@ impl MiddlewareStack {
             let mon_context = pulseengine_mcp_monitoring::collector::RequestContext {
                 request_id: context.request_id,
             };
-            request = monitoring.process_request(request, &mon_context).await?;
+            request = monitoring.process_request(request, &mon_context)?;
         }
 
         Ok(request)
@@ -120,7 +120,7 @@ impl MiddlewareStack {
             let mon_context = pulseengine_mcp_monitoring::collector::RequestContext {
                 request_id: context.request_id,
             };
-            response = monitoring.process_response(response, &mon_context).await?;
+            response = monitoring.process_response(response, &mon_context)?;
         }
 
         // Authentication middleware
