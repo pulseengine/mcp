@@ -6,7 +6,6 @@
 use pulseengine_mcp_external_validation::{
     fuzzing::fuzz_results_to_issues, FuzzTarget, McpFuzzer, ValidationConfig,
 };
-use tracing_subscriber;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -20,7 +19,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::env::var("MCP_SERVER_URL").unwrap_or_else(|_| "http://localhost:3000".to_string());
 
     println!("🔥 Starting MCP Protocol Fuzzing");
-    println!("Target server: {}", server_url);
+    println!("Target server: {server_url}");
     println!();
 
     // Create fuzzer with configuration
@@ -62,7 +61,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 all_results.push(result);
             }
             Err(e) => {
-                println!("  ✗ Error: {}", e);
+                println!("  ✗ Error: {e}");
             }
         }
         println!();
@@ -79,9 +78,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let total_crashes: usize = all_results.iter().map(|r| r.crashes).sum();
     let total_hangs: usize = all_results.iter().map(|r| r.hangs).sum();
 
-    println!("Total iterations: {}", total_iterations);
-    println!("Total crashes: {}", total_crashes);
-    println!("Total hangs: {}", total_hangs);
+    println!("Total iterations: {total_iterations}");
+    println!("Total crashes: {total_crashes}");
+    println!("Total hangs: {total_hangs}");
     println!("Total issues: {}", issues.len());
 
     if total_crashes > 0 || total_hangs > 0 {

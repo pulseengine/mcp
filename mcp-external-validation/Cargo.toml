@@ -88,3 +88,7 @@ required-features = []
 [[bin]]
 name = "mcp-compliance-report"
 required-features = []
+
+[[example]]
+name = "fuzzing_demo"
+required-features = ["fuzzing"]
