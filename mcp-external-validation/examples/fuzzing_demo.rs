@@ -41,7 +41,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut all_results = Vec::new();
 
     for target in targets {
-        println!("Testing {:?}...", target);
+        println!("Testing {target:?}...");
 
         match fuzzer.fuzz_server(&server_url, target).await {
             Ok(result) => {

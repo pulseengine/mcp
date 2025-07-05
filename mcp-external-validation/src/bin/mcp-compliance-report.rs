@@ -281,7 +281,7 @@ async fn generate_html_report(
                 issue.severity, issue.category, issue.description
             ));
             if let Some(ref suggestion) = issue.suggestion {
-                html.push_str(&format!("<br><em>Suggestion: {}</em>", suggestion));
+                html.push_str(&format!("<br><em>Suggestion: {suggestion}</em>"));
             }
             html.push_str("</li>\n");
         }

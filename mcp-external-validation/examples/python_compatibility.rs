@@ -31,14 +31,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     println!("  Installed: {}", info.installed);
                 }
                 Err(e) => {
-                    println!("❌ Failed to get SDK info: {}", e);
+                    println!("❌ Failed to get SDK info: {e}");
                 }
             }
 
             // Test compatibility with a server
             let server_url = "http://localhost:3000";
 
-            println!("\nTesting compatibility with {}...", server_url);
+            println!("\nTesting compatibility with {server_url}...");
             match tester.test_compatibility(server_url).await {
                 Ok(results) => {
                     println!("\n✅ Compatibility Test Results:");
@@ -56,12 +56,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     );
                 }
                 Err(e) => {
-                    println!("❌ Compatibility test failed: {}", e);
+                    println!("❌ Compatibility test failed: {e}");
                 }
             }
         }
         Err(e) => {
-            println!("❌ Failed to setup Python environment: {}", e);
+            println!("❌ Failed to setup Python environment: {e}");
             println!("\nMake sure Python 3.9+ is installed on your system.");
         }
     }
