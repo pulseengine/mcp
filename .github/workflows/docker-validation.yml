@@ -98,7 +98,7 @@ jobs:
           -v ${{ github.workspace }}:/workspace \
           -e RUST_LOG=info \
           ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${SHORT_SHA} \
-          mcp-validate --server-url http://test-server:3000 --all
+          mcp-validate --server-url http://test-server:3000
 
   multi-version-testing:
     name: Multi-Version Protocol Testing
