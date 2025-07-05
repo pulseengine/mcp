@@ -20,7 +20,12 @@ impl SecurityMiddleware {
         Self { config }
     }
 
-    pub async fn process_request(
+    /// Process a request through security middleware
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the request fails validation checks
+    pub fn process_request(
         &self,
         request: Request,
         _context: &RequestContext,
@@ -39,7 +44,12 @@ impl SecurityMiddleware {
         Ok(request)
     }
 
-    pub async fn process_response(
+    /// Process a response through security middleware
+    ///
+    /// # Errors
+    ///
+    /// Currently always succeeds, but may return errors in future implementations
+    pub fn process_response(
         &self,
         response: Response,
         _context: &RequestContext,

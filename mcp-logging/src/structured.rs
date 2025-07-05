@@ -82,19 +82,21 @@ impl StructuredContext {
     }
 
     /// Create a child context for sub-operations
+    #[must_use]
     pub fn child(&self, operation: &str) -> Self {
         let mut child = Self::new(format!("{}::{}", self.tool_name, operation));
         child.parent_request_id = Some(self.request_id.clone());
-        child.correlation_id = self.correlation_id.clone();
-        child.client_id = self.client_id.clone();
-        child.user_agent = self.user_agent.clone();
-        child.session_id = self.session_id.clone();
-        child.loxone_host = self.loxone_host.clone();
-        child.loxone_version = self.loxone_version.clone();
+        child.correlation_id.clone_from(&self.correlation_id);
+        child.client_id.clone_from(&self.client_id);
+        child.user_agent.clone_from(&self.user_agent);
+        child.session_id.clone_from(&self.session_id);
+        child.loxone_host.clone_from(&self.loxone_host);
+        child.loxone_version.clone_from(&self.loxone_version);
         child
     }
 
     /// Add Loxone-specific context
+    #[must_use]
     pub fn with_loxone_context(mut self, host: String, version: Option<String>) -> Self {
         self.loxone_host = Some(host);
         self.loxone_version = version;
@@ -102,6 +104,7 @@ impl StructuredContext {
     }
 
     /// Add device context
+    #[must_use]
     pub fn with_device_context(
         mut self,
         device_uuid: String,
@@ -115,6 +118,7 @@ impl StructuredContext {
     }
 
     /// Add client context
+    #[must_use]
     pub fn with_client_context(
         mut self,
         client_id: String,
@@ -128,7 +132,8 @@ impl StructuredContext {
     }
 
     /// Add custom field
-    pub fn with_field<K: ToString, V: Into<Value>>(mut self, key: K, value: V) -> Self {
+    #[must_use]
+    pub fn with_field<K: ToString, V: Into<Value>>(mut self, key: &K, value: V) -> Self {
         self.custom_fields.insert(key.to_string(), value.into());
         self
     }
@@ -140,7 +145,7 @@ impl StructuredContext {
 
     /// Get elapsed time in milliseconds
     pub fn elapsed_ms(&self) -> u64 {
-        self.elapsed().as_millis() as u64
+        self.elapsed().as_millis().try_into().unwrap_or(u64::MAX)
     }
 }
 
@@ -160,7 +165,7 @@ pub enum ErrorClass {
 }
 
 impl ErrorClass {
-    /// Classify an error using the ErrorClassification trait
+    /// Classify an error using the `ErrorClassification` trait
     pub fn from_error<E: crate::ErrorClassification>(error: &E) -> Self {
         if error.is_auth_error() {
             Self::Auth {
@@ -541,7 +546,7 @@ mod tests {
                 Some("Switch".to_string()),
                 Some("Living Room".to_string()),
             )
-            .with_field("custom_field", "custom_value");
+            .with_field(&"custom_field", "custom_value");
 
         assert_eq!(ctx.loxone_host, Some("192.168.1.100".to_string()));
         assert_eq!(ctx.device_uuid, Some("device-123".to_string()));
@@ -566,7 +571,7 @@ mod tests {
         impl std::error::Error for MockError {}
 
         impl crate::ErrorClassification for MockError {
-            fn error_type(&self) -> &str {
+            fn error_type(&self) -> &'static str {
                 "auth_error"
             }
             fn is_retryable(&self) -> bool {

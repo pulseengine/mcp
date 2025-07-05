@@ -191,8 +191,8 @@ impl LogSanitizer {
                 let mut sanitized_map = serde_json::Map::new();
 
                 for (key, value) in map {
-                    let sanitized_key = self.sanitize_field_name(key);
-                    let sanitized_value = if self.is_sensitive_field(&sanitized_key) {
+                    let sanitized_key = Self::sanitize_field_name(key);
+                    let sanitized_value = if Self::is_sensitive_field(&sanitized_key) {
                         serde_json::Value::String(self.config.replacement.clone())
                     } else {
                         self.sanitize_context(value)
@@ -212,7 +212,7 @@ impl LogSanitizer {
     }
 
     /// Check if a field name indicates sensitive data
-    fn is_sensitive_field(&self, field_name: &str) -> bool {
+    fn is_sensitive_field(field_name: &str) -> bool {
         let lower_name = field_name.to_lowercase();
         matches!(
             lower_name.as_str(),
@@ -233,7 +233,7 @@ impl LogSanitizer {
     }
 
     /// Sanitize field names themselves if needed
-    fn sanitize_field_name(&self, field_name: &str) -> String {
+    fn sanitize_field_name(field_name: &str) -> String {
         // Keep field names as-is, just sanitize values
         field_name.to_string()
     }
@@ -303,9 +303,9 @@ mod tests {
         });
 
         let message = "Connecting with password=secret123 to server";
-        let sanitized = sanitizer.sanitize(message);
-        assert!(sanitized.contains("[REDACTED]"));
-        assert!(!sanitized.contains("secret123"));
+        let result = sanitizer.sanitize(message);
+        assert!(result.contains("[REDACTED]"));
+        assert!(!result.contains("secret123"));
     }
 
     #[test]
@@ -316,9 +316,9 @@ mod tests {
         });
 
         let message = "API request with api_key=abc123def456 failed";
-        let sanitized = sanitizer.sanitize(message);
-        assert!(sanitized.contains("[REDACTED]"));
-        assert!(!sanitized.contains("abc123def456"));
+        let result = sanitizer.sanitize(message);
+        assert!(result.contains("[REDACTED]"));
+        assert!(!result.contains("abc123def456"));
     }
 
     #[test]
@@ -330,8 +330,8 @@ mod tests {
         });
 
         let message = "Connecting to 192.168.1.100:8080";
-        let sanitized = sanitizer.sanitize(message);
-        assert!(sanitized.contains("192.168.1.100"));
+        let result = sanitizer.sanitize(message);
+        assert!(result.contains("192.168.1.100"));
     }
 
     #[test]
@@ -343,9 +343,9 @@ mod tests {
         });
 
         let message = "Connecting to 192.168.1.100:8080";
-        let sanitized = sanitizer.sanitize(message);
-        assert!(!sanitized.contains("192.168.1.100"));
-        assert!(sanitized.contains("[IP_REDACTED]"));
+        let result = sanitizer.sanitize(message);
+        assert!(!result.contains("192.168.1.100"));
+        assert!(result.contains("[IP_REDACTED]"));
     }
 
     #[test]
@@ -357,8 +357,8 @@ mod tests {
         });
 
         let message = "Device 550e8400-e29b-41d4-a716-446655440000 state changed";
-        let sanitized = sanitizer.sanitize(message);
-        assert!(sanitized.contains("550e8400-e29b-41d4-a716-446655440000"));
+        let result = sanitizer.sanitize(message);
+        assert!(result.contains("550e8400-e29b-41d4-a716-446655440000"));
     }
 
     #[test]
@@ -369,8 +369,8 @@ mod tests {
         });
 
         let message = "password=secret123 api_key=abc123";
-        let sanitized = sanitizer.sanitize(message);
-        assert_eq!(message, sanitized);
+        let result = sanitizer.sanitize(message);
+        assert_eq!(message, result);
     }
 
     #[test]
@@ -384,8 +384,8 @@ mod tests {
             std::io::ErrorKind::PermissionDenied,
             "password authentication failed",
         );
-        let sanitized = sanitizer.sanitize_error(&error);
-        assert_eq!("Authentication failed", sanitized);
+        let result = sanitizer.sanitize_error(&error);
+        assert_eq!("Authentication failed", result);
     }
 
     #[test]
@@ -402,9 +402,9 @@ mod tests {
             "device_count": 42
         });
 
-        let sanitized = sanitizer.sanitize_context(&context);
-        assert!(!sanitized.to_string().contains("secret123"));
-        assert!(sanitized.to_string().contains("[REDACTED]"));
-        assert!(sanitized.to_string().contains("admin")); // Non-sensitive fields preserved
+        let result = sanitizer.sanitize_context(&context);
+        assert!(!result.to_string().contains("secret123"));
+        assert!(result.to_string().contains("[REDACTED]"));
+        assert!(result.to_string().contains("admin")); // Non-sensitive fields preserved
     }
 }

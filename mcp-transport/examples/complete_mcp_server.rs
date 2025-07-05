@@ -227,8 +227,7 @@ fn complete_mcp_handler(
                                     id: request.id,
                                     result: None,
                                     error: Some(Error::invalid_params(format!(
-                                        "Unknown operation: {}",
-                                        operation
+                                        "Unknown operation: {operation}"
                                     ))),
                                 };
                             }
@@ -275,9 +274,8 @@ fn complete_mcp_handler(
                             jsonrpc: "2.0".to_string(),
                             id: request.id,
                             result: None,
-                            error: Some(Error::method_not_found(&format!(
-                                "Tool not found: {}",
-                                tool_name
+                            error: Some(Error::method_not_found(format!(
+                                "Tool not found: {tool_name}"
                             ))),
                         };
                     }
@@ -558,9 +556,8 @@ fn complete_mcp_handler(
                             jsonrpc: "2.0".to_string(),
                             id: request.id,
                             result: None,
-                            error: Some(Error::resource_not_found(&format!(
-                                "Prompt not found: {}",
-                                name
+                            error: Some(Error::resource_not_found(format!(
+                                "Prompt not found: {name}"
                             ))),
                         };
                     }

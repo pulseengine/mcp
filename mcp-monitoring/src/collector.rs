@@ -30,17 +30,25 @@ impl MetricsCollector {
         }
     }
 
-    pub async fn start_collection(&self) {
-        if !self.config.enabled {}
-
-        // TODO: Start background metrics collection task
+    pub fn start_collection(&self) {
+        if self.config.enabled {
+            // TODO: Start background metrics collection task
+        } else {
+            // Metrics collection is disabled
+        }
     }
 
-    pub async fn stop_collection(&self) {
+    pub fn stop_collection(&self) {
         // TODO: Stop background metrics collection
     }
 
-    pub async fn process_request(
+    /// Process a request and update metrics
+    ///
+    /// # Errors
+    ///
+    /// This function currently never returns an error, but the signature allows for
+    /// future error handling in metrics processing
+    pub fn process_request(
         &self,
         request: Request,
         _context: &RequestContext,
@@ -51,7 +59,13 @@ impl MetricsCollector {
         Ok(request)
     }
 
-    pub async fn process_response(
+    /// Process a response and update error metrics
+    ///
+    /// # Errors
+    ///
+    /// This function currently never returns an error, but the signature allows for
+    /// future error handling in metrics processing
+    pub fn process_response(
         &self,
         response: Response,
         _context: &RequestContext,
@@ -62,7 +76,7 @@ impl MetricsCollector {
         Ok(response)
     }
 
-    pub async fn get_current_metrics(&self) -> ServerMetrics {
+    pub fn get_current_metrics(&self) -> ServerMetrics {
         let uptime_seconds = self.start_time.elapsed().as_secs();
         let requests_total = self.request_count.load(Ordering::Relaxed);
         let errors_total = self.error_count.load(Ordering::Relaxed);
@@ -70,13 +84,19 @@ impl MetricsCollector {
         ServerMetrics {
             requests_total,
             requests_per_second: if uptime_seconds > 0 {
-                requests_total as f64 / uptime_seconds as f64
+                #[allow(clippy::cast_precision_loss)]
+                {
+                    requests_total as f64 / uptime_seconds as f64
+                }
             } else {
                 0.0
             },
             average_response_time_ms: 0.0, // TODO: Implement response time tracking
             error_rate: if requests_total > 0 {
-                errors_total as f64 / requests_total as f64
+                #[allow(clippy::cast_precision_loss)]
+                {
+                    errors_total as f64 / requests_total as f64
+                }
             } else {
                 0.0
             },
@@ -86,7 +106,7 @@ impl MetricsCollector {
         }
     }
 
-    pub async fn get_uptime_seconds(&self) -> u64 {
+    pub fn get_uptime_seconds(&self) -> u64 {
         self.start_time.elapsed().as_secs()
     }
 }

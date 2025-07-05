@@ -11,6 +11,10 @@ pub struct Validator;
 
 impl Validator {
     /// Validate a UUID string
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the string is not a valid UUID format
     pub fn validate_uuid(uuid_str: &str) -> Result<Uuid> {
         uuid_str
             .parse::<Uuid>()
@@ -18,6 +22,10 @@ impl Validator {
     }
 
     /// Validate that a string is not empty
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the string is empty or contains only whitespace
     pub fn validate_non_empty(value: &str, field_name: &str) -> Result<()> {
         if value.trim().is_empty() {
             Err(Error::validation_error(format!(
@@ -29,6 +37,10 @@ impl Validator {
     }
 
     /// Validate a tool name (must be alphanumeric with underscores)
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the name is empty or contains invalid characters
     pub fn validate_tool_name(name: &str) -> Result<()> {
         Self::validate_non_empty(name, "Tool name")?;
 
@@ -45,11 +57,15 @@ impl Validator {
     }
 
     /// Validate a resource URI
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the URI is empty or contains control characters
     pub fn validate_resource_uri(uri: &str) -> Result<()> {
         Self::validate_non_empty(uri, "Resource URI")?;
 
         // Basic URI validation - must not contain control characters
-        if uri.chars().any(|c| c.is_control()) {
+        if uri.chars().any(char::is_control) {
             return Err(Error::validation_error(
                 "Resource URI cannot contain control characters",
             ));
@@ -59,6 +75,10 @@ impl Validator {
     }
 
     /// Validate JSON schema
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the schema is not a valid JSON object with a type field
     pub fn validate_json_schema(schema: &Value) -> Result<()> {
         // Basic validation - ensure it's an object with a "type" field
         if let Some(obj) = schema.as_object() {
@@ -75,6 +95,10 @@ impl Validator {
     }
 
     /// Validate tool arguments against a schema
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if required arguments are missing from the provided arguments
     pub fn validate_tool_arguments(args: &HashMap<String, Value>, schema: &Value) -> Result<()> {
         // Basic validation - check required properties if defined
         if let Some(schema_obj) = schema.as_object() {
@@ -97,6 +121,10 @@ impl Validator {
     }
 
     /// Validate pagination parameters
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if cursor is empty, limit is 0, or limit exceeds 1000
     pub fn validate_pagination(cursor: Option<&str>, limit: Option<u32>) -> Result<()> {
         if let Some(cursor_val) = cursor {
             Self::validate_non_empty(cursor_val, "Cursor")?;
@@ -115,6 +143,10 @@ impl Validator {
     }
 
     /// Validate prompt name
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the name is empty or contains invalid characters
     pub fn validate_prompt_name(name: &str) -> Result<()> {
         Self::validate_non_empty(name, "Prompt name")?;
 
@@ -131,6 +163,10 @@ impl Validator {
     }
 
     /// Validate a struct using the validator crate
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the struct fails validation according to its validation rules
     pub fn validate_struct<T: Validate>(item: &T) -> Result<()> {
         item.validate()
             .map_err(|e| Error::validation_error(e.to_string()))

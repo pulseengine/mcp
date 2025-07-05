@@ -70,8 +70,9 @@ mod basic_tests {
         // Server info should be populated from Cargo.toml
         assert!(config.server_info.is_some());
         let server_info = config.server_info.as_ref().unwrap();
-        assert_eq!(server_info.server_info.name, env!("CARGO_PKG_NAME"));
-        assert_eq!(server_info.server_info.version, env!("CARGO_PKG_VERSION"));
+        // The create_server_info function uses env! macros from mcp-cli crate
+        assert_eq!(server_info.server_info.name, "pulseengine-mcp-cli");
+        assert!(!server_info.server_info.version.is_empty());
     }
 
     /// Test logging configuration attribute
@@ -250,8 +251,10 @@ mod validation_tests {
         assert!(valid_config.validate().is_ok());
 
         // Test with different values
-        let mut config = ValidatedConfig::default();
-        config.port = 0; // Port 0 is valid (OS assigns)
+        let mut config = ValidatedConfig {
+            port: 0, // Port 0 is valid (OS assigns)
+            ..ValidatedConfig::default()
+        };
         assert!(config.validate().is_ok());
 
         config.port = 65535; // Max port
@@ -274,6 +277,7 @@ mod validation_tests {
             logging: Option<DefaultLoggingConfig>,
         }
 
+        #[allow(clippy::derivable_impls)]
         impl Default for ErrorTestConfig {
             fn default() -> Self {
                 Self {
@@ -286,11 +290,14 @@ mod validation_tests {
 
         let config = ErrorTestConfig::default();
 
-        // Test with missing server info
-        assert!(config.get_server_info().server_info.name == env!("CARGO_PKG_NAME"));
+        // Test with missing server info - should return default from mcp-cli crate
+        assert_eq!(
+            config.get_server_info().server_info.name,
+            "pulseengine-mcp-cli"
+        );
 
         // Test with missing logging config
-        assert!(config.get_logging_config().level == "info");
+        assert_eq!(config.get_logging_config().level, "info");
     }
 }
 
@@ -338,7 +345,7 @@ mod integration_tests {
         }
 
         // Test parsing with args
-        let config = CliConfig::try_parse_from(&["test", "--port", "3000", "--debug"])
+        let config = CliConfig::try_parse_from(["test", "--port", "3000", "--debug"])
             .expect("Failed to parse args");
 
         assert_eq!(config.port, 3000);
@@ -388,7 +395,7 @@ mod integration_tests {
         env::set_var("TEST_API_KEY", "secret-key");
 
         // Parse without command line args
-        let config = EnvConfig::try_parse_from(&["test"]).expect("Failed to parse from env");
+        let config = EnvConfig::try_parse_from(["test"]).expect("Failed to parse from env");
 
         assert_eq!(config.port, 9000);
         assert_eq!(config.api_key, Some("secret-key".to_string()));

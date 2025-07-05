@@ -20,7 +20,11 @@ pub struct BatchResult {
 }
 
 impl JsonRpcMessage {
-    /// Parse a JSON string into a JsonRpcMessage
+    /// Parse a JSON string into a `JsonRpcMessage`
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the JSON is invalid
     pub fn parse(text: &str) -> Result<Self, serde_json::Error> {
         let value: Value = serde_json::from_str(text)?;
 
@@ -32,6 +36,10 @@ impl JsonRpcMessage {
     }
 
     /// Convert to JSON string
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if serialization fails
     pub fn to_string(&self) -> Result<String, serde_json::Error> {
         match self {
             JsonRpcMessage::Single(value) => serde_json::to_string(value),
@@ -40,6 +48,10 @@ impl JsonRpcMessage {
     }
 
     /// Validate the message according to JSON-RPC and MCP specs
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the message is invalid according to JSON-RPC or MCP specifications
     pub fn validate(&self) -> Result<(), TransportError> {
         match self {
             JsonRpcMessage::Single(value) => {
@@ -61,6 +73,10 @@ impl JsonRpcMessage {
     }
 
     /// Extract requests from the message (filtering out notifications)
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if request extraction fails
     pub fn extract_requests(&self) -> Result<Vec<Request>, TransportError> {
         let mut requests = Vec::new();
 
@@ -89,6 +105,10 @@ impl JsonRpcMessage {
     }
 
     /// Extract notifications from the message
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if notification extraction fails
     pub fn extract_notifications(&self) -> Result<Vec<Request>, TransportError> {
         let mut notifications = Vec::new();
 

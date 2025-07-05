@@ -1,0 +1,126 @@
+name: Docker Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: pulseengine/mcp-validator
+
+jobs:
+  build-validation-image:
+    name: Build Validation Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=sha
+    
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile.validation
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Verify image was pushed
+      run: |
+        echo "Built and pushed image with tags:"
+        echo "${{ steps.meta.outputs.tags }}"
+        # Use the short SHA format that matches the metadata tags
+        SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+        echo "Checking if sha-tagged image exists:"
+        docker manifest inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${SHORT_SHA} || echo "Warning: Image verification failed"
+
+  validate-in-container:
+    name: Run Validation in Container
+    needs: build-validation-image
+    runs-on: ubuntu-latest
+    if: success()
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Debug image information
+      run: |
+        echo "Registry: ${{ env.REGISTRY }}"
+        echo "Image name: ${{ env.IMAGE_NAME }}"
+        SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+        echo "Full image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${SHORT_SHA}"
+        echo "Checking if image exists..."
+        docker manifest inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${SHORT_SHA} || echo "Image not found"
+    
+    - name: Run validation container
+      run: |
+        SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+        docker run --rm \
+          -v ${{ github.workspace }}:/workspace \
+          -e RUST_LOG=info \
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${SHORT_SHA} \
+          mcp-validate --server-url http://test-server:3000
+
+  multi-version-testing:
+    name: Multi-Version Protocol Testing
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        protocol_version: ['2024-11-05', '2025-03-26']
+        transport: ['http', 'websocket', 'stdio']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Test protocol version ${{ matrix.protocol_version }} with ${{ matrix.transport }}
+      run: |
+        cargo test --package pulseengine-mcp-external-validation \
+          --features "proptest,fuzzing" \
+          -- --test-threads=1 \
+          protocol_${{ matrix.protocol_version }}_${{ matrix.transport }}
+      env:
+        MCP_PROTOCOL_VERSION: ${{ matrix.protocol_version }}
+        MCP_TRANSPORT: ${{ matrix.transport }}

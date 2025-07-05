@@ -307,6 +307,7 @@ impl MetricsCollector {
 
     /// Record a request completion
     pub async fn record_request_end(&self, tool_name: &str, duration: Duration, success: bool) {
+        #[allow(clippy::cast_precision_loss)]
         let duration_ms = duration.as_millis() as f64;
         let mut metrics = self.request_metrics.write().await;
 
@@ -333,7 +334,7 @@ impl MetricsCollector {
         }
 
         // Recalculate averages and percentiles
-        self.update_response_time_statistics(&mut metrics).await;
+        Self::update_response_time_statistics(&mut metrics);
         metrics.last_updated = current_timestamp();
     }
 
@@ -385,7 +386,7 @@ impl MetricsCollector {
             error_message: error.to_string(),
             tool_name: tool_name.to_string(),
             request_id: request_id.to_string(),
-            duration_ms: duration.as_millis() as u64,
+            duration_ms: duration.as_millis().try_into().unwrap_or(u64::MAX),
         };
 
         metrics.recent_errors.push(error_record);
@@ -481,7 +482,7 @@ impl MetricsCollector {
     }
 
     /// Update response time statistics
-    async fn update_response_time_statistics(&self, metrics: &mut RequestMetrics) {
+    fn update_response_time_statistics(metrics: &mut RequestMetrics) {
         let mut all_times = Vec::new();
         for times in metrics.response_times_by_tool.values() {
             all_times.extend(times);
@@ -492,11 +493,25 @@ impl MetricsCollector {
                 .sort_by(|a: &f64, b: &f64| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
             // Calculate average
-            metrics.avg_response_time_ms = all_times.iter().sum::<f64>() / all_times.len() as f64;
+            #[allow(clippy::cast_precision_loss)]
+            {
+                metrics.avg_response_time_ms =
+                    all_times.iter().sum::<f64>() / all_times.len() as f64;
+            }
 
             // Calculate percentiles
             if all_times.len() >= 20 {
+                #[allow(
+                    clippy::cast_precision_loss,
+                    clippy::cast_possible_truncation,
+                    clippy::cast_sign_loss
+                )]
                 let p95_idx = (all_times.len() as f64 * 0.95) as usize;
+                #[allow(
+                    clippy::cast_precision_loss,
+                    clippy::cast_possible_truncation,
+                    clippy::cast_sign_loss
+                )]
                 let p99_idx = (all_times.len() as f64 * 0.99) as usize;
                 metrics.p95_response_time_ms = all_times[p95_idx.min(all_times.len() - 1)];
                 metrics.p99_response_time_ms = all_times[p99_idx.min(all_times.len() - 1)];
@@ -521,7 +536,11 @@ impl MetricsSnapshot {
         if self.request_metrics.total_requests == 0 {
             0.0
         } else {
-            self.request_metrics.failed_requests as f64 / self.request_metrics.total_requests as f64
+            #[allow(clippy::cast_precision_loss)]
+            {
+                self.request_metrics.failed_requests as f64
+                    / self.request_metrics.total_requests as f64
+            }
         }
     }
 
@@ -585,6 +604,7 @@ mod tests {
 
         // Create a mock error implementing ErrorClassification
         #[derive(Debug)]
+        #[allow(clippy::items_after_statements)]
         struct MockAuthError;
 
         impl std::fmt::Display for MockAuthError {
@@ -596,7 +616,7 @@ mod tests {
         impl std::error::Error for MockAuthError {}
 
         impl crate::ErrorClassification for MockAuthError {
-            fn error_type(&self) -> &str {
+            fn error_type(&self) -> &'static str {
                 "auth_error"
             }
             fn is_retryable(&self) -> bool {

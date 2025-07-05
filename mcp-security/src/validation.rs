@@ -7,6 +7,10 @@ pub struct RequestValidator;
 
 impl RequestValidator {
     /// Validate an MCP request
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the request has invalid JSON-RPC version or empty method
     pub fn validate_request(request: &Request) -> Result<(), Error> {
         // Basic validation
         if request.jsonrpc != "2.0" {

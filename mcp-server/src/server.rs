@@ -172,7 +172,7 @@ impl<B: McpBackend + 'static> McpServer<B> {
             .await
             .map_err(|e| ServerError::Authentication(e.to_string()))?;
 
-        self.metrics.start_collection().await;
+        self.metrics.start_collection();
 
         // Start transport
         let handler = self.handler.clone();
@@ -229,7 +229,7 @@ impl<B: McpBackend + 'static> McpServer<B> {
             .map_err(|e| ServerError::Transport(e.to_string()))?;
 
         // Stop background services
-        self.metrics.stop_collection().await;
+        self.metrics.stop_collection();
 
         self.auth_manager
             .stop_background_tasks()
@@ -290,13 +290,13 @@ impl<B: McpBackend + 'static> McpServer<B> {
             ]
             .into_iter()
             .collect(),
-            uptime_seconds: self.metrics.get_uptime_seconds().await,
+            uptime_seconds: self.metrics.get_uptime_seconds(),
         })
     }
 
     /// Get server metrics
     pub async fn get_metrics(&self) -> ServerMetrics {
-        self.metrics.get_current_metrics().await
+        self.metrics.get_current_metrics()
     }
 
     /// Get server information
