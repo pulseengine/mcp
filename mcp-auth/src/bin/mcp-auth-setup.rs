@@ -185,7 +185,7 @@ async fn run_setup(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     } else {
         println!("{}", "Configuration Summary:".green().bold());
         println!("{}", "────────────────────".green());
-        println!("{}", config_summary);
+        println!("{config_summary}");
     }
 
     // Final instructions
@@ -204,7 +204,7 @@ async fn run_setup(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     println!("1. Set the master key in your environment:");
     println!(
         "   {}",
-        format!("export PULSEENGINE_MCP_MASTER_KEY={}", master_key).bright_black()
+        format!("export PULSEENGINE_MCP_MASTER_KEY={master_key}").bright_black()
     );
     println!();
     println!("2. Store your admin API key securely:");
@@ -233,7 +233,7 @@ fn generate_master_key() -> Result<String, Box<dyn std::error::Error>> {
     println!("Generating new master encryption key...");
     let mut key = [0u8; 32];
     rand::thread_rng().fill(&mut key);
-    let encoded = URL_SAFE_NO_PAD.encode(&key);
+    let encoded = URL_SAFE_NO_PAD.encode(key);
 
     println!("✓ Generated new master key");
     println!();

@@ -268,7 +268,7 @@ async fn configure_custom_setup(
     println!();
     println!("{}", "Master Key Configuration:".yellow());
 
-    let use_existing = if let Ok(_) = std::env::var("PULSEENGINE_MCP_MASTER_KEY") {
+    let use_existing = if std::env::var("PULSEENGINE_MCP_MASTER_KEY").is_ok() {
         Confirm::with_theme(theme)
             .with_prompt("Use existing master key from environment?")
             .default(true)
@@ -506,7 +506,7 @@ async fn run_validation() -> Result<(), Box<dyn std::error::Error>> {
     let info = validator::get_system_info();
 
     println!();
-    println!("{}", info);
+    println!("{info}");
 
     println!();
     println!("Validation Results:");
@@ -556,7 +556,7 @@ async fn run_validation() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn show_system_info() -> Result<(), Box<dyn std::error::Error>> {
     let info = validator::get_system_info();
-    println!("{}", info);
+    println!("{info}");
     Ok(())
 }
 

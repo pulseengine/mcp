@@ -677,7 +677,7 @@ async fn main() {
                 CreateKeyParams {
                     name: name.clone(),
                     role_str: role.clone(),
-                    expires: *expires,
+                    expires,
                     ip_whitelist: ip_whitelist.clone(),
                     permissions: permissions.clone(),
                     devices: devices.clone(),

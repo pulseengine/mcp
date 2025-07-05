@@ -118,7 +118,7 @@ mod integration_tests {
             }
             Err(e) => {
                 // Expected if credentials are invalid
-                println!("Authentication failed as expected: {}", e);
+                println!("Authentication failed as expected: {e}");
             }
         }
     }
@@ -139,7 +139,7 @@ mod integration_tests {
                 assert_eq!(client_info.vault_type, VaultType::Infisical);
             }
             Err(e) => {
-                println!("Client creation failed as expected: {}", e);
+                println!("Client creation failed as expected: {e}");
             }
         }
     }
@@ -160,7 +160,7 @@ mod integration_tests {
                     .await
                 {
                     Ok(value) => {
-                        println!("Found session timeout config: {}", value);
+                        println!("Found session timeout config: {value}");
                         assert!(!value.is_empty());
                     }
                     Err(_) => {
@@ -174,7 +174,7 @@ mod integration_tests {
                         println!("Retrieved {} config values", config.len());
                     }
                     Err(e) => {
-                        println!("Could not retrieve config: {}", e);
+                        println!("Could not retrieve config: {e}");
                     }
                 }
 
@@ -183,7 +183,7 @@ mod integration_tests {
                 println!("Cache cleared successfully");
             }
             Err(e) => {
-                println!("Integration test skipped due to connection error: {}", e);
+                println!("Integration test skipped due to connection error: {e}");
             }
         }
     }
