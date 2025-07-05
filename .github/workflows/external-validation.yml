@@ -127,8 +127,8 @@ jobs:
     - name: Start test MCP server
       run: |
         # Build and start a test MCP server in the background
-        cargo build --example hello-world
-        cargo run --example hello-world &
+        cargo build --package hello-world-mcp
+        cargo run --package hello-world-mcp &
         echo $! > server.pid
         sleep 5  # Give server time to start
       if: matrix.os != 'windows-latest'
@@ -136,8 +136,8 @@ jobs:
     - name: Start test MCP server (Windows)
       run: |
         # Build and start a test MCP server in the background
-        cargo build --example hello-world
-        Start-Process -FilePath "cargo" -ArgumentList "run", "--example", "hello-world" -PassThru | Out-File -FilePath server.pid
+        cargo build --package hello-world-mcp
+        Start-Process -FilePath "cargo" -ArgumentList "run", "--package", "hello-world-mcp" -PassThru | Out-File -FilePath server.pid
         Start-Sleep -Seconds 5
       if: matrix.os == 'windows-latest'
     
@@ -208,7 +208,7 @@ jobs:
     - name: Test cross-language scenarios
       run: |
         # Run Python client against Rust server
-        cargo run --example hello-world &
+        cargo run --package hello-world-mcp &
         SERVER_PID=$!
         sleep 5
         

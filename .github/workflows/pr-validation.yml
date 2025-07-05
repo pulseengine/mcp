@@ -132,11 +132,11 @@ jobs:
     
     - name: Build test server
       run: |
-        cargo build --example hello-world
+        cargo build --package hello-world-mcp
     
     - name: Start test server
       run: |
-        cargo run --example hello-world &
+        cargo run --package hello-world-mcp &
         echo $! > server.pid
         sleep 5
     
