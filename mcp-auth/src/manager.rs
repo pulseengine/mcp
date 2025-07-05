@@ -662,7 +662,7 @@ impl AuthenticationManager {
 
         // Collect role-based statistics
         for (role_key, ip_states) in role_states.iter() {
-            let mut role_stats = RoleRateLimitStats {
+            let mut role_statistics = RoleRateLimitStats {
                 current_requests: 0,
                 blocked_requests: 0,
                 total_requests: 0,
@@ -672,24 +672,24 @@ impl AuthenticationManager {
             };
 
             for state in ip_states.values() {
-                role_stats.current_requests += state.current_requests;
-                role_stats.blocked_requests += state.blocked_requests;
-                role_stats.total_requests += state.total_requests;
+                role_statistics.current_requests += state.current_requests;
+                role_statistics.blocked_requests += state.blocked_requests;
+                role_statistics.total_requests += state.total_requests;
 
                 // Check if any IP is in cooldown for this role
                 if let Some(cooldown_end) = state.cooldown_ends_at {
                     if now < cooldown_end {
-                        role_stats.in_cooldown = true;
-                        if role_stats.cooldown_ends_at.is_none()
-                            || cooldown_end > role_stats.cooldown_ends_at.unwrap()
+                        role_statistics.in_cooldown = true;
+                        if role_statistics.cooldown_ends_at.is_none()
+                            || cooldown_end > role_statistics.cooldown_ends_at.unwrap()
                         {
-                            role_stats.cooldown_ends_at = Some(cooldown_end);
+                            role_statistics.cooldown_ends_at = Some(cooldown_end);
                         }
                     }
                 }
             }
 
-            stats.role_stats.insert(role_key.clone(), role_stats);
+            stats.role_stats.insert(role_key.clone(), role_statistics);
         }
 
         stats
@@ -783,12 +783,11 @@ impl AuthenticationManager {
                 let _ = self.audit_logger.log(audit_event).await;
 
                 return Ok(true); // Still rate limited
-            } else {
-                // Cooldown expired, reset state
-                state.in_cooldown = false;
-                state.cooldown_ends_at = None;
-                state.current_requests = 0;
             }
+            // Cooldown expired, reset state
+            state.in_cooldown = false;
+            state.cooldown_ends_at = None;
+            state.current_requests = 0;
         }
 
         // Check if we're in a new time window

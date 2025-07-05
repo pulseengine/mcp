@@ -310,9 +310,9 @@ impl PermissionConfig {
 
     /// Builder pattern for denying resource access
     pub fn deny_role_resource(mut self, role: Role, resource: &str) -> Self {
-        let rule =
+        let permission_rule =
             PermissionRule::deny(McpPermission::UseResource(resource.to_string()), vec![role]);
-        self.custom_rules.push(rule);
+        self.custom_rules.push(permission_rule);
         self
     }
 }

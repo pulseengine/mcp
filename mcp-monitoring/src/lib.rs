@@ -4,7 +4,7 @@
 //! - Real-time metrics collection and reporting
 //! - Health checks and system monitoring
 //! - Performance profiling and optimization insights
-//! - InfluxDB integration for time-series data
+//! - `InfluxDB` integration for time-series data
 //! - Prometheus-compatible metrics export
 //!
 //! # Quick Start
@@ -47,7 +47,7 @@
 //!
 //! - **Real-time metrics**: Live request/response time tracking
 //! - **Health monitoring**: System resource and connectivity checks
-//! - **Time-series storage**: InfluxDB integration for historical data
+//! - **Time-series storage**: `InfluxDB` integration for historical data
 //! - **Prometheus export**: Industry-standard metrics format
 //! - **Performance profiling**: Identify bottlenecks and optimization opportunities
 //! - **Production ready**: Low overhead, highly optimized collection
