@@ -1019,9 +1019,7 @@ async fn revoke_key(
     yes: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if !yes {
-        print!(
-            "Are you sure you want to revoke key '{key_id}'? This cannot be undone. [y/N]: "
-        );
+        print!("Are you sure you want to revoke key '{key_id}'? This cannot be undone. [y/N]: ");
         use std::io::{self, Write};
         io::stdout().flush()?;
 
@@ -1301,7 +1299,7 @@ async fn validate_key(
         }
         Err(e) => {
             if cli.format == "json" {
-                println!(r#"{{"valid": false, "reason": "error", "error": "{}"}}"#, e);
+                println!(r#"{{"valid": false, "reason": "error", "error": "{e}"}}"#);
             } else {
                 println!("❌ Validation failed: {e}");
             }
@@ -1353,7 +1351,7 @@ async fn handle_storage_operation(
         }
 
         StorageCommands::CleanupBackups { keep } => {
-            println!("🧹 Cleaning up old backups (keeping {} newest)...", keep);
+            println!("🧹 Cleaning up old backups (keeping {keep} newest)...");
             println!("⚠️  Backup cleanup functionality requires additional API exposure.");
             println!("   This is a placeholder implementation.");
             Ok(())
@@ -1437,14 +1435,14 @@ async fn handle_audit_operation(
             severity: _,
             follow: _,
         } => {
-            println!("📋 Recent Audit Events (showing {} most recent)", count);
+            println!("📋 Recent Audit Events (showing {count} most recent)");
             println!("⚠️  Event viewing functionality requires additional implementation.");
             println!("   This is a placeholder implementation.");
             Ok(())
         }
 
         AuditCommands::Search { query, limit: _ } => {
-            println!("🔍 Searching audit logs for: '{}'", query);
+            println!("🔍 Searching audit logs for: '{query}'");
             println!("⚠️  Search functionality requires additional implementation.");
             println!("   This is a placeholder implementation.");
             Ok(())
@@ -1521,7 +1519,7 @@ async fn handle_token_operation(
                 }
                 Err(e) => {
                     if cli.format == "json" {
-                        println!(r#"{{"valid": false, "error": "{}"}}"#, e);
+                        println!(r#"{{"valid": false, "error": "{e}"}}"#);
                     } else {
                         println!("❌ JWT token is invalid: {e}");
                     }
@@ -1552,7 +1550,7 @@ async fn handle_token_operation(
                 println!("{}", serde_json::to_string_pretty(&response)?);
             } else {
                 println!("✅ JWT token refreshed successfully!");
-                println!("New Access Token: {}", new_access_token);
+                println!("New Access Token: {new_access_token}");
                 println!("Token Type: Bearer");
             }
             Ok(())
@@ -1691,7 +1689,7 @@ async fn handle_rate_limit_operation(
 
                 if let Some(role_name) = role {
                     if let Some(role_config) = default_config.role_rate_limits.get(&role_name) {
-                        println!("Role: {}", role_name);
+                        println!("Role: {role_name}");
                         println!(
                             "  Max requests per window: {}",
                             role_config.max_requests_per_window
@@ -1710,7 +1708,7 @@ async fn handle_rate_limit_operation(
                     }
                 } else {
                     for (role_name, role_config) in &default_config.role_rate_limits {
-                        println!("Role: {}", role_name);
+                        println!("Role: {role_name}");
                         println!(
                             "  Max requests per window: {}",
                             role_config.max_requests_per_window
@@ -1769,8 +1767,8 @@ async fn handle_rate_limit_operation(
             }
 
             println!("Test completed:");
-            println!("  Successful requests: {}", success_count);
-            println!("  Blocked requests: {}", blocked_count);
+            println!("  Successful requests: {success_count}");
+            println!("  Blocked requests: {blocked_count}");
             println!(
                 "  Success rate: {:.1}%",
                 (success_count as f64 / count as f64) * 100.0
@@ -1800,10 +1798,10 @@ async fn handle_rate_limit_operation(
                 println!("⚠️  Reset operation not implemented");
                 println!("Rate limiting state is managed internally and resets automatically.");
                 if let Some(role_name) = role {
-                    println!("Would reset role: {}", role_name);
+                    println!("Would reset role: {role_name}");
                 }
                 if let Some(ip_addr) = ip {
-                    println!("Would reset IP: {}", ip_addr);
+                    println!("Would reset IP: {ip_addr}");
                 }
                 println!("Use 'cleanup' command to remove old entries.");
             }
@@ -1857,7 +1855,7 @@ async fn handle_vault_operation(
             if cli.format == "json" {
                 println!(r#"{{"error": "Failed to connect to vault: {}"}}"#, e);
             } else {
-                println!("❌ Failed to connect to vault: {}", e);
+                println!("❌ Failed to connect to vault: {e}");
             }
             return Err(e.into());
         }
@@ -1878,7 +1876,7 @@ async fn handle_vault_operation(
                 if cli.format == "json" {
                     println!(r#"{{"status": "failed", "error": "{}"}}"#, e);
                 } else {
-                    println!("❌ Vault connection failed: {}", e);
+                    println!("❌ Vault connection failed: {e}");
                 }
                 return Err(e.into());
             }
@@ -1935,7 +1933,7 @@ async fn handle_vault_operation(
                         };
                         println!("{}", serde_json::to_string_pretty(&json_result)?);
                     } else {
-                        println!("Secret '{}': {}", name, value);
+                        println!("Secret '{name}': {value}");
                         if metadata {
                             println!("Note: Metadata not available through current API");
                         }
@@ -1943,9 +1941,9 @@ async fn handle_vault_operation(
                 }
                 Err(e) => {
                     if cli.format == "json" {
-                        println!(r#"{{"error": "Failed to get secret '{}': {}"}}"#, name, e);
+                        println!(r#"{{"error": "Failed to get secret '{name}': {e}"}}"#);
                     } else {
-                        println!("❌ Failed to get secret '{}': {}", name, e);
+                        println!("❌ Failed to get secret '{name}': {e}");
                     }
                     return Err(e.into());
                 }
@@ -1986,7 +1984,7 @@ async fn handle_vault_operation(
                         config.len()
                     );
                     for (key, value) in config {
-                        println!("  {}: {}", key, value);
+                        println!("  {key}: {value}");
                     }
                 }
             }
@@ -1994,7 +1992,7 @@ async fn handle_vault_operation(
                 if cli.format == "json" {
                     println!(r#"{{"error": "Failed to refresh config: {}"}}"#, e);
                 } else {
-                    println!("❌ Failed to refresh config: {}", e);
+                    println!("❌ Failed to refresh config: {e}");
                 }
                 return Err(e.into());
             }
@@ -2167,7 +2165,7 @@ async fn handle_consent_operation(
                             pulseengine_mcp_auth::ConsentStatus::Pending => "⏳",
                             pulseengine_mcp_auth::ConsentStatus::Expired => "🕐",
                         };
-                        println!("    {} {}: {}", status_emoji, consent_type, status);
+                        println!("    {status_emoji} {consent_type}: {status}");
                     }
                 }
             }
@@ -2217,7 +2215,7 @@ async fn handle_consent_operation(
                         entry.new_status
                     );
                     if let Some(ip) = &entry.source_ip {
-                        println!("     Source IP: {}", ip);
+                        println!("     Source IP: {ip}");
                     }
                 }
                 if limited_trail.is_empty() {
@@ -2312,7 +2310,7 @@ async fn handle_performance_operation(
 
             if cli.format != "json" {
                 println!("🚀 Starting performance test...");
-                println!("   Concurrent Users: {}", concurrent_users);
+                println!("   Concurrent Users: {concurrent_users}");
                 println!("   Duration: {} seconds", duration);
                 println!("   Rate: {} req/s per user", rate);
                 println!("   Warmup: {} seconds", warmup);
@@ -2357,8 +2355,8 @@ async fn handle_performance_operation(
 
             if cli.format != "json" {
                 println!("⚡ Running benchmark for '{}'...", operation);
-                println!("   Iterations: {}", iterations);
-                println!("   Workers: {}", workers);
+                println!("   Iterations: {iterations}");
+                println!("   Workers: {workers}");
                 println!();
             }
 
@@ -2485,7 +2483,7 @@ async fn handle_performance_operation(
                     println!("📄 Report generated: {}", output_file.display());
                 }
             } else {
-                println!("{}", report);
+                println!("{report}");
             }
         }
     }
@@ -2540,7 +2538,7 @@ fn print_performance_summary(results: &pulseengine_mcp_auth::PerformanceResults)
     println!("📊 Per-Operation Results:");
     println!("─────────────────────────");
     for (operation, op_results) in &results.operation_results {
-        println!("🔹 {}", operation);
+        println!("🔹 {operation}");
         println!(
             "   Requests: {} (success: {}, failed: {})",
             op_results.total_requests, op_results.successful_requests, op_results.failed_requests
@@ -2565,7 +2563,7 @@ fn print_performance_summary(results: &pulseengine_mcp_auth::PerformanceResults)
         if !op_results.errors.is_empty() {
             println!("   Errors:");
             for (error_type, count) in &op_results.errors {
-                println!("     {}: {}", error_type, count);
+                println!("     {error_type}: {count}");
             }
         }
         println!();
@@ -2592,7 +2590,7 @@ fn print_performance_summary(results: &pulseengine_mcp_auth::PerformanceResults)
             results.error_summary.total_errors, results.error_summary.error_rate
         );
         if let Some(common_error) = &results.error_summary.most_common_error {
-            println!("Most Common: {}", common_error);
+            println!("Most Common: {common_error}");
         }
     }
 }
