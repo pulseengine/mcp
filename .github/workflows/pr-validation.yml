@@ -132,11 +132,11 @@ jobs:
     
     - name: Build test server
       run: |
-        cargo build --example basic_server --features full
+        cargo build --example hello-world
     
     - name: Start test server
       run: |
-        cargo run --example basic_server --features full &
+        cargo run --example hello-world &
         echo $! > server.pid
         sleep 5
     

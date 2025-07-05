@@ -307,6 +307,7 @@ impl MetricsCollector {
 
     /// Record a request completion
     pub async fn record_request_end(&self, tool_name: &str, duration: Duration, success: bool) {
+        #[allow(clippy::cast_precision_loss)]
         let duration_ms = duration.as_millis() as f64;
         let mut metrics = self.request_metrics.write().await;
 
@@ -385,7 +386,7 @@ impl MetricsCollector {
             error_message: error.to_string(),
             tool_name: tool_name.to_string(),
             request_id: request_id.to_string(),
-            duration_ms: duration.as_millis() as u64,
+            duration_ms: duration.as_millis().try_into().unwrap_or(u64::MAX),
         };
 
         metrics.recent_errors.push(error_record);

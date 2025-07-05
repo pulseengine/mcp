@@ -7,11 +7,11 @@ use axum::{
     routing::get,
     Router,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::info;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct DebugQuery {
     url: Option<String>,
     #[serde(rename = "transportType")]
