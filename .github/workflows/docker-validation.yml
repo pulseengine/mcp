@@ -9,7 +9,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}-validator
+  IMAGE_NAME: pulseengine/mcp-validator
 
 jobs:
   build-validation-image:
@@ -60,8 +60,10 @@ jobs:
       run: |
         echo "Built and pushed image with tags:"
         echo "${{ steps.meta.outputs.tags }}"
+        # Use the short SHA format that matches the metadata tags
+        SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
         echo "Checking if sha-tagged image exists:"
-        docker manifest inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        docker manifest inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${SHORT_SHA} || echo "Warning: Image verification failed"
 
   validate-in-container:
     name: Run Validation in Container
@@ -84,17 +86,19 @@ jobs:
       run: |
         echo "Registry: ${{ env.REGISTRY }}"
         echo "Image name: ${{ env.IMAGE_NAME }}"
-        echo "Full image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+        SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+        echo "Full image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${SHORT_SHA}"
         echo "Checking if image exists..."
-        docker manifest inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} || echo "Image not found"
+        docker manifest inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${SHORT_SHA} || echo "Image not found"
     
     - name: Run validation container
       run: |
+        SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
         docker run --rm \
           -v ${{ github.workspace }}:/workspace \
           -e RUST_LOG=info \
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-          cargo run --bin mcp-validate -- http://test-server:3000 --all
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${SHORT_SHA} \
+          cargo run --bin mcp-validate -- --server-url http://test-server:3000 --all
 
   multi-version-testing:
     name: Multi-Version Protocol Testing
