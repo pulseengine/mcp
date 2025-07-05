@@ -560,7 +560,7 @@ mod tests {
 
     async fn create_test_middleware() -> SessionMiddleware {
         let auth_manager = Arc::new(
-            crate::AuthenticationManager::new(AuthConfig::default())
+            crate::AuthenticationManager::new(AuthConfig::memory())
                 .await
                 .unwrap(),
         );

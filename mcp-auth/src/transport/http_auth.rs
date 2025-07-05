@@ -318,23 +318,31 @@ impl AuthExtractor for HttpAuthExtractor {
         // Try different authentication methods in order of preference
 
         // 1. Authorization header (Bearer, Basic)
-        if let Ok(Some(context)) = self.extract_authorization_header(&request.headers) {
-            return Ok(Some(self.enrich_context(context, request)));
+        match self.extract_authorization_header(&request.headers) {
+            Ok(Some(context)) => return Ok(Some(self.enrich_context(context, request))),
+            Ok(None) => {}           // Try next method
+            Err(e) => return Err(e), // Propagate validation errors
         }
 
         // 2. X-API-Key header
-        if let Ok(Some(context)) = self.extract_api_key_header(&request.headers) {
-            return Ok(Some(self.enrich_context(context, request)));
+        match self.extract_api_key_header(&request.headers) {
+            Ok(Some(context)) => return Ok(Some(self.enrich_context(context, request))),
+            Ok(None) => {}           // Try next method
+            Err(e) => return Err(e), // Propagate validation errors
         }
 
         // 3. Custom headers
-        if let Ok(Some(context)) = self.extract_custom_headers(&request.headers) {
-            return Ok(Some(self.enrich_context(context, request)));
+        match self.extract_custom_headers(&request.headers) {
+            Ok(Some(context)) => return Ok(Some(self.enrich_context(context, request))),
+            Ok(None) => {}           // Try next method
+            Err(e) => return Err(e), // Propagate validation errors
         }
 
         // 4. Query parameters (if allowed)
-        if let Ok(Some(context)) = self.extract_query_auth(request) {
-            return Ok(Some(self.enrich_context(context, request)));
+        match self.extract_query_auth(request) {
+            Ok(Some(context)) => return Ok(Some(self.enrich_context(context, request))),
+            Ok(None) => {}           // Try next method
+            Err(e) => return Err(e), // Propagate validation errors
         }
 
         // No authentication found
@@ -468,7 +476,11 @@ mod tests {
         let request = TransportRequest::from_headers(headers);
         let result = tokio_test::block_on(extractor.extract_auth(&request));
 
+        // The API key should be found and validation should fail
         assert!(result.is_err());
+        if let Err(e) = result {
+            assert!(e.to_string().contains("too short"));
+        }
     }
 
     #[test]

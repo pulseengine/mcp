@@ -414,7 +414,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_auth_middleware_creation() {
-        let config = AuthConfig::default();
+        let config = AuthConfig::memory();
         let auth_manager = Arc::new(AuthenticationManager::new(config).await.unwrap());
         let middleware = McpAuthMiddleware::with_default_config(auth_manager);
 
@@ -424,7 +424,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_anonymous_method_detection() {
-        let config = AuthConfig::default();
+        let config = AuthConfig::memory();
         let auth_manager = Arc::new(AuthenticationManager::new(config).await.unwrap());
         let middleware = McpAuthMiddleware::with_default_config(auth_manager);
 
@@ -435,7 +435,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_auth_header_parsing() {
-        let config = AuthConfig::default();
+        let config = AuthConfig::memory();
         let auth_manager = Arc::new(AuthenticationManager::new(config).await.unwrap());
         let middleware = McpAuthMiddleware::with_default_config(auth_manager);
 
