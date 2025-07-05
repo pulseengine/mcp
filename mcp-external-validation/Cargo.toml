@@ -12,6 +12,7 @@ readme = "README.md"
 keywords = ["mcp", "validation", "testing", "compliance", "protocol"]
 categories = ["development-tools::testing", "web-programming"]
 rust-version.workspace = true
+publish = false
 
 [dependencies]
 # Core framework dependencies

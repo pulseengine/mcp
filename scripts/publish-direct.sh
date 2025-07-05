@@ -4,7 +4,7 @@
 
 set -e
 
-echo "🚀 Publishing PulseEngine MCP Framework v0.3.1"
+echo "🚀 Publishing PulseEngine MCP Framework v0.4.0"
 echo "============================================="
 echo ""
 
@@ -114,4 +114,4 @@ echo "  https://crates.io/crates/pulseengine-mcp-server"
 echo ""
 echo "Next steps:"
 echo "1. Push to GitHub: git push -u origin main"
-echo "2. Create a GitHub release with tag v0.3.1"
+echo "2. Create a GitHub release with tag v0.4.0"
