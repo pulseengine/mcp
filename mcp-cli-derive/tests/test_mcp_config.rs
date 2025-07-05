@@ -291,7 +291,10 @@ mod validation_tests {
         let config = ErrorTestConfig::default();
 
         // Test with missing server info - should return default from mcp-cli crate
-        assert_eq!(config.get_server_info().server_info.name, "pulseengine-mcp-cli");
+        assert_eq!(
+            config.get_server_info().server_info.name,
+            "pulseengine-mcp-cli"
+        );
 
         // Test with missing logging config
         assert_eq!(config.get_logging_config().level, "info");
