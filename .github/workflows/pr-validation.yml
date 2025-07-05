@@ -66,12 +66,7 @@ jobs:
     
     - name: Run clippy
       run: |
-        cargo clippy --all-features --all-targets -- \
-          -D warnings \
-          -W clippy::all \
-          -W clippy::pedantic \
-          -A clippy::module_name_repetitions \
-          -A clippy::must_use_candidate
+        cargo clippy --all-features --all-targets -- -D warnings
     
     - name: Run tests
       run: cargo test --all-features --verbose

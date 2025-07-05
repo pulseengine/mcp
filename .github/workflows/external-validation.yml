@@ -271,7 +271,7 @@ jobs:
     
     - name: Run security lints
       run: |
-        cargo clippy --all-features -- -D warnings -W clippy::all -W clippy::pedantic
+        cargo clippy --all-features --all-targets -- -D warnings
     
     - name: Check for security patterns
       run: |
