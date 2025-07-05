@@ -8,8 +8,8 @@
 //!
 //! # Example
 //!
-//! ```rust,no_run
-//! use mcp_logging::{MetricsCollector, StructuredLogger};
+//! ```rust,ignore
+//! use pulseengine_mcp_logging::{MetricsCollector, StructuredLogger};
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -20,7 +20,7 @@
 //!     logger.init().expect("Failed to initialize logging");
 //!
 //!     // Log with structured context
-//!     tracing::info!("Server started", server_type = "mcp", version = "1.0");
+//!     tracing::info!(server_type = "mcp", version = "1.0", "Server started");
 //! }
 //! ```
 
