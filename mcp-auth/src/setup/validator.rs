@@ -131,15 +131,12 @@ fn check_keyring_support() -> bool {
     {
         use keyring::Entry;
 
-        match Entry::new("mcp_auth_test", "test_user") {
-            Ok(entry) => {
-                // Try to set and delete a test value
-                if entry.set_password("test").is_ok() {
-                    let _ = entry.delete_credential();
-                    return true;
-                }
+        if let Ok(entry) = Entry::new("mcp_auth_test", "test_user") {
+            // Try to set and delete a test value
+            if entry.set_password("test").is_ok() {
+                let _ = entry.delete_credential();
+                return true;
             }
-            Err(_) => {}
         }
     }
 

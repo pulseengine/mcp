@@ -1090,7 +1090,7 @@ mod tests {
 
         let dashboard = monitor.get_dashboard_data().await;
 
-        assert!(dashboard.recent_events.len() > 0);
+        assert!(!dashboard.recent_events.is_empty());
         assert_eq!(dashboard.hourly_metrics.sessions_created, 1);
     }
 }

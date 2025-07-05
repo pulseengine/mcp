@@ -205,14 +205,14 @@ impl SetupResult {
         };
 
         let mut summary = format!(
-            r#"# MCP Authentication Framework Configuration
+            r##"# MCP Authentication Framework Configuration
 
 ## Master Key
 export PULSEENGINE_MCP_MASTER_KEY={}
 
 ## Storage Backend
 {}
-"#,
+"##,
             self.master_key, storage_desc,
         );
 

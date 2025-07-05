@@ -14,7 +14,6 @@ use pulseengine_mcp_auth::{
     KeyCreationRequest, LegalBasis, MemoryConsentStorage, PerformanceConfig, PerformanceTest, Role,
     TestOperation, ValidationConfig,
 };
-use serde_json;
 use std::path::PathBuf;
 use std::process;
 use tracing::error;
@@ -675,12 +674,14 @@ async fn main() {
             create_key(
                 &auth_manager,
                 &cli,
-                name.clone(),
-                role.clone(),
-                expires,
-                ip_whitelist.clone(),
-                permissions.clone(),
-                devices.clone(),
+                CreateKeyParams {
+                    name: name.clone(),
+                    role_str: role.clone(),
+                    expires: *expires,
+                    ip_whitelist: ip_whitelist.clone(),
+                    permissions: permissions.clone(),
+                    devices: devices.clone(),
+                },
             )
             .await
         }
@@ -784,26 +785,33 @@ async fn create_auth_manager(
     Ok(AuthenticationManager::new_with_validation(auth_config, validation_config).await?)
 }
 
-async fn create_key(
-    auth_manager: &AuthenticationManager,
-    cli: &Cli,
+struct CreateKeyParams {
     name: String,
     role_str: String,
     expires: Option<u64>,
     ip_whitelist: Option<String>,
     permissions: Option<String>,
     devices: Option<String>,
+}
+
+async fn create_key(
+    auth_manager: &AuthenticationManager,
+    cli: &Cli,
+    params: CreateKeyParams,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let role = parse_role(&role_str, permissions, devices)?;
+    let role = parse_role(&params.role_str, params.permissions, params.devices)?;
 
-    let expires_at = expires.map(|days| Utc::now() + chrono::Duration::days(days as i64));
+    let expires_at = params
+        .expires
+        .map(|days| Utc::now() + chrono::Duration::days(days as i64));
 
-    let ip_list = ip_whitelist
+    let ip_list = params
+        .ip_whitelist
         .map(|ips| ips.split(',').map(|ip| ip.trim().to_string()).collect())
         .unwrap_or_default();
 
     let key = auth_manager
-        .create_api_key(name, role, expires_at, Some(ip_list))
+        .create_api_key(params.name, role, expires_at, Some(ip_list))
         .await?;
 
     if cli.format == "json" {
