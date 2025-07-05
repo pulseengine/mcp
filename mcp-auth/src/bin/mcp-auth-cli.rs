@@ -940,7 +940,7 @@ async fn show_key(
         if !key.ip_whitelist.is_empty() {
             println!("IP Whitelist:");
             for ip in &key.ip_whitelist {
-                println!("  - {}", ip);
+                println!("  - {ip}");
             }
         } else {
             println!("IP Whitelist: All IPs allowed");
@@ -963,7 +963,7 @@ async fn update_key(
             .update_key_expiration(&key_id, expires_at)
             .await?
         {
-            println!("✅ Updated expiration for key {}", key_id);
+            println!("✅ Updated expiration for key {key_id}");
         } else {
             error!("Key '{}' not found", key_id);
         }
@@ -975,7 +975,7 @@ async fn update_key(
             .update_key_ip_whitelist(&key_id, ip_list)
             .await?
         {
-            println!("✅ Updated IP whitelist for key {}", key_id);
+            println!("✅ Updated IP whitelist for key {key_id}");
         } else {
             error!("Key '{}' not found", key_id);
         }
@@ -990,7 +990,7 @@ async fn disable_key(
     key_id: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if auth_manager.disable_key(&key_id).await? {
-        println!("✅ Disabled key {}", key_id);
+        println!("✅ Disabled key {key_id}");
     } else {
         error!("Key '{}' not found", key_id);
     }
@@ -1004,7 +1004,7 @@ async fn enable_key(
     key_id: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if auth_manager.enable_key(&key_id).await? {
-        println!("✅ Enabled key {}", key_id);
+        println!("✅ Enabled key {key_id}");
     } else {
         error!("Key '{}' not found", key_id);
     }
@@ -1020,8 +1020,7 @@ async fn revoke_key(
 ) -> Result<(), Box<dyn std::error::Error>> {
     if !yes {
         print!(
-            "Are you sure you want to revoke key '{}'? This cannot be undone. [y/N]: ",
-            key_id
+            "Are you sure you want to revoke key '{key_id}'? This cannot be undone. [y/N]: "
         );
         use std::io::{self, Write};
         io::stdout().flush()?;
@@ -1036,7 +1035,7 @@ async fn revoke_key(
     }
 
     if auth_manager.revoke_key(&key_id).await? {
-        println!("✅ Revoked key {}", key_id);
+        println!("✅ Revoked key {key_id}");
     } else {
         error!("Key '{}' not found", key_id);
     }
@@ -1265,7 +1264,7 @@ async fn cleanup_expired(
     }
 
     let cleaned = auth_manager.cleanup_expired_keys().await?;
-    println!("✅ Cleaned up {} expired keys", cleaned);
+    println!("✅ Cleaned up {cleaned} expired keys");
 
     Ok(())
 }
@@ -1304,7 +1303,7 @@ async fn validate_key(
             if cli.format == "json" {
                 println!(r#"{{"valid": false, "reason": "error", "error": "{}"}}"#, e);
             } else {
-                println!("❌ Validation failed: {}", e);
+                println!("❌ Validation failed: {e}");
             }
         }
     }
@@ -1524,7 +1523,7 @@ async fn handle_token_operation(
                     if cli.format == "json" {
                         println!(r#"{{"valid": false, "error": "{}"}}"#, e);
                     } else {
-                        println!("❌ JWT token is invalid: {}", e);
+                        println!("❌ JWT token is invalid: {e}");
                     }
                     return Err(e.into());
                 }
@@ -1646,7 +1645,7 @@ async fn handle_rate_limit_operation(
 
                 println!("Role-based Rate Limiting:");
                 for (role, role_stats) in &stats.role_stats {
-                    println!("  Role: {}", role);
+                    println!("  Role: {role}");
                     println!("    Current requests: {}", role_stats.current_requests);
                     println!("    Blocked requests: {}", role_stats.blocked_requests);
                     println!("    Total requests: {}", role_stats.total_requests);
@@ -1761,7 +1760,7 @@ async fn handle_rate_limit_operation(
                         }
                     }
                     Err(e) => {
-                        println!("Request {}: ❌ Error: {}", i, e);
+                        println!("Request {i}: ❌ Error: {e}");
                     }
                 }
 
