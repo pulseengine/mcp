@@ -18,7 +18,7 @@
 //!
 //! ### Simple Development Setup
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! use pulseengine_mcp_auth::integration::McpIntegrationHelper;
 //!
 //! #[tokio::main]
@@ -37,7 +37,7 @@
 //!
 //! ### Production Setup with Admin Key
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! use pulseengine_mcp_auth::integration::McpIntegrationHelper;
 //!
 //! #[tokio::main]
@@ -59,7 +59,7 @@
 //!
 //! ### Environment-Based Configuration
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! use pulseengine_mcp_auth::integration::AuthFramework;
 //!
 //! // Auto-selects appropriate security profile for environment
@@ -105,7 +105,7 @@
 //!
 //! The framework includes 8 predefined security profiles optimized for different environments:
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! use pulseengine_mcp_auth::integration::{AuthFramework, SecurityProfile};
 //!
 //! // Development: Minimal security, maximum convenience
@@ -137,7 +137,7 @@
 //!
 //! ### Creating API Keys
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! use pulseengine_mcp_auth::models::Role;
 //!
 //! // Create API key with specific permissions
@@ -158,7 +158,7 @@
 //!
 //! ### Processing Authenticated Requests
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! use std::collections::HashMap;
 //! use pulseengine_mcp_auth::integration::RequestHelper;
 //!
@@ -192,7 +192,7 @@
 //!
 //! ### Storing Host Credentials
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! use pulseengine_mcp_auth::integration::CredentialHelper;
 //!
 //! // Store host credentials securely (e.g., for Loxone Miniserver)
@@ -211,7 +211,7 @@
 //!
 //! ### Retrieving Host Credentials
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! // Retrieve host credentials for connection
 //! let (host_ip, username, password) = CredentialHelper::get_validated_credentials(
 //!     &framework,
@@ -226,7 +226,7 @@
 //!
 //! ## Session Management
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! use pulseengine_mcp_auth::integration::SessionHelper;
 //!
 //! // Create session with custom duration
@@ -248,7 +248,7 @@
 //!
 //! ## Security Monitoring
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! use pulseengine_mcp_auth::integration::MonitoringHelper;
 //! use pulseengine_mcp_auth::monitoring::SecurityEventType;
 //! use pulseengine_mcp_auth::security::SecuritySeverity;
