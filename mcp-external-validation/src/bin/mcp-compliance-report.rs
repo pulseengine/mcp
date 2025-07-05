@@ -218,7 +218,7 @@ async fn generate_report(
         "yaml" => Ok(serde_yaml::to_string(report)?),
         "html" => generate_html_report(report, detailed).await,
         "markdown" => generate_markdown_report(report, detailed).await,
-        _ => Err(format!("Unsupported format: {}", format).into()),
+        _ => Err(format!("Unsupported format: {format}").into()),
     }
 }
 
@@ -235,7 +235,7 @@ async fn generate_html_report(
     html.push_str("</style>\n");
     html.push_str("</head>\n<body>\n");
 
-    html.push_str(&format!("<h1>MCP Compliance Report</h1>\n"));
+    html.push_str("<h1>MCP Compliance Report</h1>\n");
     html.push_str(&format!("<h2>Server: {}</h2>\n", report.server_url));
     html.push_str(&format!(
         "<p><strong>Status:</strong> <span class=\"status-{}\">{}</span></p>\n",
@@ -253,7 +253,7 @@ async fn generate_html_report(
 
     let (passed, failed, skipped) = report.test_statistics();
     html.push_str("<h3>Test Summary</h3>\n");
-    html.push_str(&format!("<ul>\n"));
+    html.push_str("<ul>\n");
     html.push_str(&format!(
         "<li>Total Tests: {}</li>\n",
         passed + failed + skipped
@@ -267,8 +267,8 @@ async fn generate_html_report(
             0.0
         }
     ));
-    html.push_str(&format!("<li>Failed: {}</li>\n", failed));
-    html.push_str(&format!("<li>Skipped: {}</li>\n", skipped));
+    html.push_str(&format!("<li>Failed: {failed}</li>\n"));
+    html.push_str(&format!("<li>Skipped: {skipped}</li>\n"));
     html.push_str("</ul>\n");
 
     if !report.issues().is_empty() {
@@ -352,8 +352,8 @@ async fn generate_markdown_report(
             0.0
         }
     ));
-    md.push_str(&format!("- **Failed:** {}\n", failed));
-    md.push_str(&format!("- **Skipped:** {}\n\n", skipped));
+    md.push_str(&format!("- **Failed:** {failed}\n"));
+    md.push_str(&format!("- **Skipped:** {skipped}\n\n"));
 
     if !report.issues().is_empty() {
         md.push_str("## Issues Found\n\n");
@@ -366,10 +366,10 @@ async fn generate_markdown_report(
                 issue.description
             ));
             if let Some(ref suggestion) = issue.suggestion {
-                md.push_str(&format!("   - *Suggestion:* {}\n", suggestion));
+                md.push_str(&format!("   - *Suggestion:* {suggestion}\n"));
             }
         }
-        md.push_str("\n");
+        md.push('\n');
     }
 
     if detailed && report.performance.total_requests > 0 {
@@ -392,7 +392,7 @@ async fn generate_markdown_report(
             "| Throughput | {:.2} RPS |\n",
             report.performance.throughput_rps
         ));
-        md.push_str("\n");
+        md.push('\n');
     }
 
     md.push_str(&format!(
@@ -448,7 +448,7 @@ async fn generate_comparison_report(
 
             Ok(md)
         }
-        _ => Err(format!("Unsupported comparison format: {}", format).into()),
+        _ => Err(format!("Unsupported comparison format: {format}").into()),
     }
 }
 

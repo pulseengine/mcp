@@ -143,7 +143,7 @@ async fn load_config(cli: &Cli) -> Result<ValidationConfig, Box<dyn std::error::
     Ok(config)
 }
 
-async fn run_full_validation(validator: &ExternalValidator, cli: &Cli) -> i32 {
+async fn run_full_validation(_validator: &ExternalValidator, cli: &Cli) -> i32 {
     info!("Starting full MCP validation for {}", cli.server_url);
 
     // Create a new validator instance for mutable operations
@@ -197,7 +197,7 @@ async fn run_quick_validation(validator: &ExternalValidator, cli: &Cli) -> i32 {
         Ok(status) => {
             match cli.output.as_str() {
                 "json" => println!("{}", serde_json::json!({"status": format!("{:?}", status)})),
-                _ => println!("Status: {:?}", status),
+                _ => println!("Status: {status:?}"),
             }
 
             match status {
@@ -285,7 +285,7 @@ fn print_text_report(report: &pulseengine_mcp_external_validation::ComplianceRep
     let total = passed + failed + skipped;
 
     println!("Test Results:");
-    println!("  Total Tests: {}", total);
+    println!("  Total Tests: {total}");
     println!(
         "  Passed: {} ({:.1}%)",
         passed,
@@ -304,7 +304,7 @@ fn print_text_report(report: &pulseengine_mcp_external_validation::ComplianceRep
             0.0
         }
     );
-    println!("  Skipped: {}", skipped);
+    println!("  Skipped: {skipped}");
     println!();
 
     if !report.issues().is_empty() {
@@ -319,7 +319,7 @@ fn print_text_report(report: &pulseengine_mcp_external_validation::ComplianceRep
             );
 
             if let Some(ref suggestion) = issue.suggestion {
-                println!("     Suggestion: {}", suggestion);
+                println!("     Suggestion: {suggestion}");
             }
         }
         println!();
@@ -437,7 +437,7 @@ fn print_text_report(report: &pulseengine_mcp_external_validation::ComplianceRep
         if !inspector_result.inspector_issues.is_empty() {
             println!("  Issues:");
             for issue in &inspector_result.inspector_issues {
-                println!("    - {}", issue);
+                println!("    - {issue}");
             }
         }
         println!();

@@ -1,6 +1,6 @@
 //! Basic validation example
 
-use pulseengine_mcp_external_validation::{ExternalValidator, ValidationConfig};
+use pulseengine_mcp_external_validation::ExternalValidator;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -44,13 +44,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let server_url = "http://localhost:3000";
 
     // Quick validation check
-    println!("\nRunning quick validation for {}...", server_url);
+    println!("\nRunning quick validation for {server_url}...");
     match validator.quick_validate(server_url).await {
         Ok(compliance_status) => {
-            println!("Quick validation result: {:?}", compliance_status);
+            println!("Quick validation result: {compliance_status:?}");
         }
         Err(e) => {
-            println!("Quick validation failed: {}", e);
+            println!("Quick validation failed: {e}");
         }
     }
 
