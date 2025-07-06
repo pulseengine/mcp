@@ -292,6 +292,10 @@ macro_rules! sanitized_debug {
 }
 
 #[cfg(test)]
+#[path = "sanitization_tests.rs"]
+mod sanitization_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 

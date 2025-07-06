@@ -1,0 +1,163 @@
+name: Code Coverage
+
+on:
+  push:
+    branches: [ main, dev ]
+    paths:
+      - '**.rs'
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
+      - '.github/workflows/code-coverage.yml'
+  pull_request:
+    branches: [ main, dev ]
+    paths:
+      - '**.rs'
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
+      - '.github/workflows/code-coverage.yml'
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: llvm-tools-preview
+    
+    - name: Install cargo-llvm-cov
+      uses: taiki-e/install-action@cargo-llvm-cov
+    
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-coverage-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-coverage-
+          ${{ runner.os }}-cargo-
+    
+    - name: Generate code coverage
+      run: |
+        # Clean any existing coverage data
+        cargo llvm-cov clean --workspace
+        
+        # Run tests with coverage for all packages
+        cargo llvm-cov test --all-features --workspace --lcov --output-path lcov.info
+        
+        # Also run integration tests
+        cargo llvm-cov test --all-features --package pulseengine-mcp-integration-tests --lcov --output-path lcov-integration.info
+        
+        # Merge coverage files
+        cargo llvm-cov report --lcov --output-path lcov-merged.info
+    
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: lcov-merged.info
+        flags: unittests
+        name: pulseengine-mcp
+        fail_ci_if_error: true
+        verbose: true
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    
+    - name: Generate coverage summary
+      run: |
+        # Generate a human-readable summary
+        cargo llvm-cov report --summary-only > coverage-summary.txt
+        cat coverage-summary.txt
+        
+        # Extract coverage percentage
+        COVERAGE=$(grep -oP '\d+\.\d+(?=%)' coverage-summary.txt | head -1)
+        echo "COVERAGE_PERCENT=$COVERAGE" >> $GITHUB_ENV
+        
+        # Check if coverage meets the 80% requirement
+        if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+          echo "❌ Coverage is below 80% threshold: $COVERAGE%"
+          echo "COVERAGE_PASSED=false" >> $GITHUB_ENV
+        else
+          echo "✅ Coverage meets 80% threshold: $COVERAGE%"
+          echo "COVERAGE_PASSED=true" >> $GITHUB_ENV
+        fi
+    
+    - name: Post coverage comment
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const coverage = process.env.COVERAGE_PERCENT;
+          const passed = process.env.COVERAGE_PASSED === 'true';
+          
+          const emoji = passed ? '✅' : '❌';
+          const status = passed ? 'PASSED' : 'FAILED';
+          
+          const comment = `## Code Coverage Report ${emoji}
+          
+          **Coverage**: ${coverage}%
+          **Required**: 80%
+          **Status**: ${status}
+          
+          <details>
+          <summary>Coverage Details</summary>
+          
+          \`\`\`
+          ${require('fs').readFileSync('coverage-summary.txt', 'utf8')}
+          \`\`\`
+          
+          </details>
+          
+          View full report on [Codecov](https://codecov.io/gh/${{ github.repository }})`;
+          
+          // Find existing coverage comment
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.payload.pull_request.number,
+          });
+          
+          const botComment = comments.find(comment => 
+            comment.user.type === 'Bot' && comment.body.includes('Code Coverage Report')
+          );
+          
+          if (botComment) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: botComment.id,
+              body: comment
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: comment
+            });
+          }
+    
+    - name: Upload coverage artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: |
+          lcov-merged.info
+          coverage-summary.txt
+    
+    - name: Fail if coverage is below threshold
+      if: env.COVERAGE_PASSED == 'false'
+      run: |
+        echo "Coverage is below the required 80% threshold"
+        exit 1

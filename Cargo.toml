@@ -10,6 +10,7 @@ members = [
     "mcp-cli-derive",
     "mcp-server",
     "mcp-external-validation",
+    "integration-tests",
     "examples/hello-world",
     "examples/backend-example",
     "examples/cli-example",
@@ -19,7 +20,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.4.0"
+version = "0.4.1"
 rust-version = "1.79"
 edition = "2021"
 license = "MIT OR Apache-2.0"
@@ -29,6 +30,10 @@ homepage = "https://github.com/pulseengine/mcp"
 documentation = "https://docs.rs/pulseengine-mcp-protocol"
 keywords = ["mcp", "protocol", "framework", "server", "ai"]
 categories = ["api-bindings", "development-tools", "asynchronous"]
+
+[workspace.lints.rust]
+unsafe_code = "warn"
+missing_docs = "warn"
 
 [workspace.dependencies]
 # Core dependencies
@@ -113,6 +118,22 @@ opt-level = "s"
 opt-level = 0
 debug = true
 incremental = true
+
+[profile.test]
+# Enable debug info for coverage
+debug = true
+
+[profile.coverage]
+# Profile optimized for coverage collection
+inherits = "test"
+# Disable optimizations for accurate coverage
+opt-level = 0
+# Enable full debug info
+debug = 2
+# Disable inlining for accurate coverage
+codegen-units = 1
+# Disable link-time optimization
+lto = false
 
 [patch.crates-io]
 # Patch published crates to use local versions for development

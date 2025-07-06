@@ -63,3 +63,6 @@ pub trait ErrorClassification: std::fmt::Display + std::error::Error {
     fn is_auth_error(&self) -> bool;
     fn is_connection_error(&self) -> bool;
 }
+
+#[cfg(test)]
+mod lib_tests;

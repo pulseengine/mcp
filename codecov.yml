@@ -1,0 +1,56 @@
+codecov:
+  # Require the Codecov token for uploads
+  require_ci_to_pass: true
+  notify:
+    # Wait for all CI jobs before posting status
+    wait_for_ci: true
+
+coverage:
+  # Set the coverage requirements
+  status:
+    project:
+      default:
+        # Overall project coverage must be at least 80%
+        target: 80%
+        # Allow 1% drop in coverage
+        threshold: 1%
+        # Fail the status if coverage drops below threshold
+        if_ci_failed: error
+    patch:
+      default:
+        # New code must have at least 80% coverage
+        target: 80%
+        # Be strict about new code coverage
+        threshold: 0%
+
+# Ignore certain files/paths from coverage
+ignore:
+  - "examples/**/*"
+  - "mcp-cli-derive/**/*"  # Procedural macros are hard to test
+  - "**/tests/**/*"        # Test files themselves
+  - "**/benches/**/*"      # Benchmark files
+  - "**/*_tests.rs"        # Test modules
+  - "**/build.rs"          # Build scripts
+
+# Comment settings for PRs
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+  
+# Flag configuration for different test types  
+flags:
+  unittests:
+    paths:
+      - "mcp-protocol/**"
+      - "mcp-server/**"
+      - "mcp-transport/**"
+      - "mcp-auth/**"
+      - "mcp-security/**"
+      - "mcp-monitoring/**"
+      - "mcp-logging/**"
+      - "mcp-cli/**"
+      - "integration-tests/**"
+    carryforward: true

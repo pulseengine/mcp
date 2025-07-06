@@ -560,7 +560,7 @@ impl MetricsSnapshot {
 }
 
 /// Get current timestamp in seconds since Unix epoch
-fn current_timestamp() -> u64 {
+pub fn current_timestamp() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
@@ -575,6 +575,10 @@ static METRICS: once_cell::sync::Lazy<MetricsCollector> =
 pub fn get_metrics() -> &'static MetricsCollector {
     &METRICS
 }
+
+#[cfg(test)]
+#[path = "metrics_tests.rs"]
+mod metrics_tests;
 
 #[cfg(test)]
 mod tests {

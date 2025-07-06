@@ -515,6 +515,10 @@ fn generate_instance_id() -> String {
 }
 
 #[cfg(test)]
+#[path = "structured_tests.rs"]
+mod structured_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 

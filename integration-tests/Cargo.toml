@@ -1,0 +1,42 @@
+[package]
+name = "pulseengine-mcp-integration-tests"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+description = "Integration tests for the PulseEngine MCP framework"
+
+[dependencies]
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+async-trait = { workspace = true }
+uuid = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+futures = { workspace = true }
+reqwest = { workspace = true }
+tempfile = { workspace = true }
+rand = { workspace = true }
+
+# MCP framework crates
+pulseengine-mcp-protocol = { workspace = true }
+pulseengine-mcp-auth = { workspace = true }
+pulseengine-mcp-security = { workspace = true }
+pulseengine-mcp-monitoring = { workspace = true }
+pulseengine-mcp-transport = { workspace = true }
+pulseengine-mcp-server = { workspace = true }
+pulseengine-mcp-cli = { workspace = true }
+
+[dev-dependencies]
+tokio-test = "0.4"
+assert_matches = { workspace = true }

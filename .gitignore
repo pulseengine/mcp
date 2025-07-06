@@ -35,3 +35,6 @@ Thumbs.db
 tarpaulin-report.html
 cobertura.xml
 lcov.info
+lcov-*.info
+coverage-summary.txt
+/target/llvm-cov/

@@ -59,3 +59,6 @@ pub use metrics::ServerMetrics;
 pub fn default_config() -> MonitoringConfig {
     MonitoringConfig::default()
 }
+
+#[cfg(test)]
+mod lib_tests;
