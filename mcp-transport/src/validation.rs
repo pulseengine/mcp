@@ -187,7 +187,7 @@ pub fn validate_json_rpc_message(message: &str) -> Result<MessageType, Validatio
 
     // Parse as JSON
     let value = serde_json::from_str(message)
-        .map_err(|e| ValidationError::InvalidFormat(format!("Invalid JSON: {}", e)))?;
+        .map_err(|e| ValidationError::InvalidFormat(format!("Invalid JSON: {e}")))?;
 
     // Validate JSON-RPC structure
     validate_jsonrpc_message(&value)
@@ -200,7 +200,7 @@ pub fn validate_json_rpc_batch(batch_str: &str) -> Result<Vec<MessageType>, Vali
 
     // Parse as JSON array
     let batch_value = serde_json::from_str::<Value>(batch_str)
-        .map_err(|e| ValidationError::InvalidFormat(format!("Invalid JSON: {}", e)))?;
+        .map_err(|e| ValidationError::InvalidFormat(format!("Invalid JSON: {e}")))?;
 
     let batch_array = batch_value
         .as_array()
