@@ -122,7 +122,7 @@ mod tests {
         let context = create_test_context();
 
         // Process multiple requests
-        for _i in 0..10 {
+        for i in 0..10 {
             let request = create_test_request(&format!("method_{i}"));
             let result = collector.process_request(request, &context);
             assert!(result.is_ok());
@@ -197,7 +197,7 @@ mod tests {
         let context = create_test_context();
 
         // Process requests and responses
-        for _i in 0..10 {
+        for i in 0..10 {
             let request = create_test_request(&format!("method_{i}"));
             collector.process_request(request, &context).unwrap();
 
@@ -291,12 +291,12 @@ mod tests {
         let mut handles = vec![];
 
         // Spawn multiple tasks processing requests concurrently
-        for _i in 0..10 {
+        for i in 0..10 {
             let collector_clone = Arc::clone(&collector);
             let handle = tokio::spawn(async move {
                 let context = create_test_context();
                 for j in 0..10 {
-                    let request = create_test_request(&format!("method_{_i}_{j}"));
+                    let request = create_test_request(&format!("method_{i}_{j}"));
                     collector_clone.process_request(request, &context).unwrap();
                 }
             });
@@ -322,7 +322,7 @@ mod tests {
         let mut handles = vec![];
 
         // Spawn multiple tasks processing responses concurrently
-        for _i in 0..10 {
+        for i in 0..10 {
             let collector_clone = Arc::clone(&collector);
             let handle = tokio::spawn(async move {
                 let context = create_test_context();

@@ -409,7 +409,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_broadcast_message_not_started() {
-        let mut transport = HttpTransport::new(8080);
+        let transport = HttpTransport::new(8080);
 
         // Broadcast without starting should fail
         let result = transport.broadcast_message("test message").await;
