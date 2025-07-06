@@ -40,6 +40,15 @@ pub mod error;
 pub mod model;
 pub mod validation;
 
+#[cfg(test)]
+mod error_tests;
+#[cfg(test)]
+mod lib_tests;
+#[cfg(test)]
+mod model_tests;
+#[cfg(test)]
+mod validation_tests;
+
 // Re-export core types for easy access
 pub use error::{Error, Result};
 pub use model::*;

@@ -54,3 +54,6 @@ pub use validation::RequestValidator;
 pub fn default_config() -> SecurityConfig {
     SecurityConfig::default()
 }
+
+#[cfg(test)]
+mod lib_tests;

@@ -27,3 +27,7 @@ impl Default for ServerMetrics {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "metrics_tests.rs"]
+mod metrics_tests;

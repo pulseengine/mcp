@@ -58,3 +58,7 @@ impl SecurityMiddleware {
         Ok(response)
     }
 }
+
+#[cfg(test)]
+#[path = "middleware_tests.rs"]
+mod middleware_tests;

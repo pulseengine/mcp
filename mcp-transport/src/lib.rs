@@ -38,7 +38,23 @@ pub mod validation;
 pub mod websocket;
 
 #[cfg(test)]
+mod batch_tests;
+#[cfg(test)]
+mod config_tests;
+#[cfg(test)]
 mod http_test;
+#[cfg(test)]
+mod http_tests;
+#[cfg(test)]
+mod lib_tests;
+#[cfg(test)]
+mod stdio_tests;
+#[cfg(test)]
+mod streamable_http_tests;
+#[cfg(test)]
+mod validation_tests;
+#[cfg(test)]
+mod websocket_tests;
 
 use async_trait::async_trait;
 use pulseengine_mcp_protocol::{Request, Response};

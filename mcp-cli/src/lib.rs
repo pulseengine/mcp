@@ -118,6 +118,14 @@ pub mod config;
 pub mod server;
 pub mod utils;
 
+// Test modules
+#[cfg(test)]
+mod config_tests;
+#[cfg(test)]
+mod lib_tests;
+#[cfg(test)]
+mod utils_tests;
+
 // Re-export main types
 pub use config::*;
 pub use server::*;

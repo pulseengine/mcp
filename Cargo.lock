@@ -1943,7 +1943,7 @@ dependencies = [
 
 [[package]]
 name = "pulseengine-mcp-auth"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -1982,7 +1982,7 @@ dependencies = [
 
 [[package]]
 name = "pulseengine-mcp-cli"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "clap",
  "pulseengine-mcp-cli-derive",
@@ -1990,6 +1990,7 @@ dependencies = [
  "pulseengine-mcp-protocol",
  "serde",
  "serde_json",
+ "tempfile",
  "thiserror 1.0.69",
  "tokio-test",
  "toml",
@@ -2000,7 +2001,7 @@ dependencies = [
 
 [[package]]
 name = "pulseengine-mcp-cli-derive"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "async-trait",
  "clap",
@@ -2018,7 +2019,7 @@ dependencies = [
 
 [[package]]
 name = "pulseengine-mcp-external-validation"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "arbitrary",
@@ -2055,8 +2056,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "pulseengine-mcp-integration-tests"
+version = "0.4.1"
+dependencies = [
+ "anyhow",
+ "assert_matches",
+ "async-trait",
+ "futures",
+ "pulseengine-mcp-auth",
+ "pulseengine-mcp-cli",
+ "pulseengine-mcp-monitoring",
+ "pulseengine-mcp-protocol",
+ "pulseengine-mcp-security",
+ "pulseengine-mcp-server",
+ "pulseengine-mcp-transport",
+ "rand 0.8.5",
+ "reqwest 0.11.27",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-test",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "pulseengine-mcp-logging"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "chrono",
  "hex",
@@ -2074,7 +2103,7 @@ dependencies = [
 
 [[package]]
 name = "pulseengine-mcp-monitoring"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -2092,7 +2121,7 @@ dependencies = [
 
 [[package]]
 name = "pulseengine-mcp-protocol"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -2106,7 +2135,7 @@ dependencies = [
 
 [[package]]
 name = "pulseengine-mcp-security"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2128,7 +2157,7 @@ dependencies = [
 
 [[package]]
 name = "pulseengine-mcp-server"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2140,6 +2169,7 @@ dependencies = [
  "pulseengine-mcp-transport",
  "serde",
  "serde_json",
+ "tempfile",
  "thiserror 1.0.69",
  "tokio",
  "tokio-test",
@@ -2149,7 +2179,7 @@ dependencies = [
 
 [[package]]
 name = "pulseengine-mcp-transport"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "async-stream",

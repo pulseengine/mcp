@@ -73,6 +73,20 @@ pub mod handler;
 pub mod middleware;
 pub mod server;
 
+// Test modules
+#[cfg(test)]
+mod backend_tests;
+#[cfg(test)]
+mod context_tests;
+#[cfg(test)]
+mod handler_tests;
+#[cfg(test)]
+mod lib_tests;
+#[cfg(test)]
+mod middleware_tests;
+#[cfg(test)]
+mod server_tests;
+
 // Re-export core types
 pub use backend::{BackendError, McpBackend};
 pub use context::RequestContext;

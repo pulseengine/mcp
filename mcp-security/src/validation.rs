@@ -24,3 +24,7 @@ impl RequestValidator {
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[path = "validation_tests.rs"]
+mod validation_tests;

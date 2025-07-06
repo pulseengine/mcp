@@ -110,3 +110,7 @@ impl MetricsCollector {
         self.start_time.elapsed().as_secs()
     }
 }
+
+#[cfg(test)]
+#[path = "collector_tests.rs"]
+mod collector_tests;

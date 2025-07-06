@@ -71,6 +71,16 @@ jobs:
     - name: Run tests
       run: cargo test --all-features --verbose
     
+    - name: Install cargo-llvm-cov
+      uses: taiki-e/install-action@cargo-llvm-cov
+    
+    - name: Generate coverage report
+      run: |
+        cargo llvm-cov test --all-features --workspace --lcov --output-path lcov.info
+        cargo llvm-cov report --summary-only > coverage-summary.txt
+        COVERAGE=$(grep -oP '\d+\.\d+(?=%)' coverage-summary.txt | head -1)
+        echo "Coverage: $COVERAGE%"
+    
     - name: Check documentation
       run: cargo doc --all-features --no-deps
 
