@@ -79,7 +79,7 @@ mod tests {
 
     #[test]
     fn test_stdio_transport_new() {
-        let _transport = StdioTransport::new();
+        let transport = StdioTransport::new();
 
         assert_eq!(transport.config.max_message_size, 10 * 1024 * 1024);
         assert!(transport.config.validate_messages);
@@ -117,7 +117,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_stdio_transport_health_check() {
-        let _transport = StdioTransport::new();
+        let transport = StdioTransport::new();
 
         // Initially not running
         assert!(transport.health_check().await.is_err());
@@ -350,7 +350,7 @@ mod tests {
 
     #[test]
     fn test_atomic_bool_operations() {
-        let _transport = StdioTransport::new();
+        let transport = StdioTransport::new();
 
         // Test different orderings
         transport
@@ -423,12 +423,12 @@ mod tests {
 
     #[test]
     fn test_stdio_transport_debug() {
-        let _transport = StdioTransport::new();
+        let transport = StdioTransport::new();
 
         // Should be able to debug print the transport
         // Note: We can't test the exact output due to the atomic and Arc fields
         // but we can ensure it doesn't panic
-        let _ = format!("{:?}", transport);
+        let _ = format!("{transport:?}");
     }
 
     #[tokio::test]

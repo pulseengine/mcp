@@ -156,8 +156,7 @@ mod tests {
             // Document current behavior - these currently pass
             assert!(
                 result.is_ok(),
-                "Special character method '{}' validation behavior should be documented",
-                method
+                "Special character method '{method}' validation behavior should be documented"
             );
         }
     }
@@ -229,8 +228,7 @@ mod tests {
             let result = RequestValidator::validate_request(&request);
             assert!(
                 result.is_ok(),
-                "Params {:?} should not affect validation",
-                params
+                "Params {params:?} should not affect validation"
             );
         }
     }
@@ -252,7 +250,7 @@ mod tests {
             request.id = id.clone();
 
             let result = RequestValidator::validate_request(&request);
-            assert!(result.is_ok(), "ID {:?} should not affect validation", id);
+            assert!(result.is_ok(), "ID {id:?} should not affect validation");
         }
     }
 
@@ -276,7 +274,7 @@ mod tests {
     #[test]
     fn test_case_sensitive_jsonrpc_version() {
         // JSON-RPC version should be case sensitive
-        let case_variants = vec![
+        let case_variants = [
             "2.0",   // Valid
             "2.O",   // Letter O instead of zero
             "2,0",   // Comma instead of dot
@@ -288,7 +286,7 @@ mod tests {
             let result = RequestValidator::validate_request(&request);
 
             if i == 0 {
-                assert!(result.is_ok(), "Version '{}' should be valid", version);
+                assert!(result.is_ok(), "Version '{version}' should be valid");
             } else {
                 assert!(result.is_err(), "Version '{version}' should be invalid");
             }

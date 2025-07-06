@@ -2,6 +2,7 @@
 
 #[cfg(test)]
 mod tests {
+    use crate::validation::{validate_json_rpc_batch, validate_json_rpc_message};
     use serde_json::json;
 
     const MAX_MESSAGE_SIZE: usize = 10 * 1024 * 1024; // 10MB

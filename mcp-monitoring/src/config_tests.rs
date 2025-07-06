@@ -245,7 +245,7 @@ mod tests {
     #[test]
     fn test_monitoring_config_debug() {
         let config = MonitoringConfig::default();
-        let debug_str = format!("{:?}", config);
+        let debug_str = format!("{config:?}");
 
         assert!(debug_str.contains("MonitoringConfig"));
         assert!(debug_str.contains("enabled"));

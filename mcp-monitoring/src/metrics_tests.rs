@@ -290,7 +290,7 @@ mod tests {
             uptime_seconds: 43200,
         };
 
-        let debug_str = format!("{:?}", metrics);
+        let debug_str = format!("{metrics:?}");
         assert!(debug_str.contains("ServerMetrics"));
         assert!(debug_str.contains("12345"));
         assert!(debug_str.contains("678"));
