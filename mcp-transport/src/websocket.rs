@@ -4,6 +4,7 @@ use crate::{RequestHandler, Transport, TransportError};
 use async_trait::async_trait;
 
 /// WebSocket transport for MCP protocol (stub)
+#[derive(Debug)]
 pub struct WebSocketTransport {
     #[allow(dead_code)]
     port: u16,
@@ -12,6 +13,11 @@ pub struct WebSocketTransport {
 impl WebSocketTransport {
     pub fn new(port: u16) -> Self {
         Self { port }
+    }
+
+    /// Get the port this transport is configured for
+    pub fn port(&self) -> u16 {
+        self.port
     }
 }
 

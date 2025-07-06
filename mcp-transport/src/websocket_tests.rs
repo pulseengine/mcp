@@ -24,7 +24,7 @@ mod tests {
     #[test]
     fn test_websocket_transport_new() {
         let transport = WebSocketTransport::new(8080);
-        assert_eq!(transport.port, 8080);
+        assert_eq!(transport.port(), 8080);
     }
 
     #[test]
@@ -33,7 +33,7 @@ mod tests {
 
         for port in ports {
             let transport = WebSocketTransport::new(port);
-            assert_eq!(transport.port, port);
+            assert_eq!(transport.port(), port);
         }
     }
 
@@ -115,7 +115,7 @@ mod tests {
 
         for port in edge_ports {
             let transport = WebSocketTransport::new(port);
-            assert_eq!(transport.port, port);
+            assert_eq!(transport.port(), port);
         }
     }
 
@@ -177,9 +177,9 @@ mod tests {
     #[test]
     fn test_websocket_transport_clone_port() {
         let transport1 = WebSocketTransport::new(8080);
-        let transport2 = WebSocketTransport::new(transport1.port);
+        let transport2 = WebSocketTransport::new(transport1.port());
 
-        assert_eq!(transport1.port, transport2.port);
+        assert_eq!(transport1.port(), transport2.port());
     }
 
     #[tokio::test]
@@ -199,11 +199,11 @@ mod tests {
     fn test_websocket_transport_default_values() {
         // Test that the struct has reasonable default behavior
         let transport = WebSocketTransport::new(0);
-        assert_eq!(transport.port, 0);
+        assert_eq!(transport.port(), 0);
 
         // Port should be accessible and modifiable through new()
         let high_port = WebSocketTransport::new(u16::MAX);
-        assert_eq!(high_port.port, u16::MAX);
+        assert_eq!(high_port.port(), u16::MAX);
     }
 
     #[tokio::test]

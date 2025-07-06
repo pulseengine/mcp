@@ -79,7 +79,7 @@ mod tests {
 
     #[test]
     fn test_stdio_transport_new() {
-        let transport = StdioTransport::new();
+        let _transport = StdioTransport::new();
 
         assert_eq!(transport.config.max_message_size, 10 * 1024 * 1024);
         assert!(transport.config.validate_messages);
@@ -117,7 +117,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_stdio_transport_health_check() {
-        let transport = StdioTransport::new();
+        let _transport = StdioTransport::new();
 
         // Initially not running
         assert!(transport.health_check().await.is_err());
@@ -165,7 +165,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_line_basic() {
-        let transport = StdioTransport::new();
+        let _transport = StdioTransport::new();
         let mut output = Vec::new();
         let mut stdout = BufWriter::new(&mut output);
 
@@ -209,7 +209,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_response() {
-        let transport = StdioTransport::new();
+        let _transport = StdioTransport::new();
         let mut output = Vec::new();
         let mut stdout = BufWriter::new(&mut output);
 
@@ -350,7 +350,7 @@ mod tests {
 
     #[test]
     fn test_atomic_bool_operations() {
-        let transport = StdioTransport::new();
+        let _transport = StdioTransport::new();
 
         // Test different orderings
         transport
@@ -423,7 +423,7 @@ mod tests {
 
     #[test]
     fn test_stdio_transport_debug() {
-        let transport = StdioTransport::new();
+        let _transport = StdioTransport::new();
 
         // Should be able to debug print the transport
         // Note: We can't test the exact output due to the atomic and Arc fields

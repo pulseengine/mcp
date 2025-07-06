@@ -180,6 +180,42 @@ fn extract_id_with_regex(text: &str) -> Option<Value> {
     None
 }
 
+/// Validates a JSON-RPC message from string input
+pub fn validate_json_rpc_message(message: &str) -> Result<MessageType, ValidationError> {
+    // First validate the message string
+    validate_message_string(message, None)?;
+
+    // Parse as JSON
+    let value = serde_json::from_str(message)
+        .map_err(|e| ValidationError::InvalidFormat(format!("Invalid JSON: {}", e)))?;
+
+    // Validate JSON-RPC structure
+    validate_jsonrpc_message(&value)
+}
+
+/// Validates a JSON-RPC batch from string input
+pub fn validate_json_rpc_batch(batch_str: &str) -> Result<Vec<MessageType>, ValidationError> {
+    // First validate the message string
+    validate_message_string(batch_str, None)?;
+
+    // Parse as JSON array
+    let batch_value = serde_json::from_str::<Value>(batch_str)
+        .map_err(|e| ValidationError::InvalidFormat(format!("Invalid JSON: {}", e)))?;
+
+    let batch_array = batch_value
+        .as_array()
+        .ok_or_else(|| ValidationError::InvalidFormat("Batch must be an array".to_string()))?;
+
+    if batch_array.is_empty() {
+        return Err(ValidationError::InvalidFormat(
+            "Empty batch not allowed".to_string(),
+        ));
+    }
+
+    // Validate each message in the batch
+    validate_batch(batch_array)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
