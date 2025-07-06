@@ -57,7 +57,7 @@ mod tests {
             let request = create_request(version, "test_method");
             let result = RequestValidator::validate_request(&request);
 
-            assert!(result.is_err(), "Version '{}' should be invalid", version);
+            assert!(result.is_err(), "Version '{version}' should be invalid");
 
             let error = result.unwrap_err();
             assert_eq!(error.code, ErrorCode::InvalidRequest);
@@ -114,8 +114,7 @@ mod tests {
             // Currently these pass validation
             assert!(
                 result.is_ok(),
-                "Unicode method '{}' should be handled consistently",
-                method
+                "Unicode method '{method}' should be handled consistently"
             );
         }
     }
@@ -291,7 +290,7 @@ mod tests {
             if i == 0 {
                 assert!(result.is_ok(), "Version '{}' should be valid", version);
             } else {
-                assert!(result.is_err(), "Version '{}' should be invalid", version);
+                assert!(result.is_err(), "Version '{version}' should be invalid");
             }
         }
     }

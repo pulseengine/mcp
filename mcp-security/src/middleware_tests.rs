@@ -169,7 +169,7 @@ mod tests {
         for i in 0..10 {
             let middleware_clone = Arc::clone(&middleware);
             let handle = tokio::spawn(async move {
-                let request = create_test_request("2.0", &format!("method_{}", i));
+                let request = create_test_request("2.0", &format!("method_{i}"));
                 let context = RequestContext {
                     request_id: Uuid::new_v4(),
                 };
@@ -209,7 +209,7 @@ mod tests {
         for method in test_methods {
             let request = create_test_request("2.0", method);
             let result = middleware.process_request(request, &context);
-            assert!(result.is_ok(), "Method '{}' should be valid", method);
+            assert!(result.is_ok(), "Method '{method}' should be valid");
         }
     }
 
@@ -236,8 +236,7 @@ mod tests {
             // Currently these pass - might want stricter validation
             assert!(
                 result.is_ok(),
-                "Method '{}' currently passes validation",
-                method
+                "Method '{method}' currently passes validation"
             );
         }
     }

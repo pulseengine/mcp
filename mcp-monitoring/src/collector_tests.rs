@@ -322,7 +322,7 @@ mod tests {
         let mut handles = vec![];
 
         // Spawn multiple tasks processing responses concurrently
-        for i in 0..10 {
+        for _i in 0..10 {
             let collector_clone = Arc::clone(&collector);
             let handle = tokio::spawn(async move {
                 let context = create_test_context();
