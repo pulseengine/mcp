@@ -78,25 +78,14 @@ mod tests {
     #[test]
     fn test_http_config_creation() {
         let config = TransportConfig::Http {
-            host: "0.0.0.0".to_string(),
+            host: Some("0.0.0.0".to_string()),
             port: 3000,
-            cors_origins: vec![
-                "https://example.com".to_string(),
-                "http://localhost:3000".to_string(),
-            ],
         };
 
         match config {
-            TransportConfig::Http {
-                host,
-                port,
-                cors_origins,
-            } => {
-                assert_eq!(host, "0.0.0.0");
+            TransportConfig::Http { host, port } => {
+                assert_eq!(host, Some("0.0.0.0".to_string()));
                 assert_eq!(port, 3000);
-                assert_eq!(cors_origins.len(), 2);
-                assert!(cors_origins.contains(&"https://example.com".to_string()));
-                assert!(cors_origins.contains(&"http://localhost:3000".to_string()));
             }
             _ => panic!("Expected Http variant"),
         }
