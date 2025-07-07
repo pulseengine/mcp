@@ -262,6 +262,7 @@ impl LogSanitizer {
     }
 
     /// Sanitize field names themselves if needed
+    #[cfg(test)]
     fn sanitize_field_name(field_name: &str) -> String {
         // If the field name is sensitive and longer than 2 chars, partially redact it
         if Self::is_sensitive_field(field_name) && field_name.len() > 2 {
