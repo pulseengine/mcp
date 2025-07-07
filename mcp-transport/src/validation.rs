@@ -71,6 +71,18 @@ pub fn validate_jsonrpc_message(value: &Value) -> Result<MessageType, Validation
     // Determine message type and validate ID requirements
     if obj.contains_key("method") {
         // This is a request or notification
+        // Validate method field
+        let method = obj
+            .get("method")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| ValidationError::InvalidFormat("Method must be a string".to_string()))?;
+
+        if method.is_empty() {
+            return Err(ValidationError::InvalidFormat(
+                "Method cannot be empty".to_string(),
+            ));
+        }
+
         let has_id = obj.contains_key("id");
         let id_value = obj.get("id");
 
