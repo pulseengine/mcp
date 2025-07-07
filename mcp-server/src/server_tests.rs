@@ -226,7 +226,7 @@ async fn test_server_creation() {
 
     let server = McpServer::new(backend, config).await;
     if let Err(e) = &server {
-        println!("Server creation failed: {:?}", e);
+        println!("Server creation failed: {e:?}");
     }
     assert!(server.is_ok());
 
@@ -351,18 +351,19 @@ async fn test_server_start_stop() {
         MockServerBackend::initialize((false, false, false, "Start Stop Server".to_string()))
             .await
             .unwrap();
-    let mut config = ServerConfig::default();
-
     // Use stdio transport to avoid port conflicts
-    config.transport_config = TransportConfig::Stdio;
-    config.graceful_shutdown = false; // Disable signal handling for test
-    config.auth_config = AuthConfig {
-        storage: StorageConfig::Memory,
-        enabled: false,
-        cache_size: 100,
-        session_timeout_secs: 3600,
-        max_failed_attempts: 5,
-        rate_limit_window_secs: 900,
+    let config = ServerConfig {
+        transport_config: TransportConfig::Stdio,
+        graceful_shutdown: false, // Disable signal handling for test
+        auth_config: AuthConfig {
+            storage: StorageConfig::Memory,
+            enabled: false,
+            cache_size: 100,
+            session_timeout_secs: 3600,
+            max_failed_attempts: 5,
+            rate_limit_window_secs: 900,
+        },
+        ..Default::default()
     };
 
     let mut server = McpServer::new(backend, config).await.unwrap();
@@ -403,15 +404,17 @@ async fn test_server_startup_failure() {
         MockServerBackend::initialize((false, true, false, "Startup Fail Server".to_string()))
             .await
             .unwrap();
-    let mut config = ServerConfig::default();
-    config.transport_config = TransportConfig::Stdio;
-    config.auth_config = AuthConfig {
-        storage: StorageConfig::Memory,
-        enabled: false,
-        cache_size: 100,
-        session_timeout_secs: 3600,
-        max_failed_attempts: 5,
-        rate_limit_window_secs: 900,
+    let config = ServerConfig {
+        transport_config: TransportConfig::Stdio,
+        auth_config: AuthConfig {
+            storage: StorageConfig::Memory,
+            enabled: false,
+            cache_size: 100,
+            session_timeout_secs: 3600,
+            max_failed_attempts: 5,
+            rate_limit_window_secs: 900,
+        },
+        ..Default::default()
     };
 
     let mut server = McpServer::new(backend, config).await.unwrap();
@@ -426,16 +429,18 @@ async fn test_server_run_with_timeout() {
     let backend = MockServerBackend::initialize((false, false, false, "Run Server".to_string()))
         .await
         .unwrap();
-    let mut config = ServerConfig::default();
-    config.transport_config = TransportConfig::Stdio;
-    config.graceful_shutdown = false;
-    config.auth_config = AuthConfig {
-        storage: StorageConfig::Memory,
-        enabled: false,
-        cache_size: 100,
-        session_timeout_secs: 3600,
-        max_failed_attempts: 5,
-        rate_limit_window_secs: 900,
+    let config = ServerConfig {
+        transport_config: TransportConfig::Stdio,
+        graceful_shutdown: false,
+        auth_config: AuthConfig {
+            storage: StorageConfig::Memory,
+            enabled: false,
+            cache_size: 100,
+            session_timeout_secs: 3600,
+            max_failed_attempts: 5,
+            rate_limit_window_secs: 900,
+        },
+        ..Default::default()
     };
 
     let mut server = McpServer::new(backend, config).await.unwrap();
@@ -455,33 +460,37 @@ async fn test_server_with_different_transports() {
             .unwrap();
 
     // Test with Stdio transport
-    let mut config = ServerConfig::default();
-    config.transport_config = TransportConfig::Stdio;
-    config.auth_config = AuthConfig {
-        storage: StorageConfig::Memory,
-        enabled: false,
-        cache_size: 100,
-        session_timeout_secs: 3600,
-        max_failed_attempts: 5,
-        rate_limit_window_secs: 900,
+    let config = ServerConfig {
+        transport_config: TransportConfig::Stdio,
+        auth_config: AuthConfig {
+            storage: StorageConfig::Memory,
+            enabled: false,
+            cache_size: 100,
+            session_timeout_secs: 3600,
+            max_failed_attempts: 5,
+            rate_limit_window_secs: 900,
+        },
+        ..Default::default()
     };
 
     let server = McpServer::new(backend.clone(), config).await;
     assert!(server.is_ok());
 
     // Test with HTTP transport (should work with default port)
-    let mut config = ServerConfig::default();
-    config.transport_config = TransportConfig::Http {
-        host: Some("127.0.0.1".to_string()),
-        port: 0, // Use random port
-    };
-    config.auth_config = AuthConfig {
-        storage: StorageConfig::Memory,
-        enabled: false,
-        cache_size: 100,
-        session_timeout_secs: 3600,
-        max_failed_attempts: 5,
-        rate_limit_window_secs: 900,
+    let config = ServerConfig {
+        transport_config: TransportConfig::Http {
+            host: Some("127.0.0.1".to_string()),
+            port: 0, // Use random port
+        },
+        auth_config: AuthConfig {
+            storage: StorageConfig::Memory,
+            enabled: false,
+            cache_size: 100,
+            session_timeout_secs: 3600,
+            max_failed_attempts: 5,
+            rate_limit_window_secs: 900,
+        },
+        ..Default::default()
     };
 
     let server = McpServer::new(backend, config).await;
@@ -494,17 +503,17 @@ async fn test_server_with_auth_config() {
         .await
         .unwrap();
 
-    let mut config = ServerConfig::default();
-    config.transport_config = TransportConfig::Stdio;
-
-    // Customize auth config
-    config.auth_config = AuthConfig {
-        storage: StorageConfig::Memory,
-        enabled: false, // Keep disabled for tests
-        cache_size: 1000,
-        session_timeout_secs: 3600, // 60 minutes
-        max_failed_attempts: 5,
-        rate_limit_window_secs: 60,
+    let config = ServerConfig {
+        transport_config: TransportConfig::Stdio,
+        auth_config: AuthConfig {
+            storage: StorageConfig::Memory,
+            enabled: false, // Keep disabled for tests
+            cache_size: 1000,
+            session_timeout_secs: 3600, // 60 minutes
+            max_failed_attempts: 5,
+            rate_limit_window_secs: 60,
+        },
+        ..Default::default()
     };
 
     let server = McpServer::new(backend, config).await;
@@ -518,24 +527,24 @@ async fn test_server_with_security_config() {
             .await
             .unwrap();
 
-    let mut config = ServerConfig::default();
-    config.transport_config = TransportConfig::Stdio;
-    config.auth_config = AuthConfig {
-        storage: StorageConfig::Memory,
-        enabled: false,
-        cache_size: 100,
-        session_timeout_secs: 3600,
-        max_failed_attempts: 5,
-        rate_limit_window_secs: 900,
-    };
-
-    // Customize security config
-    config.security_config = SecurityConfig {
-        validate_requests: true,
-        rate_limiting: true,
-        max_requests_per_minute: 100,
-        cors_enabled: true,
-        cors_origins: vec!["http://localhost:3000".to_string()],
+    let config = ServerConfig {
+        transport_config: TransportConfig::Stdio,
+        auth_config: AuthConfig {
+            storage: StorageConfig::Memory,
+            enabled: false,
+            cache_size: 100,
+            session_timeout_secs: 3600,
+            max_failed_attempts: 5,
+            rate_limit_window_secs: 900,
+        },
+        security_config: SecurityConfig {
+            validate_requests: true,
+            rate_limiting: true,
+            max_requests_per_minute: 100,
+            cors_enabled: true,
+            cors_origins: vec!["http://localhost:3000".to_string()],
+        },
+        ..Default::default()
     };
 
     let server = McpServer::new(backend, config).await;
@@ -549,23 +558,23 @@ async fn test_server_with_monitoring_config() {
             .await
             .unwrap();
 
-    let mut config = ServerConfig::default();
-    config.transport_config = TransportConfig::Stdio;
-    config.auth_config = AuthConfig {
-        storage: StorageConfig::Memory,
-        enabled: false,
-        cache_size: 100,
-        session_timeout_secs: 3600,
-        max_failed_attempts: 5,
-        rate_limit_window_secs: 900,
-    };
-
-    // Customize monitoring config
-    config.monitoring_config = MonitoringConfig {
-        enabled: true,
-        collection_interval_secs: 10,
-        performance_monitoring: true,
-        health_checks: true,
+    let config = ServerConfig {
+        transport_config: TransportConfig::Stdio,
+        auth_config: AuthConfig {
+            storage: StorageConfig::Memory,
+            enabled: false,
+            cache_size: 100,
+            session_timeout_secs: 3600,
+            max_failed_attempts: 5,
+            rate_limit_window_secs: 900,
+        },
+        monitoring_config: MonitoringConfig {
+            enabled: true,
+            collection_interval_secs: 10,
+            performance_monitoring: true,
+            health_checks: true,
+        },
+        ..Default::default()
     };
 
     let server = McpServer::new(backend, config).await;

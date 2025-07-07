@@ -297,7 +297,7 @@ mod tests {
         ];
 
         for field in sensitive {
-            assert!(is_sensitive_field(field), "{} should be sensitive", field);
+            assert!(is_sensitive_field(field), "{field} should be sensitive");
         }
 
         // Non-sensitive fields
@@ -318,8 +318,7 @@ mod tests {
         for field in non_sensitive {
             assert!(
                 !is_sensitive_field(field),
-                "{} should not be sensitive",
-                field
+                "{field} should not be sensitive"
             );
         }
     }
@@ -476,11 +475,14 @@ mod tests {
         let context = StructuredContext::new("test_tool".to_string())
             .with_field(&"null_field", json!(null))
             .with_field(&"vec_field", json!(["a", "b", "c"]))
-            .with_field(&"float_field", 3.14);
+            .with_field(&"float_field", std::f64::consts::PI);
 
         assert_eq!(context.custom_fields["null_field"], json!(null));
         assert_eq!(context.custom_fields["vec_field"], json!(["a", "b", "c"]));
-        assert_eq!(context.custom_fields["float_field"], json!(3.14));
+        assert_eq!(
+            context.custom_fields["float_field"],
+            json!(std::f64::consts::PI)
+        );
     }
 
     #[test]

@@ -242,11 +242,16 @@ impl McpBackend for MonitoringTestBackend {
 async fn test_monitoring_integration_basic() {
     let backend = MonitoringTestBackend::initialize(0.0).await.unwrap(); // No errors
 
-    let mut config = ServerConfig::default();
-    config.transport_config = TransportConfig::Stdio;
-    config.auth_config = test_auth_config();
-    config.auth_config.enabled = false;
-    config.monitoring_config = test_monitoring_config();
+    let config = ServerConfig {
+        transport_config: TransportConfig::Stdio,
+        auth_config: {
+            let mut auth_config = test_auth_config();
+            auth_config.enabled = false;
+            auth_config
+        },
+        monitoring_config: test_monitoring_config(),
+        ..Default::default()
+    };
 
     let server = McpServer::new(backend, config).await.unwrap();
 
@@ -270,11 +275,16 @@ async fn test_monitoring_integration_basic() {
 async fn test_monitoring_with_errors() {
     let backend = MonitoringTestBackend::initialize(0.5).await.unwrap(); // 50% error rate
 
-    let mut config = ServerConfig::default();
-    config.transport_config = TransportConfig::Stdio;
-    config.auth_config = test_auth_config();
-    config.auth_config.enabled = false;
-    config.monitoring_config = test_monitoring_config();
+    let config = ServerConfig {
+        transport_config: TransportConfig::Stdio,
+        auth_config: {
+            let mut auth_config = test_auth_config();
+            auth_config.enabled = false;
+            auth_config
+        },
+        monitoring_config: test_monitoring_config(),
+        ..Default::default()
+    };
 
     let server = McpServer::new(backend, config).await.unwrap();
 
@@ -395,15 +405,20 @@ async fn test_performance_monitoring() {
 async fn test_metrics_collection_integration() {
     let backend = MonitoringTestBackend::initialize(0.0).await.unwrap();
 
-    let mut config = ServerConfig::default();
-    config.transport_config = TransportConfig::Stdio;
-    config.auth_config = test_auth_config();
-    config.auth_config.enabled = false;
-    config.monitoring_config = MonitoringConfig {
-        enabled: true,
-        collection_interval_secs: 1, // Very fast collection for testing
-        performance_monitoring: true,
-        health_checks: true,
+    let config = ServerConfig {
+        transport_config: TransportConfig::Stdio,
+        auth_config: {
+            let mut auth_config = test_auth_config();
+            auth_config.enabled = false;
+            auth_config
+        },
+        monitoring_config: MonitoringConfig {
+            enabled: true,
+            collection_interval_secs: 1, // Very fast collection for testing
+            performance_monitoring: true,
+            health_checks: true,
+        },
+        ..Default::default()
     };
 
     let server = McpServer::new(backend, config).await.unwrap();
@@ -433,15 +448,20 @@ async fn test_metrics_collection_integration() {
 async fn test_health_monitoring_integration() {
     let backend = MonitoringTestBackend::initialize(0.3).await.unwrap(); // 30% error rate
 
-    let mut config = ServerConfig::default();
-    config.transport_config = TransportConfig::Stdio;
-    config.auth_config = test_auth_config();
-    config.auth_config.enabled = false;
-    config.monitoring_config = MonitoringConfig {
-        enabled: true,
-        collection_interval_secs: 1,
-        performance_monitoring: true,
-        health_checks: true, // Enable health check monitoring
+    let config = ServerConfig {
+        transport_config: TransportConfig::Stdio,
+        auth_config: {
+            let mut auth_config = test_auth_config();
+            auth_config.enabled = false;
+            auth_config
+        },
+        monitoring_config: MonitoringConfig {
+            enabled: true,
+            collection_interval_secs: 1,
+            performance_monitoring: true,
+            health_checks: true, // Enable health check monitoring
+        },
+        ..Default::default()
     };
 
     let server = McpServer::new(backend, config).await.unwrap();

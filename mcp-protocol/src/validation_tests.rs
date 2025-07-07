@@ -19,7 +19,7 @@ mod tests {
 
         for uuid_str in valid_uuids {
             let result = Validator::validate_uuid(uuid_str);
-            assert!(result.is_ok(), "UUID '{}' should be valid", uuid_str);
+            assert!(result.is_ok(), "UUID '{uuid_str}' should be valid");
             assert_eq!(result.unwrap().to_string(), uuid_str.to_lowercase());
         }
     }
@@ -39,7 +39,7 @@ mod tests {
 
         for uuid_str in invalid_uuids {
             let result = Validator::validate_uuid(uuid_str);
-            assert!(result.is_err(), "UUID '{}' should be invalid", uuid_str);
+            assert!(result.is_err(), "UUID '{uuid_str}' should be invalid");
             assert!(result.unwrap_err().message.contains("Invalid UUID"));
         }
     }
@@ -89,8 +89,7 @@ mod tests {
         for name in valid_names {
             assert!(
                 Validator::validate_tool_name(name).is_ok(),
-                "Tool name '{}' should be valid",
-                name
+                "Tool name '{name}' should be valid"
             );
         }
 
@@ -130,8 +129,7 @@ mod tests {
         for name in invalid_names {
             assert!(
                 Validator::validate_tool_name(name).is_err(),
-                "Tool name '{}' should be invalid",
-                name
+                "Tool name '{name}' should be invalid"
             );
         }
     }
@@ -156,8 +154,7 @@ mod tests {
         for uri in valid_uris {
             assert!(
                 Validator::validate_resource_uri(uri).is_ok(),
-                "URI '{}' should be valid",
-                uri
+                "URI '{uri}' should be valid"
             );
         }
 
@@ -175,8 +172,7 @@ mod tests {
         for uri in invalid_uris {
             assert!(
                 Validator::validate_resource_uri(uri).is_err(),
-                "URI '{}' should be invalid",
-                uri
+                "URI '{uri}' should be invalid"
             );
         }
     }
@@ -205,8 +201,7 @@ mod tests {
         for schema in valid_schemas {
             assert!(
                 Validator::validate_json_schema(&schema).is_ok(),
-                "Schema {:?} should be valid",
-                schema
+                "Schema {schema:?} should be valid"
             );
         }
 
@@ -224,8 +219,7 @@ mod tests {
         for schema in invalid_schemas {
             assert!(
                 Validator::validate_json_schema(&schema).is_err(),
-                "Schema {:?} should be invalid",
-                schema
+                "Schema {schema:?} should be invalid"
             );
         }
     }
@@ -365,8 +359,7 @@ mod tests {
         for name in valid_names {
             assert!(
                 Validator::validate_prompt_name(name).is_ok(),
-                "Prompt name '{}' should be valid",
-                name
+                "Prompt name '{name}' should be valid"
             );
         }
 
@@ -405,8 +398,7 @@ mod tests {
         for name in invalid_names {
             assert!(
                 Validator::validate_prompt_name(name).is_err(),
-                "Prompt name '{}' should be invalid",
-                name
+                "Prompt name '{name}' should be invalid"
             );
         }
     }
