@@ -138,14 +138,14 @@ impl HttpTransport {
         &self.config
     }
 
-    /// Get the state
-    pub fn state(&self) -> &Option<HttpState> {
-        &self.state
+    /// Check if the transport is initialized
+    pub fn is_initialized(&self) -> bool {
+        self.state.is_some()
     }
 
-    /// Get the server handle
-    pub fn server_handle(&self) -> &Option<tokio::task::JoinHandle<()>> {
-        &self.server_handle
+    /// Check if the server is running
+    pub fn is_running(&self) -> bool {
+        self.server_handle.is_some()
     }
 
     /// Send a message to all connected SSE clients

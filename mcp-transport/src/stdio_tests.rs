@@ -81,9 +81,9 @@ mod tests {
     fn test_stdio_transport_new() {
         let transport = StdioTransport::new();
 
-        assert_eq!(transport.config.max_message_size, 10 * 1024 * 1024);
-        assert!(transport.config.validate_messages);
-        assert!(!transport.running.load(std::sync::atomic::Ordering::Relaxed));
+        assert_eq!(transport.config().max_message_size, 10 * 1024 * 1024);
+        assert!(transport.config().validate_messages);
+        assert!(!transport.is_running());
     }
 
     #[test]
@@ -95,9 +95,9 @@ mod tests {
 
         let transport = StdioTransport::with_config(config.clone());
 
-        assert_eq!(transport.config.max_message_size, 2048);
-        assert!(!transport.config.validate_messages);
-        assert!(!transport.running.load(std::sync::atomic::Ordering::Relaxed));
+        assert_eq!(transport.config().max_message_size, 2048);
+        assert!(!transport.config().validate_messages);
+        assert!(!transport.is_running());
     }
 
     #[test]
@@ -106,12 +106,12 @@ mod tests {
         let transport2 = StdioTransport::default();
 
         assert_eq!(
-            transport1.config.max_message_size,
-            transport2.config.max_message_size
+            transport1.config().max_message_size,
+            transport2.config().max_message_size
         );
         assert_eq!(
-            transport1.config.validate_messages,
-            transport2.config.validate_messages
+            transport1.config().validate_messages,
+            transport2.config().validate_messages
         );
     }
 
@@ -150,7 +150,7 @@ mod tests {
 
         // Should no longer be running
         assert!(transport.health_check().await.is_err());
-        assert!(!transport.running.load(std::sync::atomic::Ordering::Relaxed));
+        assert!(!transport.is_running());
     }
 
     #[tokio::test]
@@ -189,7 +189,7 @@ mod tests {
             max_message_size: 10 * 1024 * 1024,
             validate_messages: false, // Disabled validation
         };
-        let _transport = StdioTransport::with_config(config);
+        let transport = StdioTransport::with_config(config);
         let mut output = Vec::new();
         let mut stdout = BufWriter::new(&mut output);
 
@@ -297,7 +297,7 @@ mod tests {
         let mut transport = StdioTransport::new();
 
         // Initial state
-        assert!(!transport.running.load(std::sync::atomic::Ordering::Relaxed));
+        assert!(!transport.is_running());
         assert!(transport.health_check().await.is_err());
 
         // Manually set running
@@ -308,7 +308,7 @@ mod tests {
 
         // Stop transport
         transport.stop().await.unwrap();
-        assert!(!transport.running.load(std::sync::atomic::Ordering::Relaxed));
+        assert!(!transport.is_running());
         assert!(transport.health_check().await.is_err());
 
         // Can set running again
@@ -440,10 +440,10 @@ mod tests {
                 max_message_size: size,
                 validate_messages: true,
             };
-            let _transport = StdioTransport::with_config(config);
+            let transport = StdioTransport::with_config(config);
 
-            assert_eq!(transport.config.max_message_size, size);
-            assert!(transport.config.validate_messages);
+            assert_eq!(transport.config().max_message_size, size);
+            assert!(transport.config().validate_messages);
             assert!(transport.health_check().await.is_err()); // Not running
         }
     }
@@ -457,10 +457,10 @@ mod tests {
                 max_message_size: 1024,
                 validate_messages: validate,
             };
-            let _transport = StdioTransport::with_config(config);
+            let transport = StdioTransport::with_config(config);
 
-            assert_eq!(transport.config.validate_messages, validate);
-            assert_eq!(transport.config.max_message_size, 1024);
+            assert_eq!(transport.config().validate_messages, validate);
+            assert_eq!(transport.config().max_message_size, 1024);
         }
     }
 }
