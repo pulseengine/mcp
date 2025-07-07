@@ -14,7 +14,9 @@ impl RequestValidator {
     pub fn validate_request(request: &Request) -> Result<(), Error> {
         // Basic validation
         if request.jsonrpc != "2.0" {
-            return Err(Error::invalid_request("Invalid JSON-RPC version"));
+            return Err(Error::invalid_request(
+                "Invalid JSON-RPC version, must be 2.0",
+            ));
         }
 
         if request.method.is_empty() {
