@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 /// Security configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct SecurityConfig {
     /// Enable request validation
     pub validate_requests: bool,
