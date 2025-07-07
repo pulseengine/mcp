@@ -476,14 +476,19 @@ fn sanitize_value(value: &Value) -> Value {
 fn is_sensitive_field(field: &str) -> bool {
     let field_lower = field.to_lowercase();
     field_lower.contains("password")
+        || field_lower.contains("passwd")
+        || field_lower.contains("pass")
+        || field_lower.contains("pwd")
         || field_lower.contains("secret")
         || field_lower.contains("token")
         || field_lower.contains("api_key")
         || field_lower.contains("apikey")
+        || field_lower.contains("key")
         || field_lower.contains("auth")
         || field_lower.contains("credential")
         || field_lower.contains("private_key")
         || field_lower.contains("session")
+        || field_lower.contains("bearer")
 }
 
 /// Generate a unique request ID

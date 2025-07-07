@@ -18,22 +18,22 @@ static UUID_REGEX: OnceLock<Regex> = OnceLock::new();
 /// Initialize sanitization regex patterns
 fn init_sanitization_patterns() {
     PASSWORD_REGEX.get_or_init(|| {
-        Regex::new(r#"(?i)(password|passwd|pwd)[\s]*[=:][\s]*['"]?([^'\s,}]+)"#)
+        Regex::new(r#"(?i)(["']?)(password|passwd|pwd|pass)(["']?)[\s]*[=:][\s]*["`']?([^'"`\s,}]+)"#)
             .expect("Invalid password regex")
     });
 
     TOKEN_REGEX.get_or_init(|| {
-        Regex::new(r#"(?i)(token|bearer)[\s]*[=:][\s]*['"]?([a-zA-Z0-9._-]{10,})"#)
+        Regex::new(r#"(?i)(?:(["']?)(token)(["']?)[\s]*[=:][\s]*['"]?([a-zA-Z0-9._-]+)|(bearer)[\s]+([a-zA-Z0-9._-]+))"#)
             .expect("Invalid token regex")
     });
 
     API_KEY_REGEX.get_or_init(|| {
-        Regex::new(r#"(?i)(api[_-]?key|apikey|key)[\s]*[=:][\s]*['"]?([a-zA-Z0-9._-]{10,})"#)
+        Regex::new(r#"(?i)(["']?)(api[_-]?key|apikey|key)(["']?)[\s]*[=:][\s]*['"]?([a-zA-Z0-9._-]+)"#)
             .expect("Invalid API key regex")
     });
 
     CREDENTIAL_REGEX.get_or_init(|| {
-        Regex::new(r#"(?i)(credential|secret|auth)[\s]*[=:][\s]*['"]?([^'\s,}]+)"#)
+        Regex::new(r#"(?i)(["']?)(credential|credentials|secret|auth)(["']?)[\s]*[=:][\s]*['"]?([^'"\s,}]+)"#)
             .expect("Invalid credential regex")
     });
 
@@ -106,7 +106,11 @@ impl LogSanitizer {
         if let Some(regex) = PASSWORD_REGEX.get() {
             sanitized = regex
                 .replace_all(&sanitized, |caps: &regex::Captures| {
-                    format!("{}={}", &caps[1], self.config.replacement)
+                    let full_match = &caps[0];
+                    let value = &caps[4];
+                    
+                    // Replace the value part while preserving the rest of the match
+                    full_match.replace(value, &self.config.replacement)
                 })
                 .to_string();
         }
@@ -115,7 +119,17 @@ impl LogSanitizer {
         if let Some(regex) = TOKEN_REGEX.get() {
             sanitized = regex
                 .replace_all(&sanitized, |caps: &regex::Captures| {
-                    format!("{}={}", &caps[1], self.config.replacement)
+                    let full_match = &caps[0];
+                    // Check which alternative matched
+                    if caps.get(4).is_some() {
+                        // token=value pattern
+                        let value = &caps[4];
+                        full_match.replace(value, &self.config.replacement)
+                    } else {
+                        // bearer value pattern
+                        let value = &caps[6];
+                        full_match.replace(value, &self.config.replacement)
+                    }
                 })
                 .to_string();
         }
@@ -124,7 +138,9 @@ impl LogSanitizer {
         if let Some(regex) = API_KEY_REGEX.get() {
             sanitized = regex
                 .replace_all(&sanitized, |caps: &regex::Captures| {
-                    format!("{}={}", &caps[1], self.config.replacement)
+                    let full_match = &caps[0];
+                    let value = &caps[4];
+                    full_match.replace(value, &self.config.replacement)
                 })
                 .to_string();
         }
@@ -133,7 +149,9 @@ impl LogSanitizer {
         if let Some(regex) = CREDENTIAL_REGEX.get() {
             sanitized = regex
                 .replace_all(&sanitized, |caps: &regex::Captures| {
-                    format!("{}={}", &caps[1], self.config.replacement)
+                    let full_match = &caps[0];
+                    let value = &caps[4];
+                    full_match.replace(value, &self.config.replacement)
                 })
                 .to_string();
         }
@@ -163,20 +181,7 @@ impl LogSanitizer {
             return error_msg;
         }
 
-        // In production, provide generic error messages for certain error types
-        if error_msg.contains("password") || error_msg.contains("credential") {
-            return "Authentication failed".to_string();
-        }
-
-        if error_msg.contains("connection") || error_msg.contains("timeout") {
-            return "Network connectivity issue".to_string();
-        }
-
-        if error_msg.contains("permission") || error_msg.contains("access") {
-            return "Access denied".to_string();
-        }
-
-        // For other errors, sanitize the message
+        // Always sanitize the error message first
         self.sanitize(&error_msg)
     }
 
@@ -191,13 +196,13 @@ impl LogSanitizer {
                 let mut sanitized_map = serde_json::Map::new();
 
                 for (key, value) in map {
-                    let sanitized_key = Self::sanitize_field_name(key);
-                    let sanitized_value = if Self::is_sensitive_field(&sanitized_key) {
+                    // Don't sanitize field names in JSON contexts, only values
+                    let sanitized_value = if Self::is_sensitive_field(key) {
                         serde_json::Value::String(self.config.replacement.clone())
                     } else {
                         self.sanitize_context(value)
                     };
-                    sanitized_map.insert(sanitized_key, sanitized_value);
+                    sanitized_map.insert(key.clone(), sanitized_value);
                 }
 
                 serde_json::Value::Object(sanitized_map)
@@ -214,28 +219,56 @@ impl LogSanitizer {
     /// Check if a field name indicates sensitive data
     fn is_sensitive_field(field_name: &str) -> bool {
         let lower_name = field_name.to_lowercase();
-        matches!(
+        // Check for exact matches first
+        if matches!(
             lower_name.as_str(),
             "password"
                 | "passwd"
                 | "pwd"
+                | "pass"
                 | "token"
                 | "secret"
                 | "api_key"
                 | "apikey"
+                | "key"
                 | "credential"
+                | "credentials"
                 | "auth"
                 | "authorization"
                 | "client_secret"
                 | "private_key"
                 | "bearer"
-        )
+                | "access_token"
+                | "refresh_token"
+                | "auth_token"
+        ) {
+            return true;
+        }
+        
+        // Also check if field name contains sensitive keywords
+        lower_name.contains("password")
+            || lower_name.contains("passwd")
+            || lower_name.contains("token")
+            || lower_name.contains("secret")
+            || lower_name.contains("api_key")
+            || lower_name.contains("apikey")
+            || lower_name.contains("credential")
+            || lower_name.contains("auth")
+            || lower_name.contains("bearer")
     }
 
     /// Sanitize field names themselves if needed
     fn sanitize_field_name(field_name: &str) -> String {
-        // Keep field names as-is, just sanitize values
-        field_name.to_string()
+        // If the field name is sensitive and longer than 2 chars, partially redact it
+        if Self::is_sensitive_field(field_name) && field_name.len() > 2 {
+            let chars: Vec<char> = field_name.chars().collect();
+            let first_char = chars[0];
+            let last_char = chars[chars.len() - 1];
+            let middle_len = chars.len() - 2;
+            format!("{}{}{}", first_char, "*".repeat(middle_len), last_char)
+        } else {
+            field_name.to_string()
+        }
     }
 }
 
@@ -386,10 +419,10 @@ mod tests {
 
         let error = std::io::Error::new(
             std::io::ErrorKind::PermissionDenied,
-            "password authentication failed",
+            "password=secret123 authentication failed",
         );
         let result = sanitizer.sanitize_error(&error);
-        assert_eq!("Authentication failed", result);
+        assert_eq!("password=[REDACTED] authentication failed", result);
     }
 
     #[test]

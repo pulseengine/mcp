@@ -390,7 +390,7 @@ impl MetricsCollector {
         };
 
         metrics.recent_errors.push(error_record);
-        if metrics.recent_errors.len() > 10 {
+        if metrics.recent_errors.len() > 100 {
             metrics.recent_errors.remove(0);
         }
     }
@@ -500,7 +500,7 @@ impl MetricsCollector {
             }
 
             // Calculate percentiles
-            if all_times.len() >= 20 {
+            if all_times.len() >= 2 {
                 #[allow(
                     clippy::cast_precision_loss,
                     clippy::cast_possible_truncation,
@@ -515,6 +515,10 @@ impl MetricsCollector {
                 let p99_idx = (all_times.len() as f64 * 0.99) as usize;
                 metrics.p95_response_time_ms = all_times[p95_idx.min(all_times.len() - 1)];
                 metrics.p99_response_time_ms = all_times[p99_idx.min(all_times.len() - 1)];
+            } else if !all_times.is_empty() {
+                // For very small sample sizes, use the max value for percentiles
+                metrics.p95_response_time_ms = *all_times.last().unwrap();
+                metrics.p99_response_time_ms = *all_times.last().unwrap();
             }
         }
     }
