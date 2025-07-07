@@ -559,7 +559,7 @@ async fn test_complete_e2e_scenario() {
 
     let mut auth_config = test_auth_config();
     auth_config.enabled = false; // Simplify for E2E test
-    
+
     let config = ServerConfig {
         transport_config: TransportConfig::Stdio,
         auth_config,

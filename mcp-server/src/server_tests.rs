@@ -212,14 +212,16 @@ async fn test_server_creation() {
     let backend = MockServerBackend::initialize((false, false, false, "Test Server".to_string()))
         .await
         .unwrap();
-    let mut config = ServerConfig::default();
-    config.auth_config = AuthConfig {
-        storage: StorageConfig::Memory,
-        enabled: false,
-        cache_size: 100,
-        session_timeout_secs: 3600,
-        max_failed_attempts: 5,
-        rate_limit_window_secs: 900,
+    let config = ServerConfig {
+        auth_config: AuthConfig {
+            storage: StorageConfig::Memory,
+            enabled: false,
+            cache_size: 100,
+            session_timeout_secs: 3600,
+            max_failed_attempts: 5,
+            rate_limit_window_secs: 900,
+        },
+        ..Default::default()
     };
 
     let server = McpServer::new(backend, config).await;
@@ -265,14 +267,16 @@ async fn test_server_health_check() {
         MockServerBackend::initialize((false, false, false, "Healthy Server".to_string()))
             .await
             .unwrap();
-    let mut config = ServerConfig::default();
-    config.auth_config = AuthConfig {
-        storage: StorageConfig::Memory,
-        enabled: false,
-        cache_size: 100,
-        session_timeout_secs: 3600,
-        max_failed_attempts: 5,
-        rate_limit_window_secs: 900,
+    let config = ServerConfig {
+        auth_config: AuthConfig {
+            storage: StorageConfig::Memory,
+            enabled: false,
+            cache_size: 100,
+            session_timeout_secs: 3600,
+            max_failed_attempts: 5,
+            rate_limit_window_secs: 900,
+        },
+        ..Default::default()
     };
 
     let server = McpServer::new(backend, config).await.unwrap();
@@ -297,14 +301,16 @@ async fn test_server_health_check_unhealthy_backend() {
         MockServerBackend::initialize((true, false, false, "Unhealthy Server".to_string()))
             .await
             .unwrap();
-    let mut config = ServerConfig::default();
-    config.auth_config = AuthConfig {
-        storage: StorageConfig::Memory,
-        enabled: false,
-        cache_size: 100,
-        session_timeout_secs: 3600,
-        max_failed_attempts: 5,
-        rate_limit_window_secs: 900,
+    let config = ServerConfig {
+        auth_config: AuthConfig {
+            storage: StorageConfig::Memory,
+            enabled: false,
+            cache_size: 100,
+            session_timeout_secs: 3600,
+            max_failed_attempts: 5,
+            rate_limit_window_secs: 900,
+        },
+        ..Default::default()
     };
 
     let server = McpServer::new(backend, config).await.unwrap();
@@ -320,14 +326,16 @@ async fn test_server_get_metrics() {
         MockServerBackend::initialize((false, false, false, "Metrics Server".to_string()))
             .await
             .unwrap();
-    let mut config = ServerConfig::default();
-    config.auth_config = AuthConfig {
-        storage: StorageConfig::Memory,
-        enabled: false,
-        cache_size: 100,
-        session_timeout_secs: 3600,
-        max_failed_attempts: 5,
-        rate_limit_window_secs: 900,
+    let config = ServerConfig {
+        auth_config: AuthConfig {
+            storage: StorageConfig::Memory,
+            enabled: false,
+            cache_size: 100,
+            session_timeout_secs: 3600,
+            max_failed_attempts: 5,
+            rate_limit_window_secs: 900,
+        },
+        ..Default::default()
     };
 
     let server = McpServer::new(backend, config).await.unwrap();
