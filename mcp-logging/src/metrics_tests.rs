@@ -347,15 +347,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_availability_percentage() {
-        let mut snapshot = MetricsSnapshot {
-            request_metrics: Default::default(),
-            error_metrics: Default::default(),
-            business_metrics: Default::default(),
-            health_metrics: Default::default(),
-            snapshot_timestamp: 0,
-        };
-
-        // Remove availability_percentage tests as the method doesn't exist
+        // TODO: Implement availability_percentage tests when the method is added
+        // For now, this test is a placeholder
     }
 
     #[tokio::test]
