@@ -491,7 +491,7 @@ fn test_backend_types_send_sync() {
 #[test]
 fn test_backend_error_debug() {
     let err = BackendError::configuration("test");
-    let debug_str = format!("{:?}", err);
+    let debug_str = format!("{err:?}");
     assert!(debug_str.contains("Configuration"));
     assert!(debug_str.contains("test"));
 }

@@ -202,7 +202,7 @@ fn test_request_context_debug() {
         .with_role("debug_role")
         .with_metadata("debug_key", "debug_value");
 
-    let debug_str = format!("{:?}", context);
+    let debug_str = format!("{context:?}");
     assert!(debug_str.contains("RequestContext"));
     assert!(debug_str.contains("debug_user"));
     assert!(debug_str.contains("debug_role"));
