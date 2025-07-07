@@ -263,7 +263,7 @@ mod validation_tests {
         ];
 
         for url in valid_urls {
-            assert!(validate_url(url).is_ok(), "URL should be valid: {}", url);
+            assert!(validate_url(url).is_ok(), "URL should be valid: {url}");
         }
     }
 
@@ -399,7 +399,7 @@ fn test_cargo_toml_debug() {
         authors: None,
     };
 
-    let debug_str = format!("{:?}", package);
+    let debug_str = format!("{package:?}");
     assert!(debug_str.contains("Package"));
     assert!(debug_str.contains("test"));
 }
