@@ -103,11 +103,12 @@ impl<B: McpBackend> GenericServerHandler<B> {
     async fn handle_initialize(&self, request: Request) -> std::result::Result<Response, Error> {
         let _params: InitializeRequestParam = serde_json::from_value(request.params)?;
 
+        let server_info = self.backend.get_server_info();
         let result = InitializeResult {
             protocol_version: pulseengine_mcp_protocol::MCP_VERSION.to_string(),
-            capabilities: self.backend.get_server_info().capabilities,
-            server_info: self.backend.get_server_info().server_info.clone(),
-            instructions: Some(String::new()), // MCP Inspector expects a string, not null
+            capabilities: server_info.capabilities,
+            server_info: server_info.server_info.clone(),
+            instructions: server_info.instructions,
         };
 
         Ok(Response {
