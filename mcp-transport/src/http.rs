@@ -174,13 +174,33 @@ impl HttpTransport {
         }
     }
 
-    /// Create a new session
-    async fn create_session(state: Arc<HttpState>) -> String {
-        let session_id = Uuid::new_v4().to_string();
-        // Create a broadcast channel with a reasonable buffer size
-        // Keep at least one receiver alive to prevent the channel from closing
-        let (tx, keepalive_rx) = broadcast::channel(1024);
+    /// Create or get session
+    async fn ensure_session(state: Arc<HttpState>, session_id: Option<String>) -> String {
+        if let Some(id) = session_id {
+            // Check if session exists
+            let sessions = state.sessions.read().await;
+            if sessions.contains_key(&id) {
+                return id;
+            }
+            // If session doesn't exist, create it with the provided ID
+            drop(sessions);
+            let (tx, keepalive_rx) = broadcast::channel(1024);
+            let session_info = SessionInfo {
+                id: id.clone(),
+                created_at: std::time::Instant::now(),
+                last_activity: std::time::Instant::now(),
+                event_sender: tx,
+                _keepalive_receiver: Arc::new(Mutex::new(keepalive_rx)),
+            };
+            let mut sessions = state.sessions.write().await;
+            sessions.insert(id.clone(), session_info);
+            info!("Created session with provided ID: {}", id);
+            return id;
+        }
 
+        // Create new session with generated ID
+        let session_id = Uuid::new_v4().to_string();
+        let (tx, keepalive_rx) = broadcast::channel(1024);
         let session_info = SessionInfo {
             id: session_id.clone(),
             created_at: std::time::Instant::now(),
@@ -325,18 +345,20 @@ async fn handle_post(
     }
 
     // Get session ID from query parameter (MCP standard) or header (fallback)
-    let session_id = if let Some(id) = query.session_id {
-        id
+    let session_id_from_request = if let Some(id) = query.session_id {
+        Some(id)
     } else if let Some(id) = headers
         .get("Mcp-Session-Id")
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string())
     {
-        id
+        Some(id)
     } else {
-        // Create new session for first request
-        HttpTransport::create_session(state.clone()).await
+        None
     };
+
+    // Ensure session exists (create if needed)
+    let session_id = HttpTransport::ensure_session(state.clone(), session_id_from_request).await;
 
     // Validate message
     let message_json = serde_json::to_string(&message).map_err(|_| StatusCode::BAD_REQUEST)?;
@@ -586,20 +608,7 @@ async fn handle_sse(
     }
 
     // Get or create session
-    let session_id = if let Some(session_id) = query.session_id {
-        // Verify session exists
-        let sessions = state.sessions.read().await;
-        if sessions.contains_key(&session_id) {
-            session_id
-        } else {
-            return Err(StatusCode::BAD_REQUEST);
-        }
-    } else {
-        // Create new session
-        let new_session_id = HttpTransport::create_session(state.clone()).await;
-        info!("Created new SSE session: {}", new_session_id);
-        new_session_id
-    };
+    let session_id = HttpTransport::ensure_session(state.clone(), query.session_id).await;
 
     // All MCP clients expect SSE with "endpoint" event first (based on official Python SDK)
     info!("Creating MCP-compliant SSE stream with endpoint event");
@@ -614,6 +623,9 @@ async fn handle_sse(
     };
 
     info!("Starting SSE stream for session: {}", session_id);
+
+    // Clone session_id for headers since it will be moved into the stream
+    let session_id_for_header = session_id.clone();
 
     // Create SSE stream following official MCP Python SDK pattern
     let stream = async_stream::stream! {
@@ -675,6 +687,11 @@ async fn handle_sse(
     response
         .headers_mut()
         .insert("X-Accel-Buffering", "no".parse().unwrap());
+
+    // Add session ID header as per MCP spec
+    response
+        .headers_mut()
+        .insert("Mcp-Session-Id", session_id_for_header.parse().unwrap());
 
     Ok(response)
 }
@@ -862,8 +879,8 @@ mod tests {
             sessions: Arc::new(RwLock::new(HashMap::new())),
         });
 
-        // Create session
-        let session_id = HttpTransport::create_session(state.clone()).await;
+        // Create session (without providing session ID)
+        let session_id = HttpTransport::ensure_session(state.clone(), None).await;
         assert!(!session_id.is_empty());
 
         // Verify session exists

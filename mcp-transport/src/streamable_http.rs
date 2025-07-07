@@ -92,9 +92,19 @@ impl StreamableHttpTransport {
             if sessions.contains_key(&id) {
                 return id;
             }
+            // If session doesn't exist, create it with the provided ID
+            drop(sessions);
+            let session = SessionInfo {
+                id: id.clone(),
+                created_at: std::time::Instant::now(),
+            };
+            let mut sessions = state.sessions.write().await;
+            sessions.insert(id.clone(), session);
+            info!("Created session with provided ID: {}", id);
+            return id;
         }
 
-        // Create new session
+        // Create new session with generated ID
         let id = Uuid::new_v4().to_string();
         let session = SessionInfo {
             id: id.clone(),
@@ -172,6 +182,7 @@ async fn handle_messages(
     // Return JSON response with session header
     let mut headers = HeaderMap::new();
     headers.insert("Mcp-Session-Id", session_id.parse().unwrap());
+    debug!("Sending response with session ID: {}", session_id);
 
     (StatusCode::OK, headers, Json(response)).into_response()
 }
@@ -198,7 +209,12 @@ async fn handle_sse(
         "transport": "streamable-http"
     });
 
-    Json(response)
+    // Include session ID in response header as per MCP spec
+    let mut headers = HeaderMap::new();
+    headers.insert("Mcp-Session-Id", session_id.parse().unwrap());
+    debug!("SSE response with session ID: {}", session_id);
+
+    (StatusCode::OK, headers, Json(response))
 }
 
 #[async_trait]
