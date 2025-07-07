@@ -264,7 +264,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_process_batch_single_request() {
-        let handler = Box::new(mock_handler);
+        let handler: crate::RequestHandler = Box::new(mock_handler);
 
         let request_json = r#"{"jsonrpc": "2.0", "method": "test", "id": 1}"#;
         let message = JsonRpcMessage::parse(request_json).unwrap();
@@ -283,7 +283,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_process_batch_single_notification() {
-        let handler = Box::new(mock_handler);
+        let handler: crate::RequestHandler = Box::new(mock_handler);
 
         let notification_json = r#"{"jsonrpc": "2.0", "method": "notification"}"#;
         let message = JsonRpcMessage::parse(notification_json).unwrap();
@@ -294,7 +294,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_process_batch_mixed() {
-        let handler = Box::new(mock_handler);
+        let handler: crate::RequestHandler = Box::new(mock_handler);
 
         let batch_json = r#"[
             {"jsonrpc": "2.0", "method": "notification1"},
@@ -318,7 +318,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_process_batch_only_notifications() {
-        let handler = Box::new(mock_handler);
+        let handler: crate::RequestHandler = Box::new(mock_handler);
 
         let batch_json = r#"[
             {"jsonrpc": "2.0", "method": "notification1"},
@@ -332,7 +332,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_process_batch_error_handler() {
-        let handler = Box::new(error_handler);
+        let handler: crate::RequestHandler = Box::new(error_handler);
 
         let request_json = r#"{"jsonrpc": "2.0", "method": "test", "id": 1}"#;
         let message = JsonRpcMessage::parse(request_json).unwrap();
@@ -445,7 +445,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_process_batch_complex_params() {
-        let handler = Box::new(mock_handler);
+        let handler: crate::RequestHandler = Box::new(mock_handler);
 
         let complex_json = r#"{
             "jsonrpc": "2.0",
@@ -493,7 +493,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_process_batch_large_batch() {
-        let handler = Box::new(mock_handler);
+        let handler: crate::RequestHandler = Box::new(mock_handler);
 
         // Create a large batch
         let mut batch_values = Vec::new();

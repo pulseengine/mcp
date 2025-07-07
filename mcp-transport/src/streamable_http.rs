@@ -79,6 +79,11 @@ impl StreamableHttpTransport {
         }
     }
 
+    /// Get the configuration
+    pub fn config(&self) -> &StreamableHttpConfig {
+        &self.config
+    }
+
     /// Create or get session
     async fn ensure_session(state: &AppState, session_id: Option<String>) -> String {
         if let Some(id) = session_id {
