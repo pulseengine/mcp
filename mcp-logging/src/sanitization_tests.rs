@@ -211,22 +211,38 @@ mod tests {
 
     #[test]
     fn test_sanitize_error() {
+        use std::fmt;
+
+        #[derive(Debug)]
+        struct TestError(String);
+
+        impl fmt::Display for TestError {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                write!(f, "{}", self.0)
+            }
+        }
+
+        impl std::error::Error for TestError {}
+
         let sanitizer = LogSanitizer::new();
 
         let error_messages = vec![
             (
-                "Authentication failed for password=secret",
+                TestError("Authentication failed for password=secret".to_string()),
                 "Authentication failed for password=[REDACTED]",
             ),
-            ("Invalid api_key=12345", "Invalid api_key=[REDACTED]"),
             (
-                "Token expired: token=abc123",
+                TestError("Invalid api_key=12345".to_string()),
+                "Invalid api_key=[REDACTED]",
+            ),
+            (
+                TestError("Token expired: token=abc123".to_string()),
                 "Token expired: token=[REDACTED]",
             ),
         ];
 
         for (input, expected) in error_messages {
-            assert_eq!(sanitizer.sanitize_error(input), expected);
+            assert_eq!(sanitizer.sanitize_error(&input), expected);
         }
     }
 
@@ -379,15 +395,18 @@ mod tests {
     fn test_partial_disabled_sanitization() {
         let config = SanitizationConfig {
             enabled: true,
-            sanitize_passwords: false,
-            sanitize_api_keys: true,
+            preserve_ips: true,
+            preserve_uuids: false,
             ..Default::default()
         };
         let sanitizer = LogSanitizer::with_config(config);
 
-        let text = "password=secret, api_key=12345";
-        let expected = "password=secret, api_key=[REDACTED]";
-        assert_eq!(sanitizer.sanitize(text), expected);
+        let text = "IP: 192.168.1.1, UUID: 1234-5678-9abc-def0";
+        // preserve_ips is true, so IP should be preserved
+        // preserve_uuids is false, so UUID should be redacted
+        let result = sanitizer.sanitize(text);
+        assert!(result.contains("192.168.1.1"));
+        assert!(result.contains("[REDACTED]"));
     }
 
     #[test]

@@ -3,7 +3,6 @@
 #[cfg(test)]
 mod tests {
     use super::super::*;
-    use serde_json;
 
     #[test]
     fn test_transport_config_variants() {

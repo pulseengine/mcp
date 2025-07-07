@@ -557,12 +557,16 @@ async fn test_complete_e2e_scenario() {
         .await
         .unwrap();
 
-    let mut config = ServerConfig::default();
-    config.transport_config = TransportConfig::Stdio;
-    config.auth_config = test_auth_config();
-    config.auth_config.enabled = false; // Simplify for E2E test
-    config.monitoring_config = test_monitoring_config();
-    config.security_config = test_security_config();
+    let mut auth_config = test_auth_config();
+    auth_config.enabled = false; // Simplify for E2E test
+    
+    let config = ServerConfig {
+        transport_config: TransportConfig::Stdio,
+        auth_config,
+        monitoring_config: test_monitoring_config(),
+        security_config: test_security_config(),
+        ..Default::default()
+    };
 
     let server = McpServer::new(backend, config).await.unwrap();
 

@@ -205,9 +205,11 @@ async fn test_auth_server_integration_disabled() {
     // Test with authentication disabled
     let backend = AuthTestBackend::initialize((false, vec![])).await.unwrap();
 
-    let mut config = ServerConfig::default();
-    config.transport_config = TransportConfig::Stdio;
-    config.auth_config = test_auth_config();
+    let config = ServerConfig {
+        transport_config: TransportConfig::Stdio,
+        auth_config: test_auth_config(),
+        ..Default::default()
+    };
     config.auth_config.enabled = false; // Disable auth for this test
 
     let server = McpServer::new(backend, config).await.unwrap();
@@ -228,9 +230,11 @@ async fn test_auth_server_integration_enabled() {
         .await
         .unwrap();
 
-    let mut config = ServerConfig::default();
-    config.transport_config = TransportConfig::Stdio;
-    config.auth_config = test_auth_config();
+    let config = ServerConfig {
+        transport_config: TransportConfig::Stdio,
+        auth_config: test_auth_config(),
+        ..Default::default()
+    };
     config.auth_config.enabled = true; // Enable auth for this test
 
     let server = McpServer::new(backend, config).await.unwrap();
@@ -367,9 +371,11 @@ async fn test_server_with_auth_and_monitoring() {
         .await
         .unwrap();
 
-    let mut config = ServerConfig::default();
-    config.transport_config = TransportConfig::Stdio;
-    config.auth_config = test_auth_config();
+    let config = ServerConfig {
+        transport_config: TransportConfig::Stdio,
+        auth_config: test_auth_config(),
+        ..Default::default()
+    };
     config.monitoring_config = test_monitoring_config();
 
     let server = McpServer::new(backend, config).await.unwrap();
