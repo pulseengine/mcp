@@ -377,7 +377,7 @@ mod tests {
             let handle = tokio::spawn(async move {
                 for j in 0..100 {
                     collector_clone
-                        .record_request_start(&format!("tool_{}", i))
+                        .record_request_start(&format!("tool_{i}"))
                         .await;
                     collector_clone
                         .record_request_end(

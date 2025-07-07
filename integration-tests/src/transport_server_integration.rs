@@ -215,10 +215,15 @@ async fn test_server_with_stdio_transport() {
         .await
         .unwrap();
 
-    let mut config = ServerConfig::default();
-    config.transport_config = TransportConfig::Stdio;
-    config.auth_config = test_auth_config();
-    config.auth_config.enabled = false;
+    let config = ServerConfig {
+        transport_config: TransportConfig::Stdio,
+        auth_config: {
+            let mut auth_config = test_auth_config();
+            auth_config.enabled = false;
+            auth_config
+        },
+        ..Default::default()
+    };
 
     let server = McpServer::new(backend, config).await.unwrap();
 
@@ -241,13 +246,18 @@ async fn test_server_with_http_transport() {
         .unwrap();
     let port = find_free_port().await;
 
-    let mut config = ServerConfig::default();
-    config.transport_config = TransportConfig::Http {
-        host: Some("127.0.0.1".to_string()),
-        port,
+    let config = ServerConfig {
+        transport_config: TransportConfig::Http {
+            host: Some("127.0.0.1".to_string()),
+            port,
+        },
+        auth_config: {
+            let mut auth_config = test_auth_config();
+            auth_config.enabled = false;
+            auth_config
+        },
+        ..Default::default()
     };
-    config.auth_config = test_auth_config();
-    config.auth_config.enabled = false;
 
     let server = McpServer::new(backend, config).await.unwrap();
 
@@ -270,13 +280,18 @@ async fn test_server_with_websocket_transport() {
         .unwrap();
     let port = find_free_port().await;
 
-    let mut config = ServerConfig::default();
-    config.transport_config = TransportConfig::WebSocket {
-        host: Some("127.0.0.1".to_string()),
-        port,
+    let config = ServerConfig {
+        transport_config: TransportConfig::WebSocket {
+            host: Some("127.0.0.1".to_string()),
+            port,
+        },
+        auth_config: {
+            let mut auth_config = test_auth_config();
+            auth_config.enabled = false;
+            auth_config
+        },
+        ..Default::default()
     };
-    config.auth_config = test_auth_config();
-    config.auth_config.enabled = false;
 
     let server = McpServer::new(backend, config).await.unwrap();
 
@@ -298,11 +313,16 @@ async fn test_server_startup_and_shutdown() {
         .await
         .unwrap();
 
-    let mut config = ServerConfig::default();
-    config.transport_config = TransportConfig::Stdio;
-    config.auth_config = test_auth_config();
-    config.auth_config.enabled = false;
-    config.graceful_shutdown = false; // Disable signal handling for tests
+    let config = ServerConfig {
+        transport_config: TransportConfig::Stdio,
+        auth_config: {
+            let mut auth_config = test_auth_config();
+            auth_config.enabled = false;
+            auth_config
+        },
+        graceful_shutdown: false, // Disable signal handling for tests
+        ..Default::default()
+    };
 
     let mut server = McpServer::new(backend, config).await.unwrap();
 
@@ -331,11 +351,16 @@ async fn test_server_run_with_timeout() {
         .await
         .unwrap();
 
-    let mut config = ServerConfig::default();
-    config.transport_config = TransportConfig::Stdio;
-    config.auth_config = test_auth_config();
-    config.auth_config.enabled = false;
-    config.graceful_shutdown = false;
+    let config = ServerConfig {
+        transport_config: TransportConfig::Stdio,
+        auth_config: {
+            let mut auth_config = test_auth_config();
+            auth_config.enabled = false;
+            auth_config
+        },
+        graceful_shutdown: false,
+        ..Default::default()
+    };
 
     let mut server = McpServer::new(backend, config).await.unwrap();
 
@@ -371,10 +396,15 @@ async fn test_multiple_transport_configs() {
             .await
             .unwrap();
 
-        let mut config = ServerConfig::default();
-        config.transport_config = transport_config;
-        config.auth_config = test_auth_config();
-        config.auth_config.enabled = false;
+        let config = ServerConfig {
+            transport_config,
+            auth_config: {
+                let mut auth_config = test_auth_config();
+                auth_config.enabled = false;
+                auth_config
+            },
+            ..Default::default()
+        };
 
         let server = McpServer::new(backend, config).await;
         assert!(
@@ -397,13 +427,18 @@ async fn test_transport_error_handling() {
         .unwrap();
 
     // Try to create a server with an invalid port (should work, but may fail on start)
-    let mut config = ServerConfig::default();
-    config.transport_config = TransportConfig::Http {
-        host: Some("127.0.0.1".to_string()),
-        port: 65000, // High port number
+    let config = ServerConfig {
+        transport_config: TransportConfig::Http {
+            host: Some("127.0.0.1".to_string()),
+            port: 65000, // High port number
+        },
+        auth_config: {
+            let mut auth_config = test_auth_config();
+            auth_config.enabled = false;
+            auth_config
+        },
+        ..Default::default()
     };
-    config.auth_config = test_auth_config();
-    config.auth_config.enabled = false;
 
     // Server creation should succeed
     let server = McpServer::new(backend, config).await;
@@ -421,11 +456,16 @@ async fn test_server_metrics_with_transport() {
         .await
         .unwrap();
 
-    let mut config = ServerConfig::default();
-    config.transport_config = TransportConfig::Stdio;
-    config.auth_config = test_auth_config();
-    config.auth_config.enabled = false;
-    config.monitoring_config = test_monitoring_config();
+    let config = ServerConfig {
+        transport_config: TransportConfig::Stdio,
+        auth_config: {
+            let mut auth_config = test_auth_config();
+            auth_config.enabled = false;
+            auth_config
+        },
+        monitoring_config: test_monitoring_config(),
+        ..Default::default()
+    };
 
     let server = McpServer::new(backend, config).await.unwrap();
 

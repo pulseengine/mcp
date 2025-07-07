@@ -205,7 +205,7 @@ async fn test_auth_server_integration_disabled() {
     // Test with authentication disabled
     let backend = AuthTestBackend::initialize((false, vec![])).await.unwrap();
 
-    let config = ServerConfig {
+    let mut config = ServerConfig {
         transport_config: TransportConfig::Stdio,
         auth_config: test_auth_config(),
         ..Default::default()
@@ -230,7 +230,7 @@ async fn test_auth_server_integration_enabled() {
         .await
         .unwrap();
 
-    let config = ServerConfig {
+    let mut config = ServerConfig {
         transport_config: TransportConfig::Stdio,
         auth_config: test_auth_config(),
         ..Default::default()
@@ -371,7 +371,7 @@ async fn test_server_with_auth_and_monitoring() {
         .await
         .unwrap();
 
-    let config = ServerConfig {
+    let mut config = ServerConfig {
         transport_config: TransportConfig::Stdio,
         auth_config: test_auth_config(),
         ..Default::default()

@@ -11,7 +11,7 @@ mod tests {
         assert_eq!(error.to_string(), "Configuration error: Invalid log level");
 
         // Test Debug implementation
-        let debug_str = format!("{:?}", error);
+        let debug_str = format!("{error:?}");
         assert!(debug_str.contains("Config"));
         assert!(debug_str.contains("Invalid log level"));
     }
@@ -22,7 +22,7 @@ mod tests {
         let error = LoggingError::from(io_error);
 
         match error {
-            LoggingError::Io(e) => {
+            LoggingError::Io(ref e) => {
                 assert_eq!(e.kind(), io::ErrorKind::NotFound);
                 assert_eq!(e.to_string(), "File not found");
             }
@@ -55,7 +55,7 @@ mod tests {
     fn test_error_display_formatting() {
         let errors = vec![
             LoggingError::Config("test config".to_string()),
-            LoggingError::Io(io::Error::new(io::ErrorKind::Other, "test io")),
+            LoggingError::Io(io::Error::other("test io")),
             LoggingError::Tracing("test tracing".to_string()),
         ];
 
@@ -110,7 +110,7 @@ mod tests {
             error_metrics: ErrorMetrics::default(),
             business_metrics: BusinessMetrics::default(),
             health_metrics: HealthMetrics::default(),
-            timestamp: chrono::Utc::now(),
+            snapshot_timestamp: chrono::Utc::now().timestamp() as u64,
         };
     }
 
@@ -209,6 +209,6 @@ mod tests {
         // Should be able to access module items
         let _ = metrics::MetricsCollector::new();
         let _ = sanitization::LogSanitizer::new();
-        let _ = structured::StructuredContext::new();
+        let _ = structured::StructuredContext::new("test_tool".to_string());
     }
 }

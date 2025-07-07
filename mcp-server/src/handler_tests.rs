@@ -143,7 +143,7 @@ impl McpBackend for MockHandlerBackend {
 
                 Ok(CallToolResult {
                     content: vec![Content::Text {
-                        text: format!("Tool executed with message: {}", message),
+                        text: format!("Tool executed with message: {message}"),
                     }],
                     is_error: Some(false),
                 })
@@ -226,11 +226,11 @@ impl McpBackend for MockHandlerBackend {
                 .unwrap_or(&default_topic);
 
             Ok(GetPromptResult {
-                description: Some(format!("Discussing topic: {}", topic)),
+                description: Some(format!("Discussing topic: {topic}")),
                 messages: vec![PromptMessage {
                     role: PromptMessageRole::User,
                     content: PromptMessageContent::Text {
-                        text: format!("Let's talk about {}", topic),
+                        text: format!("Let's talk about {topic}"),
                     },
                 }],
             })
@@ -663,7 +663,7 @@ fn test_handler_types_send_sync() {
 #[test]
 fn test_handler_error_debug() {
     let err = HandlerError::Backend("test".to_string());
-    let debug_str = format!("{:?}", err);
+    let debug_str = format!("{err:?}");
     assert!(debug_str.contains("Backend"));
     assert!(debug_str.contains("test"));
 }

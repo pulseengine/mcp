@@ -141,7 +141,7 @@ impl McpBackend for IntegrationTestBackend {
 
             Ok(CallToolResult {
                 content: vec![Content::Text {
-                    text: format!("Processed: {}", input),
+                    text: format!("Processed: {input}"),
                 }],
                 is_error: Some(false),
             })

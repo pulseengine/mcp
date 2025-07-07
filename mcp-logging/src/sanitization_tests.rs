@@ -251,7 +251,7 @@ mod tests {
         let sanitizer = LogSanitizer::new();
 
         // Test object sanitization
-        let mut context = json!({
+        let context = json!({
             "username": "testuser",
             "password": "secret123",
             "api_key": "abc123",
@@ -261,7 +261,7 @@ mod tests {
             }
         });
 
-        sanitizer.sanitize_context(&mut context);
+        sanitizer.sanitize_context(&context);
 
         assert_eq!(context["username"], "testuser");
         assert_eq!(context["password"], "[REDACTED]");
@@ -274,13 +274,13 @@ mod tests {
     fn test_sanitize_context_array() {
         let sanitizer = LogSanitizer::new();
 
-        let mut context = json!([
+        let context = json!([
             {"password": "secret1"},
             {"api_key": "key2"},
             {"normal": "data"}
         ]);
 
-        sanitizer.sanitize_context(&mut context);
+        sanitizer.sanitize_context(&context);
 
         assert_eq!(context[0]["password"], "[REDACTED]");
         assert_eq!(context[1]["api_key"], "[REDACTED]");
@@ -291,7 +291,7 @@ mod tests {
     fn test_sanitize_context_nested() {
         let sanitizer = LogSanitizer::new();
 
-        let mut context = json!({
+        let context = json!({
             "level1": {
                 "level2": {
                     "level3": {
@@ -301,7 +301,7 @@ mod tests {
             }
         });
 
-        sanitizer.sanitize_context(&mut context);
+        sanitizer.sanitize_context(&context);
 
         assert_eq!(
             context["level1"]["level2"]["level3"]["password"],
@@ -342,8 +342,7 @@ mod tests {
         for field in sensitive_fields {
             assert!(
                 LogSanitizer::is_sensitive_field(field),
-                "Field '{}' should be sensitive",
-                field
+                "Field '{field}' should be sensitive"
             );
         }
 
@@ -363,8 +362,7 @@ mod tests {
         for field in non_sensitive_fields {
             assert!(
                 !LogSanitizer::is_sensitive_field(field),
-                "Field '{}' should not be sensitive",
-                field
+                "Field '{field}' should not be sensitive"
             );
         }
     }
@@ -467,7 +465,7 @@ mod tests {
 
         // Very long values
         let long_password = "a".repeat(1000);
-        let text = format!("password={}", long_password);
+        let text = format!("password={long_password}");
         assert_eq!(sanitizer.sanitize(&text), "password=[REDACTED]");
     }
 
@@ -475,7 +473,7 @@ mod tests {
     fn test_json_string_values() {
         let sanitizer = LogSanitizer::new();
 
-        let mut context = json!({
+        let context = json!({
             "string_password": "secret123",
             "number_password": 12345,
             "bool_password": true,
@@ -484,7 +482,7 @@ mod tests {
             "object_password": {"nested": "secret"}
         });
 
-        sanitizer.sanitize_context(&mut context);
+        sanitizer.sanitize_context(&context);
 
         // Only string values should be redacted
         assert_eq!(context["string_password"], "[REDACTED]");
@@ -506,10 +504,10 @@ mod tests {
         for i in 0..10 {
             let sanitizer_clone = Arc::clone(&sanitizer);
             let handle = thread::spawn(move || {
-                let text = format!("Thread {}: password=secret{}", i, i);
+                let text = format!("Thread {i}: password=secret{i}");
                 let result = sanitizer_clone.sanitize(&text);
                 assert!(result.contains("[REDACTED]"));
-                assert!(!result.contains(&format!("secret{}", i)));
+                assert!(!result.contains(&format!("secret{i}")));
             });
             handles.push(handle);
         }
