@@ -18,8 +18,10 @@ static UUID_REGEX: OnceLock<Regex> = OnceLock::new();
 /// Initialize sanitization regex patterns
 fn init_sanitization_patterns() {
     PASSWORD_REGEX.get_or_init(|| {
-        Regex::new(r#"(?i)(["']?)(password|passwd|pwd|pass)(["']?)[\s]*[=:][\s]*["`']?([^'"`\s,}]+)"#)
-            .expect("Invalid password regex")
+        Regex::new(
+            r#"(?i)(["']?)(password|passwd|pwd|pass)(["']?)[\s]*[=:][\s]*["`']?([^'"`\s,}]+)"#,
+        )
+        .expect("Invalid password regex")
     });
 
     TOKEN_REGEX.get_or_init(|| {
@@ -28,8 +30,10 @@ fn init_sanitization_patterns() {
     });
 
     API_KEY_REGEX.get_or_init(|| {
-        Regex::new(r#"(?i)(["']?)(api[_-]?key|apikey|key)(["']?)[\s]*[=:][\s]*['"]?([a-zA-Z0-9._-]+)"#)
-            .expect("Invalid API key regex")
+        Regex::new(
+            r#"(?i)(["']?)(api[_-]?key|apikey|key)(["']?)[\s]*[=:][\s]*['"]?([a-zA-Z0-9._-]+)"#,
+        )
+        .expect("Invalid API key regex")
     });
 
     CREDENTIAL_REGEX.get_or_init(|| {
@@ -108,7 +112,7 @@ impl LogSanitizer {
                 .replace_all(&sanitized, |caps: &regex::Captures| {
                     let full_match = &caps[0];
                     let value = &caps[4];
-                    
+
                     // Replace the value part while preserving the rest of the match
                     full_match.replace(value, &self.config.replacement)
                 })
@@ -244,7 +248,7 @@ impl LogSanitizer {
         ) {
             return true;
         }
-        
+
         // Also check if field name contains sensitive keywords
         lower_name.contains("password")
             || lower_name.contains("passwd")

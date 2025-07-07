@@ -114,10 +114,7 @@ mod tests {
         let test_cases = vec![
             ("credentials=user:pass", "credentials=[REDACTED]"),
             ("credentials: admin:secret", "credentials: [REDACTED]"),
-            (
-                "auth=\"base64data\"",
-                "auth=\"[REDACTED]\"",
-            ),
+            ("auth=\"base64data\"", "auth=\"[REDACTED]\""),
         ];
 
         for (input, expected) in test_cases {
