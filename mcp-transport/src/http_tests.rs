@@ -24,6 +24,7 @@ mod tests {
     }
 
     // Error handler for testing
+    #[allow(dead_code)]
     fn error_handler(
         _request: Request,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
@@ -106,11 +107,11 @@ mod tests {
         let transport = HttpTransport::with_config(config.clone());
 
         assert_eq!(transport.config().port, 9000);
-        assert_eq!(transport.config.host, "192.168.1.1");
-        assert_eq!(transport.config.max_message_size, 2048);
-        assert!(!transport.config.enable_cors);
-        assert!(!transport.config.validate_messages);
-        assert_eq!(transport.config.session_timeout_secs, 120);
+        assert_eq!(transport.config().host, "192.168.1.1");
+        assert_eq!(transport.config().max_message_size, 2048);
+        assert!(!transport.config().enable_cors);
+        assert!(!transport.config().validate_messages);
+        assert_eq!(transport.config().session_timeout_secs, 120);
     }
 
     #[test]
@@ -132,8 +133,7 @@ mod tests {
 
             assert!(
                 HttpTransport::validate_origin(&config, &headers).is_ok(),
-                "Origin {} should be allowed",
-                origin
+                "Origin {origin} should be allowed"
             );
         }
     }
@@ -158,8 +158,7 @@ mod tests {
 
             assert!(
                 HttpTransport::validate_origin(&config, &headers).is_err(),
-                "Origin {} should not be allowed",
-                origin
+                "Origin {origin} should not be allowed"
             );
         }
     }
@@ -215,12 +214,11 @@ mod tests {
 
         for token in &config.valid_tokens {
             let mut headers = HeaderMap::new();
-            headers.insert(AUTHORIZATION, format!("Bearer {}", token).parse().unwrap());
+            headers.insert(AUTHORIZATION, format!("Bearer {token}").parse().unwrap());
 
             assert!(
                 HttpTransport::validate_auth(&config, &headers).is_ok(),
-                "Token {} should be valid",
-                token
+                "Token {token} should be valid"
             );
         }
     }
@@ -237,12 +235,11 @@ mod tests {
 
         for token in invalid_tokens {
             let mut headers = HeaderMap::new();
-            headers.insert(AUTHORIZATION, format!("Bearer {}", token).parse().unwrap());
+            headers.insert(AUTHORIZATION, format!("Bearer {token}").parse().unwrap());
 
             assert!(
                 HttpTransport::validate_auth(&config, &headers).is_err(),
-                "Token {} should be invalid",
-                token
+                "Token {token} should be invalid"
             );
         }
     }
@@ -281,8 +278,7 @@ mod tests {
 
             assert!(
                 HttpTransport::validate_auth(&config, &headers).is_err(),
-                "Auth format '{}' should be invalid",
-                auth_value
+                "Auth format '{auth_value}' should be invalid"
             );
         }
     }
@@ -361,8 +357,8 @@ mod tests {
         for config in configs {
             let transport = HttpTransport::with_config(config.clone());
             assert_eq!(transport.config().port, config.port);
-            assert_eq!(transport.config.host, config.host);
-            assert_eq!(transport.config.max_message_size, config.max_message_size);
+            assert_eq!(transport.config().host, config.host);
+            assert_eq!(transport.config().max_message_size, config.max_message_size);
         }
     }
 
@@ -505,10 +501,10 @@ mod tests {
         // Test that config can be used to create transport
         let transport = HttpTransport::with_config(config.clone());
         assert_eq!(transport.config().port, config.port);
-        assert_eq!(transport.config.host, config.host);
+        assert_eq!(transport.config().host, config.host);
 
         // Test debug output
-        let debug_str = format!("{:?}", config);
+        let debug_str = format!("{config:?}");
         assert!(debug_str.contains("HttpConfig"));
     }
 
@@ -538,7 +534,7 @@ mod tests {
     #[test]
     fn test_http_config_debug() {
         let config = HttpConfig::default();
-        let debug_str = format!("{:?}", config);
+        let debug_str = format!("{config:?}");
 
         assert!(debug_str.contains("HttpConfig"));
         assert!(debug_str.contains("port"));
@@ -578,10 +574,10 @@ mod tests {
         let transport1 = HttpTransport::with_config(config1);
         let transport2 = HttpTransport::with_config(config2);
 
-        assert_eq!(transport1.config.port, 9001);
-        assert_eq!(transport2.config.port, 9002);
-        assert!(transport1.config.enable_cors);
-        assert!(!transport2.config.enable_cors);
+        assert_eq!(transport1.config().port, 9001);
+        assert_eq!(transport2.config().port, 9002);
+        assert!(transport1.config().enable_cors);
+        assert!(!transport2.config().enable_cors);
     }
 
     #[test]
@@ -610,7 +606,7 @@ mod tests {
         // We can't easily test the actual binding error without starting the transport,
         // but we can verify the config was set correctly
         assert_eq!(
-            transport.config.host,
+            transport.config().host,
             "invalid-host-name-that-does-not-exist"
         );
     }

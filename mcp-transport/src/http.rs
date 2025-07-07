@@ -222,7 +222,7 @@ impl HttpTransport {
     }
 
     /// Validate origin header
-    fn validate_origin(config: &HttpConfig, headers: &HeaderMap) -> Result<(), TransportError> {
+    pub fn validate_origin(config: &HttpConfig, headers: &HeaderMap) -> Result<(), TransportError> {
         if let Some(allowed_origins) = &config.allowed_origins {
             if let Some(origin) = headers.get(ORIGIN) {
                 let origin_str = origin
@@ -245,7 +245,7 @@ impl HttpTransport {
     }
 
     /// Validate authentication
-    fn validate_auth(config: &HttpConfig, headers: &HeaderMap) -> Result<(), TransportError> {
+    pub fn validate_auth(config: &HttpConfig, headers: &HeaderMap) -> Result<(), TransportError> {
         if !config.require_auth {
             return Ok(());
         }

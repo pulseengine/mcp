@@ -10,6 +10,7 @@ mod tests {
     use tokio::io::{AsyncWriteExt, BufWriter};
 
     // Mock handler for testing
+    #[allow(dead_code)]
     fn mock_handler(
         request: Request,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
@@ -24,6 +25,7 @@ mod tests {
     }
 
     // Error handler for testing
+    #[allow(dead_code)]
     fn error_handler(
         _request: Request,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
@@ -129,9 +131,7 @@ mod tests {
         }
 
         // Set as running
-        transport
-            .running
-            .store(true, std::sync::atomic::Ordering::Relaxed);
+        transport.set_running(true);
         assert!(transport.health_check().await.is_ok());
     }
 
@@ -140,9 +140,7 @@ mod tests {
         let mut transport = StdioTransport::new();
 
         // Start the running flag
-        transport
-            .running
-            .store(true, std::sync::atomic::Ordering::Relaxed);
+        transport.set_running(true);
         assert!(transport.health_check().await.is_ok());
 
         // Stop the transport
@@ -173,7 +171,7 @@ mod tests {
 
         // Mock stdout writing by using a buffer
         stdout
-            .write_all(format!("{}\n", line).as_bytes())
+            .write_all(format!("{line}\n").as_bytes())
             .await
             .unwrap();
         stdout.flush().await.unwrap();
@@ -189,7 +187,7 @@ mod tests {
             max_message_size: 10 * 1024 * 1024,
             validate_messages: false, // Disabled validation
         };
-        let transport = StdioTransport::with_config(config);
+        let _transport = StdioTransport::with_config(config);
         let mut output = Vec::new();
         let mut stdout = BufWriter::new(&mut output);
 
@@ -198,7 +196,7 @@ mod tests {
 
         // Should succeed because validation is disabled
         stdout
-            .write_all(format!("{}\n", line).as_bytes())
+            .write_all(format!("{line}\n").as_bytes())
             .await
             .unwrap();
         stdout.flush().await.unwrap();
@@ -223,7 +221,7 @@ mod tests {
         // Simulate send_response by serializing and writing
         let response_json = serde_json::to_string(&response).unwrap();
         stdout
-            .write_all(format!("{}\n", response_json).as_bytes())
+            .write_all(format!("{response_json}\n").as_bytes())
             .await
             .unwrap();
         stdout.flush().await.unwrap();
@@ -238,7 +236,7 @@ mod tests {
     #[test]
     fn test_stdio_config_debug() {
         let config = StdioConfig::default();
-        let debug_str = format!("{:?}", config);
+        let debug_str = format!("{config:?}");
 
         assert!(debug_str.contains("StdioConfig"));
         assert!(debug_str.contains("max_message_size"));
@@ -275,9 +273,7 @@ mod tests {
     #[tokio::test]
     async fn test_concurrent_health_checks() {
         let transport = Arc::new(StdioTransport::new());
-        transport
-            .running
-            .store(true, std::sync::atomic::Ordering::Relaxed);
+        transport.set_running(true);
 
         // Test concurrent health checks
         let mut handles = Vec::new();
@@ -301,9 +297,7 @@ mod tests {
         assert!(transport.health_check().await.is_err());
 
         // Manually set running
-        transport
-            .running
-            .store(true, std::sync::atomic::Ordering::Relaxed);
+        transport.set_running(true);
         assert!(transport.health_check().await.is_ok());
 
         // Stop transport
@@ -312,9 +306,7 @@ mod tests {
         assert!(transport.health_check().await.is_err());
 
         // Can set running again
-        transport
-            .running
-            .store(true, std::sync::atomic::Ordering::Relaxed);
+        transport.set_running(true);
         assert!(transport.health_check().await.is_ok());
     }
 
@@ -328,20 +320,12 @@ mod tests {
         });
 
         // Each transport should be independent
-        assert!(!transport1
-            .running
-            .load(std::sync::atomic::Ordering::Relaxed));
-        assert!(!transport2
-            .running
-            .load(std::sync::atomic::Ordering::Relaxed));
-        assert!(!transport3
-            .running
-            .load(std::sync::atomic::Ordering::Relaxed));
+        assert!(!transport1.is_running());
+        assert!(!transport2.is_running());
+        assert!(!transport3.is_running());
 
         // Set one as running
-        transport1
-            .running
-            .store(true, std::sync::atomic::Ordering::Relaxed);
+        transport1.set_running(true);
 
         assert!(transport1.health_check().await.is_ok());
         assert!(transport2.health_check().await.is_err());
@@ -353,27 +337,15 @@ mod tests {
         let transport = StdioTransport::new();
 
         // Test different orderings
-        transport
-            .running
-            .store(true, std::sync::atomic::Ordering::Relaxed);
-        assert!(transport.running.load(std::sync::atomic::Ordering::Relaxed));
+        transport.set_running(true);
+        assert!(transport.is_running());
 
-        transport
-            .running
-            .store(false, std::sync::atomic::Ordering::SeqCst);
-        assert!(!transport.running.load(std::sync::atomic::Ordering::SeqCst));
+        transport.set_running(false);
+        assert!(!transport.is_running());
 
-        // Test compare and swap
-        assert!(transport
-            .running
-            .compare_exchange(
-                false,
-                true,
-                std::sync::atomic::Ordering::Relaxed,
-                std::sync::atomic::Ordering::Relaxed
-            )
-            .is_ok());
-        assert!(transport.running.load(std::sync::atomic::Ordering::Relaxed));
+        // Test setting running state again
+        transport.set_running(true);
+        assert!(transport.is_running());
     }
 
     #[tokio::test]
@@ -384,9 +356,7 @@ mod tests {
         assert!(transport.health_check().await.is_err());
 
         // Simulate starting (without actually starting the stdin loop)
-        transport
-            .running
-            .store(true, std::sync::atomic::Ordering::Relaxed);
+        transport.set_running(true);
         assert!(transport.health_check().await.is_ok());
 
         // Stop
@@ -394,9 +364,7 @@ mod tests {
         assert!(transport.health_check().await.is_err());
 
         // Can restart
-        transport
-            .running
-            .store(true, std::sync::atomic::Ordering::Relaxed);
+        transport.set_running(true);
         assert!(transport.health_check().await.is_ok());
     }
 
@@ -408,8 +376,8 @@ mod tests {
             validate_messages: false,
         };
         let transport_min = StdioTransport::with_config(config_min);
-        assert_eq!(transport_min.config.max_message_size, 0);
-        assert!(!transport_min.config.validate_messages);
+        assert_eq!(transport_min.config().max_message_size, 0);
+        assert!(!transport_min.config().validate_messages);
 
         // Test maximum values
         let config_max = StdioConfig {
@@ -417,8 +385,8 @@ mod tests {
             validate_messages: true,
         };
         let transport_max = StdioTransport::with_config(config_max);
-        assert_eq!(transport_max.config.max_message_size, usize::MAX);
-        assert!(transport_max.config.validate_messages);
+        assert_eq!(transport_max.config().max_message_size, usize::MAX);
+        assert!(transport_max.config().validate_messages);
     }
 
     #[test]

@@ -37,6 +37,7 @@ impl Default for StdioConfig {
 /// - Messages must be valid UTF-8
 /// - Supports JSON-RPC batching
 /// - Proper error handling with ID preservation
+#[derive(Debug)]
 pub struct StdioTransport {
     running: Arc<std::sync::atomic::AtomicBool>,
     config: StdioConfig,
@@ -67,6 +68,13 @@ impl StdioTransport {
     /// Check if the transport is running
     pub fn is_running(&self) -> bool {
         self.running.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    /// Set running state (for testing purposes)
+    #[cfg(test)]
+    pub fn set_running(&self, running: bool) {
+        self.running
+            .store(running, std::sync::atomic::Ordering::Relaxed);
     }
 
     /// Process a single line from stdin

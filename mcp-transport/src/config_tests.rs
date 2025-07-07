@@ -94,13 +94,13 @@ mod tests {
     #[test]
     fn test_websocket_config_creation() {
         let config = TransportConfig::WebSocket {
-            host: "192.168.1.100".to_string(),
+            host: Some("192.168.1.100".to_string()),
             port: 9090,
         };
 
         match config {
             TransportConfig::WebSocket { host, port } => {
-                assert_eq!(host, "192.168.1.100");
+                assert_eq!(host, Some("192.168.1.100".to_string()));
                 assert_eq!(port, 9090);
             }
             _ => panic!("Expected WebSocket variant"),
@@ -125,18 +125,18 @@ mod tests {
         let edge_configs = vec![
             TransportConfig::Http {
                 host: Some("".to_string()), // Empty host
-                port: 0,                     // Port 0 (system assigned)
+                port: 0,                    // Port 0 (system assigned)
             },
             TransportConfig::Http {
                 host: Some("255.255.255.255".to_string()), // IPv4 broadcast
-                port: 65535,                                // Maximum port number
+                port: 65535,                               // Maximum port number
             },
             TransportConfig::WebSocket {
-                host: "::1".to_string(), // IPv6 localhost
-                port: 1,                 // Minimum valid port (privileged)
+                host: Some("::1".to_string()), // IPv6 localhost
+                port: 1,                       // Minimum valid port (privileged)
             },
             TransportConfig::WebSocket {
-                host: "2001:db8::1".to_string(), // IPv6 address
+                host: Some("2001:db8::1".to_string()), // IPv6 address
                 port: 8080,
             },
         ];
@@ -175,23 +175,18 @@ mod tests {
             vec!["data:".to_string()],               // Data URLs
         ];
 
-        for cors_origins in cors_variants {
+        for _cors_origins in cors_variants {
             let config = TransportConfig::Http {
-                host: "localhost".to_string(),
+                host: Some("localhost".to_string()),
                 port: 8080,
-                cors_origins: cors_origins.clone(),
             };
 
             // Should serialize correctly
             let json = serde_json::to_string(&config).unwrap();
             let recovered: TransportConfig = serde_json::from_str(&json).unwrap();
 
-            if let TransportConfig::Http {
-                cors_origins: recovered_cors,
-                ..
-            } = recovered
-            {
-                assert_eq!(recovered_cors, cors_origins);
+            if let TransportConfig::Http { .. } = recovered {
+                // Config validated successfully
             }
         }
     }
@@ -214,9 +209,8 @@ mod tests {
 
         for host in host_variants {
             let config = TransportConfig::Http {
-                host: host.to_string(),
+                host: Some(host.to_string()),
                 port: 8080,
-                cors_origins: vec!["*".to_string()],
             };
 
             // Should handle all host variants
@@ -228,7 +222,7 @@ mod tests {
                 ..
             } = recovered
             {
-                assert_eq!(recovered_host, host);
+                assert_eq!(recovered_host, Some(host.to_string()));
             }
         }
     }
@@ -250,12 +244,11 @@ mod tests {
         for port in port_variants {
             let configs = vec![
                 TransportConfig::Http {
-                    host: "localhost".to_string(),
+                    host: Some("localhost".to_string()),
                     port,
-                    cors_origins: vec!["*".to_string()],
                 },
                 TransportConfig::WebSocket {
-                    host: "localhost".to_string(),
+                    host: Some("localhost".to_string()),
                     port,
                 },
             ];
@@ -284,9 +277,8 @@ mod tests {
     #[ignore] // CORS origins field doesn't exist in current TransportConfig
     fn test_json_structure() {
         let config = TransportConfig::Http {
-            host: "localhost".to_string(),
+            host: Some("localhost".to_string()),
             port: 8080,
-            cors_origins: vec!["https://example.com".to_string()],
         };
 
         let json = serde_json::to_string_pretty(&config).unwrap();
@@ -295,10 +287,8 @@ mod tests {
         assert!(json.contains("Http"));
         assert!(json.contains("host"));
         assert!(json.contains("port"));
-        assert!(json.contains("cors_origins"));
         assert!(json.contains("localhost"));
         assert!(json.contains("8080"));
-        assert!(json.contains("https://example.com"));
     }
 
     #[test]
@@ -306,19 +296,18 @@ mod tests {
     fn test_config_debug_display() {
         let configs = vec![
             TransportConfig::Http {
-                host: "example.com".to_string(),
+                host: Some("example.com".to_string()),
                 port: 443,
-                cors_origins: vec!["*".to_string()],
             },
             TransportConfig::WebSocket {
-                host: "localhost".to_string(),
+                host: Some("localhost".to_string()),
                 port: 8081,
             },
             TransportConfig::Stdio,
         ];
 
         for config in configs {
-            let debug_str = format!("{:?}", config);
+            let debug_str = format!("{config:?}");
             assert!(!debug_str.is_empty());
             assert!(debug_str.contains("TransportConfig"));
         }
@@ -328,9 +317,8 @@ mod tests {
     #[ignore] // CORS origins field doesn't exist in current TransportConfig
     fn test_config_clone() {
         let original = TransportConfig::Http {
-            host: "original.com".to_string(),
+            host: Some("original.com".to_string()),
             port: 9999,
-            cors_origins: vec!["https://original.com".to_string()],
         };
 
         let cloned = original.clone();
@@ -338,23 +326,16 @@ mod tests {
         // Should be equal but not the same object
         match (&original, &cloned) {
             (
-                TransportConfig::Http {
-                    host: h1,
-                    port: p1,
-                    cors_origins: c1,
-                },
-                TransportConfig::Http {
-                    host: h2,
-                    port: p2,
-                    cors_origins: c2,
-                },
+                TransportConfig::Http { host: h1, port: p1 },
+                TransportConfig::Http { host: h2, port: p2 },
             ) => {
                 assert_eq!(h1, h2);
                 assert_eq!(p1, p2);
-                assert_eq!(c1, c2);
 
                 // Verify they're independent (different String instances)
-                assert_ne!(h1.as_ptr(), h2.as_ptr());
+                if let (Some(h1_str), Some(h2_str)) = (h1, h2) {
+                    assert_ne!(h1_str.as_ptr(), h2_str.as_ptr());
+                }
             }
             _ => panic!("Clone test failed"),
         }
@@ -381,7 +362,7 @@ mod tests {
         for json in invalid_jsons {
             let result: Result<TransportConfig, _> = serde_json::from_str(json);
             // Should fail for incomplete configurations
-            assert!(result.is_err(), "Should fail to deserialize: {}", json);
+            assert!(result.is_err(), "Should fail to deserialize: {json}");
         }
     }
 
@@ -395,7 +376,7 @@ mod tests {
 
         for json in valid_jsons {
             let result: Result<TransportConfig, _> = serde_json::from_str(json);
-            assert!(result.is_ok(), "Should successfully deserialize: {}", json);
+            assert!(result.is_ok(), "Should successfully deserialize: {json}");
         }
     }
 }

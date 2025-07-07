@@ -91,7 +91,7 @@ mod tests {
     #[test]
     fn test_websocket_transport_debug() {
         let transport = WebSocketTransport::new(3000);
-        let debug_str = format!("{:?}", transport);
+        let debug_str = format!("{transport:?}");
 
         // Should be able to debug print the transport
         assert!(!debug_str.is_empty());
@@ -152,16 +152,12 @@ mod tests {
             })
         }
 
-        let handlers: Vec<
-            Box<
-                dyn Fn(
-                        Request,
-                    )
-                        -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>>
-                    + Send
-                    + Sync,
-            >,
-        > = vec![Box::new(mock_handler), Box::new(error_handler)];
+        type HandlerType = Box<
+            dyn Fn(Request) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>>
+                + Send
+                + Sync,
+        >;
+        let handlers: Vec<HandlerType> = vec![Box::new(mock_handler), Box::new(error_handler)];
 
         for handler in handlers {
             let mut transport = WebSocketTransport::new(8080);
