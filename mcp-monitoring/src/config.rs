@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 /// Monitoring configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct MonitoringConfig {
     /// Enable metrics collection
     pub enabled: bool,
