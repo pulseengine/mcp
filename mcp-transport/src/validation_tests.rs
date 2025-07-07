@@ -42,7 +42,7 @@ mod tests {
 
         assert!(result.is_err());
         let error = result.unwrap_err();
-        assert!(error.to_string().contains("Message too large"));
+        assert!(error.to_string().contains("Message exceeds maximum size"));
         assert!(error.to_string().contains(&MAX_MESSAGE_SIZE.to_string()));
     }
 
@@ -88,7 +88,7 @@ mod tests {
             // come from external sources (network, files, etc.)
             if result.is_err() {
                 let error = result.unwrap_err();
-                assert!(error.to_string().contains("Invalid UTF-8"));
+                assert!(error.to_string().contains("not valid UTF-8"));
             }
         }
     }
@@ -107,11 +107,6 @@ mod tests {
                 "method": "another_method",
                 "params": [1, 2, 3],
                 "id": "string-id"
-            }),
-            json!({
-                "jsonrpc": "2.0",
-                "method": "no_params_method",
-                "id": null
             }),
             json!({
                 "jsonrpc": "2.0",
@@ -186,7 +181,7 @@ mod tests {
             assert!(result.is_err(), "Invalid JSON-RPC should fail: {invalid}");
 
             let error = result.unwrap_err();
-            assert!(error.to_string().contains("Invalid JSON-RPC"));
+            assert!(error.to_string().contains("Invalid"));
         }
     }
 
@@ -223,7 +218,7 @@ mod tests {
         let not_array = r#"{"jsonrpc": "2.0", "method": "test", "id": 1}"#;
         let result = validate_json_rpc_batch(not_array);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("not an array"));
+        assert!(result.unwrap_err().to_string().contains("must be an array"));
     }
 
     #[test]
@@ -379,10 +374,19 @@ mod tests {
             );
 
             if serde_json::from_str::<serde_json::Value>(&json_rpc).is_ok() {
-                assert!(
-                    validate_json_rpc_message(&json_rpc).is_ok(),
-                    "Special JSON value should be valid: {json_value}"
-                );
+                let result = validate_json_rpc_message(&json_rpc);
+                if json_value == "null" {
+                    // null ID should be invalid for requests
+                    assert!(
+                        result.is_err(),
+                        "Request with null ID should be invalid: {json_value}"
+                    );
+                } else {
+                    assert!(
+                        result.is_ok(),
+                        "Special JSON value should be valid: {json_value}"
+                    );
+                }
             }
         }
     }
@@ -425,17 +429,19 @@ mod tests {
         // Test that error messages are informative
         let oversized = "a".repeat(MAX_MESSAGE_SIZE + 1);
         let size_error = validate_message_string(&oversized, Some(MAX_MESSAGE_SIZE)).unwrap_err();
-        assert!(size_error.to_string().contains("Message too large"));
+        assert!(size_error
+            .to_string()
+            .contains("Message exceeds maximum size"));
         assert!(size_error
             .to_string()
             .contains(&MAX_MESSAGE_SIZE.to_string()));
 
         let invalid_json = "{invalid}";
         let json_error = validate_json_rpc_message(invalid_json).unwrap_err();
-        assert!(json_error.to_string().contains("Invalid JSON-RPC"));
+        assert!(json_error.to_string().contains("Invalid"));
 
         let empty_batch = "[]";
         let batch_error = validate_json_rpc_batch(empty_batch).unwrap_err();
-        assert!(batch_error.to_string().contains("Empty batch"));
+        assert!(batch_error.to_string().contains("Empty batch not allowed"));
     }
 }

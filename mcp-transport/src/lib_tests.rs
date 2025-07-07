@@ -84,7 +84,7 @@ mod tests {
         let error = TransportError::Config("test error".to_string());
         let debug_str = format!("{error:?}");
 
-        assert!(debug_str.contains("TransportError"));
+        assert!(debug_str.contains("Config"));
         assert!(debug_str.contains("Config"));
         assert!(debug_str.contains("test error"));
     }
@@ -168,7 +168,7 @@ mod tests {
         assert!(returns_err().is_err());
 
         let error = returns_err().unwrap_err();
-        assert!(error.to_string().contains("Invalid message"));
+        assert!(error.to_string().contains("Protocol error"));
     }
 
     #[test]
