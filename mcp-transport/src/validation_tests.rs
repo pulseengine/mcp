@@ -19,8 +19,8 @@ mod tests {
     #[test]
     fn test_validate_message_size_valid() {
         let valid_messages = vec![
-            "",
-            "short message",
+            "".to_string(),
+            "short message".to_string(),
             "a".repeat(1000),
             "a".repeat(MAX_MESSAGE_SIZE - 1),
             "a".repeat(MAX_MESSAGE_SIZE),
@@ -28,7 +28,7 @@ mod tests {
 
         for message in valid_messages {
             assert!(
-                validate_message_string(&message, Some(MAX_MESSAGE_SIZE)).is_ok(),
+                validate_message_string(message.as_str(), Some(MAX_MESSAGE_SIZE)).is_ok(),
                 "Message of length {} should be valid",
                 message.len()
             );
@@ -62,8 +62,7 @@ mod tests {
         for string in valid_strings {
             assert!(
                 validate_message_string(string, None).is_ok(),
-                "String '{}' should be valid UTF-8",
-                string
+                "String '{string}' should be valid UTF-8"
             );
         }
     }
@@ -125,8 +124,7 @@ mod tests {
             let json_str = serde_json::to_string(&request).unwrap();
             assert!(
                 validate_json_rpc_message(&json_str).is_ok(),
-                "Valid JSON-RPC should pass: {}",
-                json_str
+                "Valid JSON-RPC should pass: {json_str}"
             );
         }
     }
@@ -158,8 +156,7 @@ mod tests {
             let json_str = serde_json::to_string(&response).unwrap();
             assert!(
                 validate_json_rpc_message(&json_str).is_ok(),
-                "Valid JSON-RPC response should pass: {}",
-                json_str
+                "Valid JSON-RPC response should pass: {json_str}"
             );
         }
     }
@@ -186,7 +183,7 @@ mod tests {
 
         for invalid in invalid_messages {
             let result = validate_json_rpc_message(invalid);
-            assert!(result.is_err(), "Invalid JSON-RPC should fail: {}", invalid);
+            assert!(result.is_err(), "Invalid JSON-RPC should fail: {invalid}");
 
             let error = result.unwrap_err();
             assert!(error.to_string().contains("Invalid JSON-RPC"));
@@ -234,26 +231,29 @@ mod tests {
         let test_cases = vec![
             (
                 r#"{"jsonrpc": "2.0", "method": "test", "id": 1}"#,
-                Some("1".to_string()),
+                serde_json::json!(1),
             ),
             (
                 r#"{"jsonrpc": "2.0", "method": "test", "id": "string-id"}"#,
-                Some("string-id".to_string()),
+                serde_json::json!("string-id"),
             ),
             (
                 r#"{"jsonrpc": "2.0", "method": "test", "id": null}"#,
-                Some("null".to_string()),
+                serde_json::Value::Null,
             ),
-            (r#"{"jsonrpc": "2.0", "method": "test"}"#, None), // Notification (no id)
+            (
+                r#"{"jsonrpc": "2.0", "method": "test"}"#,
+                serde_json::Value::Null,
+            ), // Notification (no id)
             (
                 r#"{"jsonrpc": "2.0", "result": "ok", "id": 42}"#,
-                Some("42".to_string()),
+                serde_json::json!(42),
             ),
         ];
 
         for (message, expected) in test_cases {
             let result = extract_id_from_malformed(message);
-            assert_eq!(result, expected, "ID extraction failed for: {}", message);
+            assert_eq!(result, expected, "ID extraction failed for: {message}");
         }
     }
 
@@ -270,11 +270,10 @@ mod tests {
 
         for message in malformed_messages {
             let result = extract_id_from_malformed(message);
-            // Should return None for malformed JSON
+            // Should return Null for malformed JSON
             assert!(
-                result.is_none(),
-                "Should return None for malformed: {}",
-                message
+                result == serde_json::Value::Null,
+                "Should return Null for malformed: {message}"
             );
         }
     }
@@ -342,8 +341,7 @@ mod tests {
         for message in unicode_messages {
             assert!(
                 validate_message_string(message, None).is_ok(),
-                "Unicode message should be valid: {}",
-                message
+                "Unicode message should be valid: {message}"
             );
 
             // Also test as JSON-RPC message
@@ -377,15 +375,13 @@ mod tests {
 
         for (json_value, _expected_str) in special_values {
             let json_rpc = format!(
-                r#"{{"jsonrpc": "2.0", "method": "test", "params": {}, "id": {}}}"#,
-                json_value, json_value
+                r#"{{"jsonrpc": "2.0", "method": "test", "params": {json_value}, "id": {json_value}}}"#
             );
 
-            if let Ok(_) = serde_json::from_str::<serde_json::Value>(&json_rpc) {
+            if serde_json::from_str::<serde_json::Value>(&json_rpc).is_ok() {
                 assert!(
                     validate_json_rpc_message(&json_rpc).is_ok(),
-                    "Special JSON value should be valid: {}",
-                    json_value
+                    "Special JSON value should be valid: {json_value}"
                 );
             }
         }

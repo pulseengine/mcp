@@ -342,7 +342,8 @@ async fn test_server_get_metrics() {
 
     let metrics = server.get_metrics().await;
     // Just verify we can get metrics without error
-    assert!(metrics.requests_total >= 0);
+    // Just verify we can get metrics without error (remove redundant comparison)
+    let _ = metrics.requests_total;
 }
 
 #[tokio::test]
@@ -609,7 +610,7 @@ fn test_health_status_serialization() {
 #[test]
 fn test_server_config_debug() {
     let config = ServerConfig::default();
-    let debug_str = format!("{:?}", config);
+    let debug_str = format!("{config:?}");
     assert!(debug_str.contains("ServerConfig"));
     assert!(debug_str.contains("MCP Server"));
 }
@@ -644,7 +645,7 @@ fn test_server_types_send_sync() {
 #[test]
 fn test_server_error_debug() {
     let err = ServerError::Backend("test".to_string());
-    let debug_str = format!("{:?}", err);
+    let debug_str = format!("{err:?}");
     assert!(debug_str.contains("Backend"));
     assert!(debug_str.contains("test"));
 }

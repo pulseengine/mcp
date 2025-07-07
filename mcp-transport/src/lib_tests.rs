@@ -82,7 +82,7 @@ mod tests {
     #[test]
     fn test_transport_error_debug() {
         let error = TransportError::Config("test error".to_string());
-        let debug_str = format!("{:?}", error);
+        let debug_str = format!("{error:?}");
 
         assert!(debug_str.contains("TransportError"));
         assert!(debug_str.contains("Config"));
@@ -138,7 +138,7 @@ mod tests {
         for config in configs {
             // Should be able to clone and debug print
             let cloned = config.clone();
-            let debug_str = format!("{:?}", cloned);
+            let debug_str = format!("{cloned:?}");
             assert!(!debug_str.is_empty());
         }
     }
@@ -222,7 +222,7 @@ mod tests {
         for config in configs {
             // All configs should be cloneable and debuggable
             let cloned = config.clone();
-            let debug_str = format!("{:?}", cloned);
+            let debug_str = format!("{cloned:?}");
             assert!(!debug_str.is_empty());
         }
     }
@@ -231,7 +231,7 @@ mod tests {
     fn test_transport_error_chaining() {
         // Test error chaining for debugging
         let root_cause = "Network unreachable";
-        let intermediate = format!("Failed to connect: {}", root_cause);
+        let intermediate = format!("Failed to connect: {root_cause}");
         let transport_error = TransportError::Connection(intermediate);
 
         let error_string = transport_error.to_string();

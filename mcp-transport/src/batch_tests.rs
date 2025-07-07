@@ -393,7 +393,7 @@ mod tests {
             has_notifications: false,
         };
 
-        let debug_str = format!("{:?}", batch_result);
+        let debug_str = format!("{batch_result:?}");
         assert!(debug_str.contains("BatchResult"));
         assert!(debug_str.contains("responses"));
         assert!(debug_str.contains("has_notifications"));
@@ -402,11 +402,11 @@ mod tests {
     #[test]
     fn test_jsonrpc_message_debug() {
         let single = JsonRpcMessage::Single(json!({"test": "value"}));
-        let debug_str = format!("{:?}", single);
+        let debug_str = format!("{single:?}");
         assert!(debug_str.contains("Single"));
 
         let batch = JsonRpcMessage::Batch(vec![json!({"test": "value"})]);
-        let debug_str = format!("{:?}", batch);
+        let debug_str = format!("{batch:?}");
         assert!(debug_str.contains("Batch"));
     }
 
