@@ -92,7 +92,7 @@ mod tests {
     fn test_streamable_http_transport_new() {
         let transport = StreamableHttpTransport::new(8080);
 
-        assert_eq!(transport.config.port, 8080);
+        assert_eq!(transport.config().port, 8080);
         assert_eq!(transport.config.host, "127.0.0.1");
         assert!(transport.config.enable_cors);
         assert!(transport.server_handle.is_none());
@@ -104,9 +104,9 @@ mod tests {
 
         for port in ports {
             let transport = StreamableHttpTransport::new(port);
-            assert_eq!(transport.config.port, port);
-            assert_eq!(transport.config.host, "127.0.0.1");
-            assert!(transport.config.enable_cors);
+            assert_eq!(transport.config().port, port);
+            assert_eq!(transport.config().host, "127.0.0.1");
+            assert!(transport.config().enable_cors);
         }
     }
 
@@ -133,7 +133,7 @@ mod tests {
 
         for config in configs {
             let transport = StreamableHttpTransport::new(config.port);
-            assert_eq!(transport.config.port, config.port);
+            assert_eq!(transport.config().port, config.port);
             // Transport should start with default config but with specified port
             assert_eq!(transport.config.host, "127.0.0.1"); // Default host
         }
@@ -188,9 +188,9 @@ mod tests {
 
         for port in ports {
             let transport = StreamableHttpTransport::new(port);
-            assert_eq!(transport.config.port, port);
-            assert_eq!(transport.config.host, "127.0.0.1");
-            assert!(transport.config.enable_cors);
+            assert_eq!(transport.config().port, port);
+            assert_eq!(transport.config().host, "127.0.0.1");
+            assert!(transport.config().enable_cors);
 
             // Health check should fail when not started
             assert!(transport.health_check().await.is_err());
@@ -323,7 +323,7 @@ mod tests {
 
             // Test that transport can be created with this config
             let transport = StreamableHttpTransport::new(port);
-            assert_eq!(transport.config.port, port);
+            assert_eq!(transport.config().port, port);
         }
     }
 
@@ -418,7 +418,7 @@ mod tests {
 
         // Verify transports are independent
         for (i, transport) in transports.iter().enumerate() {
-            assert_eq!(transport.config.port, 18090 + i as u16);
+            assert_eq!(transport.config().port, 18090 + i as u16);
         }
     }
 

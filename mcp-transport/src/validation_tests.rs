@@ -4,7 +4,7 @@
 mod tests {
     use crate::validation::{
         extract_id_from_malformed, validate_json_rpc_batch, validate_json_rpc_message,
-        validate_message_string, ValidationError,
+        validate_message_string,
     };
     use serde_json::json;
 

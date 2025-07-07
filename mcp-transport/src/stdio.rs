@@ -59,6 +59,16 @@ impl StdioTransport {
         }
     }
 
+    /// Get the configuration
+    pub fn config(&self) -> &StdioConfig {
+        &self.config
+    }
+
+    /// Check if the transport is running
+    pub fn is_running(&self) -> bool {
+        self.running.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
     /// Process a single line from stdin
     async fn process_line(
         &self,
