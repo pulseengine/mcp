@@ -136,7 +136,7 @@ fn test_env_utils_get_env_or_default() {
 
     // Test with boolean default
     let result: bool = get_env_or_default("NON_EXISTENT_BOOL_12345", true);
-    assert_eq!(result, true);
+    assert!(result);
 }
 
 #[test]
@@ -219,7 +219,7 @@ fn test_env_utils_get_required_env_valid_type() {
 #[test]
 fn test_logging_config_debug() {
     let config = DefaultLoggingConfig::default();
-    let debug_str = format!("{:?}", config);
+    let debug_str = format!("{config:?}");
 
     assert!(debug_str.contains("DefaultLoggingConfig"));
     assert!(debug_str.contains("info"));

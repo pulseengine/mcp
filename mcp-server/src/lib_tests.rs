@@ -197,15 +197,17 @@ async fn test_integration_backend_creation() {
 #[tokio::test]
 async fn test_integration_server_creation() {
     let backend = IntegrationTestBackend::initialize(()).await.unwrap();
-    let mut config = ServerConfig::default();
-    config.transport_config = TransportConfig::Stdio;
-    config.auth_config = AuthConfig {
-        storage: StorageConfig::Memory,
-        enabled: false,
-        cache_size: 100,
-        session_timeout_secs: 3600,
-        max_failed_attempts: 5,
-        rate_limit_window_secs: 900,
+    let config = ServerConfig {
+        transport_config: TransportConfig::Stdio,
+        auth_config: AuthConfig {
+            storage: StorageConfig::Memory,
+            enabled: false,
+            cache_size: 100,
+            session_timeout_secs: 3600,
+            max_failed_attempts: 5,
+            rate_limit_window_secs: 900,
+        },
+        ..Default::default()
     };
 
     let server = McpServer::new(backend, config).await;

@@ -143,7 +143,7 @@ mod tests {
         let metrics = ServerMetrics {
             requests_total: 1000,
             error_rate: 3.3333333333333335,
-            requests_per_second: 3.141592653589793,
+            requests_per_second: std::f64::consts::PI,
             average_response_time_ms: 123.456789,
             active_connections: 33,
             memory_usage_bytes: 1024,
