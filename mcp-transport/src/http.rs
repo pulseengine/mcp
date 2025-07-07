@@ -345,17 +345,12 @@ async fn handle_post(
     }
 
     // Get session ID from query parameter (MCP standard) or header (fallback)
-    let session_id_from_request = if let Some(id) = query.session_id {
-        Some(id)
-    } else if let Some(id) = headers
-        .get("Mcp-Session-Id")
-        .and_then(|v| v.to_str().ok())
-        .map(|s| s.to_string())
-    {
-        Some(id)
-    } else {
-        None
-    };
+    let session_id_from_request = query.session_id.or_else(|| {
+        headers
+            .get("Mcp-Session-Id")
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string())
+    });
 
     // Ensure session exists (create if needed)
     let session_id = HttpTransport::ensure_session(state.clone(), session_id_from_request).await;
