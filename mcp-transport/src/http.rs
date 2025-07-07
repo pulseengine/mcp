@@ -133,6 +133,21 @@ impl HttpTransport {
         }
     }
 
+    /// Get the configuration
+    pub fn config(&self) -> &HttpConfig {
+        &self.config
+    }
+
+    /// Get the state
+    pub fn state(&self) -> &Option<HttpState> {
+        &self.state
+    }
+
+    /// Get the server handle
+    pub fn server_handle(&self) -> &Option<tokio::task::JoinHandle<()>> {
+        &self.server_handle
+    }
+
     /// Send a message to all connected SSE clients
     pub async fn broadcast_message(&self, message: &str) -> Result<(), TransportError> {
         if let Some(ref state) = self.state {

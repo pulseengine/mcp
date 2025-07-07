@@ -2,7 +2,10 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::validation::{validate_json_rpc_batch, validate_json_rpc_message};
+    use crate::validation::{
+        extract_id_from_malformed, validate_json_rpc_batch, validate_json_rpc_message,
+        validate_message_string, ValidationError,
+    };
     use serde_json::json;
 
     const MAX_MESSAGE_SIZE: usize = 10 * 1024 * 1024; // 10MB
@@ -25,7 +28,7 @@ mod tests {
 
         for message in valid_messages {
             assert!(
-                validate_message_size(&message).is_ok(),
+                validate_message_string(&message, Some(MAX_MESSAGE_SIZE)).is_ok(),
                 "Message of length {} should be valid",
                 message.len()
             );
@@ -35,7 +38,7 @@ mod tests {
     #[test]
     fn test_validate_message_size_invalid() {
         let oversized_message = "a".repeat(MAX_MESSAGE_SIZE + 1);
-        let result = validate_message_size(&oversized_message);
+        let result = validate_message_string(&oversized_message, Some(MAX_MESSAGE_SIZE));
 
         assert!(result.is_err());
         let error = result.unwrap_err();
@@ -58,7 +61,7 @@ mod tests {
 
         for string in valid_strings {
             assert!(
-                validate_utf8(string).is_ok(),
+                validate_message_string(string, None).is_ok(),
                 "String '{}' should be valid UTF-8",
                 string
             );
@@ -79,7 +82,7 @@ mod tests {
         for bytes in invalid_sequences {
             // Create string from invalid UTF-8 bytes
             let invalid_str = unsafe { String::from_utf8_unchecked(bytes) };
-            let result = validate_utf8(&invalid_str);
+            let result = validate_message_string(&invalid_str, None);
 
             // Note: Rust's String type actually ensures valid UTF-8,
             // so this test may pass. In practice, invalid UTF-8 would
@@ -249,7 +252,7 @@ mod tests {
         ];
 
         for (message, expected) in test_cases {
-            let result = extract_request_id(message);
+            let result = extract_id_from_malformed(message);
             assert_eq!(result, expected, "ID extraction failed for: {}", message);
         }
     }
@@ -266,7 +269,7 @@ mod tests {
         ];
 
         for message in malformed_messages {
-            let result = extract_request_id(message);
+            let result = extract_id_from_malformed(message);
             // Should return None for malformed JSON
             assert!(
                 result.is_none(),
@@ -314,12 +317,12 @@ mod tests {
         );
 
         if at_limit_message.len() <= MAX_MESSAGE_SIZE {
-            assert!(validate_message_size(&at_limit_message).is_ok());
+            assert!(validate_message_string(&at_limit_message, Some(MAX_MESSAGE_SIZE)).is_ok());
         }
 
         // Test message over the limit
         let over_limit_message = "a".repeat(MAX_MESSAGE_SIZE + 1);
-        assert!(validate_message_size(&over_limit_message).is_err());
+        assert!(validate_message_string(&over_limit_message, Some(MAX_MESSAGE_SIZE)).is_err());
     }
 
     #[test]
@@ -338,7 +341,7 @@ mod tests {
 
         for message in unicode_messages {
             assert!(
-                validate_utf8(message).is_ok(),
+                validate_message_string(message, None).is_ok(),
                 "Unicode message should be valid: {}",
                 message
             );
@@ -349,7 +352,7 @@ mod tests {
                 message.replace('"', r#"\""#)
             );
 
-            if validate_message_size(&json_rpc).is_ok() {
+            if validate_message_string(&json_rpc, Some(MAX_MESSAGE_SIZE)).is_ok() {
                 assert!(
                     validate_json_rpc_message(&json_rpc).is_ok(),
                     "Unicode JSON-RPC should be valid"
@@ -372,7 +375,7 @@ mod tests {
             ("{}", "{}"),
         ];
 
-        for (json_value, expected_str) in special_values {
+        for (json_value, _expected_str) in special_values {
             let json_rpc = format!(
                 r#"{{"jsonrpc": "2.0", "method": "test", "params": {}, "id": {}}}"#,
                 json_value, json_value
@@ -425,7 +428,7 @@ mod tests {
     fn test_validation_error_messages() {
         // Test that error messages are informative
         let oversized = "a".repeat(MAX_MESSAGE_SIZE + 1);
-        let size_error = validate_message_size(&oversized).unwrap_err();
+        let size_error = validate_message_string(&oversized, Some(MAX_MESSAGE_SIZE)).unwrap_err();
         assert!(size_error.to_string().contains("Message too large"));
         assert!(size_error
             .to_string()

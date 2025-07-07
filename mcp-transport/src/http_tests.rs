@@ -83,10 +83,10 @@ mod tests {
     fn test_http_transport_new() {
         let transport = HttpTransport::new(8080);
 
-        assert_eq!(transport.config.port, 8080);
-        assert_eq!(transport.config.host, "127.0.0.1");
-        assert!(transport.state.is_none());
-        assert!(transport.server_handle.is_none());
+        assert_eq!(transport.config().port, 8080);
+        assert_eq!(transport.config().host, "127.0.0.1");
+        assert!(transport.state().is_none());
+        assert!(transport.server_handle().is_none());
     }
 
     #[test]
@@ -105,7 +105,7 @@ mod tests {
 
         let transport = HttpTransport::with_config(config.clone());
 
-        assert_eq!(transport.config.port, 9000);
+        assert_eq!(transport.config().port, 9000);
         assert_eq!(transport.config.host, "192.168.1.1");
         assert_eq!(transport.config.max_message_size, 2048);
         assert!(!transport.config.enable_cors);
@@ -360,7 +360,7 @@ mod tests {
 
         for config in configs {
             let transport = HttpTransport::with_config(config.clone());
-            assert_eq!(transport.config.port, config.port);
+            assert_eq!(transport.config().port, config.port);
             assert_eq!(transport.config.host, config.host);
             assert_eq!(transport.config.max_message_size, config.max_message_size);
         }
@@ -504,7 +504,7 @@ mod tests {
 
         // Test that config can be used to create transport
         let transport = HttpTransport::with_config(config.clone());
-        assert_eq!(transport.config.port, config.port);
+        assert_eq!(transport.config().port, config.port);
         assert_eq!(transport.config.host, config.host);
 
         // Test debug output
@@ -557,7 +557,7 @@ mod tests {
 
         // Each transport should be independent
         for (i, transport) in transports.iter().enumerate() {
-            assert_eq!(transport.config.port, 18086 + i as u16);
+            assert_eq!(transport.config().port, 18086 + i as u16);
             assert!(transport.health_check().await.is_err()); // Not started
         }
 

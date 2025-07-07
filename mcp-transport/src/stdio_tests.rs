@@ -189,7 +189,7 @@ mod tests {
             max_message_size: 10 * 1024 * 1024,
             validate_messages: false, // Disabled validation
         };
-        let transport = StdioTransport::with_config(config);
+        let _transport = StdioTransport::with_config(config);
         let mut output = Vec::new();
         let mut stdout = BufWriter::new(&mut output);
 
@@ -440,7 +440,7 @@ mod tests {
                 max_message_size: size,
                 validate_messages: true,
             };
-            let transport = StdioTransport::with_config(config);
+            let _transport = StdioTransport::with_config(config);
 
             assert_eq!(transport.config.max_message_size, size);
             assert!(transport.config.validate_messages);
@@ -457,7 +457,7 @@ mod tests {
                 max_message_size: 1024,
                 validate_messages: validate,
             };
-            let transport = StdioTransport::with_config(config);
+            let _transport = StdioTransport::with_config(config);
 
             assert_eq!(transport.config.validate_messages, validate);
             assert_eq!(transport.config.max_message_size, 1024);
