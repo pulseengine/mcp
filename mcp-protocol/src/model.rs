@@ -72,31 +72,41 @@ pub struct Implementation {
 /// Server capabilities configuration
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ServerCapabilities {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tools: Option<ToolsCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub resources: Option<ResourcesCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub prompts: Option<PromptsCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub logging: Option<LoggingCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub sampling: Option<SamplingCapability>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ToolsCapability {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub list_changed: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ResourcesCapability {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub subscribe: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub list_changed: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PromptsCapability {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub list_changed: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct LoggingCapability {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub level: Option<String>,
 }
 
@@ -466,6 +476,7 @@ pub struct InitializeResult {
     pub capabilities: ServerCapabilities,
     #[serde(rename = "serverInfo")]
     pub server_info: Implementation,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub instructions: Option<String>,
 }
 
