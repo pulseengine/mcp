@@ -140,8 +140,13 @@ mod tests {
         };
         let collector = MetricsCollector::new(config);
         let context = create_test_context();
-        let response = create_success_response();
 
+        // First process a request
+        let request = create_test_request("test_method");
+        collector.process_request(request, &context).unwrap();
+
+        // Then process a success response
+        let response = create_success_response();
         let result = collector.process_response(response.clone(), &context);
         assert!(result.is_ok());
 
@@ -150,6 +155,7 @@ mod tests {
         assert_eq!(returned_response.result, response.result);
 
         let metrics = collector.get_current_metrics();
+        assert_eq!(metrics.requests_total, 1);
         assert_eq!(metrics.error_rate, 0.0); // Success response should not increment error rate
     }
 
@@ -161,13 +167,19 @@ mod tests {
         };
         let collector = MetricsCollector::new(config);
         let context = create_test_context();
-        let response = create_error_response();
 
+        // First process a request
+        let request = create_test_request("test_method");
+        collector.process_request(request, &context).unwrap();
+
+        // Then process an error response
+        let response = create_error_response();
         let result = collector.process_response(response.clone(), &context);
         assert!(result.is_ok());
 
         let metrics = collector.get_current_metrics();
-        assert!(metrics.error_rate > 0.0); // Error response should increment error rate
+        assert_eq!(metrics.requests_total, 1);
+        assert_eq!(metrics.error_rate, 1.0); // 1 error out of 1 request = 100% error rate
     }
 
     #[tokio::test]
@@ -242,11 +254,12 @@ mod tests {
         // Uptime should be reasonable (note: u64 is always >= 0)
         assert!(initial_uptime < u64::MAX);
 
-        // Wait a bit and check uptime increases
-        tokio::time::sleep(Duration::from_millis(100)).await;
+        // Wait at least 1 second to ensure uptime increases
+        tokio::time::sleep(Duration::from_secs(1)).await;
 
         let later_uptime = collector.get_uptime_seconds();
         assert!(later_uptime > initial_uptime);
+        assert!(later_uptime >= 1); // Should be at least 1 second
 
         // Check that metrics uptime matches
         let metrics = collector.get_current_metrics();
@@ -266,19 +279,21 @@ mod tests {
         let collector = MetricsCollector::new(config);
         let context = create_test_context();
 
+        // Wait at least 1 second to ensure uptime > 0
+        tokio::time::sleep(Duration::from_secs(1)).await;
+
         // Process some requests
         for i in 0..5 {
             let request = create_test_request(&format!("method_{i}"));
             collector.process_request(request, &context).unwrap();
         }
 
-        // Wait a bit to get meaningful rate calculation
-        tokio::time::sleep(Duration::from_millis(100)).await;
-
         let metrics = collector.get_current_metrics();
         assert_eq!(metrics.requests_total, 5);
         assert!(metrics.requests_per_second > 0.0);
         assert!(metrics.uptime_seconds > 0);
+        // Verify the calculation is reasonable (5 requests in ~0.1 seconds = ~50 rps)
+        assert!(metrics.requests_per_second <= 100.0); // Should not be unreasonably high
     }
 
     #[tokio::test]
@@ -322,11 +337,16 @@ mod tests {
         let mut handles = vec![];
 
         // Spawn multiple tasks processing responses concurrently
-        for _i in 0..10 {
+        for i in 0..10 {
             let collector_clone = Arc::clone(&collector);
             let handle = tokio::spawn(async move {
                 let context = create_test_context();
                 for j in 0..5 {
+                    // First process the request
+                    let request = create_test_request(&format!("method_{i}_{j}"));
+                    collector_clone.process_request(request, &context).unwrap();
+
+                    // Then process the response
                     let response = if j % 2 == 0 {
                         create_success_response()
                     } else {
@@ -347,6 +367,9 @@ mod tests {
 
         let metrics = collector.get_current_metrics();
         assert!(metrics.error_rate > 0.0); // Should have error rate from concurrent errors
+        assert_eq!(metrics.requests_total, 50); // 10 tasks * 5 requests each
+                                                // Approximately 50% error rate since j % 2 == 0 determines success/error
+        assert!(metrics.error_rate >= 0.4 && metrics.error_rate <= 0.6);
     }
 
     #[tokio::test]
@@ -420,6 +443,9 @@ mod tests {
         };
         let collector = MetricsCollector::new(config);
         let context = create_test_context();
+
+        // Wait at least 1 second to ensure uptime > 0
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
         // Process a large number of requests
         let large_count = 10000;

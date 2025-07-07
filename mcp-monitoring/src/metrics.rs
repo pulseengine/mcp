@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 /// Server metrics data
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct ServerMetrics {
     pub requests_total: u64,
     pub requests_per_second: f64,
