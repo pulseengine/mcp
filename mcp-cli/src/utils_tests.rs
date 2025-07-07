@@ -407,10 +407,18 @@ fn test_cargo_toml_debug() {
 #[test]
 fn test_path_operations() {
     // Test that Path operations work correctly
+    #[cfg(unix)]
     let path = Path::new("/tmp/test.txt");
+    #[cfg(windows)]
+    let path = Path::new("C:\\temp\\test.txt");
+
     assert_eq!(path.file_name().unwrap(), "test.txt");
 
+    #[cfg(unix)]
     let path = Path::new("/tmp/");
+    #[cfg(windows)]
+    let path = Path::new("C:\\");
+
     assert!(path.is_absolute());
 }
 
