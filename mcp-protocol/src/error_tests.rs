@@ -66,14 +66,14 @@ mod tests {
         for (code, expected_value) in codes {
             let error = Error::new(code, "test");
             let serialized = serde_json::to_string(&error).unwrap();
-            assert!(serialized.contains(&format!("\"code\":\"{}\"", expected_value)));
+            assert!(serialized.contains(&format!("\"code\":\"{expected_value}\"")));
         }
     }
 
     #[test]
     fn test_error_display() {
         let error = Error::new(ErrorCode::InvalidRequest, "Bad request");
-        let display = format!("{}", error);
+        let display = format!("{error}");
         assert!(display.contains("InvalidRequest"));
         assert!(display.contains("Bad request"));
     }
@@ -85,7 +85,7 @@ mod tests {
             "Missing param",
             json!({"param": "id"}),
         );
-        let debug = format!("{:?}", error);
+        let debug = format!("{error:?}");
         assert!(debug.contains("Error"));
         assert!(debug.contains("InvalidParams"));
         assert!(debug.contains("Missing param"));

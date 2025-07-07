@@ -437,7 +437,7 @@ fn test_feature_flags() {
     // This is more of a compilation test
 
     let _config = ServerConfig::default();
-    assert!(true); // If we reach here, compilation succeeded
+    // If we reach here, compilation succeeded
 }
 
 #[test]
@@ -476,5 +476,5 @@ fn test_documentation_examples() {
     let _backend = DocExampleBackend;
     let _config = ServerConfig::default();
 
-    assert!(true);
+    // Tests pass if they compile
 }

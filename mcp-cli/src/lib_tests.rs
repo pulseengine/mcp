@@ -130,7 +130,7 @@ fn test_mcp_configuration_validation_failure() {
 #[test]
 fn test_cli_error_debug() {
     let err = CliError::configuration("test message");
-    let debug_str = format!("{:?}", err);
+    let debug_str = format!("{err:?}");
     assert!(debug_str.contains("Configuration"));
     assert!(debug_str.contains("test message"));
 }
