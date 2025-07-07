@@ -275,6 +275,7 @@ impl HttpTransport {
 /// Query parameters for POST messages endpoint
 #[derive(Debug, Deserialize)]
 struct PostQuery {
+    #[serde(alias = "sessionId")]
     session_id: Option<String>,
 }
 
@@ -375,24 +376,29 @@ async fn handle_post(
                 .and_then(|v| v.to_str().ok())
                 .unwrap_or("");
 
-            // Determine transport mode based on Accept header priority
-            // MCP Inspector often sends "application/json, text/event-stream" but expects JSON responses
-            // If "application/json" appears first or is the only content type, use streamable HTTP
-            let wants_json_response = if accept_header.starts_with("application/json") {
-                true // JSON is the primary preference
-            } else if accept_header.contains("application/json")
-                && accept_header.contains("text/event-stream")
-            {
-                // Mixed headers - check which appears first (client preference)
-                let json_pos = accept_header.find("application/json").unwrap_or(usize::MAX);
-                let sse_pos = accept_header
-                    .find("text/event-stream")
-                    .unwrap_or(usize::MAX);
-                json_pos < sse_pos // Use JSON if it appears first
+            // Determine transport mode based on Accept header
+            // MCP Inspector sends:
+            // - SSE mode: "text/event-stream"
+            // - Streamable HTTP mode: "text/event-stream, application/json"
+            debug!("Received Accept header: '{}'", accept_header);
+
+            let wants_json_response = if accept_header.contains("application/json") {
+                // If both are present, this is streamable HTTP mode from MCP Inspector
+                // For "text/event-stream, application/json" - this is streamable HTTP
+                true
             } else {
-                accept_header.contains("application/json")
-                    && !accept_header.contains("text/event-stream")
+                // Only "text/event-stream" or no JSON at all - use SSE mode
+                false
             };
+
+            debug!(
+                "Transport mode selected: {}",
+                if wants_json_response {
+                    "streamable-http"
+                } else {
+                    "sse"
+                }
+            );
 
             if wants_json_response {
                 // New Streamable HTTP transport - return response directly
@@ -486,8 +492,7 @@ async fn handle_post(
                     .get("accept")
                     .and_then(|v| v.to_str().ok())
                     .unwrap_or("");
-                let wants_json_response = accept_header.contains("application/json")
-                    && !accept_header.contains("text/event-stream");
+                let wants_json_response = accept_header.contains("application/json");
 
                 if wants_json_response {
                     // New Streamable HTTP transport - return error directly
@@ -615,7 +620,8 @@ async fn handle_sse(
         let mut event_counter = 0u64;
 
         // Send "endpoint" event first (as per official MCP SDK)
-        let endpoint_url = format!("/messages?session_id={session_id}");
+        // Use camelCase sessionId to match MCP Inspector expectations
+        let endpoint_url = format!("/messages?sessionId={session_id}");
         info!("Sending 'endpoint' event for session: {} with URL: {}", session_id, endpoint_url);
         event_counter += 1;
         yield Ok::<_, axum::Error>(Event::default()
