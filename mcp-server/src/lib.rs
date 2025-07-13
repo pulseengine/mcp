@@ -66,12 +66,115 @@
 //!     Ok(())
 //! }
 //! ```
+//!
+//! # Authentication Options
+//!
+//! The server supports multiple authentication backends for different deployment scenarios:
+//!
+//! ## File-based Authentication (Default)
+//!
+//! ```rust,ignore
+//! use pulseengine_mcp_server::{McpServer, ServerConfig, AuthConfig};
+//! use pulseengine_mcp_auth::config::StorageConfig;
+//! use std::path::PathBuf;
+//!
+//! let auth_config = AuthConfig {
+//!     storage: StorageConfig::File {
+//!         path: PathBuf::from("~/.pulseengine/mcp-auth/keys.enc"),
+//!         file_permissions: 0o600,
+//!         dir_permissions: 0o700,
+//!         require_secure_filesystem: true,
+//!         enable_filesystem_monitoring: false,
+//!     },
+//!     enabled: true,
+//!     // ... other config
+//! };
+//!
+//! let server_config = ServerConfig {
+//!     auth_config: Some(auth_config),
+//!     // ... other config
+//! };
+//! ```
+//!
+//! ## Environment Variable Authentication
+//!
+//! For containerized deployments without filesystem access:
+//!
+//! ```rust,ignore
+//! use pulseengine_mcp_server::{McpServer, ServerConfig, AuthConfig};
+//! use pulseengine_mcp_auth::config::StorageConfig;
+//!
+//! let auth_config = AuthConfig {
+//!     storage: StorageConfig::Environment {
+//!         prefix: "MCP_AUTH".to_string(),
+//!     },
+//!     enabled: true,
+//!     // ... other config
+//! };
+//!
+//! // Set environment variables:
+//! // MCP_AUTH_API_KEY_ADMIN_1=admin-key-12345
+//! // MCP_AUTH_API_KEY_OPERATOR_1=operator-key-67890
+//! ```
+//!
+//! ## Memory-Only Authentication
+//!
+//! For temporary deployments where keys don't need persistence:
+//!
+//! ```rust,ignore
+//! use pulseengine_mcp_server::{McpServer, ServerConfig, AuthConfig};
+//! use pulseengine_mcp_auth::{config::StorageConfig, types::{ApiKey, Role}};
+//! use std::collections::HashMap;
+//!
+//! // Create memory-only auth config
+//! let auth_config = AuthConfig::memory();
+//!
+//! let server_config = ServerConfig {
+//!     auth_config: Some(auth_config),
+//!     // ... other config
+//! };
+//!
+//! // Add API keys programmatically during runtime
+//! let api_key = ApiKey {
+//!     id: "temp_key_1".to_string(),
+//!     key: "temporary-secret-key".to_string(),
+//!     role: Role::Admin,
+//!     created_at: chrono::Utc::now(),
+//!     last_used: None,
+//!     permissions: vec![],
+//!     rate_limit: None,
+//!     ip_whitelist: None,
+//!     expires_at: None,
+//!     metadata: HashMap::new(),
+//! };
+//!
+//! // Add to server's auth manager after initialization
+//! server.auth_manager().save_api_key(&api_key).await?;
+//! ```
+//!
+//! ## Disabled Authentication
+//!
+//! For development or trusted environments:
+//!
+//! ```rust,ignore
+//! let auth_config = AuthConfig::disabled();
+//! let server_config = ServerConfig {
+//!     auth_config: Some(auth_config),
+//!     // ... other config
+//! };
+//! ```
 
 pub mod backend;
 pub mod context;
 pub mod handler;
 pub mod middleware;
 pub mod server;
+
+// Endpoint modules
+pub mod alerting_endpoint;
+pub mod dashboard_endpoint;
+pub mod health_endpoint;
+pub mod metrics_endpoint;
 
 // Test modules
 #[cfg(test)]
