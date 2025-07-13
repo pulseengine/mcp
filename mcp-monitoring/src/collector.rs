@@ -170,7 +170,7 @@ impl MetricsCollector {
         Ok(response)
     }
 
-    pub fn get_current_metrics(&self) -> ServerMetrics {
+    pub async fn get_current_metrics(&self) -> ServerMetrics {
         let uptime_seconds = self.start_time.elapsed().as_secs();
         let requests_total = self.request_count.load(Ordering::Relaxed);
         let errors_total = self.error_count.load(Ordering::Relaxed);
@@ -178,7 +178,7 @@ impl MetricsCollector {
 
         // Get system metrics
         let memory_usage_bytes = if self.config.enabled {
-            let sys = self.system.blocking_read();
+            let sys = self.system.read().await;
             // Get total system used memory
             sys.used_memory()
         } else {

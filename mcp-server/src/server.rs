@@ -416,7 +416,7 @@ impl<B: McpBackend + 'static> McpServer<B> {
 
     /// Get server metrics
     pub async fn get_metrics(&self) -> ServerMetrics {
-        self.monitoring_metrics.get_current_metrics()
+        self.monitoring_metrics.get_current_metrics().await
     }
 
     /// Get server information

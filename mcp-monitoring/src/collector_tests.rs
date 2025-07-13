@@ -51,7 +51,7 @@ mod tests {
         };
         let collector = MetricsCollector::new(config);
 
-        let metrics = collector.get_current_metrics();
+        let metrics = collector.get_current_metrics().await;
         assert_eq!(metrics.requests_total, 0);
         assert_eq!(metrics.error_rate, 0.0);
         assert_eq!(metrics.requests_per_second, 0.0);
@@ -68,7 +68,7 @@ mod tests {
         };
         let collector = MetricsCollector::new(config);
 
-        let metrics = collector.get_current_metrics();
+        let metrics = collector.get_current_metrics().await;
         // Should still return metrics even when disabled
         assert_eq!(metrics.requests_total, 0);
         assert_eq!(metrics.error_rate, 0.0);
@@ -91,7 +91,7 @@ mod tests {
         assert_eq!(returned_request.method, request.method);
         assert_eq!(returned_request.jsonrpc, request.jsonrpc);
 
-        let metrics = collector.get_current_metrics();
+        let metrics = collector.get_current_metrics().await;
         assert_eq!(metrics.requests_total, 1);
     }
 
@@ -108,7 +108,7 @@ mod tests {
         let result = collector.process_request(request.clone(), &context);
         assert!(result.is_ok());
 
-        let metrics = collector.get_current_metrics();
+        let metrics = collector.get_current_metrics().await;
         assert_eq!(metrics.requests_total, 0); // Should not increment when disabled
     }
 
@@ -128,7 +128,7 @@ mod tests {
             assert!(result.is_ok());
         }
 
-        let metrics = collector.get_current_metrics();
+        let metrics = collector.get_current_metrics().await;
         assert_eq!(metrics.requests_total, 10);
     }
 
@@ -154,7 +154,7 @@ mod tests {
         assert_eq!(returned_response.jsonrpc, response.jsonrpc);
         assert_eq!(returned_response.result, response.result);
 
-        let metrics = collector.get_current_metrics();
+        let metrics = collector.get_current_metrics().await;
         assert_eq!(metrics.requests_total, 1);
         assert_eq!(metrics.error_rate, 0.0); // Success response should not increment error rate
     }
@@ -177,7 +177,7 @@ mod tests {
         let result = collector.process_response(response.clone(), &context);
         assert!(result.is_ok());
 
-        let metrics = collector.get_current_metrics();
+        let metrics = collector.get_current_metrics().await;
         assert_eq!(metrics.requests_total, 1);
         assert_eq!(metrics.error_rate, 1.0); // 1 error out of 1 request = 100% error rate
     }
@@ -195,7 +195,7 @@ mod tests {
         let result = collector.process_response(response, &context);
         assert!(result.is_ok());
 
-        let metrics = collector.get_current_metrics();
+        let metrics = collector.get_current_metrics().await;
         assert_eq!(metrics.error_rate, 0.0); // Should not increment when disabled
     }
 
@@ -222,7 +222,7 @@ mod tests {
             collector.process_response(response, &context).unwrap();
         }
 
-        let metrics = collector.get_current_metrics();
+        let metrics = collector.get_current_metrics().await;
         assert_eq!(metrics.requests_total, 10);
         assert!(metrics.error_rate > 0.0); // Should have error rate with some errors
         assert!(metrics.error_rate > 0.0); // Should have non-zero error rate
@@ -236,7 +236,7 @@ mod tests {
         };
         let collector = MetricsCollector::new(config);
 
-        let metrics = collector.get_current_metrics();
+        let metrics = collector.get_current_metrics().await;
         // Should handle division by zero gracefully
         assert_eq!(metrics.error_rate, 0.0);
         assert_eq!(metrics.requests_per_second, 0.0);
@@ -262,7 +262,7 @@ mod tests {
         assert!(later_uptime >= 1); // Should be at least 1 second
 
         // Check that metrics uptime matches
-        let metrics = collector.get_current_metrics();
+        let metrics = collector.get_current_metrics().await;
         let uptime_diff = metrics.uptime_seconds.abs_diff(later_uptime);
         assert!(
             uptime_diff < 1,
@@ -288,7 +288,7 @@ mod tests {
             collector.process_request(request, &context).unwrap();
         }
 
-        let metrics = collector.get_current_metrics();
+        let metrics = collector.get_current_metrics().await;
         assert_eq!(metrics.requests_total, 5);
         assert!(metrics.requests_per_second > 0.0);
         assert!(metrics.uptime_seconds > 0);
@@ -323,7 +323,7 @@ mod tests {
             handle.await.unwrap();
         }
 
-        let metrics = collector.get_current_metrics();
+        let metrics = collector.get_current_metrics().await;
         assert_eq!(metrics.requests_total, 100);
     }
 
@@ -365,7 +365,7 @@ mod tests {
             handle.await.unwrap();
         }
 
-        let metrics = collector.get_current_metrics();
+        let metrics = collector.get_current_metrics().await;
         assert!(metrics.error_rate > 0.0); // Should have error rate from concurrent errors
         assert_eq!(metrics.requests_total, 50); // 10 tasks * 5 requests each
                                                 // Approximately 50% error rate since j % 2 == 0 determines success/error
@@ -431,7 +431,7 @@ mod tests {
             assert!(result.is_ok());
         }
 
-        let metrics = collector.get_current_metrics();
+        let metrics = collector.get_current_metrics().await;
         assert_eq!(metrics.requests_total, 2);
     }
 
@@ -454,7 +454,7 @@ mod tests {
             collector.process_request(request, &context).unwrap();
         }
 
-        let metrics = collector.get_current_metrics();
+        let metrics = collector.get_current_metrics().await;
         assert_eq!(metrics.requests_total, large_count);
         assert!(metrics.requests_per_second > 0.0);
     }
@@ -469,7 +469,7 @@ mod tests {
         let context = create_test_context();
 
         // Initial state
-        let initial_metrics = collector.get_current_metrics();
+        let initial_metrics = collector.get_current_metrics().await;
         assert_eq!(initial_metrics.requests_total, 0);
         assert_eq!(initial_metrics.error_rate, 0.0);
 
@@ -479,7 +479,7 @@ mod tests {
             collector.process_request(request, &context).unwrap();
         }
 
-        let after_requests = collector.get_current_metrics();
+        let after_requests = collector.get_current_metrics().await;
         assert_eq!(after_requests.requests_total, 5);
         assert_eq!(after_requests.error_rate, 0.0);
 
@@ -489,7 +489,7 @@ mod tests {
             collector.process_response(response, &context).unwrap();
         }
 
-        let final_metrics = collector.get_current_metrics();
+        let final_metrics = collector.get_current_metrics().await;
         assert_eq!(final_metrics.requests_total, 5);
         assert!(final_metrics.error_rate > 0.0); // Should have error rate
         assert!(final_metrics.error_rate > 0.0); // Should have non-zero error rate
