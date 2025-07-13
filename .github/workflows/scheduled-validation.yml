@@ -65,7 +65,7 @@ jobs:
           filename=$(echo "$server" | sed 's/[^a-zA-Z0-9]/_/g')
           
           # Run validation
-          ./target/release/mcp-validate "$server" --all \
+          ./target/release/mcp-validate --server-url "$server" --all \
             --output "validation-results/${filename}.json" \
             --timeout 30 || true
         done
