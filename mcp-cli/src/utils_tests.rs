@@ -156,16 +156,34 @@ name = "invalid"
 
 #[test]
 fn test_find_cargo_toml_current_dir() {
-    // This test assumes we're running in a directory with a Cargo.toml
-    let result = find_cargo_toml();
+    // This test creates its own environment to be robust across different CI environments
+    let temp_dir = TempDir::new().unwrap();
+    let project_dir = temp_dir.path().join("project");
+    fs::create_dir_all(&project_dir).unwrap();
 
-    // Should find the Cargo.toml in the project root or current directory
+    // Create a Cargo.toml in the project directory
+    let cargo_toml_path = project_dir.join("Cargo.toml");
+    fs::write(
+        &cargo_toml_path,
+        "[package]\nname = \"test-project\"\nversion = \"1.0.0\"",
+    )
+    .unwrap();
+
+    // Change to the project directory temporarily
+    let original_dir = std::env::current_dir().unwrap();
+    std::env::set_current_dir(&project_dir).unwrap();
+
+    // Should find the Cargo.toml in the current directory
+    let result = find_cargo_toml();
     assert!(result.is_ok());
 
     let path = result.unwrap();
     assert!(path.exists());
     assert!(path.is_file());
     assert_eq!(path.file_name().unwrap(), "Cargo.toml");
+
+    // Restore original directory
+    std::env::set_current_dir(original_dir).unwrap();
 }
 
 #[test]
