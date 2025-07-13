@@ -193,11 +193,11 @@ fn test_find_cargo_toml_in_temp_dir() {
     // Verify temp directory is empty (no Cargo.toml)
     let cargo_toml_path = temp_dir.path().join("Cargo.toml");
     assert!(!cargo_toml_path.exists());
-    
+
     // Test that the temp directory exists but has no Cargo.toml
     assert!(temp_dir.path().exists());
     assert!(temp_dir.path().is_dir());
-    
+
     // This validates the expected behavior without changing global state
     // Note: We can't easily test find_cargo_toml() here without changing directories
     // The original functionality would fail to find Cargo.toml in this empty directory
@@ -221,15 +221,15 @@ fn test_find_cargo_toml_with_hierarchy() {
 
     // Use a test approach that doesn't rely on changing global current directory
     // Instead, test the cargo search logic by creating a function that takes a start path
-    
+
     // For now, we'll test that the Cargo.toml was created correctly
     assert!(cargo_toml_path.exists());
     assert!(cargo_toml_path.is_file());
-    
+
     // And that the directory structure was created
     assert!(sub_sub_dir.exists());
     assert!(sub_sub_dir.is_dir());
-    
+
     // This validates the test setup without relying on global state
     // Note: A more robust implementation would modify find_cargo_toml to accept a starting path
 }
