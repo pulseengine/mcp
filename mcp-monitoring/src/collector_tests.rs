@@ -381,17 +381,17 @@ mod tests {
         let collector = MetricsCollector::new(config);
 
         // Test start collection
-        collector.start_collection();
+        collector.start_collection().await;
         // Should not crash even if already started
 
         // Test stop collection
-        collector.stop_collection();
+        collector.stop_collection().await;
         // Should not crash even if already stopped
 
         // Test multiple start/stop cycles
-        collector.start_collection();
-        collector.stop_collection();
-        collector.start_collection();
+        collector.start_collection().await;
+        collector.stop_collection().await;
+        collector.start_collection().await;
     }
 
     #[tokio::test]
@@ -403,8 +403,8 @@ mod tests {
         let collector = MetricsCollector::new(config);
 
         // Should handle start/stop gracefully when disabled
-        collector.start_collection();
-        collector.stop_collection();
+        collector.start_collection().await;
+        collector.stop_collection().await;
     }
 
     #[tokio::test]
