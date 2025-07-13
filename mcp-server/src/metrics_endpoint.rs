@@ -57,7 +57,7 @@ impl PrometheusMetrics {
     /// Update metrics from collectors
     pub async fn update_from_collectors(&self, monitoring: &MetricsCollector) {
         // Get current metrics
-        let server_metrics = monitoring.get_current_metrics();
+        let server_metrics = monitoring.get_current_metrics().await;
         let system_metrics = monitoring.get_system_metrics().await;
 
         // Update Prometheus metrics
