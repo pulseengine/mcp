@@ -196,9 +196,14 @@ impl ErrorClass {
 }
 
 /// Enhanced structured logger
+#[derive(Default)]
 pub struct StructuredLogger;
 
 impl StructuredLogger {
+    /// Create a new structured logger instance
+    pub fn new() -> Self {
+        Self
+    }
     /// Log request start with comprehensive context
     pub fn log_request_start(ctx: &StructuredContext, params: &Value) {
         let sanitized_params = sanitize_value(params);

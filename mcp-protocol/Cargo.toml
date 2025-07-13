@@ -22,5 +22,12 @@ validator = { workspace = true }
 chrono = { workspace = true }
 async-trait = { workspace = true }
 
+# Optional dependency for error classification
+pulseengine-mcp-logging = { workspace = true, optional = true }
+
+[features]
+default = []
+logging = ["pulseengine-mcp-logging"]
+
 [dev-dependencies]
 tokio-test = "0.4"

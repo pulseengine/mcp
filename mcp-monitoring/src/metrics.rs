@@ -15,6 +15,27 @@ pub struct ServerMetrics {
     pub uptime_seconds: u64,
 }
 
+/// Load average values
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LoadAverage {
+    pub one: f64,
+    pub five: f64,
+    pub fifteen: f64,
+}
+
+/// Detailed system metrics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SystemMetrics {
+    pub cpu_usage_percent: f32,
+    pub memory_total_bytes: u64,
+    pub memory_used_bytes: u64,
+    pub memory_available_bytes: u64,
+    pub swap_total_bytes: u64,
+    pub swap_used_bytes: u64,
+    pub load_average: LoadAverage,
+    pub process_count: u64,
+}
+
 impl Default for ServerMetrics {
     fn default() -> Self {
         Self {

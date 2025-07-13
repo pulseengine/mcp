@@ -187,3 +187,42 @@ impl From<validator::ValidationErrors> for Error {
         Error::validation_error(err.to_string())
     }
 }
+
+// Optional ErrorClassification implementation when logging feature is enabled
+#[cfg(feature = "logging")]
+impl pulseengine_mcp_logging::ErrorClassification for Error {
+    fn error_type(&self) -> &str {
+        match self.code {
+            ErrorCode::ParseError => "parse_error",
+            ErrorCode::InvalidRequest => "invalid_request",
+            ErrorCode::MethodNotFound => "method_not_found",
+            ErrorCode::InvalidParams => "invalid_params",
+            ErrorCode::InternalError => "internal_error",
+            ErrorCode::Unauthorized => "unauthorized",
+            ErrorCode::Forbidden => "forbidden",
+            ErrorCode::ResourceNotFound => "resource_not_found",
+            ErrorCode::ToolNotFound => "tool_not_found",
+            ErrorCode::ValidationError => "validation_error",
+            ErrorCode::RateLimitExceeded => "rate_limit_exceeded",
+        }
+    }
+
+    fn is_retryable(&self) -> bool {
+        matches!(
+            self.code,
+            ErrorCode::InternalError | ErrorCode::RateLimitExceeded
+        )
+    }
+
+    fn is_timeout(&self) -> bool {
+        false // Protocol errors don't directly represent timeouts
+    }
+
+    fn is_auth_error(&self) -> bool {
+        matches!(self.code, ErrorCode::Unauthorized | ErrorCode::Forbidden)
+    }
+
+    fn is_connection_error(&self) -> bool {
+        false // Protocol errors don't directly represent connection errors
+    }
+}

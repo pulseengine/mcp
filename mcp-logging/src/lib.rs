@@ -24,17 +24,52 @@
 //! }
 //! ```
 
+pub mod aggregation;
+pub mod alerting;
+pub mod correlation;
+pub mod dashboard;
 pub mod metrics;
+pub mod persistence;
+pub mod profiling;
 pub mod sanitization;
 pub mod structured;
+pub mod telemetry;
 
 // Re-export main types for convenience
+pub use aggregation::{
+    AggregationConfig, AggregationError, LogAggregator, LogDestination, LogEntry, RetryConfig,
+    SyslogProtocol,
+};
+pub use alerting::{
+    Alert, AlertConfig, AlertError, AlertManager, AlertRule, AlertSeverity, AlertState,
+    ComparisonOperator, MetricType, NotificationChannel,
+};
+pub use correlation::{
+    CorrelationConfig, CorrelationContext, CorrelationError, CorrelationHeaders,
+    CorrelationManager, CorrelationStats, RequestTraceEntry,
+};
+pub use dashboard::{
+    AggregationType, ChartConfig, ChartData, ChartOptions, ChartSeries, ChartStyling, ChartType,
+    DashboardConfig, DashboardLayout, DashboardManager, DashboardSection, DashboardTheme,
+    DataPoint, DataSource, GridPosition, LineStyle, Threshold,
+};
 pub use metrics::{
     get_metrics, BusinessMetrics, ErrorMetrics, ErrorRecord, HealthMetrics, MetricsCollector,
     MetricsSnapshot, RequestMetrics,
 };
+pub use persistence::{MetricsPersistence, PersistedMetrics, PersistenceConfig, RotationInterval};
+pub use profiling::{
+    AsyncTaskProfile, AsyncTaskState, CpuProfilingConfig, FlameGraphConfig, FlameGraphData,
+    FlameGraphNode, FunctionCall, FunctionCallProfile, MemoryProfilingConfig, MemorySnapshot,
+    PerformanceHotspot, PerformanceProfiler, PerformanceThresholds, ProfilingConfig,
+    ProfilingError, ProfilingSession, ProfilingSessionType, ProfilingStats, StackFrame,
+};
 pub use sanitization::{LogSanitizer, SanitizationConfig};
 pub use structured::{ErrorClass, StructuredContext, StructuredLogger};
+pub use telemetry::{
+    propagation, spans, BatchProcessingConfig, JaegerConfig, OtlpConfig, SamplingConfig,
+    SamplingStrategy, TelemetryConfig, TelemetryError, TelemetryManager, ZipkinConfig,
+};
 
 /// Result type for logging operations
 pub type Result<T> = std::result::Result<T, LoggingError>;

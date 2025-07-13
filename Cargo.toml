@@ -15,6 +15,8 @@ members = [
     "examples/backend-example",
     "examples/cli-example",
     "examples/advanced-server-example",
+    "examples/profiling-demo",
+    "examples/demos",
 ]
 
 resolver = "2"
