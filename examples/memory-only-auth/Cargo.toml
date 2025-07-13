@@ -1,0 +1,22 @@
+[package]
+name = "memory-only-auth"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "memory-only-auth"
+path = "src/main.rs"
+
+[dependencies]
+pulseengine-mcp-server = { path = "../../mcp-server" }
+pulseengine-mcp-protocol = { path = "../../mcp-protocol" }
+pulseengine-mcp-transport = { path = "../../mcp-transport" }
+pulseengine-mcp-auth = { path = "../../mcp-auth" }
+
+async-trait = "0.1"
+tokio = { version = "1.0", features = ["full"] }
+serde_json = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+chrono = { version = "0.4", features = ["serde"] }
