@@ -27,6 +27,12 @@ anyhow = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
 
+# System monitoring
+sysinfo = "0.30"
+
+# Prometheus formatting
+prometheus = "0.13"
+
 [features]
 default = ["metrics", "tracing"]
 metrics = []

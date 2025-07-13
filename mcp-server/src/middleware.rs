@@ -90,6 +90,7 @@ impl MiddlewareStack {
                     .map(|_r| pulseengine_mcp_auth::models::Role::Admin)
                     .collect(), // TODO: proper role mapping
             };
+
             request = auth
                 .process_request(request, &auth_context)
                 .await

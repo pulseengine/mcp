@@ -53,7 +53,7 @@ pub mod metrics;
 
 pub use collector::MetricsCollector;
 pub use config::MonitoringConfig;
-pub use metrics::ServerMetrics;
+pub use metrics::{ServerMetrics, SystemMetrics};
 
 /// Default monitoring configuration
 pub fn default_config() -> MonitoringConfig {

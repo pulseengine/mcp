@@ -1,0 +1,58 @@
+/* High contrast theme for dashboard */
+:root {
+    --primary-color: #000000;
+    --secondary-color: #666666;
+    --background-color: #ffffff;
+    --surface-color: #ffffff;
+    --text-color: #000000;
+    --accent-color: #333333;
+    --border-color: #000000;
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* High contrast specific styles */
+.dashboard-section {
+    border: 2px solid #000000;
+    box-shadow: none;
+}
+
+.dashboard-header {
+    background-color: #ffffff;
+    border: 2px solid #000000;
+}
+
+.chart-container {
+    background-color: #ffffff;
+    border: 1px solid #000000;
+    border-radius: 0;
+}
+
+.dashboard-controls button {
+    background-color: #000000;
+    color: #ffffff;
+    border: 2px solid #000000;
+    border-radius: 0;
+    font-weight: bold;
+}
+
+.dashboard-controls button:hover {
+    background-color: #333333;
+    border-color: #333333;
+}
+
+/* High contrast colors */
+.text-success { color: #000000; font-weight: bold; }
+.text-warning { color: #000000; font-weight: bold; }
+.text-danger { color: #000000; font-weight: bold; }
+.text-info { color: #000000; font-weight: bold; }
+
+.bg-success { background-color: #ffffff; border: 2px solid #000000; }
+.bg-warning { background-color: #ffffff; border: 2px solid #000000; }
+.bg-danger { background-color: #ffffff; border: 2px solid #000000; }
+.bg-info { background-color: #ffffff; border: 2px solid #000000; }
+
+/* Remove all rounded corners and shadows for accessibility */
+* {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}

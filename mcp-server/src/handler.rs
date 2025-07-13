@@ -2,11 +2,13 @@
 
 use crate::{backend::McpBackend, context::RequestContext, middleware::MiddlewareStack};
 use pulseengine_mcp_auth::AuthenticationManager;
+use pulseengine_mcp_logging::{get_metrics, spans};
 use pulseengine_mcp_protocol::*;
 
 use std::sync::Arc;
+use std::time::Instant;
 use thiserror::Error;
-use tracing::{debug, error, instrument};
+use tracing::{debug, error, info, instrument};
 
 /// Error type for handler operations
 #[derive(Debug, Error)]
@@ -22,6 +24,40 @@ pub enum HandlerError {
 
     #[error("Protocol error: {0}")]
     Protocol(#[from] Error),
+}
+
+// Implement ErrorClassification for HandlerError
+impl pulseengine_mcp_logging::ErrorClassification for HandlerError {
+    fn error_type(&self) -> &str {
+        match self {
+            HandlerError::Authentication(_) => "authentication",
+            HandlerError::Authorization(_) => "authorization",
+            HandlerError::Backend(_) => "backend",
+            HandlerError::Protocol(_) => "protocol",
+        }
+    }
+
+    fn is_retryable(&self) -> bool {
+        match self {
+            HandlerError::Backend(_) => true, // Backend errors might be temporary
+            _ => false,
+        }
+    }
+
+    fn is_timeout(&self) -> bool {
+        false // HandlerError doesn't represent timeouts directly
+    }
+
+    fn is_auth_error(&self) -> bool {
+        matches!(
+            self,
+            HandlerError::Authentication(_) | HandlerError::Authorization(_)
+        )
+    }
+
+    fn is_connection_error(&self) -> bool {
+        false // HandlerError doesn't represent connection errors directly
+    }
 }
 
 /// Generic server handler that implements the MCP protocol
@@ -48,12 +84,14 @@ impl<B: McpBackend> GenericServerHandler<B> {
     }
 
     /// Handle an MCP request
-    #[instrument(skip(self, request))]
+    #[instrument(skip(self, request), fields(mcp.method = %request.method, mcp.request_id = %request.id))]
     pub async fn handle_request(
         &self,
         request: Request,
     ) -> std::result::Result<Response, HandlerError> {
-        debug!("Handling request: {}", request.method);
+        let start_time = Instant::now();
+        let method = request.method.clone();
+        debug!("Handling request: {}", method);
 
         // Store request ID before moving request
         let request_id = request.id.clone();
@@ -61,35 +99,75 @@ impl<B: McpBackend> GenericServerHandler<B> {
         // Create request context
         let context = RequestContext::new();
 
+        // Get metrics collector
+        let metrics = get_metrics();
+
+        // Record request start
+        metrics.record_request_start(&method).await;
+
         // Apply middleware
         let request = self.middleware.process_request(request, &context).await?;
 
-        // Route to appropriate handler
-        let result = match request.method.as_str() {
-            "initialize" => self.handle_initialize(request).await,
-            "tools/list" => self.handle_list_tools(request).await,
-            "tools/call" => self.handle_call_tool(request).await,
-            "resources/list" => self.handle_list_resources(request).await,
-            "resources/read" => self.handle_read_resource(request).await,
-            "resources/templates/list" => self.handle_list_resource_templates(request).await,
-            "prompts/list" => self.handle_list_prompts(request).await,
-            "prompts/get" => self.handle_get_prompt(request).await,
-            "resources/subscribe" => self.handle_subscribe(request).await,
-            "resources/unsubscribe" => self.handle_unsubscribe(request).await,
-            "completion/complete" => self.handle_complete(request).await,
-            "logging/setLevel" => self.handle_set_level(request).await,
-            "ping" => self.handle_ping(request).await,
-            _ => self.handle_custom_method(request).await,
+        // Route to appropriate handler with tracing
+        let result = {
+            let span = spans::mcp_request_span(&method, &request_id.to_string());
+            let _guard = span.enter();
+
+            match request.method.as_str() {
+                "initialize" => self.handle_initialize(request).await,
+                "tools/list" => self.handle_list_tools(request).await,
+                "tools/call" => self.handle_call_tool(request).await,
+                "resources/list" => self.handle_list_resources(request).await,
+                "resources/read" => self.handle_read_resource(request).await,
+                "resources/templates/list" => self.handle_list_resource_templates(request).await,
+                "prompts/list" => self.handle_list_prompts(request).await,
+                "prompts/get" => self.handle_get_prompt(request).await,
+                "resources/subscribe" => self.handle_subscribe(request).await,
+                "resources/unsubscribe" => self.handle_unsubscribe(request).await,
+                "completion/complete" => self.handle_complete(request).await,
+                "logging/setLevel" => self.handle_set_level(request).await,
+                "ping" => self.handle_ping(request).await,
+                _ => self.handle_custom_method(request).await,
+            }
         };
+
+        // Calculate request duration
+        let duration = start_time.elapsed();
 
         match result {
             Ok(response) => {
+                // Record successful request
+                metrics.record_request_end(&method, duration, true).await;
+
                 // Apply response middleware
                 let response = self.middleware.process_response(response, &context).await?;
+
+                info!(
+                    method = %method,
+                    duration_ms = %duration.as_millis(),
+                    request_id = ?request_id,
+                    "Request completed successfully"
+                );
+
                 Ok(response)
             }
             Err(error) => {
-                error!("Request failed: {}", error);
+                // Record failed request
+                metrics.record_request_end(&method, duration, false).await;
+
+                // Record error details
+                metrics
+                    .record_error(&method, &context.request_id.to_string(), &error, duration)
+                    .await;
+
+                error!(
+                    method = %method,
+                    duration_ms = %duration.as_millis(),
+                    request_id = ?request_id,
+                    error = %error,
+                    "Request failed"
+                );
+
                 Ok(Response {
                     jsonrpc: "2.0".to_string(),
                     id: request_id,
@@ -100,6 +178,7 @@ impl<B: McpBackend> GenericServerHandler<B> {
         }
     }
 
+    #[instrument(skip(self, request), fields(mcp.method = "initialize"))]
     async fn handle_initialize(&self, request: Request) -> std::result::Result<Response, Error> {
         let _params: InitializeRequestParam = serde_json::from_value(request.params)?;
 
@@ -119,6 +198,7 @@ impl<B: McpBackend> GenericServerHandler<B> {
         })
     }
 
+    #[instrument(skip(self, request), fields(mcp.method = "tools/list"))]
     async fn handle_list_tools(&self, request: Request) -> std::result::Result<Response, Error> {
         let params: PaginatedRequestParam = serde_json::from_value(request.params)?;
 
@@ -136,10 +216,45 @@ impl<B: McpBackend> GenericServerHandler<B> {
         })
     }
 
+    #[instrument(skip(self, request), fields(mcp.method = "tools/call"))]
     async fn handle_call_tool(&self, request: Request) -> std::result::Result<Response, Error> {
         let params: CallToolRequestParam = serde_json::from_value(request.params)?;
+        let tool_name = params.name.clone();
+        let start_time = Instant::now();
 
-        let result = self.backend.call_tool(params).await.map_err(|e| e.into())?;
+        // Get metrics collector for tool-specific tracking
+        let metrics = get_metrics();
+        metrics.record_request_start(&tool_name).await;
+
+        let result = {
+            let span = spans::backend_operation_span("call_tool", Some(&tool_name));
+            let _guard = span.enter();
+            match self.backend.call_tool(params).await {
+                Ok(result) => {
+                    let duration = start_time.elapsed();
+                    metrics.record_request_end(&tool_name, duration, true).await;
+                    info!(
+                        tool = %tool_name,
+                        duration_ms = %duration.as_millis(),
+                        "Tool call completed successfully"
+                    );
+                    result
+                }
+                Err(err) => {
+                    let duration = start_time.elapsed();
+                    metrics
+                        .record_request_end(&tool_name, duration, false)
+                        .await;
+                    error!(
+                        tool = %tool_name,
+                        duration_ms = %duration.as_millis(),
+                        error = %err,
+                        "Tool call failed"
+                    );
+                    return Err(err.into());
+                }
+            }
+        };
 
         Ok(Response {
             jsonrpc: "2.0".to_string(),
