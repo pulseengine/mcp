@@ -81,7 +81,7 @@ impl MetricsCollector {
         }
     }
 
-    pub fn start_collection(&self) {
+    pub async fn start_collection(&self) {
         if self.config.enabled {
             let system = self.system.clone();
             let interval_secs = self.config.collection_interval_secs;
@@ -99,7 +99,7 @@ impl MetricsCollector {
             });
 
             // Store the handle
-            let mut handle_guard = self.collection_handle.blocking_write();
+            let mut handle_guard = self.collection_handle.write().await;
             *handle_guard = Some(handle);
 
             tracing::info!(
@@ -111,8 +111,8 @@ impl MetricsCollector {
         }
     }
 
-    pub fn stop_collection(&self) {
-        let mut handle_guard = self.collection_handle.blocking_write();
+    pub async fn stop_collection(&self) {
+        let mut handle_guard = self.collection_handle.write().await;
         if let Some(handle) = handle_guard.take() {
             handle.abort();
             tracing::info!("Stopped metrics collection");

@@ -335,7 +335,7 @@ impl<B: McpBackend + 'static> McpServer<B> {
             .map_err(|e| ServerError::Transport(e.to_string()))?;
 
         // Stop background services
-        self.monitoring_metrics.stop_collection();
+        self.monitoring_metrics.stop_collection().await;
 
         self.auth_manager
             .stop_background_tasks()
