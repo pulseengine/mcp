@@ -552,7 +552,7 @@ mod tests {
     fn test_inspector_client_creation() {
         let config = ValidationConfig::default();
         let client = InspectorClient::new(config);
-        
+
         // On systems where npx is available, client should succeed
         // On systems where npx is not available, client should fail with configuration error
         match client {
@@ -601,7 +601,7 @@ mod tests {
     #[test]
     fn test_real_inspector_output_conversion() {
         let config = ValidationConfig::default();
-        
+
         // Skip test if npx is not available (e.g., in CI environments without Node.js)
         let client = match InspectorClient::new(config) {
             Ok(client) => client,

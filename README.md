@@ -4,8 +4,8 @@
 
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
 [![Documentation](https://docs.rs/pulseengine-mcp-protocol/badge.svg)](https://docs.rs/pulseengine-mcp-protocol)
-[![codecov](https://codecov.io/gh/PulseEngineIO/pulseengine-mcp/branch/main/graph/badge.svg?token=YOUR_TOKEN)](https://codecov.io/gh/PulseEngineIO/pulseengine-mcp)
-[![CI](https://github.com/PulseEngineIO/pulseengine-mcp/actions/workflows/pr-validation.yml/badge.svg)](https://github.com/PulseEngineIO/pulseengine-mcp/actions/workflows/pr-validation.yml)
+[![codecov](https://codecov.io/gh/pulseengine/mcp/graph/badge.svg?token=ZGAL6V3SQR)](https://codecov.io/gh/pulseengine/mcp)
+[![CI](https://github.com/pulseengine/mcp/actions/workflows/pr-validation.yml/badge.svg)](https://github.com/pulseengine/mcp/actions/workflows/pr-validation.yml)
 
 This framework provides everything you need to build production-ready MCP servers in Rust. It's been developed and proven through a real-world home automation server with 30+ tools that successfully integrates with MCP Inspector, Claude Desktop, and HTTP clients.
 
