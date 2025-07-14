@@ -323,6 +323,12 @@ mod tests {
 
     #[test]
     fn test_span_utilities() {
+        // Initialize tracing subscriber for test environment
+        let _guard = tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::INFO)
+            .with_test_writer()
+            .try_init();
+
         let span = spans::mcp_request_span("tools/list", "req-123");
         assert!(!span.is_disabled());
 
