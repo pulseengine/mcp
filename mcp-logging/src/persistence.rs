@@ -1,7 +1,7 @@
 //! Metrics persistence for historical data
 
 use crate::metrics::MetricsSnapshot;
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Duration, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
@@ -289,11 +289,21 @@ fn parse_file_timestamp(path: &Path, interval: &RotationInterval) -> Option<Date
     match interval {
         RotationInterval::Hourly => {
             // Format: metrics_YYYYMMDD_HH
-            if filename.starts_with("metrics_") && filename.len() >= 20 {
-                let timestamp_str = &filename[8..19]; // Skip "metrics_"
-                DateTime::parse_from_str(&format!("{timestamp_str} +0000"), "%Y%m%d_%H %z")
-                    .ok()
-                    .map(|dt| dt.with_timezone(&Utc))
+            if filename.starts_with("metrics_") && filename.len() >= 19 {
+                let timestamp_str = &filename[8..19]; // Skip "metrics_", extract "YYYYMMDD_HH"
+                                                      // Parse as "20240107_14" -> parse date and hour separately
+                if let Some((date_str, hour_str)) = timestamp_str.split_once('_') {
+                    if let (Ok(date), Ok(hour)) = (
+                        NaiveDate::parse_from_str(date_str, "%Y%m%d"),
+                        hour_str.parse::<u32>(),
+                    ) {
+                        date.and_hms_opt(hour, 0, 0).map(|dt| dt.and_utc())
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
             } else {
                 None
             }
@@ -302,9 +312,9 @@ fn parse_file_timestamp(path: &Path, interval: &RotationInterval) -> Option<Date
             // Format: metrics_YYYYMMDD
             if filename.starts_with("metrics_") && filename.len() >= 16 {
                 let timestamp_str = &filename[8..16]; // Skip "metrics_"
-                DateTime::parse_from_str(&format!("{timestamp_str} +0000"), "%Y%m%d %z")
+                chrono::NaiveDate::parse_from_str(timestamp_str, "%Y%m%d")
                     .ok()
-                    .map(|dt| dt.with_timezone(&Utc))
+                    .map(|date| date.and_hms_opt(0, 0, 0).unwrap().and_utc())
             } else {
                 None
             }

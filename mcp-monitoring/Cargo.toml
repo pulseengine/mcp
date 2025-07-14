@@ -31,7 +31,7 @@ futures = { workspace = true }
 sysinfo = "0.30"
 
 # Prometheus formatting
-prometheus = "0.13"
+prometheus = "0.14"
 
 [features]
 default = ["metrics", "tracing"]

@@ -29,16 +29,22 @@ jobs:
   validate-framework:
     name: Validate MCP Framework
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        rust: [stable, nightly]
+        rust: [stable]
         include:
           - os: ubuntu-latest
             python: '3.11'
           - os: macos-latest
             python: '3.11'
           - os: windows-latest
+            python: '3.11'
+          # Only run nightly on Ubuntu to reduce resource usage
+          - os: ubuntu-latest
+            rust: nightly
             python: '3.11'
     
     steps:
@@ -144,6 +150,7 @@ jobs:
   python-sdk-compatibility:
     name: Python SDK Compatibility
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     
     steps:
     - name: Checkout code
@@ -180,6 +187,7 @@ jobs:
   external-validator-integration:
     name: External Validator Integration
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     
     steps:
@@ -216,6 +224,7 @@ jobs:
   security-validation:
     name: Security Validation
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     
     steps:
     - name: Checkout code
@@ -243,6 +252,7 @@ jobs:
   benchmark-validation:
     name: Performance Benchmarks
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
