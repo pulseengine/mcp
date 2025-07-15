@@ -558,7 +558,6 @@ mod tests {
         match client {
             Ok(_) => {
                 // npx is available, test passes
-                assert!(true);
             }
             Err(ValidationError::ConfigurationError { message }) => {
                 // npx is not available, which is expected in some CI environments
