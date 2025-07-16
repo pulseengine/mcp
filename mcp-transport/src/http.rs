@@ -293,7 +293,7 @@ impl HttpTransport {
 }
 
 /// Query parameters for POST messages endpoint
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 struct PostQuery {
     #[serde(alias = "sessionId")]
     session_id: Option<String>,
@@ -790,7 +790,12 @@ impl Transport for HttpTransport {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axum::extract::{Query, State};
+    use axum::http::{HeaderMap, HeaderValue, StatusCode};
+    use pulseengine_mcp_protocol::{Error as McpError, Response};
     use serde_json::json;
+    use std::sync::Arc;
+    use tokio::sync::RwLock;
 
     // Mock handler for testing
     fn mock_handler(
@@ -799,7 +804,7 @@ mod tests {
         Box<dyn std::future::Future<Output = pulseengine_mcp_protocol::Response> + Send>,
     > {
         Box::pin(async move {
-            pulseengine_mcp_protocol::Response {
+            Response {
                 jsonrpc: "2.0".to_string(),
                 id: request.id,
                 result: Some(json!({"echo": request.method})),
@@ -808,8 +813,74 @@ mod tests {
         })
     }
 
+    // Mock handler that returns an error
+    fn mock_error_handler(
+        request: pulseengine_mcp_protocol::Request,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = pulseengine_mcp_protocol::Response> + Send>,
+    > {
+        Box::pin(async move {
+            Response {
+                jsonrpc: "2.0".to_string(),
+                id: request.id,
+                result: None,
+                error: Some(McpError::method_not_found(format!(
+                    "Method '{}' not supported",
+                    request.method
+                ))),
+            }
+        })
+    }
+
+    // Mock handler that returns None (for notifications)
+    fn mock_notification_handler(
+        _request: pulseengine_mcp_protocol::Request,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = pulseengine_mcp_protocol::Response> + Send>,
+    > {
+        Box::pin(async move {
+            Response {
+                jsonrpc: "2.0".to_string(),
+                id: serde_json::Value::Null,
+                result: None,
+                error: None,
+            }
+        })
+    }
+
+    fn create_test_state() -> Arc<HttpState> {
+        let config = HttpConfig::default();
+        Arc::new(HttpState {
+            handler: Arc::new(Box::new(mock_handler)),
+            config,
+            sessions: Arc::new(RwLock::new(HashMap::new())),
+        })
+    }
+
+    fn create_test_headers() -> HeaderMap {
+        let mut headers = HeaderMap::new();
+        headers.insert("Content-Type", "application/json".parse().unwrap());
+        headers
+    }
+
+    // === HttpConfig Tests ===
+
     #[test]
-    fn test_http_config() {
+    fn test_http_config_default() {
+        let config = HttpConfig::default();
+        assert_eq!(config.port, 3000);
+        assert_eq!(config.host, "127.0.0.1");
+        assert_eq!(config.max_message_size, 10 * 1024 * 1024);
+        assert!(config.enable_cors);
+        assert!(config.allowed_origins.is_none());
+        assert!(config.validate_messages);
+        assert_eq!(config.session_timeout_secs, 300);
+        assert!(!config.require_auth);
+        assert!(config.valid_tokens.is_empty());
+    }
+
+    #[test]
+    fn test_http_config_custom() {
         let config = HttpConfig {
             port: 8080,
             host: "0.0.0.0".to_string(),
@@ -825,20 +896,109 @@ mod tests {
         let transport = HttpTransport::with_config(config.clone());
         assert_eq!(transport.config.port, 8080);
         assert_eq!(transport.config.host, "0.0.0.0");
+        assert_eq!(transport.config.max_message_size, 1024);
         assert!(!transport.config.enable_cors);
+        assert_eq!(
+            transport.config.allowed_origins,
+            Some(vec!["http://localhost:3000".to_string()])
+        );
+        assert!(transport.config.validate_messages);
+        assert_eq!(transport.config.session_timeout_secs, 600);
         assert!(transport.config.require_auth);
+        assert_eq!(transport.config.valid_tokens, vec!["test-token"]);
+    }
+
+    // === HttpTransport Construction Tests ===
+
+    #[test]
+    fn test_http_transport_new() {
+        let transport = HttpTransport::new(8080);
+        assert_eq!(transport.config.port, 8080);
+        assert_eq!(transport.config.host, "127.0.0.1");
+        assert!(!transport.is_initialized());
+        assert!(!transport.is_running());
     }
 
     #[test]
-    fn test_validate_origin() {
+    fn test_http_transport_with_config() {
         let config = HttpConfig {
-            allowed_origins: Some(vec!["http://localhost:3000".to_string()]),
+            port: 9000,
+            host: "192.168.1.1".to_string(),
+            ..Default::default()
+        };
+        let transport = HttpTransport::with_config(config);
+        assert_eq!(transport.config.port, 9000);
+        assert_eq!(transport.config.host, "192.168.1.1");
+        assert!(!transport.is_initialized());
+        assert!(!transport.is_running());
+    }
+
+    #[test]
+    fn test_http_transport_config_access() {
+        let transport = HttpTransport::new(4000);
+        let config = transport.config();
+        assert_eq!(config.port, 4000);
+    }
+
+    // === SessionInfo Tests ===
+
+    #[test]
+    fn test_session_info_creation() {
+        let (tx, rx) = broadcast::channel(1024);
+        let session = SessionInfo {
+            id: "test-session".to_string(),
+            created_at: std::time::Instant::now(),
+            last_activity: std::time::Instant::now(),
+            event_sender: tx,
+            _keepalive_receiver: Arc::new(Mutex::new(rx)),
+        };
+
+        assert_eq!(session.id, "test-session");
+    }
+
+    // === Query Parameter Tests ===
+
+    #[test]
+    fn test_query_deserialization() {
+        // Basic query parsing tests - using axum's built-in functionality
+        let query = PostQuery {
+            session_id: Some("test123".to_string()),
+        };
+        assert_eq!(query.session_id, Some("test123".to_string()));
+    }
+
+    // === Origin Validation Tests ===
+
+    #[test]
+    fn test_validate_origin_no_restrictions() {
+        let config = HttpConfig {
+            allowed_origins: None,
+            ..Default::default()
+        };
+
+        let headers = HeaderMap::new();
+        assert!(HttpTransport::validate_origin(&config, &headers).is_ok());
+
+        let mut headers = HeaderMap::new();
+        headers.insert(ORIGIN, "http://any-origin.com".parse().unwrap());
+        assert!(HttpTransport::validate_origin(&config, &headers).is_ok());
+    }
+
+    #[test]
+    fn test_validate_origin_with_allowed_origins() {
+        let config = HttpConfig {
+            allowed_origins: Some(vec![
+                "http://localhost:3000".to_string(),
+                "https://example.com".to_string(),
+            ]),
             ..Default::default()
         };
 
         let mut headers = HeaderMap::new();
         headers.insert(ORIGIN, "http://localhost:3000".parse().unwrap());
+        assert!(HttpTransport::validate_origin(&config, &headers).is_ok());
 
+        headers.insert(ORIGIN, "https://example.com".parse().unwrap());
         assert!(HttpTransport::validate_origin(&config, &headers).is_ok());
 
         headers.insert(ORIGIN, "http://evil.com".parse().unwrap());
@@ -846,7 +1006,71 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_auth() {
+    fn test_validate_origin_missing_header() {
+        let config = HttpConfig {
+            allowed_origins: Some(vec!["http://localhost:3000".to_string()]),
+            ..Default::default()
+        };
+
+        let headers = HeaderMap::new();
+        let result = HttpTransport::validate_origin(&config, &headers);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Missing Origin header"));
+    }
+
+    #[test]
+    fn test_validate_origin_invalid_header() {
+        let config = HttpConfig {
+            allowed_origins: Some(vec!["http://localhost:3000".to_string()]),
+            ..Default::default()
+        };
+
+        let mut headers = HeaderMap::new();
+        // Create an invalid UTF-8 header value
+        headers.insert(ORIGIN, HeaderValue::from_bytes(&[0xFF, 0xFE]).unwrap());
+        let result = HttpTransport::validate_origin(&config, &headers);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Invalid Origin header"));
+    }
+
+    // === Authentication Tests ===
+
+    #[test]
+    fn test_validate_auth_disabled() {
+        let config = HttpConfig {
+            require_auth: false,
+            ..Default::default()
+        };
+
+        let headers = HeaderMap::new();
+        assert!(HttpTransport::validate_auth(&config, &headers).is_ok());
+    }
+
+    #[test]
+    fn test_validate_auth_missing_header() {
+        let config = HttpConfig {
+            require_auth: true,
+            valid_tokens: vec!["valid-token".to_string()],
+            ..Default::default()
+        };
+
+        let headers = HeaderMap::new();
+        let result = HttpTransport::validate_auth(&config, &headers);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Missing Authorization header"));
+    }
+
+    #[test]
+    fn test_validate_auth_invalid_header() {
         let config = HttpConfig {
             require_auth: true,
             valid_tokens: vec!["valid-token".to_string()],
@@ -854,44 +1078,903 @@ mod tests {
         };
 
         let mut headers = HeaderMap::new();
-        headers.insert(AUTHORIZATION, "Bearer valid-token".parse().unwrap());
+        headers.insert(
+            AUTHORIZATION,
+            HeaderValue::from_bytes(&[0xFF, 0xFE]).unwrap(),
+        );
+        let result = HttpTransport::validate_auth(&config, &headers);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Invalid Authorization header"));
+    }
 
+    #[test]
+    fn test_validate_auth_valid_bearer_token() {
+        let config = HttpConfig {
+            require_auth: true,
+            valid_tokens: vec!["valid-token".to_string(), "another-token".to_string()],
+            ..Default::default()
+        };
+
+        let mut headers = HeaderMap::new();
+        headers.insert(AUTHORIZATION, "Bearer valid-token".parse().unwrap());
         assert!(HttpTransport::validate_auth(&config, &headers).is_ok());
 
-        headers.insert(AUTHORIZATION, "Bearer invalid-token".parse().unwrap());
-        assert!(HttpTransport::validate_auth(&config, &headers).is_err());
+        headers.insert(AUTHORIZATION, "Bearer another-token".parse().unwrap());
+        assert!(HttpTransport::validate_auth(&config, &headers).is_ok());
+    }
 
-        headers.remove(AUTHORIZATION);
-        assert!(HttpTransport::validate_auth(&config, &headers).is_err());
+    #[test]
+    fn test_validate_auth_invalid_bearer_token() {
+        let config = HttpConfig {
+            require_auth: true,
+            valid_tokens: vec!["valid-token".to_string()],
+            ..Default::default()
+        };
+
+        let mut headers = HeaderMap::new();
+        headers.insert(AUTHORIZATION, "Bearer invalid-token".parse().unwrap());
+        let result = HttpTransport::validate_auth(&config, &headers);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Invalid bearer token"));
+    }
+
+    #[test]
+    fn test_validate_auth_invalid_format() {
+        let config = HttpConfig {
+            require_auth: true,
+            valid_tokens: vec!["valid-token".to_string()],
+            ..Default::default()
+        };
+
+        let mut headers = HeaderMap::new();
+        headers.insert(AUTHORIZATION, "Basic dXNlcjpwYXNz".parse().unwrap());
+        let result = HttpTransport::validate_auth(&config, &headers);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Invalid Authorization format"));
+
+        headers.insert(AUTHORIZATION, "just-a-token".parse().unwrap());
+        let result = HttpTransport::validate_auth(&config, &headers);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Invalid Authorization format"));
+    }
+
+    // === Session Management Tests ===
+
+    #[tokio::test]
+    async fn test_ensure_session_new() {
+        let state = create_test_state();
+
+        // Create session without providing session ID
+        let session_id = HttpTransport::ensure_session(state.clone(), None).await;
+        assert!(!session_id.is_empty());
+
+        // Verify session exists
+        let sessions = state.sessions.read().await;
+        assert!(sessions.contains_key(&session_id));
+        assert_eq!(sessions.len(), 1);
     }
 
     #[tokio::test]
-    async fn test_session_management() {
-        let config = HttpConfig::default();
+    async fn test_ensure_session_with_provided_id() {
+        let state = create_test_state();
+
+        // Create session with provided ID
+        let provided_id = "my-session-123".to_string();
+        let session_id =
+            HttpTransport::ensure_session(state.clone(), Some(provided_id.clone())).await;
+        assert_eq!(session_id, provided_id);
+
+        // Verify session exists
+        let sessions = state.sessions.read().await;
+        assert!(sessions.contains_key(&session_id));
+        assert_eq!(sessions.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_ensure_session_existing() {
+        let state = create_test_state();
+
+        // Create session first time
+        let session_id = "existing-session".to_string();
+        let result1 = HttpTransport::ensure_session(state.clone(), Some(session_id.clone())).await;
+        assert_eq!(result1, session_id);
+
+        // Try to create session with same ID
+        let result2 = HttpTransport::ensure_session(state.clone(), Some(session_id.clone())).await;
+        assert_eq!(result2, session_id);
+
+        // Verify only one session exists
+        let sessions = state.sessions.read().await;
+        assert_eq!(sessions.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_update_session_activity() {
+        let state = create_test_state();
+
+        // Create session
+        let session_id = HttpTransport::ensure_session(state.clone(), None).await;
+
+        // Get initial activity time
+        let initial_activity = {
+            let sessions = state.sessions.read().await;
+            sessions.get(&session_id).unwrap().last_activity
+        };
+
+        // Wait a bit and update activity
+        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+        HttpTransport::update_session_activity(state.clone(), &session_id).await;
+
+        // Verify activity was updated
+        let updated_activity = {
+            let sessions = state.sessions.read().await;
+            sessions.get(&session_id).unwrap().last_activity
+        };
+
+        assert!(updated_activity > initial_activity);
+    }
+
+    #[tokio::test]
+    async fn test_update_session_activity_nonexistent() {
+        let state = create_test_state();
+
+        // Try to update activity for non-existent session
+        HttpTransport::update_session_activity(state.clone(), "nonexistent").await;
+
+        // Should not crash, and no sessions should exist
+        let sessions = state.sessions.read().await;
+        assert_eq!(sessions.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_cleanup_sessions() {
+        let mut config = HttpConfig::default();
+        config.session_timeout_secs = 1; // 1 second timeout for testing
+
         let state = Arc::new(HttpState {
             handler: Arc::new(Box::new(mock_handler)),
             config,
             sessions: Arc::new(RwLock::new(HashMap::new())),
         });
 
-        // Create session (without providing session ID)
+        // Create a session
+        let session_id = HttpTransport::ensure_session(state.clone(), None).await;
+
+        // Manually set the session as old
+        {
+            let mut sessions = state.sessions.write().await;
+            if let Some(session) = sessions.get_mut(&session_id) {
+                session.last_activity =
+                    std::time::Instant::now() - std::time::Duration::from_secs(2);
+            }
+        }
+
+        // Run cleanup
+        HttpTransport::cleanup_sessions(state.clone()).await;
+
+        // Session should be removed
+        let sessions = state.sessions.read().await;
+        assert_eq!(sessions.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_cleanup_sessions_keeps_active() {
+        let state = create_test_state();
+
+        // Create sessions
+        let session_id1 = HttpTransport::ensure_session(state.clone(), None).await;
+        let session_id2 = HttpTransport::ensure_session(state.clone(), None).await;
+
+        // Run cleanup (sessions should remain as they're recent)
+        HttpTransport::cleanup_sessions(state.clone()).await;
+
+        // Both sessions should still exist
+        let sessions = state.sessions.read().await;
+        assert_eq!(sessions.len(), 2);
+        assert!(sessions.contains_key(&session_id1));
+        assert!(sessions.contains_key(&session_id2));
+    }
+
+    // === Broadcast Message Tests ===
+
+    #[tokio::test]
+    async fn test_broadcast_message_not_initialized() {
+        let transport = HttpTransport::new(3000);
+        let result = transport.broadcast_message("test message").await;
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Transport not started"));
+    }
+
+    #[tokio::test]
+    async fn test_broadcast_message_with_sessions() {
+        let state = create_test_state();
+
+        // Simulate initialized transport
+        let transport = HttpTransport {
+            config: HttpConfig::default(),
+            state: Some((*state).clone()),
+            server_handle: None,
+        };
+
+        // Create a session
+        let session_id = HttpTransport::ensure_session(state.clone(), None).await;
+
+        // Get a receiver to test the broadcast
+        let mut receiver = {
+            let sessions = state.sessions.read().await;
+            sessions.get(&session_id).unwrap().event_sender.subscribe()
+        };
+
+        // Broadcast a message
+        let result = transport.broadcast_message("test broadcast").await;
+        assert!(result.is_ok());
+
+        // Verify message was received
+        let received = receiver.recv().await.unwrap();
+        assert_eq!(received, "test broadcast");
+    }
+
+    #[tokio::test]
+    async fn test_broadcast_message_no_sessions() {
+        let state = create_test_state();
+
+        // Simulate initialized transport with no sessions
+        let transport = HttpTransport {
+            config: HttpConfig::default(),
+            state: Some((*state).clone()),
+            server_handle: None,
+        };
+
+        // Broadcast a message (should succeed even with no sessions)
+        let result = transport.broadcast_message("test broadcast").await;
+        assert!(result.is_ok());
+    }
+
+    // === Handle POST Tests ===
+
+    #[tokio::test]
+    async fn test_handle_post_valid_wrapped_message() {
+        let state = create_test_state();
+        let query = PostQuery {
+            session_id: Some("test-session".to_string()),
+        };
+        let headers = create_test_headers();
+        let body = json!({
+            "message": {
+                "jsonrpc": "2.0",
+                "method": "ping",
+                "params": {},
+                "id": 1
+            }
+        })
+        .to_string();
+
+        let result = handle_post(State(state), Query(query), headers, body).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_handle_post_valid_direct_message() {
+        let state = create_test_state();
+        let query = PostQuery { session_id: None };
+        let headers = create_test_headers();
+        let body = json!({
+            "jsonrpc": "2.0",
+            "method": "ping",
+            "params": {},
+            "id": 1
+        })
+        .to_string();
+
+        let result = handle_post(State(state), Query(query), headers, body).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_handle_post_invalid_json() {
+        let state = create_test_state();
+        let query = PostQuery { session_id: None };
+        let headers = create_test_headers();
+        let body = "invalid json".to_string();
+
+        let result = handle_post(State(state), Query(query), headers, body).await;
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn test_handle_post_invalid_format() {
+        let state = create_test_state();
+        let query = PostQuery { session_id: None };
+        let headers = create_test_headers();
+        let body = json!({
+            "not_jsonrpc": "data"
+        })
+        .to_string();
+
+        let result = handle_post(State(state), Query(query), headers, body).await;
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn test_handle_post_origin_validation_failure() {
+        let mut config = HttpConfig::default();
+        config.allowed_origins = Some(vec!["http://allowed.com".to_string()]);
+
+        let state = Arc::new(HttpState {
+            handler: Arc::new(Box::new(mock_handler)),
+            config,
+            sessions: Arc::new(RwLock::new(HashMap::new())),
+        });
+
+        let query = PostQuery { session_id: None };
+        let mut headers = create_test_headers();
+        headers.insert(ORIGIN, "http://evil.com".parse().unwrap());
+        let body = json!({
+            "jsonrpc": "2.0",
+            "method": "ping",
+            "params": {},
+            "id": 1
+        })
+        .to_string();
+
+        let result = handle_post(State(state), Query(query), headers, body).await;
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), StatusCode::FORBIDDEN);
+    }
+
+    #[tokio::test]
+    async fn test_handle_post_auth_failure() {
+        let mut config = HttpConfig::default();
+        config.require_auth = true;
+        config.valid_tokens = vec!["valid-token".to_string()];
+
+        let state = Arc::new(HttpState {
+            handler: Arc::new(Box::new(mock_handler)),
+            config,
+            sessions: Arc::new(RwLock::new(HashMap::new())),
+        });
+
+        let query = PostQuery { session_id: None };
+        let mut headers = create_test_headers();
+        headers.insert(AUTHORIZATION, "Bearer invalid-token".parse().unwrap());
+        let body = json!({
+            "jsonrpc": "2.0",
+            "method": "ping",
+            "params": {},
+            "id": 1
+        })
+        .to_string();
+
+        let result = handle_post(State(state), Query(query), headers, body).await;
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_handle_post_message_validation_failure() {
+        let mut config = HttpConfig::default();
+        config.validate_messages = true;
+        config.max_message_size = 10; // Very small limit
+
+        let state = Arc::new(HttpState {
+            handler: Arc::new(Box::new(mock_handler)),
+            config,
+            sessions: Arc::new(RwLock::new(HashMap::new())),
+        });
+
+        let query = PostQuery { session_id: None };
+        let headers = create_test_headers();
+        let body = json!({
+            "jsonrpc": "2.0",
+            "method": "this_is_a_very_long_method_name_that_exceeds_the_size_limit",
+            "params": {},
+            "id": 1
+        })
+        .to_string();
+
+        let result = handle_post(State(state), Query(query), headers, body).await;
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn test_handle_post_streamable_http_mode() {
+        let state = create_test_state();
+        let query = PostQuery { session_id: None };
+        let mut headers = create_test_headers();
+        headers.insert(
+            "accept",
+            "text/event-stream, application/json".parse().unwrap(),
+        );
+        let body = json!({
+            "jsonrpc": "2.0",
+            "method": "ping",
+            "params": {},
+            "id": 1
+        })
+        .to_string();
+
+        let result = handle_post(State(state), Query(query), headers, body).await;
+        assert!(result.is_ok());
+
+        let response = result.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        assert!(response
+            .headers()
+            .get("Content-Type")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .contains("application/json"));
+        assert!(response.headers().contains_key("Mcp-Session-Id"));
+    }
+
+    #[tokio::test]
+    async fn test_handle_post_sse_mode() {
+        let state = create_test_state();
+        let query = PostQuery { session_id: None };
+        let mut headers = create_test_headers();
+        headers.insert("accept", "text/event-stream".parse().unwrap());
+        let body = json!({
+            "jsonrpc": "2.0",
+            "method": "ping",
+            "params": {},
+            "id": 1
+        })
+        .to_string();
+
+        let result = handle_post(State(state), Query(query), headers, body).await;
+        assert!(result.is_ok());
+
+        let response = result.unwrap();
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+        assert!(response.headers().contains_key("Mcp-Session-Id"));
+    }
+
+    #[tokio::test]
+    async fn test_handle_post_notification_response() {
+        let state = Arc::new(HttpState {
+            handler: Arc::new(Box::new(mock_notification_handler)),
+            config: HttpConfig::default(),
+            sessions: Arc::new(RwLock::new(HashMap::new())),
+        });
+
+        let query = PostQuery { session_id: None };
+        let headers = create_test_headers();
+        let body = json!({
+            "jsonrpc": "2.0",
+            "method": "notification",
+            "params": {}
+        })
+        .to_string();
+
+        let result = handle_post(State(state), Query(query), headers, body).await;
+        assert!(result.is_ok());
+
+        let response = result.unwrap();
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+    }
+
+    #[tokio::test]
+    async fn test_handle_post_processing_error() {
+        let state = Arc::new(HttpState {
+            handler: Arc::new(Box::new(mock_error_handler)),
+            config: HttpConfig::default(),
+            sessions: Arc::new(RwLock::new(HashMap::new())),
+        });
+
+        let query = PostQuery { session_id: None };
+        let mut headers = create_test_headers();
+        headers.insert("accept", "application/json".parse().unwrap());
+        let body = json!({
+            "jsonrpc": "2.0",
+            "method": "unknown_method",
+            "params": {},
+            "id": 1
+        })
+        .to_string();
+
+        let result = handle_post(State(state), Query(query), headers, body).await;
+        assert!(result.is_ok());
+
+        let response = result.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+
+        // Response should contain error information
+        let body_str = response.body();
+        assert!(body_str.contains("error"));
+    }
+
+    #[tokio::test]
+    async fn test_handle_post_session_id_from_header() {
+        let state = create_test_state();
+        let query = PostQuery { session_id: None };
+        let mut headers = create_test_headers();
+        headers.insert("Mcp-Session-Id", "header-session-123".parse().unwrap());
+        let body = json!({
+            "jsonrpc": "2.0",
+            "method": "ping",
+            "params": {},
+            "id": 1
+        })
+        .to_string();
+
+        let result = handle_post(State(state.clone()), Query(query), headers, body).await;
+        assert!(result.is_ok());
+
+        // Verify session was created with the header session ID
+        let sessions = state.sessions.read().await;
+        assert!(sessions.contains_key("header-session-123"));
+    }
+
+    // === Handle SSE Tests ===
+
+    #[tokio::test]
+    async fn test_handle_sse_basic() {
+        let state = create_test_state();
+        let query = SseQuery {
+            session_id: Some("sse-test-session".to_string()),
+            last_event_id: None,
+            transport_type: None,
+            url: None,
+        };
+        let headers = create_test_headers();
+        let uri = "http://localhost:3000/sse?sessionId=sse-test-session"
+            .parse()
+            .unwrap();
+
+        let result = handle_sse(uri, State(state.clone()), headers, Query(query)).await;
+        assert!(result.is_ok());
+
+        let response = result.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        assert!(response.headers().contains_key("Mcp-Session-Id"));
+        assert_eq!(
+            response
+                .headers()
+                .get("content-type")
+                .unwrap()
+                .to_str()
+                .unwrap(),
+            "text/event-stream"
+        );
+
+        // Verify session was created
+        let sessions = state.sessions.read().await;
+        assert!(sessions.contains_key("sse-test-session"));
+    }
+
+    #[tokio::test]
+    async fn test_handle_sse_origin_validation_failure() {
+        let mut config = HttpConfig::default();
+        config.allowed_origins = Some(vec!["http://allowed.com".to_string()]);
+
+        let state = Arc::new(HttpState {
+            handler: Arc::new(Box::new(mock_handler)),
+            config,
+            sessions: Arc::new(RwLock::new(HashMap::new())),
+        });
+
+        let query = SseQuery {
+            session_id: None,
+            last_event_id: None,
+            transport_type: None,
+            url: None,
+        };
+        let mut headers = create_test_headers();
+        headers.insert(ORIGIN, "http://evil.com".parse().unwrap());
+        let uri = "http://localhost:3000/sse".parse().unwrap();
+
+        let result = handle_sse(uri, State(state), headers, Query(query)).await;
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), StatusCode::FORBIDDEN);
+    }
+
+    #[tokio::test]
+    async fn test_handle_sse_auth_failure() {
+        let mut config = HttpConfig::default();
+        config.require_auth = true;
+        config.valid_tokens = vec!["valid-token".to_string()];
+
+        let state = Arc::new(HttpState {
+            handler: Arc::new(Box::new(mock_handler)),
+            config,
+            sessions: Arc::new(RwLock::new(HashMap::new())),
+        });
+
+        let query = SseQuery {
+            session_id: None,
+            last_event_id: None,
+            transport_type: None,
+            url: None,
+        };
+        let headers = create_test_headers();
+        let uri = "http://localhost:3000/sse".parse().unwrap();
+
+        let result = handle_sse(uri, State(state), headers, Query(query)).await;
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), StatusCode::UNAUTHORIZED);
+    }
+
+    // === Handle Health Tests ===
+
+    #[tokio::test]
+    async fn test_handle_health() {
+        let result = handle_health().await;
+        assert_eq!(result, "OK");
+    }
+
+    // === Transport Trait Implementation Tests ===
+
+    #[tokio::test]
+    async fn test_transport_start_invalid_address() {
+        let config = HttpConfig {
+            host: "invalid-host-name-that-does-not-exist".to_string(),
+            port: 0,
+            ..Default::default()
+        };
+        let mut transport = HttpTransport::with_config(config);
+
+        let result = transport.start(Box::new(mock_handler)).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Invalid address"));
+    }
+
+    #[tokio::test]
+    async fn test_transport_start_and_stop() {
+        let mut transport = HttpTransport::new(0); // Use port 0 for OS-assigned port
+
+        // Initially not running
+        assert!(!transport.is_initialized());
+        assert!(!transport.is_running());
+
+        // Start transport
+        let result = transport.start(Box::new(mock_handler)).await;
+        assert!(result.is_ok());
+        assert!(transport.is_initialized());
+        assert!(transport.is_running());
+
+        // Health check should pass
+        assert!(transport.health_check().await.is_ok());
+
+        // Stop transport
+        let result = transport.stop().await;
+        assert!(result.is_ok());
+        assert!(!transport.is_running());
+    }
+
+    #[tokio::test]
+    async fn test_transport_health_check_not_running() {
+        let transport = HttpTransport::new(3000);
+        let result = transport.health_check().await;
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("HTTP transport not running"));
+    }
+
+    // === Integration Tests ===
+
+    #[tokio::test]
+    async fn test_full_session_lifecycle() {
+        let state = create_test_state();
+
+        // Create session
         let session_id = HttpTransport::ensure_session(state.clone(), None).await;
         assert!(!session_id.is_empty());
-
-        // Verify session exists
-        {
-            let sessions = state.sessions.read().await;
-            assert!(sessions.contains_key(&session_id));
-        }
 
         // Update activity
         HttpTransport::update_session_activity(state.clone(), &session_id).await;
 
-        // Cleanup (should not remove recent session)
+        // Send a message through the session
+        let message = "test message";
+        {
+            let sessions = state.sessions.read().await;
+            let session = sessions.get(&session_id).unwrap();
+            let result = session.event_sender.send(message.to_string());
+            assert!(result.is_ok());
+        }
+
+        // Clean up sessions (recent session should remain)
         HttpTransport::cleanup_sessions(state.clone()).await;
         {
             let sessions = state.sessions.read().await;
             assert!(sessions.contains_key(&session_id));
         }
+    }
+
+    #[tokio::test]
+    async fn test_multiple_sessions() {
+        let state = create_test_state();
+
+        // Create multiple sessions
+        let session1 =
+            HttpTransport::ensure_session(state.clone(), Some("session-1".to_string())).await;
+        let session2 =
+            HttpTransport::ensure_session(state.clone(), Some("session-2".to_string())).await;
+        let session3 = HttpTransport::ensure_session(state.clone(), None).await;
+
+        assert_eq!(session1, "session-1");
+        assert_eq!(session2, "session-2");
+        assert!(!session3.is_empty());
+        assert_ne!(session3, session1);
+        assert_ne!(session3, session2);
+
+        // Verify all sessions exist
+        let sessions = state.sessions.read().await;
+        assert_eq!(sessions.len(), 3);
+        assert!(sessions.contains_key(&session1));
+        assert!(sessions.contains_key(&session2));
+        assert!(sessions.contains_key(&session3));
+    }
+
+    #[tokio::test]
+    async fn test_message_format_variations() {
+        let state = create_test_state();
+        let query = PostQuery { session_id: None };
+        let headers = create_test_headers();
+
+        // Test wrapped format
+        let wrapped_body = json!({
+            "message": {
+                "jsonrpc": "2.0",
+                "method": "test",
+                "params": {"key": "value"},
+                "id": 1
+            }
+        })
+        .to_string();
+
+        let result = handle_post(
+            State(state.clone()),
+            Query(query.clone()),
+            headers.clone(),
+            wrapped_body,
+        )
+        .await;
+        assert!(result.is_ok());
+
+        // Test direct format
+        let direct_body = json!({
+            "jsonrpc": "2.0",
+            "method": "test",
+            "params": {"key": "value"},
+            "id": 2
+        })
+        .to_string();
+
+        let result = handle_post(State(state), Query(query), headers, direct_body).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_error_handling_edge_cases() {
+        let state = create_test_state();
+        let query = PostQuery { session_id: None };
+        let headers = create_test_headers();
+
+        // Test malformed JSON-RPC (missing required fields)
+        let invalid_jsonrpc = json!({
+            "jsonrpc": "1.0", // Wrong version
+            "method": "test"
+            // Missing id
+        })
+        .to_string();
+
+        let result = handle_post(State(state), Query(query), headers, invalid_jsonrpc).await;
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), StatusCode::BAD_REQUEST);
+    }
+
+    // === Configuration Edge Cases ===
+
+    #[test]
+    fn test_config_extreme_values() {
+        let config = HttpConfig {
+            port: 65535,
+            host: "0.0.0.0".to_string(),
+            max_message_size: 0,
+            enable_cors: true,
+            allowed_origins: Some(vec![]),
+            validate_messages: false,
+            session_timeout_secs: 0,
+            require_auth: false,
+            valid_tokens: vec![],
+        };
+
+        let transport = HttpTransport::with_config(config);
+        assert_eq!(transport.config.port, 65535);
+        assert_eq!(transport.config.max_message_size, 0);
+        assert_eq!(transport.config.session_timeout_secs, 0);
+        assert!(transport
+            .config
+            .allowed_origins
+            .as_ref()
+            .unwrap()
+            .is_empty());
+    }
+
+    #[test]
+    fn test_session_info_timing() {
+        let now = std::time::Instant::now();
+        let (tx, rx) = broadcast::channel(1024);
+
+        let session = SessionInfo {
+            id: "timing-test".to_string(),
+            created_at: now,
+            last_activity: now,
+            event_sender: tx,
+            _keepalive_receiver: Arc::new(Mutex::new(rx)),
+        };
+
+        assert!(session.created_at <= std::time::Instant::now());
+        assert!(session.last_activity <= std::time::Instant::now());
+    }
+
+    // === Broadcast Channel Edge Cases ===
+
+    #[tokio::test]
+    async fn test_broadcast_channel_receiver_drop() {
+        let state = create_test_state();
+
+        // Create session and get receiver
+        let session_id = HttpTransport::ensure_session(state.clone(), None).await;
+        let receiver = {
+            let sessions = state.sessions.read().await;
+            sessions.get(&session_id).unwrap().event_sender.subscribe()
+        };
+
+        // Drop the receiver
+        drop(receiver);
+
+        // Simulate initialized transport
+        let transport = HttpTransport {
+            config: HttpConfig::default(),
+            state: Some((*state).clone()),
+            server_handle: None,
+        };
+
+        // Broadcasting should still work (might log warnings but not fail)
+        let result = transport.broadcast_message("test after drop").await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_session_channel_capacity() {
+        let state = create_test_state();
+        let session_id = HttpTransport::ensure_session(state.clone(), None).await;
+
+        // Get sender and fill the channel beyond capacity
+        let sender = {
+            let sessions = state.sessions.read().await;
+            sessions.get(&session_id).unwrap().event_sender.clone()
+        };
+
+        // Send many messages to test channel behavior
+        for i in 0..2000 {
+            // More than the 1024 capacity
+            let _ = sender.send(format!("message-{}", i));
+        }
+
+        // This should not crash the test
+        assert!(true);
     }
 }
