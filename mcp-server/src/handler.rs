@@ -446,3 +446,747 @@ impl From<HandlerError> for Error {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::backend::McpBackend;
+    use crate::middleware::MiddlewareStack;
+    use async_trait::async_trait;
+    use pulseengine_mcp_auth::config::AuthConfig;
+    use pulseengine_mcp_auth::AuthenticationManager;
+    use pulseengine_mcp_logging::ErrorClassification;
+    use pulseengine_mcp_protocol::{
+        error::ErrorCode, CallToolRequestParam, CallToolResult, CompleteRequestParam,
+        CompleteResult, CompletionInfo, Content, Error, GetPromptRequestParam, GetPromptResult,
+        Implementation, InitializeResult, ListPromptsResult, ListResourceTemplatesResult,
+        ListResourcesResult, ListToolsResult, LoggingCapability, PaginatedRequestParam, Prompt,
+        PromptMessage, PromptMessageContent, PromptMessageRole, PromptsCapability, ProtocolVersion,
+        ReadResourceRequestParam, ReadResourceResult, Request, Resource, ResourceContents,
+        ResourcesCapability, ServerCapabilities, ServerInfo, SetLevelRequestParam,
+        SubscribeRequestParam, Tool, ToolsCapability, UnsubscribeRequestParam,
+    };
+    use serde_json::json;
+    use std::sync::Arc;
+
+    // Mock backend for testing
+    #[derive(Clone)]
+    struct MockBackend {
+        server_info: ServerInfo,
+        tools: Vec<Tool>,
+        resources: Vec<Resource>,
+        prompts: Vec<Prompt>,
+        should_error: bool,
+    }
+
+    impl MockBackend {
+        fn new() -> Self {
+            Self {
+                server_info: ServerInfo {
+                    protocol_version: ProtocolVersion::default(),
+                    capabilities: ServerCapabilities {
+                        tools: Some(ToolsCapability { list_changed: None }),
+                        resources: Some(ResourcesCapability {
+                            subscribe: Some(true),
+                            list_changed: None,
+                        }),
+                        prompts: Some(PromptsCapability { list_changed: None }),
+                        logging: Some(LoggingCapability { level: None }),
+                        sampling: None,
+                    },
+                    server_info: Implementation {
+                        name: "test-server".to_string(),
+                        version: "1.0.0".to_string(),
+                    },
+                    instructions: None,
+                },
+                tools: vec![Tool {
+                    name: "test_tool".to_string(),
+                    description: "A test tool".to_string(),
+                    input_schema: json!({
+                        "type": "object",
+                        "properties": {
+                            "input": {"type": "string"}
+                        }
+                    }),
+                }],
+                resources: vec![Resource {
+                    uri: "test://resource1".to_string(),
+                    name: "Test Resource".to_string(),
+                    description: Some("A test resource".to_string()),
+                    mime_type: Some("text/plain".to_string()),
+                    annotations: None,
+                    raw: None,
+                }],
+                prompts: vec![Prompt {
+                    name: "test_prompt".to_string(),
+                    description: Some("A test prompt".to_string()),
+                    arguments: None,
+                }],
+                should_error: false,
+            }
+        }
+
+        fn with_error() -> Self {
+            Self {
+                should_error: true,
+                ..Self::new()
+            }
+        }
+    }
+
+    #[async_trait]
+    impl McpBackend for MockBackend {
+        type Error = MockBackendError;
+        type Config = ();
+
+        async fn initialize(_config: Self::Config) -> std::result::Result<Self, Self::Error> {
+            Ok(MockBackend::new())
+        }
+
+        fn get_server_info(&self) -> ServerInfo {
+            self.server_info.clone()
+        }
+
+        async fn health_check(&self) -> std::result::Result<(), Self::Error> {
+            if self.should_error {
+                return Err(MockBackendError::TestError(
+                    "Health check failed".to_string(),
+                ));
+            }
+            Ok(())
+        }
+
+        async fn list_tools(
+            &self,
+            _params: PaginatedRequestParam,
+        ) -> std::result::Result<ListToolsResult, Self::Error> {
+            if self.should_error {
+                return Err(MockBackendError::TestError("Simulated error".to_string()));
+            }
+
+            Ok(ListToolsResult {
+                tools: self.tools.clone(),
+                next_cursor: None,
+            })
+        }
+
+        async fn call_tool(
+            &self,
+            params: CallToolRequestParam,
+        ) -> std::result::Result<CallToolResult, Self::Error> {
+            if self.should_error {
+                return Err(MockBackendError::TestError("Tool call failed".to_string()));
+            }
+
+            if params.name == "test_tool" {
+                Ok(CallToolResult {
+                    content: vec![Content::Text {
+                        text: "Tool executed successfully".to_string(),
+                    }],
+                    is_error: Some(false),
+                })
+            } else {
+                Err(MockBackendError::TestError("Tool not found".to_string()))
+            }
+        }
+
+        async fn list_resources(
+            &self,
+            _params: PaginatedRequestParam,
+        ) -> std::result::Result<ListResourcesResult, Self::Error> {
+            if self.should_error {
+                return Err(MockBackendError::TestError("Simulated error".to_string()));
+            }
+
+            Ok(ListResourcesResult {
+                resources: self.resources.clone(),
+                next_cursor: None,
+            })
+        }
+
+        async fn read_resource(
+            &self,
+            params: ReadResourceRequestParam,
+        ) -> std::result::Result<ReadResourceResult, Self::Error> {
+            if self.should_error {
+                return Err(MockBackendError::TestError("Simulated error".to_string()));
+            }
+
+            if params.uri == "test://resource1" {
+                Ok(ReadResourceResult {
+                    contents: vec![ResourceContents {
+                        uri: params.uri,
+                        mime_type: Some("text/plain".to_string()),
+                        text: Some("Resource content".to_string()),
+                        blob: None,
+                    }],
+                })
+            } else {
+                Err(MockBackendError::TestError(
+                    "Resource not found".to_string(),
+                ))
+            }
+        }
+
+        async fn list_resource_templates(
+            &self,
+            _params: PaginatedRequestParam,
+        ) -> std::result::Result<ListResourceTemplatesResult, Self::Error> {
+            Ok(ListResourceTemplatesResult {
+                resource_templates: vec![],
+                next_cursor: None,
+            })
+        }
+
+        async fn list_prompts(
+            &self,
+            _params: PaginatedRequestParam,
+        ) -> std::result::Result<ListPromptsResult, Self::Error> {
+            if self.should_error {
+                return Err(MockBackendError::TestError("Simulated error".to_string()));
+            }
+
+            Ok(ListPromptsResult {
+                prompts: self.prompts.clone(),
+                next_cursor: None,
+            })
+        }
+
+        async fn get_prompt(
+            &self,
+            params: GetPromptRequestParam,
+        ) -> std::result::Result<GetPromptResult, Self::Error> {
+            if self.should_error {
+                return Err(MockBackendError::TestError("Simulated error".to_string()));
+            }
+
+            if params.name == "test_prompt" {
+                Ok(GetPromptResult {
+                    description: Some("A test prompt".to_string()),
+                    messages: vec![PromptMessage {
+                        role: PromptMessageRole::User,
+                        content: PromptMessageContent::Text {
+                            text: "Test prompt message".to_string(),
+                        },
+                    }],
+                })
+            } else {
+                Err(MockBackendError::TestError("Prompt not found".to_string()))
+            }
+        }
+
+        async fn subscribe(
+            &self,
+            _params: SubscribeRequestParam,
+        ) -> std::result::Result<(), Self::Error> {
+            if self.should_error {
+                return Err(MockBackendError::TestError("Subscribe failed".to_string()));
+            }
+            Ok(())
+        }
+
+        async fn unsubscribe(
+            &self,
+            _params: UnsubscribeRequestParam,
+        ) -> std::result::Result<(), Self::Error> {
+            if self.should_error {
+                return Err(MockBackendError::TestError(
+                    "Unsubscribe failed".to_string(),
+                ));
+            }
+            Ok(())
+        }
+
+        async fn complete(
+            &self,
+            _params: CompleteRequestParam,
+        ) -> std::result::Result<CompleteResult, Self::Error> {
+            if self.should_error {
+                return Err(MockBackendError::TestError("Complete failed".to_string()));
+            }
+
+            Ok(CompleteResult {
+                completion: vec![
+                    CompletionInfo {
+                        completion: "completion1".to_string(),
+                        has_more: Some(false),
+                    },
+                    CompletionInfo {
+                        completion: "completion2".to_string(),
+                        has_more: Some(false),
+                    },
+                ],
+            })
+        }
+
+        async fn set_level(
+            &self,
+            _params: SetLevelRequestParam,
+        ) -> std::result::Result<(), Self::Error> {
+            if self.should_error {
+                return Err(MockBackendError::TestError("Set level failed".to_string()));
+            }
+            Ok(())
+        }
+
+        async fn handle_custom_method(
+            &self,
+            method: &str,
+            _params: serde_json::Value,
+        ) -> std::result::Result<serde_json::Value, Self::Error> {
+            if self.should_error {
+                return Err(MockBackendError::TestError(
+                    "Custom method failed".to_string(),
+                ));
+            }
+
+            Ok(json!({
+                "method": method,
+                "result": "custom method executed"
+            }))
+        }
+    }
+
+    #[derive(Debug, thiserror::Error)]
+    enum MockBackendError {
+        #[error("Test error: {0}")]
+        TestError(String),
+    }
+
+    impl From<MockBackendError> for Error {
+        fn from(err: MockBackendError) -> Self {
+            Error::internal_error(err.to_string())
+        }
+    }
+
+    impl From<crate::backend::BackendError> for MockBackendError {
+        fn from(error: crate::backend::BackendError) -> Self {
+            MockBackendError::TestError(error.to_string())
+        }
+    }
+
+    fn create_test_handler() -> GenericServerHandler<MockBackend> {
+        let backend = Arc::new(MockBackend::new());
+        let auth_config = AuthConfig::memory();
+        let auth_manager = Arc::new(
+            tokio::runtime::Runtime::new()
+                .unwrap()
+                .block_on(AuthenticationManager::new(auth_config))
+                .unwrap(),
+        );
+        let middleware = MiddlewareStack::new();
+
+        GenericServerHandler::new(backend, auth_manager, middleware)
+    }
+
+    fn create_error_handler() -> GenericServerHandler<MockBackend> {
+        let backend = Arc::new(MockBackend::with_error());
+        let auth_config = AuthConfig::memory();
+        let auth_manager = Arc::new(
+            tokio::runtime::Runtime::new()
+                .unwrap()
+                .block_on(AuthenticationManager::new(auth_config))
+                .unwrap(),
+        );
+        let middleware = MiddlewareStack::new();
+
+        GenericServerHandler::new(backend, auth_manager, middleware)
+    }
+
+    #[tokio::test]
+    async fn test_handler_creation() {
+        let handler = create_test_handler();
+        // Just verify the handler can be created
+        assert!(!handler.backend.tools.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_handle_initialize() {
+        let handler = create_test_handler();
+        let request = Request {
+            jsonrpc: "2.0".to_string(),
+            method: "initialize".to_string(),
+            params: json!({
+                "protocolVersion": "2024-11-05",
+                "capabilities": {},
+                "clientInfo": {
+                    "name": "test-client",
+                    "version": "1.0.0"
+                }
+            }),
+            id: json!(1),
+        };
+
+        let response = handler.handle_request(request).await.unwrap();
+
+        assert_eq!(response.jsonrpc, "2.0");
+        assert_eq!(response.id, json!(1));
+        assert!(response.result.is_some());
+        assert!(response.error.is_none());
+
+        let result: InitializeResult = serde_json::from_value(response.result.unwrap()).unwrap();
+        assert_eq!(
+            result.protocol_version,
+            pulseengine_mcp_protocol::MCP_VERSION
+        );
+        assert_eq!(result.server_info.name, "test-server");
+    }
+
+    #[tokio::test]
+    async fn test_handle_list_tools() {
+        let handler = create_test_handler();
+        let request = Request {
+            jsonrpc: "2.0".to_string(),
+            method: "tools/list".to_string(),
+            params: json!({}),
+            id: json!(2),
+        };
+
+        let response = handler.handle_request(request).await.unwrap();
+
+        assert_eq!(response.jsonrpc, "2.0");
+        assert_eq!(response.id, json!(2));
+        assert!(response.result.is_some());
+        assert!(response.error.is_none());
+
+        let result: ListToolsResult = serde_json::from_value(response.result.unwrap()).unwrap();
+        assert_eq!(result.tools.len(), 1);
+        assert_eq!(result.tools[0].name, "test_tool");
+    }
+
+    #[tokio::test]
+    async fn test_handle_call_tool_success() {
+        let handler = create_test_handler();
+        let request = Request {
+            jsonrpc: "2.0".to_string(),
+            method: "tools/call".to_string(),
+            params: json!({
+                "name": "test_tool",
+                "arguments": {
+                    "input": "test input"
+                }
+            }),
+            id: json!(3),
+        };
+
+        let response = handler.handle_request(request).await.unwrap();
+
+        assert_eq!(response.jsonrpc, "2.0");
+        assert_eq!(response.id, json!(3));
+        assert!(response.result.is_some());
+        assert!(response.error.is_none());
+
+        let result: CallToolResult = serde_json::from_value(response.result.unwrap()).unwrap();
+        assert_eq!(result.content.len(), 1);
+        assert!(!result.is_error.unwrap_or(true));
+    }
+
+    #[tokio::test]
+    async fn test_handle_call_tool_not_found() {
+        let handler = create_test_handler();
+        let request = Request {
+            jsonrpc: "2.0".to_string(),
+            method: "tools/call".to_string(),
+            params: json!({
+                "name": "nonexistent_tool",
+                "arguments": {}
+            }),
+            id: json!(4),
+        };
+
+        let response = handler.handle_request(request).await.unwrap();
+
+        assert_eq!(response.jsonrpc, "2.0");
+        assert_eq!(response.id, json!(4));
+        assert!(response.result.is_none());
+        assert!(response.error.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_handle_list_resources() {
+        let handler = create_test_handler();
+        let request = Request {
+            jsonrpc: "2.0".to_string(),
+            method: "resources/list".to_string(),
+            params: json!({}),
+            id: json!(5),
+        };
+
+        let response = handler.handle_request(request).await.unwrap();
+
+        assert_eq!(response.jsonrpc, "2.0");
+        assert_eq!(response.id, json!(5));
+        assert!(response.result.is_some());
+        assert!(response.error.is_none());
+
+        let result: ListResourcesResult = serde_json::from_value(response.result.unwrap()).unwrap();
+        assert_eq!(result.resources.len(), 1);
+        assert_eq!(result.resources[0].uri, "test://resource1");
+    }
+
+    #[tokio::test]
+    async fn test_handle_read_resource() {
+        let handler = create_test_handler();
+        let request = Request {
+            jsonrpc: "2.0".to_string(),
+            method: "resources/read".to_string(),
+            params: json!({
+                "uri": "test://resource1"
+            }),
+            id: json!(6),
+        };
+
+        let response = handler.handle_request(request).await.unwrap();
+
+        assert_eq!(response.jsonrpc, "2.0");
+        assert_eq!(response.id, json!(6));
+        assert!(response.result.is_some());
+        assert!(response.error.is_none());
+
+        let result: ReadResourceResult = serde_json::from_value(response.result.unwrap()).unwrap();
+        assert_eq!(result.contents.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_handle_list_prompts() {
+        let handler = create_test_handler();
+        let request = Request {
+            jsonrpc: "2.0".to_string(),
+            method: "prompts/list".to_string(),
+            params: json!({}),
+            id: json!(7),
+        };
+
+        let response = handler.handle_request(request).await.unwrap();
+
+        assert_eq!(response.jsonrpc, "2.0");
+        assert_eq!(response.id, json!(7));
+        assert!(response.result.is_some());
+        assert!(response.error.is_none());
+
+        let result: ListPromptsResult = serde_json::from_value(response.result.unwrap()).unwrap();
+        assert_eq!(result.prompts.len(), 1);
+        assert_eq!(result.prompts[0].name, "test_prompt");
+    }
+
+    #[tokio::test]
+    async fn test_handle_get_prompt() {
+        let handler = create_test_handler();
+        let request = Request {
+            jsonrpc: "2.0".to_string(),
+            method: "prompts/get".to_string(),
+            params: json!({
+                "name": "test_prompt",
+                "arguments": {}
+            }),
+            id: json!(8),
+        };
+
+        let response = handler.handle_request(request).await.unwrap();
+
+        assert_eq!(response.jsonrpc, "2.0");
+        assert_eq!(response.id, json!(8));
+        assert!(response.result.is_some());
+        assert!(response.error.is_none());
+
+        let result: GetPromptResult = serde_json::from_value(response.result.unwrap()).unwrap();
+        assert_eq!(result.messages.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_handle_subscribe() {
+        let handler = create_test_handler();
+        let request = Request {
+            jsonrpc: "2.0".to_string(),
+            method: "resources/subscribe".to_string(),
+            params: json!({
+                "uri": "test://resource1"
+            }),
+            id: json!(9),
+        };
+
+        let response = handler.handle_request(request).await.unwrap();
+
+        assert_eq!(response.jsonrpc, "2.0");
+        assert_eq!(response.id, json!(9));
+        assert!(response.result.is_some());
+        assert!(response.error.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_handle_unsubscribe() {
+        let handler = create_test_handler();
+        let request = Request {
+            jsonrpc: "2.0".to_string(),
+            method: "resources/unsubscribe".to_string(),
+            params: json!({
+                "uri": "test://resource1"
+            }),
+            id: json!(10),
+        };
+
+        let response = handler.handle_request(request).await.unwrap();
+
+        assert_eq!(response.jsonrpc, "2.0");
+        assert_eq!(response.id, json!(10));
+        assert!(response.result.is_some());
+        assert!(response.error.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_handle_complete() {
+        let handler = create_test_handler();
+        let request = Request {
+            jsonrpc: "2.0".to_string(),
+            method: "completion/complete".to_string(),
+            params: json!({
+                "ref": {
+                    "type": "ref/prompt",
+                    "name": "test_prompt"
+                },
+                "argument": {
+                    "name": "query",
+                    "value": "test"
+                }
+            }),
+            id: json!(11),
+        };
+
+        let response = handler.handle_request(request).await.unwrap();
+
+        assert_eq!(response.jsonrpc, "2.0");
+        assert_eq!(response.id, json!(11));
+        assert!(response.result.is_some());
+        assert!(response.error.is_none());
+
+        let result: CompleteResult = serde_json::from_value(response.result.unwrap()).unwrap();
+        assert_eq!(result.completion.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_handle_ping() {
+        let handler = create_test_handler();
+        let request = Request {
+            jsonrpc: "2.0".to_string(),
+            method: "ping".to_string(),
+            params: json!({}),
+            id: json!(12),
+        };
+
+        let response = handler.handle_request(request).await.unwrap();
+
+        assert_eq!(response.jsonrpc, "2.0");
+        assert_eq!(response.id, json!(12));
+        assert!(response.result.is_some());
+        assert!(response.error.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_handle_custom_method() {
+        let handler = create_test_handler();
+        let request = Request {
+            jsonrpc: "2.0".to_string(),
+            method: "custom/method".to_string(),
+            params: json!({"test": "data"}),
+            id: json!(13),
+        };
+
+        let response = handler.handle_request(request).await.unwrap();
+
+        assert_eq!(response.jsonrpc, "2.0");
+        assert_eq!(response.id, json!(13));
+        assert!(response.result.is_some());
+        assert!(response.error.is_none());
+
+        let result = response.result.unwrap();
+        assert_eq!(result["method"], "custom/method");
+    }
+
+    #[tokio::test]
+    async fn test_backend_error_handling() {
+        let handler = create_error_handler();
+        let request = Request {
+            jsonrpc: "2.0".to_string(),
+            method: "tools/list".to_string(),
+            params: json!({}),
+            id: json!(14),
+        };
+
+        let response = handler.handle_request(request).await.unwrap();
+
+        assert_eq!(response.jsonrpc, "2.0");
+        assert_eq!(response.id, json!(14));
+        assert!(response.result.is_none());
+        assert!(response.error.is_some());
+
+        let error = response.error.unwrap();
+        assert!(error.message.contains("Simulated error"));
+    }
+
+    #[tokio::test]
+    async fn test_invalid_params() {
+        let handler = create_test_handler();
+        let request = Request {
+            jsonrpc: "2.0".to_string(),
+            method: "tools/call".to_string(),
+            params: json!("invalid"), // Should be an object
+            id: json!(15),
+        };
+
+        let response = handler.handle_request(request).await.unwrap();
+
+        assert_eq!(response.jsonrpc, "2.0");
+        assert_eq!(response.id, json!(15));
+        assert!(response.result.is_none());
+        assert!(response.error.is_some());
+    }
+
+    #[test]
+    fn test_handler_error_classification() {
+        let auth_error = HandlerError::Authentication("Invalid token".to_string());
+        assert_eq!(auth_error.error_type(), "authentication");
+        assert!(!auth_error.is_retryable());
+        assert!(!auth_error.is_timeout());
+        assert!(auth_error.is_auth_error());
+        assert!(!auth_error.is_connection_error());
+
+        let backend_error = HandlerError::Backend("Database error".to_string());
+        assert_eq!(backend_error.error_type(), "backend");
+        assert!(backend_error.is_retryable());
+        assert!(!backend_error.is_timeout());
+        assert!(!backend_error.is_auth_error());
+        assert!(!backend_error.is_connection_error());
+
+        let protocol_error =
+            HandlerError::Protocol(Error::invalid_request("Bad request".to_string()));
+        assert_eq!(protocol_error.error_type(), "protocol");
+        assert!(!protocol_error.is_retryable());
+        assert!(!protocol_error.is_timeout());
+        assert!(!protocol_error.is_auth_error());
+        assert!(!protocol_error.is_connection_error());
+    }
+
+    #[test]
+    fn test_handler_error_conversion() {
+        let auth_error = HandlerError::Authentication("Auth failed".to_string());
+        let protocol_error: Error = auth_error.into();
+        assert_eq!(protocol_error.code, ErrorCode::Forbidden);
+
+        let backend_error = HandlerError::Backend("Backend failed".to_string());
+        let protocol_error: Error = backend_error.into();
+        assert_eq!(protocol_error.code, ErrorCode::InternalError);
+    }
+
+    #[test]
+    fn test_handler_error_display() {
+        let error = HandlerError::Authentication("Test auth error".to_string());
+        assert_eq!(error.to_string(), "Authentication failed: Test auth error");
+
+        let error = HandlerError::Authorization("Test auth error".to_string());
+        assert_eq!(error.to_string(), "Authorization failed: Test auth error");
+
+        let error = HandlerError::Backend("Test backend error".to_string());
+        assert_eq!(error.to_string(), "Backend error: Test backend error");
+    }
+}
