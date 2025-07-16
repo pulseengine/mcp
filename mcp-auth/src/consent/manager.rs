@@ -570,7 +570,31 @@ impl ConsentManager {
             }
         }
 
-        // TODO: Write to persistent audit log file if configured
+        // Write to persistent audit log file if configured
+        if let Some(log_path) = &self.config.audit_log_path {
+            let log_entry = serde_json::to_string(&audit_entry)
+                .unwrap_or_else(|_| "Failed to serialize audit entry".to_string());
+            let log_line = format!("{}\n", log_entry);
+
+            match tokio::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(log_path)
+                .await
+            {
+                Ok(mut file) => {
+                    use tokio::io::AsyncWriteExt;
+                    if let Err(e) = file.write_all(log_line.as_bytes()).await {
+                        tracing::error!("Failed to write audit log to file: {}", e);
+                    } else if let Err(e) = file.flush().await {
+                        tracing::error!("Failed to flush audit log file: {}", e);
+                    }
+                }
+                Err(e) => {
+                    tracing::error!("Failed to open audit log file: {}", e);
+                }
+            }
+        }
 
         Ok(())
     }

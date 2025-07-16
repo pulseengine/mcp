@@ -1364,3 +1364,58 @@ impl AuthenticationManager {
             .map_err(|e| AuthError::Failed(format!("Token decoding failed: {}", e)))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::{AuthConfig, StorageConfig};
+    use crate::models::Role;
+    use tokio;
+
+    fn create_test_config() -> AuthConfig {
+        AuthConfig {
+            storage: StorageConfig::Memory,
+            enabled: true,
+            cache_size: 100,
+            session_timeout_secs: 3600,
+            max_failed_attempts: 3,
+            rate_limit_window_secs: 300,
+        }
+    }
+
+    fn create_test_validation_config() -> ValidationConfig {
+        ValidationConfig {
+            max_failed_attempts: 3,
+            failed_attempt_window_minutes: 15,
+            block_duration_minutes: 30,
+            session_timeout_minutes: 60,
+            strict_ip_validation: false,
+            enable_role_based_rate_limiting: false,
+            role_rate_limits: HashMap::new(),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_auth_manager_creation() {
+        let config = create_test_config();
+
+        let result = AuthenticationManager::new(config).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_create_api_key() {
+        let config = create_test_config();
+        let manager = AuthenticationManager::new(config).await.unwrap();
+
+        let result = manager
+            .create_api_key("Test Key".to_string(), Role::Monitor, None, None)
+            .await;
+        assert!(result.is_ok());
+
+        let key = result.unwrap();
+        assert_eq!(key.name, "Test Key");
+        assert!(key.key.starts_with("lmcp_"));
+        assert_eq!(key.role, Role::Monitor);
+    }
+}
