@@ -1171,4 +1171,405 @@ mod tests {
         assert_eq!(session.name, "test_session");
         assert!(session.end_time.is_some());
     }
+
+    #[test]
+    fn test_cpu_profiling_config() {
+        let config = CpuProfilingConfig {
+            enabled: true,
+            sampling_frequency_hz: 100,
+            max_samples: 1000,
+            profile_duration_secs: 60,
+            max_stack_depth: 32,
+            call_graph_enabled: true,
+        };
+
+        assert!(config.enabled);
+        assert_eq!(config.sampling_frequency_hz, 100);
+        assert_eq!(config.max_samples, 1000);
+        assert_eq!(config.profile_duration_secs, 60);
+        assert_eq!(config.max_stack_depth, 32);
+        assert!(config.call_graph_enabled);
+    }
+
+    #[test]
+    fn test_memory_profiling_config() {
+        let config = MemoryProfilingConfig {
+            enabled: true,
+            track_allocations: true,
+            track_leaks: true,
+            max_allocations: 10000,
+            snapshot_interval_secs: 30,
+            heap_profiling: true,
+        };
+
+        assert!(config.enabled);
+        assert!(config.track_allocations);
+        assert!(config.track_leaks);
+        assert_eq!(config.max_allocations, 10000);
+        assert_eq!(config.snapshot_interval_secs, 30);
+        assert!(config.heap_profiling);
+    }
+
+    #[test]
+    fn test_async_profiling_config() {
+        let config = AsyncProfilingConfig {
+            enabled: true,
+            track_spawns: true,
+            track_completion: true,
+            max_tracked_tasks: 5000,
+            task_timeout_threshold_ms: 1000,
+        };
+
+        assert!(config.enabled);
+        assert!(config.track_spawns);
+        assert!(config.track_completion);
+        assert_eq!(config.max_tracked_tasks, 5000);
+        assert_eq!(config.task_timeout_threshold_ms, 1000);
+    }
+
+    #[test]
+    fn test_flame_graph_config() {
+        let config = FlameGraphConfig {
+            enabled: true,
+            width: 1920,
+            height: 1080,
+            color_scheme: FlameGraphColorScheme::Hot,
+            min_frame_width: 1,
+            show_function_names: true,
+            reverse: false,
+        };
+
+        assert!(config.enabled);
+        assert_eq!(config.width, 1920);
+        assert_eq!(config.height, 1080);
+        assert!(matches!(config.color_scheme, FlameGraphColorScheme::Hot));
+        assert_eq!(config.min_frame_width, 1);
+        assert!(config.show_function_names);
+        assert!(!config.reverse);
+    }
+
+    #[test]
+    fn test_flame_graph_color_schemes() {
+        let schemes = vec![
+            FlameGraphColorScheme::Hot,
+            FlameGraphColorScheme::Cold,
+            FlameGraphColorScheme::Rainbow,
+            FlameGraphColorScheme::Aqua,
+            FlameGraphColorScheme::Orange,
+            FlameGraphColorScheme::Red,
+            FlameGraphColorScheme::Green,
+            FlameGraphColorScheme::Blue,
+            FlameGraphColorScheme::Custom(vec!["#ff0000".to_string(), "#00ff00".to_string()]),
+        ];
+
+        for scheme in schemes {
+            let config = FlameGraphConfig {
+                enabled: true,
+                width: 1024,
+                height: 768,
+                color_scheme: scheme,
+                min_frame_width: 1,
+                show_function_names: true,
+                reverse: false,
+            };
+            // Just test that it can be created and serialized
+            let serialized = serde_json::to_string(&config);
+            assert!(serialized.is_ok());
+        }
+    }
+
+    #[test]
+    fn test_performance_thresholds() {
+        let thresholds = PerformanceThresholds {
+            cpu_threshold_percent: 80.0,
+            memory_threshold_mb: 512.0,
+            function_call_threshold_ms: 100,
+            async_task_threshold_ms: 200,
+            allocation_threshold_bytes: 1024,
+        };
+
+        assert_eq!(thresholds.cpu_threshold_percent, 80.0);
+        assert_eq!(thresholds.memory_threshold_mb, 512.0);
+        assert_eq!(thresholds.function_call_threshold_ms, 100);
+        assert_eq!(thresholds.async_task_threshold_ms, 200);
+        assert_eq!(thresholds.allocation_threshold_bytes, 1024);
+    }
+
+    #[test]
+    fn test_cpu_sample_creation() {
+        let sample = CpuSample {
+            timestamp: Utc::now(),
+            stack_trace: vec![StackFrame {
+                function_name: "main".to_string(),
+                module_name: Some("app".to_string()),
+                file_name: Some("/src/main.rs".to_string()),
+                line_number: Some(10),
+                address: Some(0x12345678),
+                offset: Some(0x100),
+            }],
+            cpu_usage: 45.2,
+            thread_id: 12345,
+            process_id: 98765,
+        };
+
+        assert_eq!(sample.stack_trace.len(), 1);
+        assert_eq!(sample.cpu_usage, 45.2);
+        assert_eq!(sample.thread_id, 12345);
+        assert_eq!(sample.process_id, 98765);
+        assert_eq!(sample.stack_trace[0].function_name, "main");
+    }
+
+    #[test]
+    fn test_memory_snapshot_creation() {
+        let snapshot = MemorySnapshot {
+            timestamp: Utc::now(),
+            total_memory_bytes: 1024 * 1024,
+            heap_memory_bytes: 512 * 1024,
+            stack_memory_bytes: 512 * 1024,
+            allocation_count: 100,
+            allocations_by_size: std::collections::HashMap::new(),
+            allocations_by_location: std::collections::HashMap::new(),
+        };
+
+        assert_eq!(snapshot.total_memory_bytes, 1024 * 1024);
+        assert_eq!(snapshot.heap_memory_bytes, 512 * 1024);
+        assert_eq!(snapshot.allocation_count, 100);
+    }
+
+    #[test]
+    fn test_async_task_profile() {
+        let task_id = Uuid::new_v4();
+        let profile = AsyncTaskProfile {
+            task_id,
+            task_name: "test_task".to_string(),
+            spawn_time: Utc::now(),
+            completion_time: None,
+            duration_ms: None,
+            state: AsyncTaskState::Running,
+            cpu_time_ms: 100,
+            memory_bytes: 1024,
+            yield_count: 5,
+            parent_task_id: None,
+        };
+
+        assert_eq!(profile.task_id, task_id);
+        assert_eq!(profile.task_name, "test_task");
+        assert_eq!(profile.cpu_time_ms, 100);
+        assert_eq!(profile.memory_bytes, 1024);
+        assert_eq!(profile.yield_count, 5);
+        assert!(matches!(profile.state, AsyncTaskState::Running));
+    }
+
+    #[test]
+    fn test_function_call_profile() {
+        let profile = FunctionCallProfile {
+            function_name: "test_function".to_string(),
+            call_count: 2,
+            total_time_us: 3000,
+            average_time_us: 1500.0,
+            min_time_us: 1000,
+            max_time_us: 2000,
+            percentiles: HashMap::new(),
+            call_history: VecDeque::new(),
+        };
+
+        assert_eq!(profile.function_name, "test_function");
+        assert_eq!(profile.call_count, 2);
+        assert_eq!(profile.total_time_us, 3000);
+        assert_eq!(profile.min_time_us, 1000);
+        assert_eq!(profile.max_time_us, 2000);
+        assert_eq!(profile.average_time_us, 1500.0);
+    }
+
+    #[test]
+    fn test_profiling_session_types() {
+        let manual = ProfilingSessionType::Manual;
+        let scheduled = ProfilingSessionType::Scheduled;
+        let triggered = ProfilingSessionType::Triggered;
+        let continuous = ProfilingSessionType::Continuous;
+
+        assert!(matches!(manual, ProfilingSessionType::Manual));
+        assert!(matches!(scheduled, ProfilingSessionType::Scheduled));
+        assert!(matches!(triggered, ProfilingSessionType::Triggered));
+        assert!(matches!(continuous, ProfilingSessionType::Continuous));
+    }
+
+    #[test]
+    fn test_async_task_status() {
+        let statuses = vec![
+            AsyncTaskState::Running,
+            AsyncTaskState::Suspended,
+            AsyncTaskState::Completed,
+            AsyncTaskState::Failed,
+            AsyncTaskState::Cancelled,
+        ];
+
+        for status in statuses {
+            // Test serialization
+            let serialized = serde_json::to_string(&status);
+            assert!(serialized.is_ok());
+
+            // Test deserialization
+            let deserialized: Result<AsyncTaskState, _> =
+                serde_json::from_str(&serialized.unwrap());
+            assert!(deserialized.is_ok());
+        }
+    }
+
+    #[test]
+    fn test_hotspot_types() {
+        let types = vec![
+            HotspotType::CpuIntensive,
+            HotspotType::MemoryIntensive,
+            HotspotType::IoBlocking,
+            HotspotType::LockContention,
+            HotspotType::AsyncOverhead,
+            HotspotType::GarbageCollection,
+            HotspotType::SystemCall,
+            HotspotType::NetworkIo,
+            HotspotType::DatabaseQuery,
+            HotspotType::FileIo,
+        ];
+
+        for hotspot_type in types {
+            let serialized = serde_json::to_string(&hotspot_type);
+            assert!(serialized.is_ok());
+        }
+    }
+
+    #[test]
+    fn test_hotspot_severities() {
+        let severities = vec![
+            HotspotSeverity::Critical,
+            HotspotSeverity::High,
+            HotspotSeverity::Medium,
+            HotspotSeverity::Low,
+            HotspotSeverity::Info,
+        ];
+
+        for severity in severities {
+            let serialized = serde_json::to_string(&severity);
+            assert!(serialized.is_ok());
+        }
+    }
+
+    #[tokio::test]
+    async fn test_disabled_profiler() {
+        let config = ProfilingConfig {
+            enabled: false,
+            ..Default::default()
+        };
+        let profiler = PerformanceProfiler::new(config);
+
+        // Should fail to start session when disabled
+        let result = profiler
+            .start_session("test".to_string(), ProfilingSessionType::Manual)
+            .await;
+
+        assert!(result.is_err());
+        if let Err(ProfilingError::Disabled) = result {
+            // Expected error
+        } else {
+            panic!("Expected ProfilingError::Disabled");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_multiple_function_calls() {
+        let config = ProfilingConfig::default();
+        let profiler = PerformanceProfiler::new(config);
+
+        // Record multiple calls to same function
+        profiler
+            .record_function_call("test_func".to_string(), 1000)
+            .await;
+        profiler
+            .record_function_call("test_func".to_string(), 2000)
+            .await;
+        profiler
+            .record_function_call("test_func".to_string(), 1500)
+            .await;
+
+        let function_calls = profiler.function_calls.read().await;
+        let profile = function_calls.get("test_func").unwrap();
+
+        assert_eq!(profile.call_count, 3);
+        assert_eq!(profile.total_time_us, 4500);
+        assert_eq!(profile.min_time_us, 1000);
+        assert_eq!(profile.max_time_us, 2000);
+        assert_eq!(profile.average_time_us, 1500.0);
+    }
+
+    #[tokio::test]
+    async fn test_get_statistics() {
+        let config = ProfilingConfig::default();
+        let profiler = PerformanceProfiler::new(config);
+
+        // Add some data
+        profiler
+            .record_function_call("func1".to_string(), 1000)
+            .await;
+        profiler
+            .record_function_call("func2".to_string(), 2000)
+            .await;
+
+        let stats = profiler.get_statistics().await;
+        assert_eq!(stats.function_calls_tracked, 2);
+        assert_eq!(stats.total_samples, 0); // No CPU/memory samples added
+    }
+
+    #[tokio::test]
+    async fn test_session_without_current() {
+        let config = ProfilingConfig::default();
+        let profiler = PerformanceProfiler::new(config);
+
+        // Try to stop session when none is running
+        let result = profiler.stop_session().await;
+        assert!(result.is_err());
+
+        if let Err(ProfilingError::NoActiveSession) = result {
+            // Expected error
+        } else {
+            panic!("Expected ProfilingError::NoActiveSession");
+        }
+    }
+
+    #[test]
+    fn test_config_serialization() {
+        let config = ProfilingConfig::default();
+
+        // Test serialization
+        let serialized = serde_json::to_string(&config);
+        assert!(serialized.is_ok());
+
+        // Test deserialization
+        let deserialized: Result<ProfilingConfig, _> = serde_json::from_str(&serialized.unwrap());
+        assert!(deserialized.is_ok());
+
+        let restored_config = deserialized.unwrap();
+        assert_eq!(config.enabled, restored_config.enabled);
+        assert_eq!(
+            config.cpu_profiling.enabled,
+            restored_config.cpu_profiling.enabled
+        );
+    }
+
+    #[test]
+    fn test_stack_frame_creation() {
+        let frame = StackFrame {
+            function_name: "test_function".to_string(),
+            module_name: Some("test_module".to_string()),
+            file_name: Some("/path/to/file.rs".to_string()),
+            line_number: Some(42),
+            address: Some(0xDEADBEEF),
+            offset: Some(0x100),
+        };
+
+        assert_eq!(frame.function_name, "test_function");
+        assert_eq!(frame.module_name, Some("test_module".to_string()));
+        assert_eq!(frame.file_name, Some("/path/to/file.rs".to_string()));
+        assert_eq!(frame.line_number, Some(42));
+        assert_eq!(frame.address, Some(0xDEADBEEF));
+        assert_eq!(frame.offset, Some(0x100));
+    }
 }
