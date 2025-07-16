@@ -59,11 +59,7 @@ jobs:
         
         # Run tests with coverage for all packages (excluding same files as Codecov)
         cargo llvm-cov test --all-features --workspace --lcov --output-path lcov.info \
-          --ignore-filename-regex="examples/.*" \
-          --ignore-filename-regex="mcp-cli-derive/.*" \
-          --ignore-filename-regex=".*/tests/.*" \
-          --ignore-filename-regex=".*_tests\.rs" \
-          --ignore-filename-regex=".*/build\.rs"
+          --ignore-filename-regex="examples/.*|mcp-cli-derive/.*|.*/tests/.*|.*_tests\.rs|.*/build\.rs"
         
         # Also run integration tests
         cargo llvm-cov test --all-features --package pulseengine-mcp-integration-tests --lcov --output-path lcov-integration.info
@@ -86,11 +82,7 @@ jobs:
       run: |
         # Generate a human-readable summary (with same exclusions as Codecov)
         cargo llvm-cov report --summary-only \
-          --ignore-filename-regex="examples/.*" \
-          --ignore-filename-regex="mcp-cli-derive/.*" \
-          --ignore-filename-regex=".*/tests/.*" \
-          --ignore-filename-regex=".*_tests\.rs" \
-          --ignore-filename-regex=".*/build\.rs" \
+          --ignore-filename-regex="examples/.*|mcp-cli-derive/.*|.*/tests/.*|.*_tests\.rs|.*/build\.rs" \
           > coverage-summary.txt
         cat coverage-summary.txt
         
