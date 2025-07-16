@@ -89,9 +89,9 @@ impl MiddlewareStack {
                     .iter()
                     .map(|r| match r.as_str() {
                         "admin" => pulseengine_mcp_auth::models::Role::Admin,
-                        "user" => pulseengine_mcp_auth::models::Role::User,
-                        "guest" => pulseengine_mcp_auth::models::Role::Guest,
-                        _ => pulseengine_mcp_auth::models::Role::Guest, // Default to guest for unknown roles
+                        "operator" => pulseengine_mcp_auth::models::Role::Operator,
+                        "monitor" => pulseengine_mcp_auth::models::Role::Monitor,
+                        _ => pulseengine_mcp_auth::models::Role::Monitor, // Default to monitor for unknown roles
                     })
                     .collect(),
             };
@@ -138,9 +138,9 @@ impl MiddlewareStack {
                     .iter()
                     .map(|r| match r.as_str() {
                         "admin" => pulseengine_mcp_auth::models::Role::Admin,
-                        "user" => pulseengine_mcp_auth::models::Role::User,
-                        "guest" => pulseengine_mcp_auth::models::Role::Guest,
-                        _ => pulseengine_mcp_auth::models::Role::Guest, // Default to guest for unknown roles
+                        "operator" => pulseengine_mcp_auth::models::Role::Operator,
+                        "monitor" => pulseengine_mcp_auth::models::Role::Monitor,
+                        _ => pulseengine_mcp_auth::models::Role::Monitor, // Default to monitor for unknown roles
                     })
                     .collect(),
             };
