@@ -466,7 +466,7 @@ mod tests {
     #[test]
     fn test_config_debug() {
         let config = StdioConfig::default();
-        let debug_str = format!("{:?}", config);
+        let debug_str = format!("{config:?}");
         assert!(debug_str.contains("StdioConfig"));
         assert!(debug_str.contains("max_message_size"));
         assert!(debug_str.contains("validate_messages"));
@@ -475,7 +475,7 @@ mod tests {
     #[test]
     fn test_transport_debug() {
         let transport = StdioTransport::new();
-        let debug_str = format!("{:?}", transport);
+        let debug_str = format!("{transport:?}");
         assert!(debug_str.contains("StdioTransport"));
         assert!(debug_str.contains("running"));
         assert!(debug_str.contains("config"));
@@ -487,7 +487,7 @@ mod tests {
             max_message_size: 50, // Very small for testing
             validate_messages: true,
         };
-        let transport = StdioTransport::with_config(config);
+        let _transport = StdioTransport::with_config(config);
 
         // Large message should fail validation
         let large_message = "x".repeat(100);
