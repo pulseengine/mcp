@@ -1416,7 +1416,7 @@ mod tests {
 
         let key = result.unwrap();
         assert_eq!(key.name, "Test Key");
-        assert!(key.key.starts_with("lmcp_"));
+        assert!(key.id.starts_with("lmcp_"));
         assert_eq!(key.role, Role::Monitor);
     }
 }
