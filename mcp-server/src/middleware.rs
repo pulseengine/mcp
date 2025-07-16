@@ -87,8 +87,13 @@ impl MiddlewareStack {
                 roles: context
                     .roles
                     .iter()
-                    .map(|_r| pulseengine_mcp_auth::models::Role::Admin)
-                    .collect(), // TODO: proper role mapping
+                    .map(|r| match r.as_str() {
+                        "admin" => pulseengine_mcp_auth::models::Role::Admin,
+                        "user" => pulseengine_mcp_auth::models::Role::User,
+                        "guest" => pulseengine_mcp_auth::models::Role::Guest,
+                        _ => pulseengine_mcp_auth::models::Role::Guest, // Default to guest for unknown roles
+                    })
+                    .collect(),
             };
 
             request = auth
@@ -131,8 +136,13 @@ impl MiddlewareStack {
                 roles: context
                     .roles
                     .iter()
-                    .map(|_r| pulseengine_mcp_auth::models::Role::Admin)
-                    .collect(), // TODO: proper role mapping
+                    .map(|r| match r.as_str() {
+                        "admin" => pulseengine_mcp_auth::models::Role::Admin,
+                        "user" => pulseengine_mcp_auth::models::Role::User,
+                        "guest" => pulseengine_mcp_auth::models::Role::Guest,
+                        _ => pulseengine_mcp_auth::models::Role::Guest, // Default to guest for unknown roles
+                    })
+                    .collect(),
             };
             response = auth
                 .process_response(response, &auth_context)
