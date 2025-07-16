@@ -64,10 +64,9 @@ jobs:
           # Generate safe filename
           filename=$(echo "$server" | sed 's/[^a-zA-Z0-9]/_/g')
           
-          # Run validation
-          ./target/release/mcp-validate --server-url "$server" --all \
-            --output "validation-results/${filename}.json" \
-            --timeout 30 || true
+          # Run validation (output JSON format)
+          ./target/release/mcp-validate --server-url "$server" \
+            --output json > "validation-results/${filename}.json" || true
         done
     
     - name: Generate summary report
@@ -93,9 +92,11 @@ jobs:
     
     - name: Upload validation results
       uses: actions/upload-artifact@v4
+      if: always()
       with:
         name: validation-results-${{ github.run_id }}
         path: validation-results/
+        if-no-files-found: warn
     
     - name: Create issue if failures detected
       if: failure()
