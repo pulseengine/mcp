@@ -57,8 +57,13 @@ jobs:
         # Clean any existing coverage data
         cargo llvm-cov clean --workspace
         
-        # Run tests with coverage for all packages
-        cargo llvm-cov test --all-features --workspace --lcov --output-path lcov.info
+        # Run tests with coverage for all packages (excluding same files as Codecov)
+        cargo llvm-cov test --all-features --workspace --lcov --output-path lcov.info \
+          --ignore-filename-regex="examples/.*" \
+          --ignore-filename-regex="mcp-cli-derive/.*" \
+          --ignore-filename-regex=".*/tests/.*" \
+          --ignore-filename-regex=".*_tests\.rs" \
+          --ignore-filename-regex=".*/build\.rs"
         
         # Also run integration tests
         cargo llvm-cov test --all-features --package pulseengine-mcp-integration-tests --lcov --output-path lcov-integration.info
@@ -79,12 +84,18 @@ jobs:
     
     - name: Generate coverage summary
       run: |
-        # Generate a human-readable summary
-        cargo llvm-cov report --summary-only > coverage-summary.txt
+        # Generate a human-readable summary (with same exclusions as Codecov)
+        cargo llvm-cov report --summary-only \
+          --ignore-filename-regex="examples/.*" \
+          --ignore-filename-regex="mcp-cli-derive/.*" \
+          --ignore-filename-regex=".*/tests/.*" \
+          --ignore-filename-regex=".*_tests\.rs" \
+          --ignore-filename-regex=".*/build\.rs" \
+          > coverage-summary.txt
         cat coverage-summary.txt
         
-        # Extract coverage percentage
-        COVERAGE=$(grep -oP '\d+\.\d+(?=%)' coverage-summary.txt | head -1)
+        # Extract coverage percentage (use tail -1 to get TOTAL line, not first file)
+        COVERAGE=$(grep -oP '\d+\.\d+(?=%)' coverage-summary.txt | tail -1)
         echo "COVERAGE_PERCENT=$COVERAGE" >> $GITHUB_ENV
         
         # Check if coverage meets the 80% requirement
