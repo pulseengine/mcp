@@ -392,4 +392,233 @@ mod tests {
             .store(true, std::sync::atomic::Ordering::Relaxed);
         assert!(transport.health_check().await.is_ok());
     }
+
+    #[test]
+    fn test_transport_creation() {
+        let transport = StdioTransport::new();
+        assert!(!transport.is_running());
+        assert_eq!(transport.config().max_message_size, 10 * 1024 * 1024);
+        assert!(transport.config().validate_messages);
+    }
+
+    #[test]
+    fn test_transport_with_custom_config() {
+        let config = StdioConfig {
+            max_message_size: 2048,
+            validate_messages: false,
+        };
+        let transport = StdioTransport::with_config(config);
+
+        assert!(!transport.is_running());
+        assert_eq!(transport.config().max_message_size, 2048);
+        assert!(!transport.config().validate_messages);
+    }
+
+    #[test]
+    fn test_default_transport() {
+        let transport = StdioTransport::default();
+        assert!(!transport.is_running());
+        assert_eq!(transport.config().max_message_size, 10 * 1024 * 1024);
+        assert!(transport.config().validate_messages);
+    }
+
+    #[test]
+    fn test_running_state() {
+        let transport = StdioTransport::new();
+
+        // Initially not running
+        assert!(!transport.is_running());
+
+        // Set running
+        transport.set_running(true);
+        assert!(transport.is_running());
+
+        // Set not running
+        transport.set_running(false);
+        assert!(!transport.is_running());
+    }
+
+    #[tokio::test]
+    async fn test_stop_transport() {
+        let mut transport = StdioTransport::new();
+
+        // Set as running first
+        transport.set_running(true);
+        assert!(transport.is_running());
+
+        // Stop the transport
+        assert!(transport.stop().await.is_ok());
+        assert!(!transport.is_running());
+    }
+
+    #[test]
+    fn test_stdio_config_clone() {
+        let config1 = StdioConfig {
+            max_message_size: 1024,
+            validate_messages: true,
+        };
+
+        let config2 = config1.clone();
+        assert_eq!(config1.max_message_size, config2.max_message_size);
+        assert_eq!(config1.validate_messages, config2.validate_messages);
+    }
+
+    #[test]
+    fn test_config_debug() {
+        let config = StdioConfig::default();
+        let debug_str = format!("{:?}", config);
+        assert!(debug_str.contains("StdioConfig"));
+        assert!(debug_str.contains("max_message_size"));
+        assert!(debug_str.contains("validate_messages"));
+    }
+
+    #[test]
+    fn test_transport_debug() {
+        let transport = StdioTransport::new();
+        let debug_str = format!("{:?}", transport);
+        assert!(debug_str.contains("StdioTransport"));
+        assert!(debug_str.contains("running"));
+        assert!(debug_str.contains("config"));
+    }
+
+    #[tokio::test]
+    async fn test_message_size_validation() {
+        let config = StdioConfig {
+            max_message_size: 50, // Very small for testing
+            validate_messages: true,
+        };
+        let transport = StdioTransport::with_config(config);
+
+        // Large message should fail validation
+        let large_message = "x".repeat(100);
+        assert!(validate_message_string(&large_message, Some(50)).is_err());
+
+        // Small message should pass
+        let small_message = "x".repeat(10);
+        assert!(validate_message_string(&small_message, Some(50)).is_ok());
+    }
+
+    #[test]
+    fn test_json_rpc_message_parsing() {
+        // Valid JSON-RPC request
+        let valid_msg = r#"{"jsonrpc": "2.0", "method": "test", "id": 1}"#;
+        let parsed = JsonRpcMessage::parse(valid_msg);
+        assert!(parsed.is_ok());
+
+        // Invalid JSON
+        let invalid_msg = r#"{"jsonrpc": "2.0", "method": "test""#; // Missing closing brace
+        let parsed = JsonRpcMessage::parse(invalid_msg);
+        assert!(parsed.is_err());
+    }
+
+    #[test]
+    fn test_message_validation_edge_cases() {
+        // Message with newline (should fail)
+        let newline_msg = "line1\nline2";
+        assert!(validate_message_string(newline_msg, Some(1024)).is_err());
+
+        // Message with carriage return (should fail)
+        let cr_msg = "line1\rline2";
+        assert!(validate_message_string(cr_msg, Some(1024)).is_err());
+
+        // Empty message (should pass)
+        let empty_msg = "";
+        assert!(validate_message_string(empty_msg, Some(1024)).is_ok());
+
+        // Normal message (should pass)
+        let normal_msg = "valid message";
+        assert!(validate_message_string(normal_msg, Some(1024)).is_ok());
+    }
+
+    #[test]
+    fn test_extract_id_edge_cases() {
+        // Null ID
+        let text = r#"{"jsonrpc": "2.0", "method": "test", "id": null}"#;
+        let id = extract_id_from_malformed(text);
+        assert_eq!(id, serde_json::Value::Null);
+
+        // Boolean ID (not standard but should handle)
+        let text = r#"{"jsonrpc": "2.0", "method": "test", "id": true}"#;
+        let id = extract_id_from_malformed(text);
+        assert_eq!(id, json!(true));
+
+        // Completely invalid JSON
+        let text = "not json at all";
+        let id = extract_id_from_malformed(text);
+        assert_eq!(id, serde_json::Value::Null);
+
+        // Empty string
+        let text = "";
+        let id = extract_id_from_malformed(text);
+        assert_eq!(id, serde_json::Value::Null);
+    }
+
+    #[tokio::test]
+    async fn test_response_serialization() {
+        let response = Response {
+            jsonrpc: "2.0".to_string(),
+            id: json!(1),
+            result: Some(json!({"status": "ok"})),
+            error: None,
+        };
+
+        let serialized = serde_json::to_string(&response);
+        assert!(serialized.is_ok());
+
+        let json_str = serialized.unwrap();
+        assert!(json_str.contains("jsonrpc"));
+        assert!(json_str.contains("2.0"));
+        assert!(json_str.contains("status"));
+    }
+
+    #[tokio::test]
+    async fn test_error_response_creation() {
+        let error = McpError::invalid_request("Test error");
+        let request_id = json!(42);
+
+        let response = create_error_response(error, request_id);
+
+        assert_eq!(response.jsonrpc, "2.0");
+        assert_eq!(response.id, json!(42));
+        assert!(response.error.is_some());
+        assert!(response.result.is_none());
+
+        let error_obj = response.error.unwrap();
+        assert!(error_obj.message.contains("Test error"));
+    }
+
+    #[test]
+    fn test_mock_handler_functionality() {
+        tokio::runtime::Runtime::new().unwrap().block_on(async {
+            let handler = mock_handler;
+
+            // Test normal method
+            let request = Request {
+                jsonrpc: "2.0".to_string(),
+                method: "test_method".to_string(),
+                params: json!({}),
+                id: json!(1),
+            };
+
+            let response = handler(request).await;
+            assert_eq!(response.jsonrpc, "2.0");
+            assert_eq!(response.id, json!(1));
+            assert!(response.result.is_some());
+            assert!(response.error.is_none());
+
+            // Test error method
+            let error_request = Request {
+                jsonrpc: "2.0".to_string(),
+                method: "error_method".to_string(),
+                params: json!({}),
+                id: json!(2),
+            };
+
+            let error_response = handler(error_request).await;
+            assert_eq!(error_response.jsonrpc, "2.0");
+            assert_eq!(error_response.id, json!(2));
+            assert!(error_response.result.is_none());
+            assert!(error_response.error.is_some());
+        });
+    }
 }
