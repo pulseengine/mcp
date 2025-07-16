@@ -1240,8 +1240,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_cleanup_sessions() {
-        let mut config = HttpConfig::default();
-        config.session_timeout_secs = 1; // 1 second timeout for testing
+        let config = HttpConfig {
+            session_timeout_secs: 1, // 1 second timeout for testing
+            ..Default::default()
+        };
 
         let state = Arc::new(HttpState {
             handler: Arc::new(Box::new(mock_handler)),
@@ -1414,8 +1416,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_post_origin_validation_failure() {
-        let mut config = HttpConfig::default();
-        config.allowed_origins = Some(vec!["http://allowed.com".to_string()]);
+        let config = HttpConfig {
+            allowed_origins: Some(vec!["http://allowed.com".to_string()]),
+            ..Default::default()
+        };
 
         let state = Arc::new(HttpState {
             handler: Arc::new(Box::new(mock_handler)),
@@ -1441,9 +1445,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_post_auth_failure() {
-        let mut config = HttpConfig::default();
-        config.require_auth = true;
-        config.valid_tokens = vec!["valid-token".to_string()];
+        let config = HttpConfig {
+            require_auth: true,
+            valid_tokens: vec!["valid-token".to_string()],
+            ..Default::default()
+        };
 
         let state = Arc::new(HttpState {
             handler: Arc::new(Box::new(mock_handler)),

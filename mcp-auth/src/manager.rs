@@ -1383,6 +1383,7 @@ mod tests {
         }
     }
 
+    #[allow(dead_code)]
     fn create_test_validation_config() -> ValidationConfig {
         ValidationConfig {
             max_failed_attempts: 3,
