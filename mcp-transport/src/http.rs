@@ -1475,9 +1475,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_post_message_validation_failure() {
-        let mut config = HttpConfig::default();
-        config.validate_messages = true;
-        config.max_message_size = 10; // Very small limit
+        let config = HttpConfig {
+            validate_messages: true,
+            max_message_size: 10, // Very small limit
+            ..Default::default()
+        };
 
         let state = Arc::new(HttpState {
             handler: Arc::new(Box::new(mock_handler)),
@@ -1669,8 +1671,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_sse_origin_validation_failure() {
-        let mut config = HttpConfig::default();
-        config.allowed_origins = Some(vec!["http://allowed.com".to_string()]);
+        let config = HttpConfig {
+            allowed_origins: Some(vec!["http://allowed.com".to_string()]),
+            ..Default::default()
+        };
 
         let state = Arc::new(HttpState {
             handler: Arc::new(Box::new(mock_handler)),
@@ -1695,9 +1699,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_sse_auth_failure() {
-        let mut config = HttpConfig::default();
-        config.require_auth = true;
-        config.valid_tokens = vec!["valid-token".to_string()];
+        let config = HttpConfig {
+            require_auth: true,
+            valid_tokens: vec!["valid-token".to_string()],
+            ..Default::default()
+        };
 
         let state = Arc::new(HttpState {
             handler: Arc::new(Box::new(mock_handler)),
@@ -1977,10 +1983,10 @@ mod tests {
         // Send many messages to test channel behavior
         for i in 0..2000 {
             // More than the 1024 capacity
-            let _ = sender.send(format!("message-{}", i));
+            let _ = sender.send(format!("message-{i}"));
         }
 
         // This should not crash the test
-        assert!(true);
+        // Channel is tested for capacity behavior
     }
 }
