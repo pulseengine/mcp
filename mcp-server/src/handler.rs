@@ -766,13 +766,12 @@ mod tests {
         }
     }
 
-    fn create_test_handler() -> GenericServerHandler<MockBackend> {
+    async fn create_test_handler() -> GenericServerHandler<MockBackend> {
         let backend = Arc::new(MockBackend::new());
         let auth_config = AuthConfig::memory();
         let auth_manager = Arc::new(
-            tokio::runtime::Runtime::new()
-                .unwrap()
-                .block_on(AuthenticationManager::new(auth_config))
+            AuthenticationManager::new(auth_config)
+                .await
                 .unwrap(),
         );
         let middleware = MiddlewareStack::new();
@@ -780,13 +779,12 @@ mod tests {
         GenericServerHandler::new(backend, auth_manager, middleware)
     }
 
-    fn create_error_handler() -> GenericServerHandler<MockBackend> {
+    async fn create_error_handler() -> GenericServerHandler<MockBackend> {
         let backend = Arc::new(MockBackend::with_error());
         let auth_config = AuthConfig::memory();
         let auth_manager = Arc::new(
-            tokio::runtime::Runtime::new()
-                .unwrap()
-                .block_on(AuthenticationManager::new(auth_config))
+            AuthenticationManager::new(auth_config)
+                .await
                 .unwrap(),
         );
         let middleware = MiddlewareStack::new();
@@ -796,14 +794,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_handler_creation() {
-        let handler = create_test_handler();
+        let handler = create_test_handler().await;
         // Just verify the handler can be created
         assert!(!handler.backend.tools.is_empty());
     }
 
     #[tokio::test]
     async fn test_handle_initialize() {
-        let handler = create_test_handler();
+        let handler = create_test_handler().await;
         let request = Request {
             jsonrpc: "2.0".to_string(),
             method: "initialize".to_string(),
@@ -835,7 +833,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_list_tools() {
-        let handler = create_test_handler();
+        let handler = create_test_handler().await;
         let request = Request {
             jsonrpc: "2.0".to_string(),
             method: "tools/list".to_string(),
@@ -857,7 +855,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_call_tool_success() {
-        let handler = create_test_handler();
+        let handler = create_test_handler().await;
         let request = Request {
             jsonrpc: "2.0".to_string(),
             method: "tools/call".to_string(),
@@ -884,7 +882,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_call_tool_not_found() {
-        let handler = create_test_handler();
+        let handler = create_test_handler().await;
         let request = Request {
             jsonrpc: "2.0".to_string(),
             method: "tools/call".to_string(),
@@ -905,7 +903,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_list_resources() {
-        let handler = create_test_handler();
+        let handler = create_test_handler().await;
         let request = Request {
             jsonrpc: "2.0".to_string(),
             method: "resources/list".to_string(),
@@ -927,7 +925,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_read_resource() {
-        let handler = create_test_handler();
+        let handler = create_test_handler().await;
         let request = Request {
             jsonrpc: "2.0".to_string(),
             method: "resources/read".to_string(),
@@ -950,7 +948,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_list_prompts() {
-        let handler = create_test_handler();
+        let handler = create_test_handler().await;
         let request = Request {
             jsonrpc: "2.0".to_string(),
             method: "prompts/list".to_string(),
@@ -972,7 +970,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_get_prompt() {
-        let handler = create_test_handler();
+        let handler = create_test_handler().await;
         let request = Request {
             jsonrpc: "2.0".to_string(),
             method: "prompts/get".to_string(),
@@ -996,7 +994,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_subscribe() {
-        let handler = create_test_handler();
+        let handler = create_test_handler().await;
         let request = Request {
             jsonrpc: "2.0".to_string(),
             method: "resources/subscribe".to_string(),
@@ -1016,7 +1014,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_unsubscribe() {
-        let handler = create_test_handler();
+        let handler = create_test_handler().await;
         let request = Request {
             jsonrpc: "2.0".to_string(),
             method: "resources/unsubscribe".to_string(),
@@ -1036,15 +1034,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_complete() {
-        let handler = create_test_handler();
+        let handler = create_test_handler().await;
         let request = Request {
             jsonrpc: "2.0".to_string(),
             method: "completion/complete".to_string(),
             params: json!({
-                "ref": {
-                    "type": "ref/prompt",
-                    "name": "test_prompt"
-                },
+                "ref_": "test_prompt",
                 "argument": {
                     "name": "query",
                     "value": "test"
@@ -1066,7 +1061,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_ping() {
-        let handler = create_test_handler();
+        let handler = create_test_handler().await;
         let request = Request {
             jsonrpc: "2.0".to_string(),
             method: "ping".to_string(),
@@ -1084,7 +1079,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_custom_method() {
-        let handler = create_test_handler();
+        let handler = create_test_handler().await;
         let request = Request {
             jsonrpc: "2.0".to_string(),
             method: "custom/method".to_string(),
@@ -1105,7 +1100,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_backend_error_handling() {
-        let handler = create_error_handler();
+        let handler = create_error_handler().await;
         let request = Request {
             jsonrpc: "2.0".to_string(),
             method: "tools/list".to_string(),
@@ -1126,7 +1121,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_invalid_params() {
-        let handler = create_test_handler();
+        let handler = create_test_handler().await;
         let request = Request {
             jsonrpc: "2.0".to_string(),
             method: "tools/call".to_string(),
@@ -1171,7 +1166,7 @@ mod tests {
     fn test_handler_error_conversion() {
         let auth_error = HandlerError::Authentication("Auth failed".to_string());
         let protocol_error: Error = auth_error.into();
-        assert_eq!(protocol_error.code, ErrorCode::Forbidden);
+        assert_eq!(protocol_error.code, ErrorCode::Unauthorized);
 
         let backend_error = HandlerError::Backend("Backend failed".to_string());
         let protocol_error: Error = backend_error.into();
