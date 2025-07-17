@@ -769,11 +769,7 @@ mod tests {
     async fn create_test_handler() -> GenericServerHandler<MockBackend> {
         let backend = Arc::new(MockBackend::new());
         let auth_config = AuthConfig::memory();
-        let auth_manager = Arc::new(
-            AuthenticationManager::new(auth_config)
-                .await
-                .unwrap(),
-        );
+        let auth_manager = Arc::new(AuthenticationManager::new(auth_config).await.unwrap());
         let middleware = MiddlewareStack::new();
 
         GenericServerHandler::new(backend, auth_manager, middleware)
@@ -782,11 +778,7 @@ mod tests {
     async fn create_error_handler() -> GenericServerHandler<MockBackend> {
         let backend = Arc::new(MockBackend::with_error());
         let auth_config = AuthConfig::memory();
-        let auth_manager = Arc::new(
-            AuthenticationManager::new(auth_config)
-                .await
-                .unwrap(),
-        );
+        let auth_manager = Arc::new(AuthenticationManager::new(auth_config).await.unwrap());
         let middleware = MiddlewareStack::new();
 
         GenericServerHandler::new(backend, auth_manager, middleware)
