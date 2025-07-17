@@ -96,7 +96,7 @@ jobs:
       with:
         name: validation-results-${{ github.run_id }}
         path: validation-results/
-        if-no-files-found: warn
+        if-no-files-found: ignore
     
     - name: Create issue if failures detected
       if: failure()
@@ -144,6 +144,7 @@ jobs:
     
     - name: Download validation results
       uses: actions/download-artifact@v4
+      continue-on-error: true
       with:
         name: validation-results-${{ github.run_id }}
         path: validation-results/
@@ -158,19 +159,23 @@ jobs:
         echo "| Server | Status | Compliance | Protocol | Transport | Tools | Resources |" >> COMPATIBILITY.md
         echo "|--------|--------|------------|----------|-----------|-------|-----------|" >> COMPATIBILITY.md
         
-        for result in validation-results/*.json; do
-          if [ -f "$result" ]; then
-            jq -r '
-              "| \(.server_url) " +
-              "| \(.status) " +
-              "| \(.compliance_score // 0)% " +
-              "| \(.protocol_version // "N/A") " +
-              "| \(.transport_compatible // false) " +
-              "| \(.tools_compatible // false) " +
-              "| \(.resources_compatible // false) |"
-            ' "$result" >> COMPATIBILITY.md || true
-          fi
-        done
+        if [ -d "validation-results" ] && [ "$(ls -A validation-results)" ]; then
+          for result in validation-results/*.json; do
+            if [ -f "$result" ]; then
+              jq -r '
+                "| \(.server_url) " +
+                "| \(.status) " +
+                "| \(.compliance_score // 0)% " +
+                "| \(.protocol_version // "N/A") " +
+                "| \(.transport_compatible // false) " +
+                "| \(.tools_compatible // false) " +
+                "| \(.resources_compatible // false) |"
+              ' "$result" >> COMPATIBILITY.md || true
+            fi
+          done
+        else
+          echo "| No validation results available | - | - | - | - | - | - |" >> COMPATIBILITY.md
+        fi
     
     - name: Commit compatibility matrix
       uses: EndBug/add-and-commit@v9
