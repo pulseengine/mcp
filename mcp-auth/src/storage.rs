@@ -312,7 +312,7 @@ impl FileStorage {
             ));
         }
 
-        let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
+        let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S_%3f");
         let backup_path = self
             .path
             .with_extension(format!("backup_{}.enc", timestamp));
@@ -1281,8 +1281,8 @@ mod tests {
             for _i in 0..5 {
                 let backup_path = storage.create_backup().await.unwrap();
                 backup_paths.push(backup_path);
-                // Longer delay to ensure different timestamps and avoid race conditions
-                tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+                // Small delay to ensure different timestamps
+                tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
             }
 
             // Verify all backups exist
