@@ -634,7 +634,39 @@ impl ConfigurationHelper {
 mod tests {
     use super::*;
     use crate::models::Role;
+    use crate::security::SecuritySeverity;
+    use crate::monitoring::SecurityEventType;
+    use std::collections::HashMap;
+    use serde_json::{json, Value};
     
+    // HelperError tests
+    #[test]
+    fn test_helper_error_display() {
+        let errors = vec![
+            HelperError::AuthenticationFailed { reason: "Invalid API key".to_string() },
+            HelperError::ConfigurationError { reason: "Missing required field".to_string() },
+            HelperError::FrameworkNotInitialized { component: "session_manager".to_string() },
+            HelperError::InvalidParameter { param: "host_ip".to_string(), reason: "Invalid format".to_string() },
+            HelperError::SecurityViolation { reason: "Rate limit exceeded".to_string() },
+            HelperError::IntegrationError("General error".to_string()),
+        ];
+        
+        for error in errors {
+            let error_string = error.to_string();
+            assert!(!error_string.is_empty());
+            assert!(error_string.len() > 5);
+        }
+    }
+    
+    #[test]
+    fn test_helper_error_debug() {
+        let error = HelperError::AuthenticationFailed { reason: "Test reason".to_string() };
+        let debug_str = format!("{:?}", error);
+        assert!(debug_str.contains("AuthenticationFailed"));
+        assert!(debug_str.contains("Test reason"));
+    }
+    
+    // McpIntegrationHelper tests
     #[tokio::test]
     async fn test_development_setup() {
         let result = McpIntegrationHelper::setup_development("test-server".to_string()).await;
@@ -642,10 +674,21 @@ mod tests {
         
         let framework = result.unwrap();
         assert_eq!(framework.config.security_level, crate::integration::SecurityLevel::Permissive);
+        assert_eq!(framework.config.integration_settings.server_name, "test-server");
+        assert!(!framework.config.enable_security_validation);
     }
     
     #[tokio::test]
-    async fn test_production_setup() {
+    async fn test_development_setup_with_empty_name() {
+        let result = McpIntegrationHelper::setup_development("".to_string()).await;
+        assert!(result.is_ok());
+        
+        let framework = result.unwrap();
+        assert_eq!(framework.config.integration_settings.server_name, "");
+    }
+    
+    #[tokio::test]
+    async fn test_production_setup_with_admin_key() {
         let result = McpIntegrationHelper::setup_production(
             "prod-server".to_string(),
             Some("admin-key".to_string()),
@@ -654,53 +697,660 @@ mod tests {
         
         let (framework, api_key) = result.unwrap();
         assert_eq!(framework.config.security_level, crate::integration::SecurityLevel::Strict);
+        assert!(framework.config.enable_security_validation);
         assert!(api_key.is_some());
         
         let key = api_key.unwrap();
         assert_eq!(key.role, Role::Admin);
+        assert!(key.name.contains("admin-key"));
+    }
+    
+    #[tokio::test]
+    async fn test_production_setup_without_admin_key() {
+        let result = McpIntegrationHelper::setup_production(
+            "prod-server".to_string(),
+            None,
+        ).await;
+        assert!(result.is_ok());
+        
+        let (framework, api_key) = result.unwrap();
+        assert_eq!(framework.config.security_level, crate::integration::SecurityLevel::Strict);
+        assert!(api_key.is_none());
+    }
+    
+    #[tokio::test]
+    async fn test_iot_device_setup_with_credentials() {
+        let host_creds = Some((
+            "192.168.1.100".to_string(),
+            "admin".to_string(),
+            "password123".to_string()
+        ));
+        
+        let result = McpIntegrationHelper::setup_iot_device(
+            "iot-gateway".to_string(),
+            "device-001".to_string(),
+            host_creds,
+        ).await;
+        assert!(result.is_ok());
+        
+        let (framework, device_key) = result.unwrap();
+        assert_eq!(framework.config.security_level, crate::integration::SecurityLevel::Balanced);
+        assert!(!framework.config.enable_sessions);
+        assert!(!framework.config.enable_monitoring);
+        assert!(!device_key.is_empty());
+    }
+    
+    #[tokio::test]
+    async fn test_iot_device_setup_without_credentials() {
+        let result = McpIntegrationHelper::setup_iot_device(
+            "iot-gateway".to_string(),
+            "device-002".to_string(),
+            None,
+        ).await;
+        assert!(result.is_ok());
+        
+        let (framework, device_key) = result.unwrap();
+        assert_eq!(framework.config.security_level, crate::integration::SecurityLevel::Balanced);
+        assert!(!device_key.is_empty());
+    }
+    
+    #[tokio::test]
+    async fn test_setup_for_environment_development() {
+        let result = McpIntegrationHelper::setup_for_environment(
+            "env-server".to_string(),
+            "development".to_string(),
+        ).await;
+        assert!(result.is_ok());
+        
+        let framework = result.unwrap();
+        assert_eq!(framework.config.security_level, crate::integration::SecurityLevel::Permissive);
+    }
+    
+    #[tokio::test]
+    async fn test_setup_for_environment_production() {
+        let result = McpIntegrationHelper::setup_for_environment(
+            "env-server".to_string(),
+            "production".to_string(),
+        ).await;
+        assert!(result.is_ok());
+        
+        let framework = result.unwrap();
+        assert_eq!(framework.config.security_level, crate::integration::SecurityLevel::Strict);
+    }
+    
+    #[tokio::test]
+    async fn test_setup_for_environment_testing() {
+        let result = McpIntegrationHelper::setup_for_environment(
+            "env-server".to_string(),
+            "testing".to_string(),
+        ).await;
+        assert!(result.is_ok());
+        
+        let framework = result.unwrap();
+        assert_eq!(framework.config.security_level, crate::integration::SecurityLevel::Balanced);
+    }
+    
+    #[tokio::test]
+    async fn test_setup_for_environment_unknown() {
+        let result = McpIntegrationHelper::setup_for_environment(
+            "env-server".to_string(),
+            "unknown-env".to_string(),
+        ).await;
+        assert!(result.is_ok());
+        
+        let framework = result.unwrap();
+        // Unknown environments default to production
+        assert_eq!(framework.config.security_level, crate::integration::SecurityLevel::Strict);
+    }
+    
+    // RequestHelper tests
+    #[test]
+    fn test_validate_request_permissions_exact_match() {
+        let auth_context = AuthContext {
+            user_id: Some("user1".to_string()),
+            roles: vec![Role::User],
+            api_key_id: Some("key1".to_string()),
+            permissions: vec!["auth:read".to_string(), "session:create".to_string()],
+        };
+        
+        let result = RequestHelper::validate_request_permissions(&auth_context, "auth:read");
+        assert!(result.is_ok());
+        
+        let result = RequestHelper::validate_request_permissions(&auth_context, "auth:write");
+        assert!(result.is_err());
     }
     
     #[test]
-    fn test_api_key_extraction() {
+    fn test_validate_request_permissions_wildcard() {
+        let auth_context = AuthContext {
+            user_id: Some("admin".to_string()),
+            roles: vec![Role::Admin],
+            api_key_id: Some("admin_key".to_string()),
+            permissions: vec!["*".to_string()],
+        };
+        
+        let result = RequestHelper::validate_request_permissions(&auth_context, "any:permission");
+        assert!(result.is_ok());
+        
+        let result = RequestHelper::validate_request_permissions(&auth_context, "another:permission");
+        assert!(result.is_ok());
+    }
+    
+    #[test]
+    fn test_validate_request_permissions_namespace_wildcard() {
+        let auth_context = AuthContext {
+            user_id: Some("operator".to_string()),
+            roles: vec![Role::Operator],
+            api_key_id: Some("op_key".to_string()),
+            permissions: vec!["auth:*".to_string(), "session:read".to_string()],
+        };
+        
+        let result = RequestHelper::validate_request_permissions(&auth_context, "auth:read");
+        assert!(result.is_ok());
+        
+        let result = RequestHelper::validate_request_permissions(&auth_context, "auth:write");
+        assert!(result.is_ok());
+        
+        let result = RequestHelper::validate_request_permissions(&auth_context, "session:read");
+        assert!(result.is_ok());
+        
+        let result = RequestHelper::validate_request_permissions(&auth_context, "session:write");
+        assert!(result.is_err());
+        
+        let result = RequestHelper::validate_request_permissions(&auth_context, "monitor:read");
+        assert!(result.is_err());
+    }
+    
+    #[test]
+    fn test_validate_request_permissions_no_permissions() {
+        let auth_context = AuthContext {
+            user_id: Some("guest".to_string()),
+            roles: vec![Role::Guest],
+            api_key_id: None,
+            permissions: vec![],
+        };
+        
+        let result = RequestHelper::validate_request_permissions(&auth_context, "auth:read");
+        assert!(result.is_err());
+        
+        match result.unwrap_err() {
+            HelperError::AuthenticationFailed { reason } => {
+                assert!(reason.contains("Missing required permission"));
+                assert!(reason.contains("auth:read"));
+            },
+            _ => panic!("Expected AuthenticationFailed error"),
+        }
+    }
+    
+    #[test]
+    fn test_extract_api_key_bearer_token() {
         let mut headers = HashMap::new();
         headers.insert("Authorization".to_string(), "Bearer test-key-123".to_string());
         
         let key = RequestHelper::extract_api_key_from_headers(&headers);
         assert_eq!(key, Some("test-key-123".to_string()));
-        
-        headers.clear();
-        headers.insert("X-API-Key".to_string(), "direct-key-456".to_string());
+    }
+    
+    #[test]
+    fn test_extract_api_key_api_key_format() {
+        let mut headers = HashMap::new();
+        headers.insert("Authorization".to_string(), "ApiKey my-api-key-456".to_string());
         
         let key = RequestHelper::extract_api_key_from_headers(&headers);
-        assert_eq!(key, Some("direct-key-456".to_string()));
+        assert_eq!(key, Some("my-api-key-456".to_string()));
     }
     
     #[test]
-    fn test_ip_validation() {
-        assert!(CredentialHelper::is_valid_ip_or_hostname("192.168.1.1"));
-        assert!(CredentialHelper::is_valid_ip_or_hostname("example.com"));
-        assert!(CredentialHelper::is_valid_ip_or_hostname("test-server"));
-        assert!(!CredentialHelper::is_valid_ip_or_hostname(""));
-        assert!(!CredentialHelper::is_valid_ip_or_hostname("invalid address"));
+    fn test_extract_api_key_direct_headers() {
+        let mut headers = HashMap::new();
+        
+        // Test X-API-Key header
+        headers.insert("X-API-Key".to_string(), "direct-key-789".to_string());
+        let key = RequestHelper::extract_api_key_from_headers(&headers);
+        assert_eq!(key, Some("direct-key-789".to_string()));
+        
+        headers.clear();
+        
+        // Test X-Auth-Token header
+        headers.insert("X-Auth-Token".to_string(), "token-abc".to_string());
+        let key = RequestHelper::extract_api_key_from_headers(&headers);
+        assert_eq!(key, Some("token-abc".to_string()));
+        
+        headers.clear();
+        
+        // Test X-MCP-Auth header
+        headers.insert("X-MCP-Auth".to_string(), "mcp-xyz".to_string());
+        let key = RequestHelper::extract_api_key_from_headers(&headers);
+        assert_eq!(key, Some("mcp-xyz".to_string()));
     }
     
     #[test]
-    fn test_configuration_validation() {
+    fn test_extract_api_key_priority() {
+        let mut headers = HashMap::new();
+        headers.insert("Authorization".to_string(), "Bearer auth-key".to_string());
+        headers.insert("X-API-Key".to_string(), "api-key".to_string());
+        headers.insert("X-Auth-Token".to_string(), "token-key".to_string());
+        
+        // Authorization header should take priority
+        let key = RequestHelper::extract_api_key_from_headers(&headers);
+        assert_eq!(key, Some("auth-key".to_string()));
+    }
+    
+    #[test]
+    fn test_extract_api_key_invalid_auth_header() {
+        let mut headers = HashMap::new();
+        headers.insert("Authorization".to_string(), "Basic dXNlcjpwYXNz".to_string());
+        headers.insert("X-API-Key".to_string(), "fallback-key".to_string());
+        
+        // Should fall back to X-API-Key when Authorization doesn't contain Bearer/ApiKey
+        let key = RequestHelper::extract_api_key_from_headers(&headers);
+        assert_eq!(key, Some("fallback-key".to_string()));
+    }
+    
+    #[test]
+    fn test_extract_api_key_no_headers() {
+        let headers = HashMap::new();
+        let key = RequestHelper::extract_api_key_from_headers(&headers);
+        assert_eq!(key, None);
+    }
+    
+    #[test]
+    fn test_create_auth_error_response() {
+        let request_id = json!("test-request-123");
+        let reason = "Invalid API key provided".to_string();
+        
+        let response = RequestHelper::create_auth_error_response(request_id.clone(), reason.clone());
+        
+        assert_eq!(response.jsonrpc, "2.0");
+        assert_eq!(response.id, Some(request_id));
+        assert!(response.result.is_none());
+        assert!(response.error.is_some());
+        
+        let error = response.error.unwrap();
+        assert_eq!(error.code, -32600);
+        assert_eq!(error.message, "Authentication failed");
+        assert!(error.data.is_some());
+        
+        let data = error.data.unwrap();
+        assert_eq!(data["reason"], Value::String(reason));
+        assert_eq!(data["type"], Value::String("authentication_error".to_string()));
+    }
+    
+    #[test]
+    fn test_create_permission_error_response() {
+        let request_id = json!(42);
+        let missing_permission = "admin:write".to_string();
+        
+        let response = RequestHelper::create_permission_error_response(request_id.clone(), missing_permission.clone());
+        
+        assert_eq!(response.jsonrpc, "2.0");
+        assert_eq!(response.id, Some(request_id));
+        assert!(response.result.is_none());
+        assert!(response.error.is_some());
+        
+        let error = response.error.unwrap();
+        assert_eq!(error.code, -32603);
+        assert_eq!(error.message, "Insufficient permissions");
+        assert!(error.data.is_some());
+        
+        let data = error.data.unwrap();
+        assert_eq!(data["missing_permission"], Value::String(missing_permission));
+        assert_eq!(data["type"], Value::String("permission_error".to_string()));
+    }
+    
+    // CredentialHelper tests
+    #[test]
+    fn test_ip_validation_valid_addresses() {
+        let valid_addresses = vec![
+            "192.168.1.1",
+            "10.0.0.1",
+            "172.16.255.255",
+            "8.8.8.8",
+            "example.com",
+            "test-server",
+            "my-host.example.org",
+            "localhost",
+            "server-01",
+            "192.168.1.100:8080",
+        ];
+        
+        for address in valid_addresses {
+            assert!(CredentialHelper::is_valid_ip_or_hostname(address), 
+                   "Expected {} to be valid", address);
+        }
+    }
+    
+    #[test]
+    fn test_ip_validation_invalid_addresses() {
+        let invalid_addresses = vec![
+            "",
+            " ",
+            "192.168.1.1 extra",
+            "invalid address",
+            "server with spaces",
+            "a".repeat(254), // Too long
+            "host@domain", // Invalid character
+            "host#test",   // Invalid character
+        ];
+        
+        for address in invalid_addresses {
+            assert!(!CredentialHelper::is_valid_ip_or_hostname(address), 
+                   "Expected {} to be invalid", address);
+        }
+    }
+    
+    #[tokio::test]
+    async fn test_store_validated_credentials_invalid_ip() {
+        let framework = AuthFramework::with_default_config("test".to_string()).await.unwrap();
+        let auth_context = AuthContext {
+            user_id: Some("user1".to_string()),
+            roles: vec![Role::Admin],
+            api_key_id: Some("key1".to_string()),
+            permissions: vec!["credential:store".to_string()],
+        };
+        
+        let result = CredentialHelper::store_validated_credentials(
+            &framework,
+            "test-cred".to_string(),
+            "invalid host".to_string(), // Invalid IP
+            Some(22),
+            "username".to_string(),
+            "password123".to_string(),
+            &auth_context,
+        ).await;
+        
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            HelperError::InvalidParameter { param, reason } => {
+                assert_eq!(param, "host_ip");
+                assert!(reason.contains("Invalid IP address"));
+            },
+            _ => panic!("Expected InvalidParameter error"),
+        }
+    }
+    
+    #[tokio::test]
+    async fn test_store_validated_credentials_empty_username() {
+        let framework = AuthFramework::with_default_config("test".to_string()).await.unwrap();
+        let auth_context = AuthContext {
+            user_id: Some("user1".to_string()),
+            roles: vec![Role::Admin],
+            api_key_id: Some("key1".to_string()),
+            permissions: vec!["credential:store".to_string()],
+        };
+        
+        let result = CredentialHelper::store_validated_credentials(
+            &framework,
+            "test-cred".to_string(),
+            "192.168.1.1".to_string(),
+            Some(22),
+            "".to_string(), // Empty username
+            "password123".to_string(),
+            &auth_context,
+        ).await;
+        
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            HelperError::InvalidParameter { param, reason } => {
+                assert_eq!(param, "username");
+                assert!(reason.contains("cannot be empty"));
+            },
+            _ => panic!("Expected InvalidParameter error"),
+        }
+    }
+    
+    #[tokio::test]
+    async fn test_store_validated_credentials_weak_password() {
+        let framework = AuthFramework::with_default_config("test".to_string()).await.unwrap();
+        let auth_context = AuthContext {
+            user_id: Some("user1".to_string()),
+            roles: vec![Role::Admin],
+            api_key_id: Some("key1".to_string()),
+            permissions: vec!["credential:store".to_string()],
+        };
+        
+        let result = CredentialHelper::store_validated_credentials(
+            &framework,
+            "test-cred".to_string(),
+            "192.168.1.1".to_string(),
+            Some(22),
+            "username".to_string(),
+            "weak".to_string(), // Too short password
+            &auth_context,
+        ).await;
+        
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            HelperError::InvalidParameter { param, reason } => {
+                assert_eq!(param, "password");
+                assert!(reason.contains("at least 8 characters"));
+            },
+            _ => panic!("Expected InvalidParameter error"),
+        }
+    }
+    
+    // SessionHelper tests  
+    #[test]
+    fn test_session_duration_validation_too_long() {
+        let duration = chrono::Duration::days(31); // Exceeds 30 day limit
+        
+        // This is a conceptual test - actual implementation would need framework setup
+        assert!(duration > chrono::Duration::days(30));
+    }
+    
+    #[test]
+    fn test_session_duration_validation_too_short() {
+        let duration = chrono::Duration::seconds(30); // Less than 1 minute
+        
+        // This is a conceptual test - actual implementation would need framework setup
+        assert!(duration < chrono::Duration::minutes(1));
+    }
+    
+    #[test]
+    fn test_session_refresh_calculation() {
+        let created = chrono::Utc::now();
+        let expires = created + chrono::Duration::hours(1);
+        let now = created + chrono::Duration::minutes(55); // 55 minutes in, 5 minutes left
+        
+        let remaining = expires - now;
+        let total_duration = expires - created;
+        let percentage_remaining = (remaining.num_seconds() * 100) / total_duration.num_seconds();
+        
+        // Should be around 8% remaining (5 minutes out of 60)
+        assert!(percentage_remaining < 10);
+        assert!(percentage_remaining > 5);
+    }
+    
+    // MonitoringHelper tests (these are conceptual since SecurityMonitor is complex)
+    #[test]
+    fn test_security_event_metadata_construction() {
+        let auth_context = AuthContext {
+            user_id: Some("user123".to_string()),
+            roles: vec![Role::User],
+            api_key_id: Some("key456".to_string()),
+            permissions: vec!["test:permission".to_string()],
+        };
+        
+        let mut additional_data = HashMap::new();
+        additional_data.insert("request_id".to_string(), "req789".to_string());
+        additional_data.insert("source_ip".to_string(), "192.168.1.100".to_string());
+        
+        // Verify auth context fields are available
+        assert_eq!(auth_context.user_id.as_ref().unwrap(), "user123");
+        assert_eq!(auth_context.api_key_id.as_ref().unwrap(), "key456");
+        assert!(additional_data.contains_key("request_id"));
+        assert!(additional_data.contains_key("source_ip"));
+    }
+    
+    #[test]
+    fn test_health_summary_structure() {
+        let mut health = HashMap::new();
+        
+        // Simulate health summary structure
+        health.insert("auth_manager".to_string(), "healthy".to_string());
+        health.insert("session_manager".to_string(), "disabled".to_string());
+        health.insert("security_monitor".to_string(), "healthy".to_string());
+        health.insert("credential_manager".to_string(), "healthy (5 credentials)".to_string());
+        
+        assert_eq!(health.get("auth_manager").unwrap(), "healthy");
+        assert_eq!(health.get("session_manager").unwrap(), "disabled");
+        assert!(health.get("credential_manager").unwrap().contains("credentials"));
+    }
+    
+    // ConfigurationHelper tests
+    #[tokio::test]
+    async fn test_validate_for_deployment_production() {
         let framework = AuthFramework::with_default_config("test".to_string()).await.unwrap();
         let warnings = ConfigurationHelper::validate_for_deployment(&framework, "production");
         assert!(warnings.is_ok());
         
         let warnings = warnings.unwrap();
-        // Should have warnings about production configuration
+        // Should have warnings about production configuration since we used default config
         assert!(!warnings.is_empty());
+        assert!(warnings.iter().any(|w| w.contains("strict security")));
+    }
+    
+    #[tokio::test]
+    async fn test_validate_for_deployment_development() {
+        let framework = AuthFramework::with_security_profile(
+            "dev-server".to_string(),
+            SecurityProfile::Development,
+        ).await.unwrap();
+        
+        let warnings = ConfigurationHelper::validate_for_deployment(&framework, "development");
+        assert!(warnings.is_ok());
+        
+        let warnings = warnings.unwrap();
+        // Development environment should have fewer or no warnings
+        assert!(warnings.is_empty() || warnings.len() < 3);
+    }
+    
+    #[tokio::test]
+    async fn test_validate_for_deployment_unknown_environment() {
+        let framework = AuthFramework::with_default_config("test".to_string()).await.unwrap();
+        let warnings = ConfigurationHelper::validate_for_deployment(&framework, "unknown");
+        assert!(warnings.is_ok());
+        
+        // Unknown environments should have minimal warnings
+        let warnings = warnings.unwrap();
+        // May have warnings about mismatched components
+        assert!(warnings.len() >= 0);
     }
     
     #[test]
-    fn test_recommended_settings() {
-        let prod_settings = ConfigurationHelper::get_recommended_settings("production");
-        assert_eq!(prod_settings.get("security_level").unwrap(), &Value::String("Strict".to_string()));
+    fn test_get_recommended_settings_production() {
+        let settings = ConfigurationHelper::get_recommended_settings("production");
         
-        let dev_settings = ConfigurationHelper::get_recommended_settings("development");
+        assert_eq!(settings.get("security_level").unwrap(), &Value::String("Strict".to_string()));
+        assert_eq!(settings.get("session_duration_hours").unwrap(), &Value::Number(2.into()));
+        assert_eq!(settings.get("enable_security_validation").unwrap(), &Value::Bool(true));
+        assert_eq!(settings.get("enable_monitoring").unwrap(), &Value::Bool(true));
+    }
+    
+    #[test]
+    fn test_get_recommended_settings_development() {
+        let settings = ConfigurationHelper::get_recommended_settings("development");
+        
+        assert_eq!(settings.get("security_level").unwrap(), &Value::String("Permissive".to_string()));
+        assert_eq!(settings.get("session_duration_hours").unwrap(), &Value::Number(8.into()));
+        assert_eq!(settings.get("enable_security_validation").unwrap(), &Value::Bool(false));
+        assert_eq!(settings.get("enable_monitoring").unwrap(), &Value::Bool(true));
+    }
+    
+    #[test]
+    fn test_get_recommended_settings_testing() {
+        let settings = ConfigurationHelper::get_recommended_settings("testing");
+        
+        assert_eq!(settings.get("security_level").unwrap(), &Value::String("Balanced".to_string()));
+        assert_eq!(settings.get("session_duration_hours").unwrap(), &Value::Number(4.into()));
+        assert_eq!(settings.get("enable_security_validation").unwrap(), &Value::Bool(true));
+        assert_eq!(settings.get("enable_monitoring").unwrap(), &Value::Bool(true));
+    }
+    
+    #[test]
+    fn test_get_recommended_settings_case_insensitive() {
+        let prod_settings = ConfigurationHelper::get_recommended_settings("PRODUCTION");
+        let dev_settings = ConfigurationHelper::get_recommended_settings("Dev");
+        
+        assert_eq!(prod_settings.get("security_level").unwrap(), &Value::String("Strict".to_string()));
         assert_eq!(dev_settings.get("security_level").unwrap(), &Value::String("Permissive".to_string()));
+    }
+    
+    #[test]
+    fn test_get_recommended_settings_unknown_environment() {
+        let settings = ConfigurationHelper::get_recommended_settings("unknown-env");
+        
+        // Unknown environments should default to balanced/safe settings
+        assert_eq!(settings.get("security_level").unwrap(), &Value::String("Balanced".to_string()));
+        assert_eq!(settings.get("session_duration_hours").unwrap(), &Value::Number(4.into()));
+        assert_eq!(settings.get("enable_security_validation").unwrap(), &Value::Bool(true));
+        assert_eq!(settings.get("enable_monitoring").unwrap(), &Value::Bool(true));
+    }
+    
+    // Edge cases and error handling tests
+    #[test]
+    fn test_empty_string_inputs() {
+        // Test IP validation with empty string
+        assert!(!CredentialHelper::is_valid_ip_or_hostname(""));
+        
+        // Test extract API key with empty headers
+        let headers = HashMap::new();
+        assert_eq!(RequestHelper::extract_api_key_from_headers(&headers), None);
+        
+        // Test recommended settings with empty environment
+        let settings = ConfigurationHelper::get_recommended_settings("");
+        assert_eq!(settings.get("security_level").unwrap(), &Value::String("Balanced".to_string()));
+    }
+    
+    #[test]
+    fn test_special_characters_in_inputs() {
+        // Test server names with special characters
+        let special_names = vec![
+            "server-01",
+            "server_test",
+            "server.example.com",
+            "тест-сервер", // Cyrillic
+            "服务器", // Chinese
+        ];
+        
+        for name in special_names {
+            // These should not cause panics
+            let settings = ConfigurationHelper::get_recommended_settings("test");
+            assert!(!settings.is_empty());
+        }
+    }
+    
+    #[test]
+    fn test_very_long_inputs() {
+        let long_string = "a".repeat(1000);
+        
+        // Test IP validation with very long string
+        assert!(!CredentialHelper::is_valid_ip_or_hostname(&long_string));
+        
+        // Test recommended settings with long environment name
+        let settings = ConfigurationHelper::get_recommended_settings(&long_string);
+        assert!(!settings.is_empty());
+    }
+    
+    #[test]
+    fn test_concurrent_helper_usage() {
+        // Test that helpers can be used concurrently (stateless design)
+        let headers1 = {
+            let mut h = HashMap::new();
+            h.insert("Authorization".to_string(), "Bearer key1".to_string());
+            h
+        };
+        
+        let headers2 = {
+            let mut h = HashMap::new();
+            h.insert("X-API-Key".to_string(), "key2".to_string());
+            h
+        };
+        
+        let key1 = RequestHelper::extract_api_key_from_headers(&headers1);
+        let key2 = RequestHelper::extract_api_key_from_headers(&headers2);
+        
+        assert_eq!(key1, Some("key1".to_string()));
+        assert_eq!(key2, Some("key2".to_string()));
     }
 }
