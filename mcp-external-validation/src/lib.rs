@@ -100,7 +100,7 @@ pub use security::SecurityTester;
 pub use fuzzing::{FuzzResult, FuzzTarget, McpFuzzer};
 
 /// Protocol version constants for testing
-pub const SUPPORTED_MCP_VERSIONS: &[&str] = &["2024-11-05", "2025-03-26"];
+pub const SUPPORTED_MCP_VERSIONS: &[&str] = &["2024-11-05", "2025-03-26", "2025-06-18"];
 
 /// Default timeout for external validation requests
 pub const DEFAULT_TIMEOUT_SECONDS: u64 = 30;
@@ -139,8 +139,9 @@ mod tests {
 
     #[test]
     fn test_version_support() {
-        assert!(is_version_supported("2024-11-05"));
+        assert!(is_version_supported("2025-06-18"));
         assert!(is_version_supported("2025-03-26"));
+        assert!(is_version_supported("2024-11-05"));
         assert!(!is_version_supported("2023-01-01"));
         assert!(!is_version_supported("invalid"));
     }

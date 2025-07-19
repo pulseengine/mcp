@@ -183,6 +183,7 @@ impl McpBackend for E2ETestBackend {
                     level: Some("debug".to_string()),
                 }),
                 sampling: Some(SamplingCapability {}),
+                ..Default::default()
             },
             server_info: Implementation {
                 name: format!("E2E Test Server: {}", self.name),
@@ -258,6 +259,7 @@ impl McpBackend for E2ETestBackend {
                         "required": ["location"]
                     }),
                 },
+                output_schema: None,
             })
             .collect();
 
@@ -409,6 +411,7 @@ impl McpBackend for E2ETestBackend {
         Ok(CallToolResult {
             content,
             is_error: Some(false),
+            structured_content: None,
         })
     }
 

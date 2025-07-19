@@ -73,6 +73,7 @@ impl McpBackend for CliTestBackend {
                     level: Some("info".to_string()),
                 }),
                 sampling: None,
+                ..Default::default()
             },
             server_info: Implementation {
                 name: self.name.clone(),
@@ -103,6 +104,7 @@ impl McpBackend for CliTestBackend {
                     },
                     "required": ["input"]
                 }),
+                output_schema: None,
             })
             .collect();
 
@@ -131,6 +133,7 @@ impl McpBackend for CliTestBackend {
                     ),
                 }],
                 is_error: Some(false),
+                structured_content: None,
             })
         } else {
             Err(BackendError::not_supported(format!("Tool not found: {}", request.name)).into())

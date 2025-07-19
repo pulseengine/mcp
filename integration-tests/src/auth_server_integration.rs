@@ -79,6 +79,7 @@ impl McpBackend for AuthTestBackend {
                     level: Some("info".to_string()),
                 }),
                 sampling: None,
+                ..Default::default()
             },
             server_info: Implementation {
                 name: "Auth Test Backend".to_string(),
@@ -108,6 +109,7 @@ impl McpBackend for AuthTestBackend {
                         },
                         "required": ["message"]
                     }),
+                    output_schema: None,
                 },
                 Tool {
                     name: "authenticated_tool".to_string(),
@@ -119,6 +121,7 @@ impl McpBackend for AuthTestBackend {
                         },
                         "required": ["data"]
                     }),
+                    output_schema: None,
                 },
             ],
             next_cursor: None,
@@ -142,6 +145,7 @@ impl McpBackend for AuthTestBackend {
                         text: format!("Public tool executed with: {message}"),
                     }],
                     is_error: Some(false),
+                    structured_content: None,
                 })
             }
             "authenticated_tool" => {
@@ -157,6 +161,7 @@ impl McpBackend for AuthTestBackend {
                         text: format!("Authenticated tool executed with: {data}"),
                     }],
                     is_error: Some(false),
+                    structured_content: None,
                 })
             }
             _ => {

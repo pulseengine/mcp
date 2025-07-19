@@ -123,6 +123,7 @@ impl McpBackend for IntegrationTestBackend {
                     },
                     "required": ["input"]
                 }),
+                output_schema: None,
             }],
             next_cursor: None,
         })
@@ -144,6 +145,7 @@ impl McpBackend for IntegrationTestBackend {
                     text: format!("Processed: {input}"),
                 }],
                 is_error: Some(false),
+                structured_content: None,
             })
         } else {
             Err(BackendError::not_supported(format!("Tool not found: {}", request.name)).into())

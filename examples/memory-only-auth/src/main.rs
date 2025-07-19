@@ -113,6 +113,7 @@ impl McpBackend for MemoryAuthBackend {
                 prompts: None,
                 logging: None,
                 sampling: None,
+                ..Default::default()
             },
             server_info: Implementation {
                 name: "Memory-Only Auth MCP Server".to_string(),

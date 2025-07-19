@@ -114,6 +114,7 @@ impl McpBackend for MockServerBackend {
         Ok(CallToolResult {
             content: vec![],
             is_error: Some(false),
+            structured_content: None,
         })
     }
 

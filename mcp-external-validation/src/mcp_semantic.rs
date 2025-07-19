@@ -502,7 +502,10 @@ impl McpSemanticValidator {
 
     fn is_supported_protocol_version(&self, version: &str) -> bool {
         // Current MCP protocol versions
-        matches!(version, "2024-11-05" | "2024-10-07" | "2024-09-25")
+        matches!(
+            version,
+            "2025-06-18" | "2025-03-26" | "2024-11-05" | "2024-10-07" | "2024-09-25"
+        )
     }
 
     fn is_valid_mcp_error_code(&self, code: i64) -> bool {
