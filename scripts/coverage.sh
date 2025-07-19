@@ -38,15 +38,13 @@ cargo llvm-cov report --summary-only
 # Extract coverage percentage
 COVERAGE=$(cargo llvm-cov report --summary-only | grep -oP '\d+\.\d+(?=%)' | head -1)
 
-# Check against threshold
+# Display coverage information (no threshold validation - handled by Codecov)
 echo -e "\n"
-if (( $(echo "$COVERAGE < 80" | bc -l) )); then
-    echo "❌ Coverage is below 80% threshold: $COVERAGE%"
-    echo "   Please add more tests to meet the coverage requirement."
-    exit 1
-else
-    echo "✅ Coverage meets 80% threshold: $COVERAGE%"
-fi
+echo "📊 Local Coverage: $COVERAGE%"
+echo "🔗 For official coverage validation, see: https://codecov.io/gh/pulseengine/mcp"
+echo ""
+echo "ℹ️  Note: This script is for local development only."
+echo "   Coverage validation is performed by Codecov in CI/CD."
 
 echo -e "\n📁 HTML report generated at: target/llvm-cov/html/index.html"
 echo "   Open it in your browser to see detailed coverage information."
