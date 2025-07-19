@@ -1278,7 +1278,7 @@ mod tests {
 
             // Create multiple backups
             let mut backup_paths = vec![];
-            for i in 0..5 {
+            for _i in 0..5 {
                 let backup_path = storage.create_backup().await.unwrap();
                 backup_paths.push(backup_path);
                 // Longer delay to ensure different timestamps and avoid race conditions

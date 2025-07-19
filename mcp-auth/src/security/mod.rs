@@ -24,7 +24,7 @@ mod tests {
         assert!(config.limits.max_request_size > 0);
         assert!(config.limits.max_parameters > 0);
 
-        let sanitizer = InputSanitizer::new();
+        let _sanitizer = InputSanitizer::new();
         // InputSanitizer should be creatable
 
         let violation = SecurityViolation {

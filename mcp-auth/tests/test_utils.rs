@@ -12,7 +12,6 @@ use pulseengine_mcp_auth::{
     storage::{StorageBackend, StorageError},
     AuthenticationManager,
 };
-use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
@@ -205,8 +204,7 @@ impl MockStorageBackend {
         let fail_ops = self.fail_operations.lock().unwrap();
         if fail_ops.contains(&operation.to_string()) {
             return Err(StorageError::General(format!(
-                "Mock failure for {}",
-                operation
+                "Mock failure for {operation}"
             )));
         }
 
@@ -273,9 +271,7 @@ impl TestAssertions {
         let permissions = TestDataGenerator::permissions_for_role(role);
         assert!(
             permissions.contains(&permission.to_string()),
-            "Role {:?} should have permission '{}'",
-            role,
-            permission
+            "Role {role:?} should have permission '{permission}'"
         );
     }
 
@@ -284,9 +280,7 @@ impl TestAssertions {
         let permissions = TestDataGenerator::permissions_for_role(role);
         assert!(
             !permissions.contains(&permission.to_string()),
-            "Role {:?} should not have permission '{}'",
-            role,
-            permission
+            "Role {role:?} should not have permission '{permission}'"
         );
     }
 
@@ -329,7 +323,7 @@ impl TestSetup {
 
     /// Create and populate test auth manager with sample data
     pub async fn create_populated_auth_manager() -> AuthenticationManager {
-        let mut auth_manager = AuthenticationManager::new(TestDataGenerator::test_config())
+        let auth_manager = AuthenticationManager::new(TestDataGenerator::test_config())
             .await
             .expect("Failed to create auth manager");
 

@@ -25,7 +25,7 @@ mod tests {
         assert!(config.default_duration > chrono::Duration::zero());
         assert!(config.enable_jwt);
 
-        let storage = MemorySessionStorage::new();
+        let _storage = MemorySessionStorage::new();
         // MemorySessionStorage should be creatable
 
         let _stats = SessionStats {
