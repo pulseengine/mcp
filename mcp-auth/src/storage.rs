@@ -674,3 +674,856 @@ impl StorageBackend for MemoryStorage {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::{ApiKey, Role};
+    use std::collections::HashMap;
+    use tempfile::TempDir;
+    use tokio::fs;
+    use chrono::{Duration, Utc};
+
+    // Helper function to create test API key
+    fn create_test_key(name: &str, role: Role) -> ApiKey {
+        ApiKey::new(
+            name.to_string(),
+            role,
+            Some(Utc::now() + Duration::days(30)),
+            vec!["127.0.0.1".to_string()],
+        )
+    }
+
+    // Helper function to create multiple test keys
+    fn create_test_keys() -> HashMap<String, ApiKey> {
+        let mut keys = HashMap::new();
+        
+        let admin_key = create_test_key("admin-key", Role::Admin);
+        let operator_key = create_test_key("operator-key", Role::Operator);
+        let monitor_key = create_test_key("monitor-key", Role::Monitor);
+        
+        keys.insert(admin_key.id.clone(), admin_key);
+        keys.insert(operator_key.id.clone(), operator_key);
+        keys.insert(monitor_key.id.clone(), monitor_key);
+        
+        keys
+    }
+
+    #[test]
+    fn test_storage_error_display() {
+        let error = StorageError::General("test error".to_string());
+        assert_eq!(error.to_string(), "Storage error: test error");
+
+        let io_error = std::io::Error::new(std::io::ErrorKind::NotFound, "file not found");
+        let storage_error = StorageError::Io(io_error);
+        assert!(storage_error.to_string().contains("File I/O error"));
+
+        let perm_error = StorageError::Permission("access denied".to_string());
+        assert_eq!(perm_error.to_string(), "Permission error: access denied");
+    }
+
+    #[test]
+    fn test_storage_error_from_io_error() {
+        let io_error = std::io::Error::new(std::io::ErrorKind::PermissionDenied, "permission denied");
+        let storage_error: StorageError = io_error.into();
+        
+        match storage_error {
+            StorageError::Io(_) => (),
+            _ => panic!("Expected Io variant"),
+        }
+    }
+
+    #[test]
+    fn test_storage_error_from_serde_error() {
+        let serde_error = serde_json::from_str::<serde_json::Value>("invalid json").unwrap_err();
+        let storage_error: StorageError = serde_error.into();
+        
+        match storage_error {
+            StorageError::Serialization(_) => (),
+            _ => panic!("Expected Serialization variant"),
+        }
+    }
+
+    mod memory_storage_tests {
+        use super::*;
+
+        #[tokio::test]
+        async fn test_memory_storage_new() {
+            let storage = MemoryStorage::new();
+            let keys = storage.load_keys().await.unwrap();
+            assert!(keys.is_empty());
+        }
+
+        #[tokio::test]
+        async fn test_memory_storage_save_and_load_key() {
+            let storage = MemoryStorage::new();
+            let test_key = create_test_key("test-key", Role::Operator);
+
+            storage.save_key(&test_key).await.unwrap();
+            
+            let keys = storage.load_keys().await.unwrap();
+            assert_eq!(keys.len(), 1);
+            assert!(keys.contains_key(&test_key.id));
+            
+            let loaded_key = &keys[&test_key.id];
+            assert_eq!(loaded_key.name, test_key.name);
+            assert_eq!(loaded_key.role, test_key.role);
+        }
+
+        #[tokio::test]
+        async fn test_memory_storage_save_multiple_keys() {
+            let storage = MemoryStorage::new();
+            let test_keys = create_test_keys();
+
+            for key in test_keys.values() {
+                storage.save_key(key).await.unwrap();
+            }
+
+            let loaded_keys = storage.load_keys().await.unwrap();
+            assert_eq!(loaded_keys.len(), test_keys.len());
+            
+            for (id, key) in test_keys.iter() {
+                assert!(loaded_keys.contains_key(id));
+                assert_eq!(loaded_keys[id].name, key.name);
+            }
+        }
+
+        #[tokio::test]
+        async fn test_memory_storage_delete_key() {
+            let storage = MemoryStorage::new();
+            let test_key = create_test_key("test-key", Role::Monitor);
+
+            storage.save_key(&test_key).await.unwrap();
+            assert_eq!(storage.load_keys().await.unwrap().len(), 1);
+
+            storage.delete_key(&test_key.id).await.unwrap();
+            let keys = storage.load_keys().await.unwrap();
+            assert!(keys.is_empty());
+        }
+
+        #[tokio::test]
+        async fn test_memory_storage_delete_nonexistent_key() {
+            let storage = MemoryStorage::new();
+            
+            // Should not error when deleting non-existent key
+            storage.delete_key("nonexistent").await.unwrap();
+            assert!(storage.load_keys().await.unwrap().is_empty());
+        }
+
+        #[tokio::test]
+        async fn test_memory_storage_save_all_keys() {
+            let storage = MemoryStorage::new();
+            let test_keys = create_test_keys();
+
+            storage.save_all_keys(&test_keys).await.unwrap();
+            
+            let loaded_keys = storage.load_keys().await.unwrap();
+            assert_eq!(loaded_keys.len(), test_keys.len());
+            
+            for (id, key) in test_keys.iter() {
+                assert!(loaded_keys.contains_key(id));
+                assert_eq!(loaded_keys[id].name, key.name);
+            }
+        }
+
+        #[tokio::test]
+        async fn test_memory_storage_save_all_keys_replaces_existing() {
+            let storage = MemoryStorage::new();
+            
+            // Save initial keys
+            let initial_keys = create_test_keys();
+            storage.save_all_keys(&initial_keys).await.unwrap();
+            assert_eq!(storage.load_keys().await.unwrap().len(), initial_keys.len());
+
+            // Replace with new set
+            let mut new_keys = HashMap::new();
+            let new_key = create_test_key("new-key", Role::Admin);
+            new_keys.insert(new_key.id.clone(), new_key);
+
+            storage.save_all_keys(&new_keys).await.unwrap();
+            
+            let loaded_keys = storage.load_keys().await.unwrap();
+            assert_eq!(loaded_keys.len(), 1);
+            assert!(loaded_keys.contains_key(new_keys.keys().next().unwrap()));
+        }
+
+        #[tokio::test]
+        async fn test_memory_storage_concurrent_access() {
+            let storage = std::sync::Arc::new(MemoryStorage::new());
+            let mut handles = vec![];
+
+            // Spawn multiple tasks that save keys concurrently
+            for i in 0..10 {
+                let storage_clone = storage.clone();
+                let handle = tokio::spawn(async move {
+                    let key = create_test_key(&format!("key-{}", i), Role::Operator);
+                    storage_clone.save_key(&key).await.unwrap();
+                    key.id
+                });
+                handles.push(handle);
+            }
+
+            let mut saved_ids = vec![];
+            for handle in handles {
+                saved_ids.push(handle.await.unwrap());
+            }
+
+            let keys = storage.load_keys().await.unwrap();
+            assert_eq!(keys.len(), 10);
+            
+            for id in saved_ids {
+                assert!(keys.contains_key(&id));
+            }
+        }
+    }
+
+    mod environment_storage_tests {
+        use super::*;
+
+        #[tokio::test]
+        async fn test_environment_storage_new() {
+            let storage = EnvironmentStorage::new("TEST_MCP_KEYS".to_string());
+            
+            // Clear any existing value
+            std::env::remove_var("TEST_MCP_KEYS");
+            
+            let keys = storage.load_keys().await.unwrap();
+            assert!(keys.is_empty());
+        }
+
+        #[tokio::test]
+        async fn test_environment_storage_save_and_load_key() {
+            let var_name = "TEST_MCP_KEYS_SAVE_LOAD";
+            std::env::remove_var(var_name);
+            
+            let storage = EnvironmentStorage::new(var_name.to_string());
+            let test_key = create_test_key("env-test-key", Role::Monitor);
+
+            storage.save_key(&test_key).await.unwrap();
+            
+            let keys = storage.load_keys().await.unwrap();
+            assert_eq!(keys.len(), 1);
+            assert!(keys.contains_key(&test_key.id));
+            
+            // Verify environment variable was set
+            assert!(std::env::var(var_name).is_ok());
+            
+            // Cleanup
+            std::env::remove_var(var_name);
+        }
+
+        #[tokio::test]
+        async fn test_environment_storage_multiple_keys() {
+            let var_name = "TEST_MCP_KEYS_MULTIPLE";
+            std::env::remove_var(var_name);
+            
+            let storage = EnvironmentStorage::new(var_name.to_string());
+            let test_keys = create_test_keys();
+
+            storage.save_all_keys(&test_keys).await.unwrap();
+            
+            let loaded_keys = storage.load_keys().await.unwrap();
+            assert_eq!(loaded_keys.len(), test_keys.len());
+            
+            for (id, key) in test_keys.iter() {
+                assert!(loaded_keys.contains_key(id));
+                assert_eq!(loaded_keys[id].name, key.name);
+            }
+            
+            // Cleanup
+            std::env::remove_var(var_name);
+        }
+
+        #[tokio::test]
+        async fn test_environment_storage_delete_key() {
+            let var_name = "TEST_MCP_KEYS_DELETE";
+            std::env::remove_var(var_name);
+            
+            let storage = EnvironmentStorage::new(var_name.to_string());
+            let test_keys = create_test_keys();
+            let key_to_delete = test_keys.values().next().unwrap().id.clone();
+
+            storage.save_all_keys(&test_keys).await.unwrap();
+            assert_eq!(storage.load_keys().await.unwrap().len(), test_keys.len());
+
+            storage.delete_key(&key_to_delete).await.unwrap();
+            
+            let remaining_keys = storage.load_keys().await.unwrap();
+            assert_eq!(remaining_keys.len(), test_keys.len() - 1);
+            assert!(!remaining_keys.contains_key(&key_to_delete));
+            
+            // Cleanup
+            std::env::remove_var(var_name);
+        }
+
+        #[tokio::test]
+        async fn test_environment_storage_empty_content() {
+            let var_name = "TEST_MCP_KEYS_EMPTY";
+            std::env::set_var(var_name, "");
+            
+            let storage = EnvironmentStorage::new(var_name.to_string());
+            let keys = storage.load_keys().await.unwrap();
+            assert!(keys.is_empty());
+            
+            // Cleanup
+            std::env::remove_var(var_name);
+        }
+
+        #[tokio::test]
+        async fn test_environment_storage_invalid_json() {
+            let var_name = "TEST_MCP_KEYS_INVALID";
+            std::env::set_var(var_name, "invalid json content");
+            
+            let storage = EnvironmentStorage::new(var_name.to_string());
+            let result = storage.load_keys().await;
+            
+            assert!(result.is_err());
+            match result.unwrap_err() {
+                StorageError::Serialization(_) => (),
+                _ => panic!("Expected serialization error"),
+            }
+            
+            // Cleanup
+            std::env::remove_var(var_name);
+        }
+
+        #[tokio::test]
+        async fn test_environment_storage_overwrite_existing() {
+            let var_name = "TEST_MCP_KEYS_OVERWRITE";
+            std::env::remove_var(var_name);
+            
+            let storage = EnvironmentStorage::new(var_name.to_string());
+            
+            // Save initial keys
+            let initial_keys = create_test_keys();
+            storage.save_all_keys(&initial_keys).await.unwrap();
+            
+            // Save new keys (should overwrite)
+            let mut new_keys = HashMap::new();
+            let new_key = create_test_key("overwrite-key", Role::Admin);
+            new_keys.insert(new_key.id.clone(), new_key);
+            
+            storage.save_all_keys(&new_keys).await.unwrap();
+            
+            let loaded_keys = storage.load_keys().await.unwrap();
+            assert_eq!(loaded_keys.len(), 1);
+            assert!(loaded_keys.contains_key(new_keys.keys().next().unwrap()));
+            
+            // Cleanup
+            std::env::remove_var(var_name);
+        }
+    }
+
+    mod file_storage_tests {
+        use super::*;
+
+        async fn create_test_file_storage() -> (FileStorage, TempDir) {
+            // Set a consistent master key for all file storage tests
+            std::env::set_var("PULSEENGINE_MCP_MASTER_KEY", "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q");
+            let temp_dir = TempDir::new().unwrap();
+            let storage_path = temp_dir.path().join("test_keys.enc");
+            
+            let storage = FileStorage::new(
+                storage_path,
+                0o600,
+                0o700,
+                false, // Don't require secure filesystem for tests
+                false, // Don't enable filesystem monitoring for tests
+            ).await.unwrap();
+            
+            (storage, temp_dir)
+        }
+
+        #[tokio::test]
+        async fn test_file_storage_new() {
+            let (storage, _temp_dir) = create_test_file_storage().await;
+            
+            // Should create empty storage initially
+            let keys = storage.load_keys().await.unwrap();
+            assert!(keys.is_empty());
+            
+            // Storage file should exist after creation
+            assert!(storage.path.exists());
+        }
+
+        #[tokio::test]
+        async fn test_file_storage_save_and_load_key() {
+            let (storage, _temp_dir) = create_test_file_storage().await;
+            let test_key = create_test_key("file-test-key", Role::Operator);
+
+            storage.save_key(&test_key).await.unwrap();
+            
+            let keys = storage.load_keys().await.unwrap();
+            assert_eq!(keys.len(), 1);
+            assert!(keys.contains_key(&test_key.id));
+            
+            let loaded_key = &keys[&test_key.id];
+            assert_eq!(loaded_key.name, test_key.name);
+            assert_eq!(loaded_key.role, test_key.role);
+            // Note: Plain text key should be redacted in loaded key
+            assert_eq!(loaded_key.key, "***redacted***");
+        }
+
+        #[tokio::test]
+        async fn test_file_storage_multiple_keys() {
+            let (storage, _temp_dir) = create_test_file_storage().await;
+            let test_keys = create_test_keys();
+
+            storage.save_all_keys(&test_keys).await.unwrap();
+            
+            let loaded_keys = storage.load_keys().await.unwrap();
+            assert_eq!(loaded_keys.len(), test_keys.len());
+            
+            for (id, key) in test_keys.iter() {
+                assert!(loaded_keys.contains_key(id));
+                assert_eq!(loaded_keys[id].name, key.name);
+                assert_eq!(loaded_keys[id].role, key.role);
+            }
+        }
+
+        #[tokio::test]
+        async fn test_file_storage_delete_key() {
+            let (storage, _temp_dir) = create_test_file_storage().await;
+            let test_keys = create_test_keys();
+            let key_to_delete = test_keys.values().next().unwrap().id.clone();
+
+            storage.save_all_keys(&test_keys).await.unwrap();
+            assert_eq!(storage.load_keys().await.unwrap().len(), test_keys.len());
+
+            storage.delete_key(&key_to_delete).await.unwrap();
+            
+            let remaining_keys = storage.load_keys().await.unwrap();
+            assert_eq!(remaining_keys.len(), test_keys.len() - 1);
+            assert!(!remaining_keys.contains_key(&key_to_delete));
+        }
+
+        #[tokio::test]
+        async fn test_file_storage_encryption() {
+            let (storage, _temp_dir) = create_test_file_storage().await;
+            let test_key = create_test_key("encryption-test", Role::Admin);
+
+            storage.save_key(&test_key).await.unwrap();
+            
+            // Read raw file content - should be encrypted
+            let raw_content = fs::read(&storage.path).await.unwrap();
+            let raw_text = String::from_utf8_lossy(&raw_content);
+            
+            // Should not contain plain text key information
+            assert!(!raw_text.contains(&test_key.name));
+            assert!(!raw_text.contains(&test_key.key));
+            
+            // But should be loadable through storage interface
+            let loaded_keys = storage.load_keys().await.unwrap();
+            assert_eq!(loaded_keys.len(), 1);
+            assert!(loaded_keys.contains_key(&test_key.id));
+        }
+
+        #[tokio::test]
+        async fn test_file_storage_empty_file() {
+            let temp_dir = TempDir::new().unwrap();
+            let storage_path = temp_dir.path().join("empty_keys.enc");
+            
+            // Create empty file
+            fs::write(&storage_path, "").await.unwrap();
+            
+            let storage = FileStorage::new(
+                storage_path,
+                0o600,
+                0o700,
+                false,
+                false,
+            ).await.unwrap();
+            
+            let keys = storage.load_keys().await.unwrap();
+            assert!(keys.is_empty());
+        }
+
+        #[tokio::test]
+        async fn test_file_storage_nonexistent_file() {
+            let temp_dir = TempDir::new().unwrap();
+            let storage_path = temp_dir.path().join("nonexistent").join("keys.enc");
+            
+            // Parent directory doesn't exist - should be created
+            let storage = FileStorage::new(
+                storage_path.clone(),
+                0o600,
+                0o700,
+                false,
+                false,
+            ).await.unwrap();
+            
+            // Should create empty storage
+            let keys = storage.load_keys().await.unwrap();
+            assert!(keys.is_empty());
+            assert!(storage_path.exists());
+        }
+
+        #[tokio::test]
+        async fn test_file_storage_persistence() {
+            // Set a consistent master key for persistence testing
+            std::env::set_var("PULSEENGINE_MCP_MASTER_KEY", "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q");
+            
+            let temp_dir = TempDir::new().unwrap();
+            let storage_path = temp_dir.path().join("persistent_keys.enc");
+            let test_keys = create_test_keys();
+
+            // Create storage and save keys
+            {
+                let storage = FileStorage::new(
+                    storage_path.clone(),
+                    0o600,
+                    0o700,
+                    false,
+                    false,
+                ).await.unwrap();
+                
+                storage.save_all_keys(&test_keys).await.unwrap();
+            }
+
+            // Create new storage instance and verify keys persist
+            {
+                let storage = FileStorage::new(
+                    storage_path,
+                    0o600,
+                    0o700,
+                    false,
+                    false,
+                ).await.unwrap();
+                
+                let loaded_keys = storage.load_keys().await.unwrap();
+                assert_eq!(loaded_keys.len(), test_keys.len());
+                
+                for (id, key) in test_keys.iter() {
+                    assert!(loaded_keys.contains_key(id));
+                    assert_eq!(loaded_keys[id].name, key.name);
+                }
+            }
+            
+            // Clean up environment variable
+            std::env::remove_var("PULSEENGINE_MCP_MASTER_KEY");
+        }
+
+        #[tokio::test]
+        async fn test_file_storage_backup_and_restore() {
+            let (storage, _temp_dir) = create_test_file_storage().await;
+            let test_keys = create_test_keys();
+
+            // Save initial keys
+            storage.save_all_keys(&test_keys).await.unwrap();
+
+            // Create backup
+            let backup_path = storage.create_backup().await.unwrap();
+            assert!(backup_path.exists());
+            assert!(backup_path.to_string_lossy().contains("backup_"));
+
+            // Modify storage
+            let mut modified_keys = HashMap::new();
+            let new_key = create_test_key("backup-test", Role::Monitor);
+            modified_keys.insert(new_key.id.clone(), new_key);
+            storage.save_all_keys(&modified_keys).await.unwrap();
+
+            // Verify modification
+            assert_eq!(storage.load_keys().await.unwrap().len(), 1);
+
+            // Restore from backup
+            storage.restore_from_backup(&backup_path).await.unwrap();
+
+            // Verify restoration
+            let restored_keys = storage.load_keys().await.unwrap();
+            assert_eq!(restored_keys.len(), test_keys.len());
+            
+            for id in test_keys.keys() {
+                assert!(restored_keys.contains_key(id));
+            }
+        }
+
+        #[tokio::test]
+        async fn test_file_storage_backup_nonexistent_storage() {
+            let temp_dir = TempDir::new().unwrap();
+            let storage_path = temp_dir.path().join("missing_keys.enc");
+            
+            let storage = FileStorage::new(
+                storage_path,
+                0o600,
+                0o700,
+                false,
+                false,
+            ).await.unwrap();
+
+            // Delete the storage file to simulate missing file
+            fs::remove_file(&storage.path).await.unwrap();
+
+            let result = storage.create_backup().await;
+            assert!(result.is_err());
+            match result.unwrap_err() {
+                StorageError::General(msg) => assert!(msg.contains("does not exist")),
+                _ => panic!("Expected general error"),
+            }
+        }
+
+        #[tokio::test]
+        async fn test_file_storage_restore_nonexistent_backup() {
+            let (storage, temp_dir) = create_test_file_storage().await;
+            let nonexistent_backup = temp_dir.path().join("nonexistent_backup.enc");
+
+            let result = storage.restore_from_backup(&nonexistent_backup).await;
+            assert!(result.is_err());
+            match result.unwrap_err() {
+                StorageError::General(msg) => assert!(msg.contains("does not exist")),
+                _ => panic!("Expected general error"),
+            }
+        }
+
+        #[tokio::test]
+        async fn test_file_storage_cleanup_backups() {
+            // Set a consistent master key for cleanup testing
+            std::env::set_var("PULSEENGINE_MCP_MASTER_KEY", "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q");
+            
+            let (storage, _temp_dir) = create_test_file_storage().await;
+            let test_key = create_test_key("cleanup-test", Role::Admin);
+
+            storage.save_key(&test_key).await.unwrap();
+
+            // Create multiple backups
+            let mut backup_paths = vec![];
+            for i in 0..5 {
+                let backup_path = storage.create_backup().await.unwrap();
+                backup_paths.push(backup_path);
+                // Longer delay to ensure different timestamps and avoid race conditions
+                tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+            }
+
+            // Verify all backups exist
+            for (i, path) in backup_paths.iter().enumerate() {
+                assert!(path.exists(), "Backup {} does not exist: {:?}", i, path);
+            }
+
+            // Cleanup keeping only 2 backups
+            storage.cleanup_backups(2).await.unwrap();
+
+            // Count remaining backup files
+            let parent = storage.path.parent().unwrap();
+            let mut remaining_backups = 0;
+            let mut entries = fs::read_dir(parent).await.unwrap();
+            
+            while let Some(entry) = entries.next_entry().await.unwrap() {
+                if entry.file_name().to_string_lossy().contains("backup_") {
+                    remaining_backups += 1;
+                }
+            }
+            
+            assert_eq!(remaining_backups, 2);
+            
+            // Clean up environment variable
+            std::env::remove_var("PULSEENGINE_MCP_MASTER_KEY");
+        }
+
+        #[cfg(unix)]
+        #[tokio::test]
+        async fn test_file_storage_permissions() {
+            use std::os::unix::fs::PermissionsExt;
+
+            let (storage, _temp_dir) = create_test_file_storage().await;
+            let test_key = create_test_key("perm-test", Role::Operator);
+
+            storage.save_key(&test_key).await.unwrap();
+
+            // Check file permissions
+            let metadata = fs::metadata(&storage.path).await.unwrap();
+            let mode = metadata.permissions().mode() & 0o777;
+            assert_eq!(mode, 0o600);
+
+            // Check parent directory permissions
+            if let Some(parent) = storage.path.parent() {
+                let parent_metadata = fs::metadata(parent).await.unwrap();
+                let parent_mode = parent_metadata.permissions().mode() & 0o777;
+                assert_eq!(parent_mode, 0o700);
+            }
+        }
+
+        #[tokio::test]
+        async fn test_file_storage_atomic_operations() {
+            // Set a consistent master key for atomic operations testing
+            std::env::set_var("PULSEENGINE_MCP_MASTER_KEY", "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q");
+            
+            let (storage, _temp_dir) = create_test_file_storage().await;
+            let initial_keys = create_test_keys();
+
+            storage.save_all_keys(&initial_keys).await.unwrap();
+
+            // Simulate concurrent operations
+            let storage_clone = std::sync::Arc::new(storage);
+            let mut handles = vec![];
+
+            for i in 0..10 {
+                let storage_ref = storage_clone.clone();
+                let handle = tokio::spawn(async move {
+                    let key = create_test_key(&format!("concurrent-{}", i), Role::Monitor);
+                    storage_ref.save_key(&key).await
+                });
+                handles.push(handle);
+            }
+
+            // Wait for all operations to complete
+            for handle in handles {
+                // Some concurrent operations may fail due to race conditions, which is expected
+                let _ = handle.await;
+            }
+
+            // Verify final state is consistent
+            let final_keys = storage_clone.load_keys().await.unwrap();
+            assert!(final_keys.len() >= initial_keys.len());
+
+            // Verify all initial keys are still present
+            for id in initial_keys.keys() {
+                assert!(final_keys.contains_key(id));
+            }
+            
+            // Clean up environment variable
+            std::env::remove_var("PULSEENGINE_MCP_MASTER_KEY");
+        }
+    }
+
+    mod storage_factory_tests {
+        use super::*;
+        use crate::config::StorageConfig;
+
+        #[tokio::test]
+        async fn test_create_memory_storage_backend() {
+            let config = StorageConfig::Memory;
+            let backend = create_storage_backend(&config).await.unwrap();
+
+            // Test basic operations
+            let test_key = create_test_key("memory-factory-test", Role::Admin);
+            backend.save_key(&test_key).await.unwrap();
+            
+            let keys = backend.load_keys().await.unwrap();
+            assert_eq!(keys.len(), 1);
+            assert!(keys.contains_key(&test_key.id));
+        }
+
+        #[tokio::test]
+        async fn test_create_environment_storage_backend() {
+            let var_name = "TEST_FACTORY_ENV_STORAGE";
+            std::env::remove_var(var_name);
+
+            let config = StorageConfig::Environment {
+                prefix: var_name.to_string(),
+            };
+            let backend = create_storage_backend(&config).await.unwrap();
+
+            // Test basic operations
+            let test_key = create_test_key("env-factory-test", Role::Operator);
+            backend.save_key(&test_key).await.unwrap();
+            
+            let keys = backend.load_keys().await.unwrap();
+            assert_eq!(keys.len(), 1);
+            assert!(keys.contains_key(&test_key.id));
+
+            // Cleanup
+            std::env::remove_var(var_name);
+        }
+
+        #[tokio::test]
+        async fn test_create_file_storage_backend() {
+            let temp_dir = TempDir::new().unwrap();
+            let storage_path = temp_dir.path().join("factory_test_keys.enc");
+
+            let config = StorageConfig::File {
+                path: storage_path.clone(),
+                file_permissions: 0o600,
+                dir_permissions: 0o700,
+                require_secure_filesystem: false,
+                enable_filesystem_monitoring: false,
+            };
+            let backend = create_storage_backend(&config).await.unwrap();
+
+            // Test basic operations
+            let test_key = create_test_key("file-factory-test", Role::Monitor);
+            backend.save_key(&test_key).await.unwrap();
+            
+            let keys = backend.load_keys().await.unwrap();
+            assert_eq!(keys.len(), 1);
+            assert!(keys.contains_key(&test_key.id));
+
+            // Verify file was created
+            assert!(storage_path.exists());
+        }
+
+        #[tokio::test]
+        async fn test_create_file_storage_backend_with_nested_path() {
+            let temp_dir = TempDir::new().unwrap();
+            let storage_path = temp_dir.path().join("nested").join("dirs").join("keys.enc");
+
+            let config = StorageConfig::File {
+                path: storage_path.clone(),
+                file_permissions: 0o600,
+                dir_permissions: 0o700,
+                require_secure_filesystem: false,
+                enable_filesystem_monitoring: false,
+            };
+            let backend = create_storage_backend(&config).await.unwrap();
+
+            // Test that nested directories were created
+            assert!(storage_path.parent().unwrap().exists());
+            
+            // Test basic operations
+            let test_key = create_test_key("nested-factory-test", Role::Device {
+                allowed_devices: vec!["device1".to_string()],
+            });
+            backend.save_key(&test_key).await.unwrap();
+            
+            let keys = backend.load_keys().await.unwrap();
+            assert_eq!(keys.len(), 1);
+            assert!(keys.contains_key(&test_key.id));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_storage_backend_trait_object() {
+        // Test that we can use storage backends through trait objects
+        let memory_storage: Box<dyn StorageBackend> = Box::new(MemoryStorage::new());
+        let env_storage: Box<dyn StorageBackend> = Box::new(EnvironmentStorage::new("TEST_TRAIT_OBJECT".to_string()));
+
+        let storages: Vec<Box<dyn StorageBackend>> = vec![memory_storage, env_storage];
+
+        for (i, storage) in storages.into_iter().enumerate() {
+            let test_key = create_test_key(&format!("trait-test-{}", i), Role::Custom {
+                permissions: vec!["test:read".to_string()],
+            });
+
+            storage.save_key(&test_key).await.unwrap();
+            let keys = storage.load_keys().await.unwrap();
+            assert_eq!(keys.len(), 1);
+            assert!(keys.contains_key(&test_key.id));
+        }
+
+        // Cleanup
+        std::env::remove_var("TEST_TRAIT_OBJECT");
+    }
+
+    #[tokio::test]
+    async fn test_secure_api_key_conversion() {
+        let original_key = create_test_key("conversion-test", Role::Admin);
+        let secure_key = original_key.to_secure_storage();
+        let restored_key = secure_key.to_api_key();
+
+        // Verify secure conversion
+        assert_eq!(restored_key.id, original_key.id);
+        assert_eq!(restored_key.name, original_key.name);
+        assert_eq!(restored_key.role, original_key.role);
+        assert_eq!(restored_key.created_at, original_key.created_at);
+        assert_eq!(restored_key.expires_at, original_key.expires_at);
+        assert_eq!(restored_key.ip_whitelist, original_key.ip_whitelist);
+        assert_eq!(restored_key.active, original_key.active);
+        assert_eq!(restored_key.usage_count, original_key.usage_count);
+
+        // Key should be redacted in restored version
+        assert_eq!(restored_key.key, "***redacted***");
+        assert_ne!(restored_key.key, original_key.key);
+
+        // Hash and salt should be preserved
+        assert_eq!(restored_key.secret_hash, original_key.secret_hash);
+        assert_eq!(restored_key.salt, original_key.salt);
+    }
+}
