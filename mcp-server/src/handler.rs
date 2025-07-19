@@ -742,7 +742,9 @@ mod tests {
             _params: ElicitationRequestParam,
         ) -> std::result::Result<ElicitationResult, Self::Error> {
             if self.should_error {
-                return Err(MockBackendError::TestError("Elicitation failed".to_string()));
+                return Err(MockBackendError::TestError(
+                    "Elicitation failed".to_string(),
+                ));
             }
 
             // Simulate user accepting with sample data

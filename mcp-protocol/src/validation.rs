@@ -178,10 +178,7 @@ impl Validator {
     /// # Errors
     ///
     /// Returns an error if the content doesn't match the schema or if the schema is invalid
-    pub fn validate_structured_content(
-        content: &Value,
-        output_schema: &Value,
-    ) -> Result<()> {
+    pub fn validate_structured_content(content: &Value, output_schema: &Value) -> Result<()> {
         // First validate that the schema itself is valid
         Self::validate_json_schema(output_schema)?;
 
@@ -227,7 +224,7 @@ impl Validator {
                     }
                     _ => {
                         return Err(Error::validation_error(
-                            "Invalid type specified in tool output schema"
+                            "Invalid type specified in tool output schema",
                         ));
                     }
                 }
@@ -238,12 +235,12 @@ impl Validator {
                 if let Some(properties) = obj.get("properties") {
                     if !properties.is_object() {
                         return Err(Error::validation_error(
-                            "Object schema properties must be an object"
+                            "Object schema properties must be an object",
                         ));
                     }
                 } else {
                     return Err(Error::validation_error(
-                        "Object schema must define properties"
+                        "Object schema must define properties",
                     ));
                 }
             }
@@ -257,7 +254,9 @@ impl Validator {
     /// # Errors
     ///
     /// Returns formatted validation error messages
-    pub fn format_validation_errors<'a>(errors: impl Iterator<Item = ValidationError<'a>>) -> String {
+    pub fn format_validation_errors<'a>(
+        errors: impl Iterator<Item = ValidationError<'a>>,
+    ) -> String {
         let messages: Vec<String> = errors
             .map(|error| {
                 let path_str = error.instance_path.to_string();
@@ -524,7 +523,10 @@ mod tests {
         });
         let result = Validator::validate_tool_output_schema(&invalid_primitive_schema);
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("should define structured data"));
+        assert!(result
+            .unwrap_err()
+            .message
+            .contains("should define structured data"));
 
         // Invalid - object without properties
         let invalid_object_schema = json!({
@@ -532,7 +534,10 @@ mod tests {
         });
         let result = Validator::validate_tool_output_schema(&invalid_object_schema);
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("must define properties"));
+        assert!(result
+            .unwrap_err()
+            .message
+            .contains("must define properties"));
 
         // Invalid - object with invalid properties
         let invalid_props_schema = json!({
@@ -541,7 +546,10 @@ mod tests {
         });
         let result = Validator::validate_tool_output_schema(&invalid_props_schema);
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("properties must be an object"));
+        assert!(result
+            .unwrap_err()
+            .message
+            .contains("properties must be an object"));
 
         // Invalid - missing type field
         let no_type_schema = json!({
@@ -549,7 +557,10 @@ mod tests {
         });
         let result = Validator::validate_tool_output_schema(&no_type_schema);
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("JSON schema must have a 'type' field"));
+        assert!(result
+            .unwrap_err()
+            .message
+            .contains("JSON schema must have a 'type' field"));
     }
 
     #[test]
@@ -665,10 +676,8 @@ mod tests {
             "required": ["result"]
         });
 
-        let result = CallToolResult::structured(
-            vec![Content::text("Operation completed")],
-            structured_data
-        );
+        let result =
+            CallToolResult::structured(vec![Content::text("Operation completed")], structured_data);
 
         assert!(result.validate_structured_content(&schema).is_ok());
 
@@ -676,10 +685,8 @@ mod tests {
         let invalid_data = json!({
             "result": 123 // Should be string
         });
-        let invalid_result = CallToolResult::structured(
-            vec![Content::text("Operation completed")],
-            invalid_data
-        );
+        let invalid_result =
+            CallToolResult::structured(vec![Content::text("Operation completed")], invalid_data);
 
         assert!(invalid_result.validate_structured_content(&schema).is_err());
 

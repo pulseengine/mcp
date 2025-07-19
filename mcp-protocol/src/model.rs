@@ -316,10 +316,7 @@ impl CallToolResult {
     }
 
     /// Create a success result with structured content
-    pub fn structured(
-        content: Vec<Content>,
-        structured_content: serde_json::Value,
-    ) -> Self {
+    pub fn structured(content: Vec<Content>, structured_content: serde_json::Value) -> Self {
         Self {
             content,
             is_error: Some(false),
@@ -328,10 +325,7 @@ impl CallToolResult {
     }
 
     /// Create an error result with structured content
-    pub fn structured_error(
-        content: Vec<Content>,
-        structured_content: serde_json::Value,
-    ) -> Self {
+    pub fn structured_error(content: Vec<Content>, structured_content: serde_json::Value) -> Self {
         Self {
             content,
             is_error: Some(true),
@@ -352,7 +346,10 @@ impl CallToolResult {
     /// # Errors
     ///
     /// Returns an error if the structured content doesn't match the provided schema
-    pub fn validate_structured_content(&self, output_schema: &serde_json::Value) -> crate::Result<()> {
+    pub fn validate_structured_content(
+        &self,
+        output_schema: &serde_json::Value,
+    ) -> crate::Result<()> {
         use crate::validation::Validator;
 
         if let Some(structured_content) = &self.structured_content {
