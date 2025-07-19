@@ -2,17 +2,23 @@
 
 This project uses comprehensive code coverage tracking to ensure high-quality, well-tested code.
 
-## Coverage Requirements
+## Official Coverage Source
 
+**🎯 Codecov is the authoritative source for all coverage validation in this project.**
+
+- **View Coverage**: https://codecov.io/gh/pulseengine/mcp
 - **Minimum Coverage**: 80%
 - **New Code Coverage**: 80%
 - **Coverage Drop Tolerance**: 1%
 
+> **Important**: Local coverage scripts are for development debugging only. 
+> All official coverage validation is performed by Codecov to ensure consistency across platforms.
+
 ## Running Coverage Locally
 
-### Quick Start
+### Quick Start (Development Only)
 
-Run the coverage script:
+Run the coverage script for local development:
 
 ```bash
 ./scripts/coverage.sh
@@ -22,8 +28,10 @@ This will:
 1. Install `cargo-llvm-cov` if not already installed
 2. Run all tests with coverage instrumentation
 3. Generate coverage reports in multiple formats
-4. Check if coverage meets the 80% threshold
+4. Display local coverage percentage (for reference only)
 5. Generate an HTML report for detailed analysis
+
+> **Note**: Local coverage is for debugging purposes only. Official validation happens via Codecov.
 
 ### Manual Coverage Commands
 
@@ -56,7 +64,7 @@ The workflow:
 1. Runs all tests with coverage instrumentation
 2. Uploads results to Codecov
 3. Posts coverage summary as PR comment
-4. Fails if coverage drops below 80%
+4. Codecov validates coverage against thresholds
 
 ### Codecov Integration
 

@@ -1,3 +1,8 @@
+# Codecov Configuration
+# This is the authoritative source for coverage validation in the MCP project.
+# Local coverage scripts are for development only - all official validation
+# is performed by Codecov to ensure consistency across platforms.
+
 codecov:
   # Require the Codecov token for uploads
   require_ci_to_pass: true
@@ -6,19 +11,19 @@ codecov:
     wait_for_ci: true
 
 coverage:
-  # Set the coverage requirements
+  # Coverage requirements - these are the official thresholds
   status:
     project:
       default:
-        # Overall project coverage must be at least 80%
+        # Overall project coverage target
         target: 80%
-        # Allow 1% drop in coverage
+        # Allow small drops in coverage
         threshold: 1%
         # Fail the status if coverage drops below threshold
         if_ci_failed: error
     patch:
       default:
-        # New code must have at least 80% coverage
+        # New code must have high coverage
         target: 80%
         # Be strict about new code coverage
         threshold: 0%

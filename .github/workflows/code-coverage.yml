@@ -86,18 +86,12 @@ jobs:
           > coverage-summary.txt
         cat coverage-summary.txt
         
-        # Extract coverage percentage (use tail -1 to get TOTAL line, not first file)
+        # Extract coverage percentage for PR comment (use tail -1 to get TOTAL line, not first file)
         COVERAGE=$(grep -oP '\d+\.\d+(?=%)' coverage-summary.txt | tail -1)
         echo "COVERAGE_PERCENT=$COVERAGE" >> $GITHUB_ENV
         
-        # Check if coverage meets the 20% requirement (temporarily lowered)
-        if (( $(echo "$COVERAGE < 20" | bc -l) )); then
-          echo "❌ Coverage is below 20% threshold: $COVERAGE%"
-          echo "COVERAGE_PASSED=false" >> $GITHUB_ENV
-        else
-          echo "✅ Coverage meets 20% threshold: $COVERAGE%"
-          echo "COVERAGE_PASSED=true" >> $GITHUB_ENV
-        fi
+        # Note: Coverage validation is now handled by Codecov, not locally
+        echo "ℹ️  Coverage validation delegated to Codecov - see https://codecov.io/gh/${{ github.repository }}"
     
     - name: Post coverage comment
       if: github.event_name == 'pull_request'
@@ -105,16 +99,13 @@ jobs:
       with:
         script: |
           const coverage = process.env.COVERAGE_PERCENT;
-          const passed = process.env.COVERAGE_PASSED === 'true';
           
-          const emoji = passed ? '✅' : '❌';
-          const status = passed ? 'PASSED' : 'FAILED';
+          const comment = `## Code Coverage Report 📊
           
-          const comment = `## Code Coverage Report ${emoji}
+          **Local Coverage**: ${coverage}%
+          **Validation**: Handled by [Codecov](https://codecov.io/gh/${{ github.repository }})
           
-          **Coverage**: ${coverage}%
-          **Required**: 20%
-          **Status**: ${status}
+          > **Note**: Coverage validation is now performed by Codecov to ensure consistency across all platforms.
           
           <details>
           <summary>Coverage Details</summary>
@@ -125,7 +116,8 @@ jobs:
           
           </details>
           
-          View full report on [Codecov](https://codecov.io/gh/${{ github.repository }})`;
+          
+          **📋 Full Report**: [View on Codecov](https://codecov.io/gh/${{ github.repository }})`;
           
           // Find existing coverage comment
           const { data: comments } = await github.rest.issues.listComments({
@@ -161,9 +153,3 @@ jobs:
         path: |
           lcov-merged.info
           coverage-summary.txt
-    
-    - name: Fail if coverage is below threshold
-      if: env.COVERAGE_PASSED == 'false'
-      run: |
-        echo "Coverage is below the required 20% threshold"
-        exit 1
