@@ -116,13 +116,13 @@ mod tests {
     #[test]
     fn test_auth_config_default() {
         let config = AuthConfig::default();
-        
+
         assert!(config.enabled);
         assert_eq!(config.cache_size, 1000);
         assert_eq!(config.session_timeout_secs, 3600);
         assert_eq!(config.max_failed_attempts, 5);
         assert_eq!(config.rate_limit_window_secs, 900);
-        
+
         // Check default storage config
         match config.storage {
             StorageConfig::File {
@@ -147,7 +147,7 @@ mod tests {
     #[test]
     fn test_auth_config_disabled() {
         let config = AuthConfig::disabled();
-        
+
         assert!(!config.enabled);
         assert_eq!(config.cache_size, 1000); // Other values should still be defaults
         assert_eq!(config.session_timeout_secs, 3600);
@@ -158,7 +158,7 @@ mod tests {
     #[test]
     fn test_auth_config_memory() {
         let config = AuthConfig::memory();
-        
+
         assert!(config.enabled);
         assert!(matches!(config.storage, StorageConfig::Memory));
         assert_eq!(config.cache_size, 1000);
@@ -237,14 +237,30 @@ mod tests {
 
         assert_eq!(deserialized.enabled, config.enabled);
         assert_eq!(deserialized.cache_size, config.cache_size);
-        assert_eq!(deserialized.session_timeout_secs, config.session_timeout_secs);
+        assert_eq!(
+            deserialized.session_timeout_secs,
+            config.session_timeout_secs
+        );
         assert_eq!(deserialized.max_failed_attempts, config.max_failed_attempts);
-        assert_eq!(deserialized.rate_limit_window_secs, config.rate_limit_window_secs);
+        assert_eq!(
+            deserialized.rate_limit_window_secs,
+            config.rate_limit_window_secs
+        );
 
         match (config.storage, deserialized.storage) {
             (
-                StorageConfig::File { path: p1, file_permissions: fp1, dir_permissions: dp1, .. },
-                StorageConfig::File { path: p2, file_permissions: fp2, dir_permissions: dp2, .. },
+                StorageConfig::File {
+                    path: p1,
+                    file_permissions: fp1,
+                    dir_permissions: dp1,
+                    ..
+                },
+                StorageConfig::File {
+                    path: p2,
+                    file_permissions: fp2,
+                    dir_permissions: dp2,
+                    ..
+                },
             ) => {
                 assert_eq!(p1, p2);
                 assert_eq!(fp1, fp2);
@@ -263,7 +279,7 @@ mod tests {
         }"#;
 
         let storage: StorageConfig = serde_json::from_str(json).unwrap();
-        
+
         match storage {
             StorageConfig::File {
                 path,
@@ -327,7 +343,7 @@ mod tests {
         assert_eq!(config.session_timeout_secs, 1800);
         assert_eq!(config.max_failed_attempts, 10);
         assert_eq!(config.rate_limit_window_secs, 300);
-        
+
         match config.storage {
             StorageConfig::Environment { prefix } => {
                 assert_eq!(prefix, "CUSTOM");
@@ -345,7 +361,10 @@ mod tests {
         assert_eq!(cloned.cache_size, original.cache_size);
         assert_eq!(cloned.session_timeout_secs, original.session_timeout_secs);
         assert_eq!(cloned.max_failed_attempts, original.max_failed_attempts);
-        assert_eq!(cloned.rate_limit_window_secs, original.rate_limit_window_secs);
+        assert_eq!(
+            cloned.rate_limit_window_secs,
+            original.rate_limit_window_secs
+        );
     }
 
     #[test]
@@ -357,7 +376,7 @@ mod tests {
             require_secure_filesystem: true,
             enable_filesystem_monitoring: false,
         };
-        
+
         let debug_str = format!("{:?}", file_storage);
         assert!(debug_str.contains("File"));
         assert!(debug_str.contains("/test"));
@@ -367,7 +386,7 @@ mod tests {
         let env_storage = StorageConfig::Environment {
             prefix: "TEST".to_string(),
         };
-        
+
         let debug_str = format!("{:?}", env_storage);
         assert!(debug_str.contains("Environment"));
         assert!(debug_str.contains("TEST"));

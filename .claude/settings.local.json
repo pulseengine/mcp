@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(cargo fmt:*)",
+      "mcp__fetch__imageFetch",
+      "mcp__sequential-thinking__sequentialthinking",
+      "Bash(gh project view:*)",
+      "Bash(gh issue create:*)",
+      "Bash(gh project item-add:*)",
+      "Bash(gh project item-list:*)",
+      "Bash(cargo clippy:*)",
+      "WebFetch(domain:modelcontextprotocol.io)",
+      "Bash(cargo test:*)",
+      "Bash(gh issue view:*)",
+      "Bash(cargo check:*)",
+      "Bash(gh project item-edit:*)",
+      "WebFetch(domain:app.codecov.io)",
+      "Bash(grep:*)"
+    ],
+    "deny": []
+  }
+}

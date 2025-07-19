@@ -167,7 +167,7 @@ mod tests {
 
         let result = CallToolResult::structured(
             vec![Content::text("Operation completed")],
-            structured_data.clone()
+            structured_data.clone(),
         );
 
         assert_eq!(result.is_error, Some(false));
@@ -175,10 +175,8 @@ mod tests {
         assert_eq!(result.structured_content, Some(structured_data));
 
         // Test text_with_structured convenience method
-        let result2 = CallToolResult::text_with_structured(
-            "Task finished",
-            json!({"status": "done"})
-        );
+        let result2 =
+            CallToolResult::text_with_structured("Task finished", json!({"status": "done"}));
         assert_eq!(result2.is_error, Some(false));
         assert!(result2.structured_content.is_some());
     }

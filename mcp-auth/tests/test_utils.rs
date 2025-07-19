@@ -4,17 +4,17 @@
 //! test data generators, and assertion helpers to support comprehensive testing
 //! across the mcp-auth codebase.
 
+use async_trait::async_trait;
 use chrono::{Duration, Utc};
 use pulseengine_mcp_auth::{
-    models::{ApiKey, AuthContext, Role},
     config::{AuthConfig, StorageConfig},
+    models::{ApiKey, AuthContext, Role},
     storage::{StorageBackend, StorageError},
     AuthenticationManager,
 };
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use async_trait::async_trait;
 use uuid::Uuid;
 
 /// Test data generators
@@ -60,9 +60,7 @@ impl TestDataGenerator {
 
     /// Generate custom role API key
     pub fn custom_api_key(permissions: Vec<String>) -> ApiKey {
-        Self::api_key_with_role(Role::Custom {
-            permissions,
-        })
+        Self::api_key_with_role(Role::Custom { permissions })
     }
 
     /// Generate test auth context
@@ -109,10 +107,7 @@ impl TestDataGenerator {
                 "credential:write".to_string(),
                 "monitoring:read".to_string(),
             ],
-            Role::Monitor => vec![
-                "auth:read".to_string(),
-                "monitoring:read".to_string(),
-            ],
+            Role::Monitor => vec!["auth:read".to_string(), "monitoring:read".to_string()],
             Role::Device { .. } => vec![
                 "session:create".to_string(),
                 "monitoring:report".to_string(),
@@ -196,7 +191,7 @@ impl MockStorageBackend {
         let admin_key = TestDataGenerator::admin_api_key();
         let operator_key = TestDataGenerator::api_key();
         let device_key = TestDataGenerator::device_api_key();
-        
+
         keys.insert(admin_key.id.clone(), admin_key);
         keys.insert(operator_key.id.clone(), operator_key);
         keys.insert(device_key.id.clone(), device_key);
@@ -209,7 +204,10 @@ impl MockStorageBackend {
 
         let fail_ops = self.fail_operations.lock().unwrap();
         if fail_ops.contains(&operation.to_string()) {
-            return Err(StorageError::General(format!("Mock failure for {}", operation)));
+            return Err(StorageError::General(format!(
+                "Mock failure for {}",
+                operation
+            )));
         }
 
         Ok(())
@@ -231,7 +229,10 @@ impl StorageBackend for MockStorageBackend {
 
     async fn save_key(&self, key: &ApiKey) -> Result<(), StorageError> {
         self.check_should_fail("save_key")?;
-        self.keys.lock().unwrap().insert(key.id.clone(), key.clone());
+        self.keys
+            .lock()
+            .unwrap()
+            .insert(key.id.clone(), key.clone());
         Ok(())
     }
 
@@ -272,7 +273,9 @@ impl TestAssertions {
         let permissions = TestDataGenerator::permissions_for_role(role);
         assert!(
             permissions.contains(&permission.to_string()),
-            "Role {:?} should have permission '{}'", role, permission
+            "Role {:?} should have permission '{}'",
+            role,
+            permission
         );
     }
 
@@ -281,16 +284,27 @@ impl TestAssertions {
         let permissions = TestDataGenerator::permissions_for_role(role);
         assert!(
             !permissions.contains(&permission.to_string()),
-            "Role {:?} should not have permission '{}'", role, permission
+            "Role {:?} should not have permission '{}'",
+            role,
+            permission
         );
     }
 
     /// Assert auth context is valid
     pub fn assert_auth_context_valid(context: &AuthContext) {
-        assert!(context.user_id.is_some(), "Auth context should have user ID");
-        assert!(context.api_key_id.is_some(), "Auth context should have API key ID");
-        assert!(!context.permissions.is_empty(), "Auth context should have permissions");
-        
+        assert!(
+            context.user_id.is_some(),
+            "Auth context should have user ID"
+        );
+        assert!(
+            context.api_key_id.is_some(),
+            "Auth context should have API key ID"
+        );
+        assert!(
+            !context.permissions.is_empty(),
+            "Auth context should have permissions"
+        );
+
         // AuthContext doesn't have expires_at field - expiration is handled by API keys/sessions
     }
 }
@@ -303,18 +317,20 @@ impl TestSetup {
     pub async fn create_test_auth_manager() -> (AuthenticationManager, Arc<MockStorageBackend>) {
         let mock_storage = Arc::new(MockStorageBackend::new());
         let config = TestDataGenerator::test_config();
-        
+
         // Create auth manager with mock storage would require modifying the AuthenticationManager
         // For now, create with memory storage which is similar to mock
-        let auth_manager = AuthenticationManager::new(config).await
+        let auth_manager = AuthenticationManager::new(config)
+            .await
             .expect("Failed to create test auth manager");
-            
+
         (auth_manager, mock_storage)
     }
 
     /// Create and populate test auth manager with sample data
     pub async fn create_populated_auth_manager() -> AuthenticationManager {
-        let mut auth_manager = AuthenticationManager::new(TestDataGenerator::test_config()).await
+        let mut auth_manager = AuthenticationManager::new(TestDataGenerator::test_config())
+            .await
             .expect("Failed to create auth manager");
 
         // Add test keys
@@ -322,11 +338,32 @@ impl TestSetup {
         let operator_key = TestDataGenerator::api_key();
         let device_key = TestDataGenerator::device_api_key();
 
-        auth_manager.create_api_key(admin_key.name.clone(), admin_key.role.clone(), admin_key.expires_at, Some(admin_key.ip_whitelist.clone())).await
+        auth_manager
+            .create_api_key(
+                admin_key.name.clone(),
+                admin_key.role.clone(),
+                admin_key.expires_at,
+                Some(admin_key.ip_whitelist.clone()),
+            )
+            .await
             .expect("Failed to store admin key");
-        auth_manager.create_api_key(operator_key.name.clone(), operator_key.role.clone(), operator_key.expires_at, Some(operator_key.ip_whitelist.clone())).await
+        auth_manager
+            .create_api_key(
+                operator_key.name.clone(),
+                operator_key.role.clone(),
+                operator_key.expires_at,
+                Some(operator_key.ip_whitelist.clone()),
+            )
+            .await
             .expect("Failed to store operator key");
-        auth_manager.create_api_key(device_key.name.clone(), device_key.role.clone(), device_key.expires_at, Some(device_key.ip_whitelist.clone())).await
+        auth_manager
+            .create_api_key(
+                device_key.name.clone(),
+                device_key.role.clone(),
+                device_key.expires_at,
+                Some(device_key.ip_whitelist.clone()),
+            )
+            .await
             .expect("Failed to store device key");
 
         auth_manager
@@ -347,7 +384,7 @@ impl TestSetup {
 macro_rules! assert_auth_error {
     ($result:expr, $error_pattern:pat) => {
         match $result {
-            Err($error_pattern) => {},
+            Err($error_pattern) => {}
             Ok(_) => panic!("Expected authentication error, got Ok"),
             Err(e) => panic!("Expected authentication error pattern, got {:?}", e),
         }
@@ -358,7 +395,7 @@ macro_rules! assert_auth_error {
 macro_rules! assert_storage_error {
     ($result:expr, $error_pattern:pat) => {
         match $result {
-            Err($error_pattern) => {},
+            Err($error_pattern) => {}
             Ok(_) => panic!("Expected storage error, got Ok"),
             Err(e) => panic!("Expected storage error pattern, got {:?}", e),
         }
@@ -368,7 +405,8 @@ macro_rules! assert_storage_error {
 /// Create a temporary test directory
 pub async fn create_temp_test_dir() -> std::path::PathBuf {
     let temp_dir = std::env::temp_dir().join(format!("mcp-auth-test-{}", Uuid::new_v4()));
-    tokio::fs::create_dir_all(&temp_dir).await
+    tokio::fs::create_dir_all(&temp_dir)
+        .await
         .expect("Failed to create temp test directory");
     temp_dir
 }
@@ -400,7 +438,7 @@ mod tests {
     fn test_role_permissions() {
         let admin_role = Role::Admin;
         TestAssertions::assert_role_has_permission(&admin_role, "auth:admin");
-        
+
         let monitor_role = Role::Monitor;
         TestAssertions::assert_role_lacks_permission(&monitor_role, "auth:admin");
     }
@@ -409,15 +447,15 @@ mod tests {
     async fn test_mock_storage_operations() {
         let storage = MockStorageBackend::new();
         let key = TestDataGenerator::api_key();
-        
+
         // Test save and load
         storage.save_key(&key).await.unwrap();
         assert!(storage.has_key(&key.id));
-        
+
         let keys = storage.load_keys().await.unwrap();
         assert_eq!(keys.len(), 1);
         assert!(keys.contains_key(&key.id));
-        
+
         // Test delete
         storage.delete_key(&key.id).await.unwrap();
         assert!(!storage.has_key(&key.id));
@@ -427,11 +465,11 @@ mod tests {
     async fn test_mock_storage_failure_simulation() {
         let storage = MockStorageBackend::new();
         storage.set_should_fail(true);
-        
+
         let key = TestDataGenerator::api_key();
         let result = storage.save_key(&key).await;
         assert!(result.is_err());
-        
+
         storage.set_should_fail(false);
         let result = storage.save_key(&key).await;
         assert!(result.is_ok());

@@ -632,7 +632,7 @@ mod tests {
     #[test]
     fn test_role_admin_permissions() {
         let admin_role = Role::Admin;
-        
+
         assert!(admin_role.has_permission("admin.create_user"));
         assert!(admin_role.has_permission("read.status"));
         assert!(admin_role.has_permission("device.control"));
@@ -642,7 +642,7 @@ mod tests {
     #[test]
     fn test_role_operator_permissions() {
         let operator_role = Role::Operator;
-        
+
         assert!(operator_role.has_permission("read.status"));
         assert!(operator_role.has_permission("device.control"));
         assert!(!operator_role.has_permission("admin.create_user"));
@@ -652,7 +652,7 @@ mod tests {
     #[test]
     fn test_role_monitor_permissions() {
         let monitor_role = Role::Monitor;
-        
+
         assert!(monitor_role.has_permission("read.status"));
         assert!(monitor_role.has_permission("read.metrics"));
         assert!(monitor_role.has_permission("health.check"));
@@ -667,7 +667,7 @@ mod tests {
         let device_role = Role::Device {
             allowed_devices: allowed_devices.clone(),
         };
-        
+
         assert!(device_role.has_permission("device.device1"));
         assert!(device_role.has_permission("device.device2"));
         assert!(!device_role.has_permission("device.device3"));
@@ -685,7 +685,7 @@ mod tests {
         let custom_role = Role::Custom {
             permissions: permissions.clone(),
         };
-        
+
         assert!(custom_role.has_permission("custom.read"));
         assert!(custom_role.has_permission("custom.write"));
         assert!(custom_role.has_permission("special.action"));
@@ -702,7 +702,11 @@ mod tests {
             allowed_devices: vec!["dev1".to_string(), "dev2".to_string()],
         };
         let custom = Role::Custom {
-            permissions: vec!["perm1".to_string(), "perm2".to_string(), "perm3".to_string()],
+            permissions: vec![
+                "perm1".to_string(),
+                "perm2".to_string(),
+                "perm3".to_string(),
+            ],
         };
 
         assert_eq!(admin.description(), "Full administrative access");
@@ -736,7 +740,7 @@ mod tests {
     #[test]
     fn test_auth_result_success() {
         let result = AuthResult::success("user123".to_string(), vec![Role::Admin]);
-        
+
         assert!(result.success);
         assert_eq!(result.user_id, Some("user123".to_string()));
         assert_eq!(result.roles, vec![Role::Admin]);
@@ -748,7 +752,7 @@ mod tests {
     #[test]
     fn test_auth_result_failure() {
         let result = AuthResult::failure("Invalid credentials".to_string());
-        
+
         assert!(!result.success);
         assert!(result.user_id.is_none());
         assert!(result.roles.is_empty());
@@ -760,7 +764,7 @@ mod tests {
     #[test]
     fn test_auth_result_rate_limited() {
         let result = AuthResult::rate_limited("192.168.1.100".to_string());
-        
+
         assert!(!result.success);
         assert!(result.user_id.is_none());
         assert!(result.roles.is_empty());
@@ -785,7 +789,7 @@ mod tests {
         assert!(context.has_permission("admin.create"));
         assert!(context.has_permission("read.status"));
         assert!(context.has_permission("anything")); // Admin role allows all
-        
+
         let permissions = context.get_all_permissions();
         assert_eq!(permissions.len(), 3);
         assert!(permissions.contains(&"admin.create".to_string()));
@@ -832,7 +836,7 @@ mod tests {
     #[test]
     fn test_key_usage_stats_default() {
         let stats = KeyUsageStats::default();
-        
+
         assert_eq!(stats.total_keys, 0);
         assert_eq!(stats.active_keys, 0);
         assert_eq!(stats.disabled_keys, 0);
@@ -897,7 +901,7 @@ mod tests {
     #[test]
     fn test_api_key_serialization() {
         let key = ApiKey::new("test".to_string(), Role::Admin, None, vec![]);
-        
+
         let json = serde_json::to_string(&key).unwrap();
         let deserialized: ApiKey = serde_json::from_str(&json).unwrap();
 
