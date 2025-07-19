@@ -108,6 +108,7 @@ pub enum McpMethod {
     NotificationsMessage,
     LoggingSetLevel,
     CompletionComplete,
+    ElicitationCreate,
     Custom(String),
 }
 
@@ -664,6 +665,7 @@ impl McpPropertyTester {
                     McpMethod::NotificationsMessage => "notifications/message",
                     McpMethod::LoggingSetLevel => "logging/setLevel",
                     McpMethod::CompletionComplete => "completion/complete",
+                    McpMethod::ElicitationCreate => "elicitation/create",
                     McpMethod::Custom(name) => name,
                 })
             }

@@ -69,6 +69,7 @@ impl McpBackend for TransportTestBackend {
                     level: Some("info".to_string()),
                 }),
                 sampling: None,
+                ..Default::default()
             },
             server_info: Implementation {
                 name: self.server_name.clone(),
@@ -98,6 +99,7 @@ impl McpBackend for TransportTestBackend {
                         },
                         "required": ["message"]
                     }),
+                    output_schema: None,
                 },
                 Tool {
                     name: "transport_info".to_string(),
@@ -107,6 +109,7 @@ impl McpBackend for TransportTestBackend {
                         "properties": {},
                         "required": []
                     }),
+                    output_schema: None,
                 },
             ],
             next_cursor: None,
@@ -130,6 +133,7 @@ impl McpBackend for TransportTestBackend {
                         text: format!("Echo: {message}"),
                     }],
                     is_error: Some(false),
+                    structured_content: None,
                 })
             }
             "transport_info" => Ok(CallToolResult {
@@ -137,6 +141,7 @@ impl McpBackend for TransportTestBackend {
                     text: format!("Transport test backend: {}", self.server_name),
                 }],
                 is_error: Some(false),
+                structured_content: None,
             }),
             _ => {
                 Err(BackendError::not_supported(format!("Tool not found: {}", request.name)).into())

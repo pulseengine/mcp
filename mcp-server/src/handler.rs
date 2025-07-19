@@ -125,6 +125,7 @@ impl<B: McpBackend> GenericServerHandler<B> {
                 "resources/subscribe" => self.handle_subscribe(request).await,
                 "resources/unsubscribe" => self.handle_unsubscribe(request).await,
                 "completion/complete" => self.handle_complete(request).await,
+                "elicitation/create" => self.handle_elicit(request).await,
                 "logging/setLevel" => self.handle_set_level(request).await,
                 "ping" => self.handle_ping(request).await,
                 _ => self.handle_custom_method(request).await,
@@ -397,6 +398,19 @@ impl<B: McpBackend> GenericServerHandler<B> {
         })
     }
 
+    async fn handle_elicit(&self, request: Request) -> std::result::Result<Response, Error> {
+        let params: ElicitationRequestParam = serde_json::from_value(request.params)?;
+
+        let result = self.backend.elicit(params).await.map_err(|e| e.into())?;
+
+        Ok(Response {
+            jsonrpc: "2.0".to_string(),
+            id: request.id,
+            result: Some(serde_json::to_value(result)?),
+            error: None,
+        })
+    }
+
     async fn handle_set_level(&self, request: Request) -> std::result::Result<Response, Error> {
         let params: SetLevelRequestParam = serde_json::from_value(request.params)?;
 
@@ -493,6 +507,7 @@ mod tests {
                         prompts: Some(PromptsCapability { list_changed: None }),
                         logging: Some(LoggingCapability { level: None }),
                         sampling: None,
+                        elicitation: Some(ElicitationCapability {}),
                     },
                     server_info: Implementation {
                         name: "test-server".to_string(),
@@ -509,6 +524,7 @@ mod tests {
                             "input": {"type": "string"}
                         }
                     }),
+                    output_schema: None,
                 }],
                 resources: vec![Resource {
                     uri: "test://resource1".to_string(),
@@ -585,6 +601,7 @@ mod tests {
                         text: "Tool executed successfully".to_string(),
                     }],
                     is_error: Some(false),
+                    structured_content: None,
                 })
             } else {
                 Err(MockBackendError::TestError("Tool not found".to_string()))
@@ -718,6 +735,21 @@ mod tests {
                     },
                 ],
             })
+        }
+
+        async fn elicit(
+            &self,
+            _params: ElicitationRequestParam,
+        ) -> std::result::Result<ElicitationResult, Self::Error> {
+            if self.should_error {
+                return Err(MockBackendError::TestError("Elicitation failed".to_string()));
+            }
+
+            // Simulate user accepting with sample data
+            Ok(ElicitationResult::accept(serde_json::json!({
+                "name": "Test User",
+                "email": "test@example.com"
+            })))
         }
 
         async fn set_level(
@@ -1049,6 +1081,38 @@ mod tests {
 
         let result: CompleteResult = serde_json::from_value(response.result.unwrap()).unwrap();
         assert_eq!(result.completion.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_handle_elicit() {
+        let handler = create_test_handler().await;
+        let request = Request {
+            jsonrpc: "2.0".to_string(),
+            method: "elicitation/create".to_string(),
+            params: json!({
+                "message": "Please provide your contact information",
+                "requestedSchema": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string", "description": "Your full name"},
+                        "email": {"type": "string", "format": "email"}
+                    },
+                    "required": ["name", "email"]
+                }
+            }),
+            id: json!(12),
+        };
+
+        let response = handler.handle_request(request).await.unwrap();
+
+        assert_eq!(response.jsonrpc, "2.0");
+        assert_eq!(response.id, json!(12));
+        assert!(response.result.is_some());
+        assert!(response.error.is_none());
+
+        let result: ElicitationResult = serde_json::from_value(response.result.unwrap()).unwrap();
+        assert!(matches!(result.response.action, ElicitationAction::Accept));
+        assert!(result.response.data.is_some());
     }
 
     #[tokio::test]

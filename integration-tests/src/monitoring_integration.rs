@@ -76,6 +76,7 @@ impl McpBackend for MonitoringTestBackend {
                     level: Some("info".to_string()),
                 }),
                 sampling: None,
+                ..Default::default()
             },
             server_info: Implementation {
                 name: "Monitoring Test Backend".to_string(),
@@ -125,6 +126,7 @@ impl McpBackend for MonitoringTestBackend {
                         },
                         "required": ["operation"]
                     }),
+                    output_schema: None,
                 },
                 Tool {
                     name: "metrics_tool".to_string(),
@@ -134,6 +136,7 @@ impl McpBackend for MonitoringTestBackend {
                         "properties": {},
                         "required": []
                     }),
+                    output_schema: None,
                 },
             ],
             next_cursor: None,
@@ -176,6 +179,7 @@ impl McpBackend for MonitoringTestBackend {
                         ),
                     }],
                     is_error: Some(false),
+                    structured_content: None,
                 })
             }
             "metrics_tool" => {
@@ -187,6 +191,7 @@ impl McpBackend for MonitoringTestBackend {
                         text: format!("Total requests processed: {}", count),
                     }],
                     is_error: Some(false),
+                    structured_content: None,
                 })
             }
             _ => {

@@ -182,6 +182,17 @@ pub trait McpBackend: Send + Sync + Clone {
         Ok(CompleteResult { completion: vec![] })
     }
 
+    // Elicitation (optional)
+
+    /// Request structured input from the user
+    async fn elicit(
+        &self,
+        request: ElicitationRequestParam,
+    ) -> std::result::Result<ElicitationResult, Self::Error> {
+        let _ = request;
+        Err(BackendError::not_supported("Elicitation not supported").into())
+    }
+
     // Logging control (optional)
 
     /// Set logging level

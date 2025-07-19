@@ -73,6 +73,7 @@ impl McpBackend for MockHandlerBackend {
                     level: Some("info".to_string()),
                 }),
                 sampling: None,
+                elicitation: Some(ElicitationCapability {}),
             },
             server_info: Implementation {
                 name: self.server_name.clone(),
@@ -110,6 +111,7 @@ impl McpBackend for MockHandlerBackend {
                         },
                         "required": ["message"]
                     }),
+                    output_schema: None,
                 },
                 Tool {
                     name: "another_tool".to_string(),
@@ -119,6 +121,7 @@ impl McpBackend for MockHandlerBackend {
                         "properties": {},
                         "required": []
                     }),
+                    output_schema: None,
                 },
             ],
             next_cursor: None,
@@ -146,6 +149,7 @@ impl McpBackend for MockHandlerBackend {
                         text: format!("Tool executed with message: {message}"),
                     }],
                     is_error: Some(false),
+                    structured_content: None,
                 })
             }
             "error_tool" => Ok(CallToolResult {
@@ -153,6 +157,7 @@ impl McpBackend for MockHandlerBackend {
                     text: "Tool execution failed".to_string(),
                 }],
                 is_error: Some(true),
+                structured_content: None,
             }),
             _ => {
                 Err(BackendError::not_supported(format!("Tool not found: {}", request.name)).into())

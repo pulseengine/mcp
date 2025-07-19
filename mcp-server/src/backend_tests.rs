@@ -149,6 +149,7 @@ impl McpBackend for MockBackend {
                     "properties": {},
                     "required": []
                 }),
+                output_schema: None,
             }],
             next_cursor: None,
         })
@@ -168,6 +169,7 @@ impl McpBackend for MockBackend {
                     text: "Mock tool executed successfully".to_string(),
                 }],
                 is_error: Some(false),
+                structured_content: None,
             })
         } else {
             Err(BackendError::not_supported(format!("Tool not found: {}", request.name)).into())
@@ -430,6 +432,7 @@ impl SimpleBackend for MockSimpleBackend {
         Ok(CallToolResult {
             content: vec![],
             is_error: Some(false),
+            structured_content: None,
         })
     }
 }
