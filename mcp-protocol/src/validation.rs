@@ -1,6 +1,7 @@
 //! Validation utilities for MCP protocol types
 
 use crate::{Error, Result};
+use jsonschema::{JSONSchema, ValidationError};
 use serde_json::Value;
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -170,6 +171,109 @@ impl Validator {
     pub fn validate_struct<T: Validate>(item: &T) -> Result<()> {
         item.validate()
             .map_err(|e| Error::validation_error(e.to_string()))
+    }
+
+    /// Validate structured content against a JSON schema
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the content doesn't match the schema or if the schema is invalid
+    pub fn validate_structured_content(
+        content: &Value,
+        output_schema: &Value,
+    ) -> Result<()> {
+        // First validate that the schema itself is valid
+        Self::validate_json_schema(output_schema)?;
+
+        // Compile the schema
+        let schema = JSONSchema::compile(output_schema)
+            .map_err(|e| Error::validation_error(format!("Invalid JSON schema: {e}")))?;
+
+        // Validate the content against the schema
+        if let Err(errors) = schema.validate(content) {
+            let error_messages: Vec<String> = errors
+                .map(|e| format!("{}: {}", e.instance_path.to_string(), e))
+                .collect();
+            return Err(Error::validation_error(format!(
+                "Structured content validation failed: {}",
+                error_messages.join(", ")
+            )));
+        }
+
+        Ok(())
+    }
+
+    /// Validate that a tool's output schema is properly defined
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the output schema is invalid or incompatible with MCP requirements
+    pub fn validate_tool_output_schema(output_schema: &Value) -> Result<()> {
+        // Basic JSON schema validation
+        Self::validate_json_schema(output_schema)?;
+
+        // Additional MCP-specific validations for tool output schemas
+        if let Some(obj) = output_schema.as_object() {
+            // Ensure the schema describes structured data (object or array)
+            if let Some(schema_type) = obj.get("type").and_then(|t| t.as_str()) {
+                match schema_type {
+                    "object" | "array" => {
+                        // Valid structured types
+                    }
+                    "string" | "number" | "integer" | "boolean" | "null" => {
+                        return Err(Error::validation_error(
+                            "Tool output schema should define structured data (object or array), not primitive types"
+                        ));
+                    }
+                    _ => {
+                        return Err(Error::validation_error(
+                            "Invalid type specified in tool output schema"
+                        ));
+                    }
+                }
+            }
+
+            // Check for required properties in object schemas
+            if obj.get("type").and_then(|t| t.as_str()) == Some("object") {
+                if let Some(properties) = obj.get("properties") {
+                    if !properties.is_object() {
+                        return Err(Error::validation_error(
+                            "Object schema properties must be an object"
+                        ));
+                    }
+                } else {
+                    return Err(Error::validation_error(
+                        "Object schema must define properties"
+                    ));
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Extract validation errors in a user-friendly format
+    ///
+    /// # Errors
+    ///
+    /// Returns formatted validation error messages
+    pub fn format_validation_errors<'a>(errors: impl Iterator<Item = ValidationError<'a>>) -> String {
+        let messages: Vec<String> = errors
+            .map(|error| {
+                let path_str = error.instance_path.to_string();
+                if path_str.is_empty() {
+                    error.to_string()
+                } else {
+                    format!("at '{}': {}", path_str, error)
+                }
+            })
+            .collect();
+
+        if messages.is_empty() {
+            "Unknown validation error".to_string()
+        } else {
+            messages.join("; ")
+        }
     }
 }
 
@@ -346,6 +450,242 @@ mod tests {
         });
         let args = HashMap::new();
         assert!(Validator::validate_tool_arguments(&args, &schema).is_ok());
+    }
+
+    #[test]
+    fn test_validate_structured_content() {
+        // Valid structured content
+        let content = json!({
+            "name": "John Doe",
+            "age": 30,
+            "email": "john@example.com"
+        });
+        let schema = json!({
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "age": {"type": "integer", "minimum": 0},
+                "email": {"type": "string", "format": "email"}
+            },
+            "required": ["name", "age"]
+        });
+
+        assert!(Validator::validate_structured_content(&content, &schema).is_ok());
+
+        // Invalid content - missing required field
+        let invalid_content = json!({
+            "name": "John Doe"
+        });
+        let result = Validator::validate_structured_content(&invalid_content, &schema);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().message.contains("validation failed"));
+
+        // Invalid content - wrong type
+        let invalid_content = json!({
+            "name": "John Doe",
+            "age": "thirty"
+        });
+        let result = Validator::validate_structured_content(&invalid_content, &schema);
+        assert!(result.is_err());
+
+        // Invalid schema - this should be a basic validation before attempting to compile
+        let invalid_schema = json!({
+            "type": "invalid_type"
+        });
+        let result = Validator::validate_structured_content(&content, &invalid_schema);
+        assert!(result.is_err());
+        // The error message can vary, but it should indicate schema validation failure
+        let error_msg = result.unwrap_err().message;
+        assert!(error_msg.contains("JSON schema") || error_msg.contains("Invalid"));
+    }
+
+    #[test]
+    fn test_validate_tool_output_schema() {
+        // Valid object schema
+        let valid_object_schema = json!({
+            "type": "object",
+            "properties": {
+                "result": {"type": "string"},
+                "metadata": {"type": "object"}
+            }
+        });
+        assert!(Validator::validate_tool_output_schema(&valid_object_schema).is_ok());
+
+        // Valid array schema
+        let valid_array_schema = json!({
+            "type": "array",
+            "items": {"type": "string"}
+        });
+        assert!(Validator::validate_tool_output_schema(&valid_array_schema).is_ok());
+
+        // Invalid - primitive type
+        let invalid_primitive_schema = json!({
+            "type": "string"
+        });
+        let result = Validator::validate_tool_output_schema(&invalid_primitive_schema);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().message.contains("should define structured data"));
+
+        // Invalid - object without properties
+        let invalid_object_schema = json!({
+            "type": "object"
+        });
+        let result = Validator::validate_tool_output_schema(&invalid_object_schema);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().message.contains("must define properties"));
+
+        // Invalid - object with invalid properties
+        let invalid_props_schema = json!({
+            "type": "object",
+            "properties": "not an object"
+        });
+        let result = Validator::validate_tool_output_schema(&invalid_props_schema);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().message.contains("properties must be an object"));
+
+        // Invalid - missing type field
+        let no_type_schema = json!({
+            "properties": {}
+        });
+        let result = Validator::validate_tool_output_schema(&no_type_schema);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().message.contains("JSON schema must have a 'type' field"));
+    }
+
+    #[test]
+    fn test_structured_content_with_arrays() {
+        // Array content validation
+        let content = json!([
+            {"id": 1, "name": "Item 1"},
+            {"id": 2, "name": "Item 2"}
+        ]);
+        let schema = json!({
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "integer"},
+                    "name": {"type": "string"}
+                },
+                "required": ["id", "name"]
+            }
+        });
+
+        assert!(Validator::validate_structured_content(&content, &schema).is_ok());
+
+        // Invalid array content
+        let invalid_content = json!([
+            {"id": 1, "name": "Item 1"},
+            {"id": "not a number", "name": "Item 2"}
+        ]);
+        let result = Validator::validate_structured_content(&invalid_content, &schema);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_nested_structured_content() {
+        // Nested object validation
+        let content = json!({
+            "user": {
+                "name": "John",
+                "profile": {
+                    "age": 30,
+                    "preferences": ["reading", "coding"]
+                }
+            },
+            "timestamp": "2023-01-01T00:00:00Z"
+        });
+
+        let schema = json!({
+            "type": "object",
+            "properties": {
+                "user": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "profile": {
+                            "type": "object",
+                            "properties": {
+                                "age": {"type": "integer"},
+                                "preferences": {
+                                    "type": "array",
+                                    "items": {"type": "string"}
+                                }
+                            },
+                            "required": ["age"]
+                        }
+                    },
+                    "required": ["name", "profile"]
+                },
+                "timestamp": {"type": "string"}
+            },
+            "required": ["user"]
+        });
+
+        assert!(Validator::validate_structured_content(&content, &schema).is_ok());
+
+        // Invalid nested content
+        let invalid_content = json!({
+            "user": {
+                "name": "John",
+                "profile": {
+                    "preferences": ["reading", "coding"]
+                    // Missing required "age" field
+                }
+            }
+        });
+        let result = Validator::validate_structured_content(&invalid_content, &schema);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_format_validation_errors() {
+        // This is a basic test since we can't easily create ValidationError instances
+        // The function is mainly for internal use
+        let empty_errors = std::iter::empty();
+        let result = Validator::format_validation_errors(empty_errors);
+        assert_eq!(result, "Unknown validation error");
+    }
+
+    #[test]
+    fn test_call_tool_result_structured_validation() {
+        use crate::model::{CallToolResult, Content};
+
+        // Valid structured content
+        let structured_data = json!({
+            "result": "success",
+            "data": {"count": 42}
+        });
+        let schema = json!({
+            "type": "object",
+            "properties": {
+                "result": {"type": "string"},
+                "data": {"type": "object"}
+            },
+            "required": ["result"]
+        });
+
+        let result = CallToolResult::structured(
+            vec![Content::text("Operation completed")],
+            structured_data
+        );
+
+        assert!(result.validate_structured_content(&schema).is_ok());
+
+        // Invalid structured content
+        let invalid_data = json!({
+            "result": 123 // Should be string
+        });
+        let invalid_result = CallToolResult::structured(
+            vec![Content::text("Operation completed")],
+            invalid_data
+        );
+
+        assert!(invalid_result.validate_structured_content(&schema).is_err());
+
+        // Result without structured content should pass validation
+        let simple_result = CallToolResult::text("Simple result");
+        assert!(simple_result.validate_structured_content(&schema).is_ok());
     }
 
     #[test]

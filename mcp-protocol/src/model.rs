@@ -49,9 +49,9 @@ pub struct ProtocolVersion {
 impl Default for ProtocolVersion {
     fn default() -> Self {
         Self {
-            major: 2024,
-            minor: 11,
-            patch: 5,
+            major: 2025,
+            minor: 6,
+            patch: 18,
         }
     }
 }
@@ -82,6 +82,8 @@ pub struct ServerCapabilities {
     pub logging: Option<LoggingCapability>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sampling: Option<SamplingCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub elicitation: Option<ElicitationCapability>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -112,6 +114,9 @@ pub struct LoggingCapability {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SamplingCapability {}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ElicitationCapability {}
 
 impl ServerCapabilities {
     pub fn builder() -> ServerCapabilitiesBuilder {
@@ -164,6 +169,12 @@ impl ServerCapabilitiesBuilder {
         self
     }
 
+    #[must_use]
+    pub fn enable_elicitation(mut self) -> Self {
+        self.capabilities.elicitation = Some(ElicitationCapability {});
+        self
+    }
+
     pub fn build(self) -> ServerCapabilities {
         self.capabilities
     }
@@ -185,6 +196,8 @@ pub struct Tool {
     pub name: String,
     pub description: String,
     pub input_schema: serde_json::Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub output_schema: Option<serde_json::Value>,
 }
 
 /// List tools result
@@ -269,9 +282,12 @@ impl Content {
 
 /// Tool call result
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CallToolResult {
     pub content: Vec<Content>,
     pub is_error: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub structured_content: Option<serde_json::Value>,
 }
 
 impl CallToolResult {
@@ -279,6 +295,7 @@ impl CallToolResult {
         Self {
             content,
             is_error: Some(false),
+            structured_content: None,
         }
     }
 
@@ -286,6 +303,7 @@ impl CallToolResult {
         Self {
             content,
             is_error: Some(true),
+            structured_content: None,
         }
     }
 
@@ -295,6 +313,52 @@ impl CallToolResult {
 
     pub fn error_text(text: impl Into<String>) -> Self {
         Self::error(vec![Content::text(text)])
+    }
+
+    /// Create a success result with structured content
+    pub fn structured(
+        content: Vec<Content>,
+        structured_content: serde_json::Value,
+    ) -> Self {
+        Self {
+            content,
+            is_error: Some(false),
+            structured_content: Some(structured_content),
+        }
+    }
+
+    /// Create an error result with structured content
+    pub fn structured_error(
+        content: Vec<Content>,
+        structured_content: serde_json::Value,
+    ) -> Self {
+        Self {
+            content,
+            is_error: Some(true),
+            structured_content: Some(structured_content),
+        }
+    }
+
+    /// Create a result with both text and structured content
+    pub fn text_with_structured(
+        text: impl Into<String>,
+        structured_content: serde_json::Value,
+    ) -> Self {
+        Self::structured(vec![Content::text(text)], structured_content)
+    }
+
+    /// Validate structured content against a schema
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the structured content doesn't match the provided schema
+    pub fn validate_structured_content(&self, output_schema: &serde_json::Value) -> crate::Result<()> {
+        use crate::validation::Validator;
+
+        if let Some(structured_content) = &self.structured_content {
+            Validator::validate_structured_content(structured_content, output_schema)?;
+        }
+        Ok(())
     }
 }
 
@@ -536,4 +600,67 @@ pub struct SubscribeRequestParam {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UnsubscribeRequestParam {
     pub uri: String,
+}
+
+/// Elicitation request parameters
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ElicitationRequestParam {
+    pub message: String,
+    #[serde(rename = "requestedSchema")]
+    pub requested_schema: serde_json::Value,
+}
+
+/// Elicitation response actions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ElicitationAction {
+    Accept,
+    Decline,
+    Cancel,
+}
+
+/// Elicitation response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ElicitationResponse {
+    pub action: ElicitationAction,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data: Option<serde_json::Value>,
+}
+
+/// Elicitation result
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ElicitationResult {
+    pub response: ElicitationResponse,
+}
+
+impl ElicitationResult {
+    /// Create an accept result with data
+    pub fn accept(data: serde_json::Value) -> Self {
+        Self {
+            response: ElicitationResponse {
+                action: ElicitationAction::Accept,
+                data: Some(data),
+            },
+        }
+    }
+
+    /// Create a decline result
+    pub fn decline() -> Self {
+        Self {
+            response: ElicitationResponse {
+                action: ElicitationAction::Decline,
+                data: None,
+            },
+        }
+    }
+
+    /// Create a cancel result
+    pub fn cancel() -> Self {
+        Self {
+            response: ElicitationResponse {
+                action: ElicitationAction::Cancel,
+                data: None,
+            },
+        }
+    }
 }

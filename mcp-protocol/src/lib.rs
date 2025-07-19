@@ -10,7 +10,7 @@
 //! use pulseengine_mcp_protocol::{Tool, Content, CallToolResult};
 //! use serde_json::json;
 //!
-//! // Define a tool with proper schema
+//! // Define a tool with proper schema and optional output schema
 //! let tool = Tool {
 //!     name: "get_weather".to_string(),
 //!     description: "Get current weather for a location".to_string(),
@@ -24,12 +24,23 @@
 //!         },
 //!         "required": ["location"]
 //!     }),
+//!     output_schema: Some(json!({
+//!         "type": "object",
+//!         "properties": {
+//!             "temperature": {"type": "string"},
+//!             "condition": {"type": "string"}
+//!         }
+//!     })),
 //! };
 //!
-//! // Create a tool response
+//! // Create a tool response with optional structured content
 //! let result = CallToolResult {
 //!     content: vec![Content::text("Current weather: 22°C, sunny".to_string())],
 //!     is_error: Some(false),
+//!     structured_content: Some(json!({
+//!         "temperature": "22°C",
+//!         "condition": "sunny"
+//!     })),
 //! };
 //! ```
 //!
@@ -56,7 +67,7 @@ pub use validation::Validator;
 
 /// Protocol version constants
 pub const MCP_VERSION: &str = "2025-06-18";
-pub const SUPPORTED_PROTOCOL_VERSIONS: &[&str] = &["2025-06-18", "2025-03-26"];
+pub const SUPPORTED_PROTOCOL_VERSIONS: &[&str] = &["2025-06-18", "2025-03-26", "2024-11-05"];
 
 /// Check if a protocol version is supported
 pub fn is_protocol_version_supported(version: &str) -> bool {

@@ -56,9 +56,9 @@ mod tests {
     #[test]
     fn test_protocol_version_default() {
         let version = ProtocolVersion::default();
-        assert_eq!(version.major, 2024);
-        assert_eq!(version.minor, 11);
-        assert_eq!(version.patch, 5);
+        assert_eq!(version.major, 2025);
+        assert_eq!(version.minor, 6);
+        assert_eq!(version.patch, 18);
     }
 
     #[test]
@@ -159,6 +159,58 @@ mod tests {
     }
 
     #[test]
+    fn test_call_tool_result_structured() {
+        let structured_data = json!({
+            "result": "success",
+            "count": 42
+        });
+
+        let result = CallToolResult::structured(
+            vec![Content::text("Operation completed")],
+            structured_data.clone()
+        );
+
+        assert_eq!(result.is_error, Some(false));
+        assert_eq!(result.content.len(), 1);
+        assert_eq!(result.structured_content, Some(structured_data));
+
+        // Test text_with_structured convenience method
+        let result2 = CallToolResult::text_with_structured(
+            "Task finished",
+            json!({"status": "done"})
+        );
+        assert_eq!(result2.is_error, Some(false));
+        assert!(result2.structured_content.is_some());
+    }
+
+    #[test]
+    fn test_tool_with_output_schema() {
+        let tool = Tool {
+            name: "structured_tool".to_string(),
+            description: "Tool with structured output".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "input": {"type": "string"}
+                }
+            }),
+            output_schema: Some(json!({
+                "type": "object",
+                "properties": {
+                    "result": {"type": "string"},
+                    "metadata": {"type": "object"}
+                },
+                "required": ["result"]
+            })),
+        };
+
+        assert!(tool.output_schema.is_some());
+        let schema = tool.output_schema.unwrap();
+        assert_eq!(schema["type"], "object");
+        assert!(schema["properties"].is_object());
+    }
+
+    #[test]
     fn test_tool_serialization() {
         let tool = Tool {
             name: "get_weather".to_string(),
@@ -169,6 +221,7 @@ mod tests {
                     "location": {"type": "string"}
                 }
             }),
+            output_schema: None,
         };
 
         let serialized = serde_json::to_string(&tool).unwrap();
@@ -186,11 +239,13 @@ mod tests {
                     name: "tool1".to_string(),
                     description: "First tool".to_string(),
                     input_schema: json!({}),
+                    output_schema: None,
                 },
                 Tool {
                     name: "tool2".to_string(),
                     description: "Second tool".to_string(),
                     input_schema: json!({}),
+                    output_schema: None,
                 },
             ],
             next_cursor: Some("cursor123".to_string()),

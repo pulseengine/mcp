@@ -12,9 +12,10 @@ mod tests {
 
     #[test]
     fn test_supported_protocol_versions() {
-        assert_eq!(SUPPORTED_PROTOCOL_VERSIONS.len(), 2);
+        assert_eq!(SUPPORTED_PROTOCOL_VERSIONS.len(), 3);
         assert_eq!(SUPPORTED_PROTOCOL_VERSIONS[0], "2025-06-18");
         assert_eq!(SUPPORTED_PROTOCOL_VERSIONS[1], "2025-03-26");
+        assert_eq!(SUPPORTED_PROTOCOL_VERSIONS[2], "2024-11-05");
     }
 
     #[test]
