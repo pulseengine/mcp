@@ -192,7 +192,7 @@ impl Validator {
         // Validate the content against the schema
         if let Err(errors) = schema.validate(content) {
             let error_messages: Vec<String> = errors
-                .map(|e| format!("{}: {}", e.instance_path.to_string(), e))
+                .map(|e| format!("{}: {}", e.instance_path, e))
                 .collect();
             return Err(Error::validation_error(format!(
                 "Structured content validation failed: {}",
@@ -264,7 +264,7 @@ impl Validator {
                 if path_str.is_empty() {
                     error.to_string()
                 } else {
-                    format!("at '{}': {}", path_str, error)
+                    format!("at '{path_str}': {error}")
                 }
             })
             .collect();
