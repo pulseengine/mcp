@@ -18,7 +18,8 @@
       "Bash(cargo check:*)",
       "Bash(gh project item-edit:*)",
       "WebFetch(domain:app.codecov.io)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(gh pr checks:*)"
     ],
     "deny": []
   }
