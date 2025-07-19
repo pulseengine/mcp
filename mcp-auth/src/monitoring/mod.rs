@@ -99,7 +99,7 @@ mod tests {
                     threshold: percentage,
                     ..
                 } => {
-                    assert!(percentage >= 0.0 && percentage <= 100.0);
+                    assert!((0.0..=100.0).contains(&percentage));
                 }
             }
         }
@@ -184,7 +184,7 @@ mod tests {
                     threshold: percentage,
                     ..
                 } => {
-                    assert!(percentage >= 0.0 && percentage <= 100.0);
+                    assert!((0.0..=100.0).contains(&percentage));
                 }
             }
         }
@@ -309,7 +309,7 @@ mod tests {
 
         // System health should be populated
         assert!(dashboard_data.system_health.events_in_memory >= 4);
-        assert!(dashboard_data.system_health.memory_usage_mb >= 0);
+        // Memory usage is u64, so always >= 0 - remove redundant check
     }
 
     #[test]

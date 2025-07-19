@@ -96,16 +96,16 @@ assert_matches = "1.5"
 serde_yaml = "0.9"
 
 # Framework internal dependencies (published versions)
-pulseengine-mcp-protocol = { version = "0.4.0", path = "mcp-protocol" }
-pulseengine-mcp-logging = { version = "0.4.0", path = "mcp-logging" }
-pulseengine-mcp-auth = { version = "0.4.0", path = "mcp-auth" }
-pulseengine-mcp-security = { version = "0.4.0", path = "mcp-security" }
-pulseengine-mcp-monitoring = { version = "0.4.0", path = "mcp-monitoring" }
-pulseengine-mcp-transport = { version = "0.4.0", path = "mcp-transport" }
-pulseengine-mcp-cli = { version = "0.4.0", path = "mcp-cli" }
-pulseengine-mcp-cli-derive = { version = "0.4.0", path = "mcp-cli-derive" }
-pulseengine-mcp-server = { version = "0.4.0", path = "mcp-server" }
-pulseengine-mcp-external-validation = { version = "0.4.0", path = "mcp-external-validation" }
+pulseengine-mcp-protocol = { version = "0.5.0", path = "mcp-protocol" }
+pulseengine-mcp-logging = { version = "0.5.0", path = "mcp-logging" }
+pulseengine-mcp-auth = { version = "0.5.0", path = "mcp-auth" }
+pulseengine-mcp-security = { version = "0.5.0", path = "mcp-security" }
+pulseengine-mcp-monitoring = { version = "0.5.0", path = "mcp-monitoring" }
+pulseengine-mcp-transport = { version = "0.5.0", path = "mcp-transport" }
+pulseengine-mcp-cli = { version = "0.5.0", path = "mcp-cli" }
+pulseengine-mcp-cli-derive = { version = "0.5.0", path = "mcp-cli-derive" }
+pulseengine-mcp-server = { version = "0.5.0", path = "mcp-server" }
+pulseengine-mcp-external-validation = { version = "0.5.0", path = "mcp-external-validation" }
 
 [profile.release]
 opt-level = "s"
