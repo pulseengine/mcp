@@ -1159,10 +1159,21 @@ mod tests {
         #[tokio::test]
         async fn test_file_storage_persistence() {
             // Set a consistent master key for persistence testing
+            // Use a lock to ensure this test doesn't interfere with others
+            static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+            let _lock = TEST_LOCK.lock().unwrap();
+            
+            // First, ensure no master key env var exists to avoid interference
+            let original_master_key = std::env::var("PULSEENGINE_MCP_MASTER_KEY").ok();
+            
+            // Set our test master key
             std::env::set_var(
                 "PULSEENGINE_MCP_MASTER_KEY",
                 "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
             );
+            
+            // Small delay to ensure environment variable is set across threads
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
 
             let temp_dir = TempDir::new().unwrap();
             let storage_path = temp_dir.path().join("persistent_keys.enc");
@@ -1176,6 +1187,11 @@ mod tests {
 
                 storage.save_all_keys(&test_keys).await.unwrap();
             }
+            
+            // Ensure the file was created and has content
+            assert!(storage_path.exists());
+            let file_metadata = std::fs::metadata(&storage_path).unwrap();
+            assert!(file_metadata.len() > 0);
 
             // Create new storage instance and verify keys persist
             {
@@ -1192,8 +1208,11 @@ mod tests {
                 }
             }
 
-            // Clean up environment variable
-            std::env::remove_var("PULSEENGINE_MCP_MASTER_KEY");
+            // Restore original environment variable or remove if it didn't exist
+            match original_master_key {
+                Some(key) => std::env::set_var("PULSEENGINE_MCP_MASTER_KEY", key),
+                None => std::env::remove_var("PULSEENGINE_MCP_MASTER_KEY"),
+            }
         }
 
         #[tokio::test]
@@ -1265,11 +1284,21 @@ mod tests {
 
         #[tokio::test]
         async fn test_file_storage_cleanup_backups() {
+            // Use a lock to ensure this test doesn't interfere with others
+            static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+            let _lock = TEST_LOCK.lock().unwrap();
+            
+            // Store original master key to restore later
+            let original_master_key = std::env::var("PULSEENGINE_MCP_MASTER_KEY").ok();
+            
             // Set a consistent master key for cleanup testing
             std::env::set_var(
                 "PULSEENGINE_MCP_MASTER_KEY",
                 "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
             );
+            
+            // Small delay to ensure environment variable is set across threads
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
 
             let (storage, _temp_dir) = create_test_file_storage().await;
             let test_key = create_test_key("cleanup-test", Role::Admin);
@@ -1306,8 +1335,11 @@ mod tests {
 
             assert_eq!(remaining_backups, 2);
 
-            // Clean up environment variable
-            std::env::remove_var("PULSEENGINE_MCP_MASTER_KEY");
+            // Restore original environment variable or remove if it didn't exist
+            match original_master_key {
+                Some(key) => std::env::set_var("PULSEENGINE_MCP_MASTER_KEY", key),
+                None => std::env::remove_var("PULSEENGINE_MCP_MASTER_KEY"),
+            }
         }
 
         #[cfg(unix)]
@@ -1335,11 +1367,21 @@ mod tests {
 
         #[tokio::test]
         async fn test_file_storage_atomic_operations() {
+            // Use a lock to ensure this test doesn't interfere with others
+            static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+            let _lock = TEST_LOCK.lock().unwrap();
+            
+            // Store original master key to restore later
+            let original_master_key = std::env::var("PULSEENGINE_MCP_MASTER_KEY").ok();
+            
             // Set a consistent master key for atomic operations testing
             std::env::set_var(
                 "PULSEENGINE_MCP_MASTER_KEY",
                 "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
             );
+            
+            // Small delay to ensure environment variable is set across threads
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
 
             let (storage, _temp_dir) = create_test_file_storage().await;
             let initial_keys = create_test_keys();
@@ -1374,8 +1416,11 @@ mod tests {
                 assert!(final_keys.contains_key(id));
             }
 
-            // Clean up environment variable
-            std::env::remove_var("PULSEENGINE_MCP_MASTER_KEY");
+            // Restore original environment variable or remove if it didn't exist
+            match original_master_key {
+                Some(key) => std::env::set_var("PULSEENGINE_MCP_MASTER_KEY", key),
+                None => std::env::remove_var("PULSEENGINE_MCP_MASTER_KEY"),
+            }
         }
     }
 
