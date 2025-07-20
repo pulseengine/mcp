@@ -1161,16 +1161,18 @@ mod tests {
             // Set a consistent master key for persistence testing
             // Use a lock to ensure this test doesn't interfere with others
             static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-            let _lock = TEST_LOCK.lock().unwrap();
+            let original_master_key = {
+                let _lock = TEST_LOCK.lock().unwrap();
+                // First, ensure no master key env var exists to avoid interference
+                let original = std::env::var("PULSEENGINE_MCP_MASTER_KEY").ok();
 
-            // First, ensure no master key env var exists to avoid interference
-            let original_master_key = std::env::var("PULSEENGINE_MCP_MASTER_KEY").ok();
-
-            // Set our test master key
-            std::env::set_var(
-                "PULSEENGINE_MCP_MASTER_KEY",
-                "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
-            );
+                // Set our test master key
+                std::env::set_var(
+                    "PULSEENGINE_MCP_MASTER_KEY",
+                    "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
+                );
+                original
+            };
 
             // Small delay to ensure environment variable is set across threads
             tokio::time::sleep(std::time::Duration::from_millis(10)).await;
@@ -1286,16 +1288,18 @@ mod tests {
         async fn test_file_storage_cleanup_backups() {
             // Use a lock to ensure this test doesn't interfere with others
             static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-            let _lock = TEST_LOCK.lock().unwrap();
+            let original_master_key = {
+                let _lock = TEST_LOCK.lock().unwrap();
+                // Store original master key to restore later
+                let original = std::env::var("PULSEENGINE_MCP_MASTER_KEY").ok();
 
-            // Store original master key to restore later
-            let original_master_key = std::env::var("PULSEENGINE_MCP_MASTER_KEY").ok();
-
-            // Set a consistent master key for cleanup testing
-            std::env::set_var(
-                "PULSEENGINE_MCP_MASTER_KEY",
-                "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
-            );
+                // Set a consistent master key for cleanup testing
+                std::env::set_var(
+                    "PULSEENGINE_MCP_MASTER_KEY",
+                    "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
+                );
+                original
+            };
 
             // Small delay to ensure environment variable is set across threads
             tokio::time::sleep(std::time::Duration::from_millis(10)).await;
@@ -1369,16 +1373,18 @@ mod tests {
         async fn test_file_storage_atomic_operations() {
             // Use a lock to ensure this test doesn't interfere with others
             static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-            let _lock = TEST_LOCK.lock().unwrap();
+            let original_master_key = {
+                let _lock = TEST_LOCK.lock().unwrap();
+                // Store original master key to restore later
+                let original = std::env::var("PULSEENGINE_MCP_MASTER_KEY").ok();
 
-            // Store original master key to restore later
-            let original_master_key = std::env::var("PULSEENGINE_MCP_MASTER_KEY").ok();
-
-            // Set a consistent master key for atomic operations testing
-            std::env::set_var(
-                "PULSEENGINE_MCP_MASTER_KEY",
-                "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
-            );
+                // Set a consistent master key for atomic operations testing
+                std::env::set_var(
+                    "PULSEENGINE_MCP_MASTER_KEY",
+                    "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
+                );
+                original
+            };
 
             // Small delay to ensure environment variable is set across threads
             tokio::time::sleep(std::time::Duration::from_millis(10)).await;
