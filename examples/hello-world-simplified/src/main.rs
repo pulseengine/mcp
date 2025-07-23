@@ -38,12 +38,18 @@ pub struct SimpleHelloWorld {
     greeting_count: std::sync::Arc<AtomicU64>,
 }
 
-impl SimpleHelloWorld {
-    /// Create a new instance - this is our simplified constructor
-    pub fn new() -> Self {
+impl Default for SimpleHelloWorld {
+    fn default() -> Self {
         Self {
             greeting_count: std::sync::Arc::new(AtomicU64::new(0)),
         }
+    }
+}
+
+impl SimpleHelloWorld {
+    /// Create a new instance - this is our simplified constructor
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Helper function to create a tool definition - reduces boilerplate
@@ -61,7 +67,7 @@ impl SimpleHelloWorld {
         let greeting = greeting.unwrap_or_else(|| "Hello".to_string());
         let count = self.greeting_count.fetch_add(1, Ordering::Relaxed) + 1;
         
-        let message = format!("{}, {}! 👋 (Greeting #{count})", greeting, name);
+        let message = format!("{greeting}, {name}! 👋 (Greeting #{count})");
         
         info!(tool = "say_hello", name = %name, greeting = %greeting, count = count);
         
@@ -163,14 +169,14 @@ impl McpBackend for SimpleHelloWorld {
                     .to_string();
                 let greeting = args.get("greeting").and_then(|v| v.as_str()).map(|s| s.to_string());
                 
-                self.tool_say_hello(name, greeting).await.map_err(|e| e.into())
+                self.tool_say_hello(name, greeting).await
             }
             "count_greetings" => {
-                self.tool_count_greetings().await.map_err(|e| e.into())
+                self.tool_count_greetings().await
             }
             _ => {
                 warn!(tool = request.name, "Unknown tool requested");
-                Err(SimpleError::InvalidParameter(format!("Unknown tool: {}", request.name)).into())
+                Err(SimpleError::InvalidParameter(format!("Unknown tool: {}", request.name)))
             }
         }
     }
@@ -181,7 +187,7 @@ impl McpBackend for SimpleHelloWorld {
     }
 
     async fn read_resource(&self, request: ReadResourceRequestParam) -> std::result::Result<ReadResourceResult, Self::Error> {
-        Err(SimpleError::InvalidParameter(format!("Resource not found: {}", request.uri)).into())
+        Err(SimpleError::InvalidParameter(format!("Resource not found: {}", request.uri)))
     }
 
     async fn list_prompts(&self, _request: PaginatedRequestParam) -> std::result::Result<ListPromptsResult, Self::Error> {
@@ -189,7 +195,7 @@ impl McpBackend for SimpleHelloWorld {
     }
 
     async fn get_prompt(&self, request: GetPromptRequestParam) -> std::result::Result<GetPromptResult, Self::Error> {
-        Err(SimpleError::InvalidParameter(format!("Prompt not found: {}", request.name)).into())
+        Err(SimpleError::InvalidParameter(format!("Prompt not found: {}", request.name)))
     }
 }
 
