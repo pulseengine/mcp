@@ -72,7 +72,12 @@ pub use telemetry::{
 };
 
 /// Result type for logging operations
+/// 
+/// Note: Use `LoggingResult` to avoid conflicts with std::result::Result
 pub type Result<T> = std::result::Result<T, LoggingError>;
+
+/// Preferred result type alias that doesn't conflict with std::result::Result
+pub type LoggingResult<T> = std::result::Result<T, LoggingError>;
 
 /// Logging error types
 #[derive(Debug, thiserror::Error)]
@@ -89,6 +94,8 @@ pub enum LoggingError {
     #[error("Tracing error: {0}")]
     Tracing(String),
 }
+
+// Note: Conversion to protocol Error is implemented in the protocol crate to avoid circular dependencies
 
 /// Generic error trait for classification
 pub trait ErrorClassification: std::fmt::Display + std::error::Error {
