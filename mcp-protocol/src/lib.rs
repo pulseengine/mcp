@@ -48,6 +48,7 @@
 //! for home automation with 30+ tools.
 
 pub mod error;
+pub mod errors;
 pub mod model;
 pub mod validation;
 
@@ -61,7 +62,8 @@ mod model_tests;
 mod validation_tests;
 
 // Re-export core types for easy access
-pub use error::{Error, Result};
+pub use error::{Error, ErrorCode, Result, McpResult};
+pub use errors::{CommonError, CommonResult};
 pub use model::*;
 pub use validation::Validator;
 
