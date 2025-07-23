@@ -23,6 +23,7 @@ use std::sync::{atomic::{AtomicU64, Ordering}, Arc};
 #[mcp_server(name = "Hello World Macros", description = "Demonstrates the new macro system")]
 #[derive(Clone)]
 struct HelloWorldMacros {
+    #[allow(dead_code)]
     greeting_count: Arc<AtomicU64>,
 }
 
@@ -37,6 +38,7 @@ impl Default for HelloWorldMacros {
 // Business logic methods - these would be exposed as tools in a complete implementation
 impl HelloWorldMacros {
     /// Say hello to someone with a customizable greeting
+    #[allow(dead_code)]
     pub async fn say_hello(&self, name: String, greeting: Option<String>) -> String {
         let greeting = greeting.unwrap_or_else(|| "Hello".to_string());
         let count = self.greeting_count.fetch_add(1, Ordering::Relaxed) + 1;
@@ -49,10 +51,11 @@ impl HelloWorldMacros {
             "Generated greeting"
         );
         
-        format!("{}, {}! 👋 (Greeting #{count})", greeting, name)
+        format!("{greeting}, {name}! 👋 (Greeting #{count})")
     }
 
     /// Get the total number of greetings sent
+    #[allow(dead_code)]
     pub async fn count_greetings(&self) -> u64 {
         let count = self.greeting_count.load(Ordering::Relaxed);
         
@@ -66,11 +69,10 @@ impl HelloWorldMacros {
     }
 
     /// Generate a random greeting in different languages
+    #[allow(dead_code)]
     pub async fn random_greeting(&self) -> String {
-        let greetings = vec![
-            "Hello", "Hola", "Bonjour", "Guten Tag", 
-            "Ciao", "こんにちは", "안녕하세요", "Привет"
-        ];
+        let greetings = ["Hello", "Hola", "Bonjour", "Guten Tag", 
+            "Ciao", "こんにちは", "안녕하세요", "Привет"];
         
         let random_index = self.greeting_count.load(Ordering::Relaxed) as usize % greetings.len();
         let greeting = greetings[random_index];

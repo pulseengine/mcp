@@ -113,11 +113,6 @@ pub fn generate_error_handling(return_type: &syn::ReturnType) -> TokenStream {
     }
 }
 
-/// Check if a visibility is public
-pub fn is_public(vis: &syn::Visibility) -> bool {
-    matches!(vis, syn::Visibility::Public(_))
-}
-
 /// Generate package version from environment
 pub fn get_package_version() -> TokenStream {
     quote! {

@@ -3,6 +3,8 @@
 //! These tests verify that the macros work together correctly and provide
 //! comprehensive coverage of the macro system's capabilities.
 
+#![allow(dead_code, clippy::uninlined_format_args)]
+
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use pulseengine_mcp_protocol::McpResult;
 use std::sync::{Arc, atomic::{AtomicU64, Ordering}};
@@ -75,17 +77,9 @@ fn test_stateful_integration() {
     }
     
     #[mcp_server(name = "Stateful Server", description = "Server with persistent state")]
-    #[derive(Clone)]
+    #[derive(Clone, Default)]
     struct StatefulServer {
         state: ServerState,
-    }
-    
-    impl Default for StatefulServer {
-        fn default() -> Self {
-            Self {
-                state: ServerState::default(),
-            }
-        }
     }
     
     #[mcp_tools]

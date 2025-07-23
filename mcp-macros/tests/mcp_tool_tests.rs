@@ -3,6 +3,8 @@
 //! These tests verify that the procedural macros generate correct tool definitions
 //! and integrate properly with the MCP framework.
 
+#![allow(dead_code, clippy::uninlined_format_args, non_snake_case)]
+
 use pulseengine_mcp_macros::{mcp_tools, mcp_server};
 use pulseengine_mcp_protocol::McpResult;
 

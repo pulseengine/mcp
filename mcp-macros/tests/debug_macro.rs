@@ -13,6 +13,7 @@ fn debug_mcp_tools() {
     #[mcp_tools]
     impl DebugServer {
         /// Simple test method
+        #[allow(dead_code)]
         pub fn simple_method(&self) -> String {
             "test".to_string()
         }
