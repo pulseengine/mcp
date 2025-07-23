@@ -9,9 +9,14 @@ members = [
     "mcp-cli",
     "mcp-cli-derive",
     "mcp-server",
+    "mcp-macros",
     "mcp-external-validation",
     "integration-tests",
     "examples/hello-world",
+    "examples/hello-world-simplified",
+    "examples/hello-world-macros",
+    "examples/memory-only-auth",
+    "examples/error-harmonization-demo",
     "examples/backend-example",
     "examples/cli-example",
     "examples/advanced-server-example",
@@ -105,6 +110,7 @@ pulseengine-mcp-transport = { version = "0.5.0", path = "mcp-transport" }
 pulseengine-mcp-cli = { version = "0.5.0", path = "mcp-cli" }
 pulseengine-mcp-cli-derive = { version = "0.5.0", path = "mcp-cli-derive" }
 pulseengine-mcp-server = { version = "0.5.0", path = "mcp-server" }
+pulseengine-mcp-macros = { version = "0.5.0", path = "mcp-macros" }
 pulseengine-mcp-external-validation = { version = "0.5.0", path = "mcp-external-validation" }
 
 [profile.release]
@@ -148,5 +154,6 @@ pulseengine-mcp-transport = { path = "mcp-transport" }
 pulseengine-mcp-cli = { path = "mcp-cli" }
 pulseengine-mcp-cli-derive = { path = "mcp-cli-derive" }
 pulseengine-mcp-server = { path = "mcp-server" }
+pulseengine-mcp-macros = { path = "mcp-macros" }
 pulseengine-mcp-external-validation = { path = "mcp-external-validation" }
 
