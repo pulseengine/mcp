@@ -32,9 +32,9 @@
 
 use proc_macro::TokenStream;
 
-mod mcp_tool;
 mod mcp_backend;
 mod mcp_server;
+mod mcp_tool;
 mod utils;
 
 /// Automatically generates MCP tool definitions from Rust functions.

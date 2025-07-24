@@ -19,7 +19,8 @@
       "Bash(gh project item-edit:*)",
       "WebFetch(domain:app.codecov.io)",
       "Bash(grep:*)",
-      "Bash(gh pr checks:*)"
+      "Bash(gh pr checks:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

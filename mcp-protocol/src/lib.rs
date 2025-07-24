@@ -62,7 +62,7 @@ mod model_tests;
 mod validation_tests;
 
 // Re-export core types for easy access
-pub use error::{Error, ErrorCode, Result, McpResult};
+pub use error::{Error, ErrorCode, McpResult, Result};
 pub use errors::{CommonError, CommonResult};
 pub use model::*;
 pub use validation::Validator;

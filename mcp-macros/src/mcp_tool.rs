@@ -1,9 +1,9 @@
 //! Implementation of the #[mcp_tool] macro
 
-use darling::{FromMeta, ast::NestedMeta};
+use darling::{ast::NestedMeta, FromMeta};
 use proc_macro2::TokenStream;
-use quote::{quote, format_ident, ToTokens};
-use syn::{ItemFn, ItemImpl, ImplItemFn, ReturnType};
+use quote::{format_ident, quote, ToTokens};
+use syn::{ImplItemFn, ItemFn, ItemImpl, ReturnType};
 
 use crate::utils::*;
 
@@ -33,8 +33,8 @@ pub fn mcp_tool_impl(attr: TokenStream, item: TokenStream) -> syn::Result<TokenS
             .map_err(|e| syn::Error::new(proc_macro2::Span::call_site(), e.to_string()))?
     };
 
-    let mut function = syn::parse2::<ImplItemFn>(item.clone())
-        .or_else(|_| -> syn::Result<ImplItemFn> {
+    let mut function =
+        syn::parse2::<ImplItemFn>(item.clone()).or_else(|_| -> syn::Result<ImplItemFn> {
             // Try parsing as a standalone function
             let standalone_fn = syn::parse2::<ItemFn>(item)?;
             Ok(ImplItemFn {
@@ -47,16 +47,19 @@ pub fn mcp_tool_impl(attr: TokenStream, item: TokenStream) -> syn::Result<TokenS
         })?;
 
     let fn_name = &function.sig.ident;
-    let tool_name = attribute.name.unwrap_or_else(|| function_name_to_tool_name(fn_name));
-    let description = attribute.description
+    let tool_name = attribute
+        .name
+        .unwrap_or_else(|| function_name_to_tool_name(fn_name));
+    let description = attribute
+        .description
         .or_else(|| extract_doc_comment(&function.attrs));
 
     // Generate tool definition function
     let tool_def_fn_name = format_ident!("{}_tool_definition", fn_name);
-    
+
     // Extract parameter information
     let (param_struct, param_fields) = extract_parameters(&function.sig)?;
-    
+
     // Generate input schema
     let input_schema = if let Some(schema_expr) = attribute.input_schema {
         quote! { #schema_expr }
@@ -98,20 +101,26 @@ pub fn mcp_tool_impl(attr: TokenStream, item: TokenStream) -> syn::Result<TokenS
 /// Implementation of #[mcp_tools] macro for impl blocks
 pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<TokenStream> {
     let impl_block = syn::parse2::<ItemImpl>(item)?;
-    
+
     // Validate that this is being applied to a proper impl block
-    if impl_block.self_ty.as_ref().to_token_stream().to_string().is_empty() {
+    if impl_block
+        .self_ty
+        .as_ref()
+        .to_token_stream()
+        .to_string()
+        .is_empty()
+    {
         return Err(syn::Error::new_spanned(
             &impl_block.self_ty,
             "#[mcp_tools] can only be applied to impl blocks with a valid type",
         ));
     }
-    
+
     // For now, return the impl block unchanged to maintain test compatibility
     // However, add a comment indicating the integration point is ready
     Ok(quote! {
         #impl_block
-        
+
         // NOTE: Tool discovery integration is ready but not activated
         // When activated, this would generate:
         // - get_automatic_tools() method that calls __get_mcp_tools()
@@ -119,7 +128,6 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
         // This integration works with the #[mcp_server] generated backend
     })
 }
-
 
 /// Extract parameter information from function signature
 fn extract_parameters(sig: &syn::Signature) -> syn::Result<(syn::Type, Vec<TokenStream>)> {
@@ -137,10 +145,10 @@ fn extract_parameters(sig: &syn::Signature) -> syn::Result<(syn::Type, Vec<Token
                 if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
                     let param_name = &pat_ident.ident;
                     let param_type = &*pat_type.ty;
-                    
+
                     param_names.push(param_name.clone());
                     param_types.push(param_type.clone());
-                    
+
                     // Generate parameter extraction code
                     if is_option_type(param_type) {
                         param_fields.push(quote! {
@@ -219,7 +227,7 @@ fn generate_tool_implementation(
     } else {
         quote! {
             let args = request.arguments.unwrap_or(serde_json::Value::Object(Default::default()));
-            let args = args.as_object().ok_or_else(|| 
+            let args = args.as_object().ok_or_else(||
                 pulseengine_mcp_protocol::Error::invalid_params("Arguments must be an object")
             )?;
         }
@@ -244,7 +252,7 @@ fn generate_tool_implementation(
             match request.name.as_str() {
                 #tool_name => {
                     #param_extraction
-                    
+
                     #tool_call
                 }
                 _ => Err(pulseengine_mcp_protocol::Error::invalid_params(
@@ -264,7 +272,7 @@ fn enhance_function_with_metadata(
     let tool_attr = quote! {
         #[doc = concat!("MCP Tool: ", #tool_name)]
     };
-    
+
     Ok(quote! {
         #tool_attr
         #function
