@@ -52,6 +52,15 @@ jobs:
       with:
         components: rustfmt, clippy
     
+    - name: Log environment info
+      run: |
+        echo "Rust toolchain information:"
+        rustup show
+        echo "Rust version: $(rustc --version)"
+        echo "Cargo version: $(cargo --version)"
+        echo "Clippy version: $(cargo clippy --version)"
+        echo "Rustfmt version: $(cargo fmt --version)"
+    
     - name: Cache dependencies
       uses: actions/cache@v4
       with:
@@ -59,10 +68,19 @@ jobs:
           ~/.cargo/registry
           ~/.cargo/git
           target
-        key: ${{ runner.os }}-cargo-pr-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-pr-1.82-${{ hashFiles('**/Cargo.lock', 'rust-toolchain.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-pr-1.82-
+          ${{ runner.os }}-cargo-
     
     - name: Check formatting
       run: cargo fmt --all -- --check
+    
+    - name: Clean stale artifacts
+      run: |
+        # Clean procedural macro artifacts to prevent version conflicts
+        cargo clean -p pulseengine-mcp-macros
+        cargo clean -p pulseengine-mcp-cli-derive
     
     - name: Run clippy
       run: |

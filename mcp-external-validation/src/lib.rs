@@ -4,6 +4,7 @@
 //! implementations work correctly in real-world scenarios. It avoids "testing ourselves
 //! for correctness" by using external tools and validators.
 //!
+#![allow(unknown_lints)]
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 #![allow(unused_assignments)]

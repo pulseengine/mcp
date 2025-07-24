@@ -115,6 +115,13 @@ jobs:
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@stable
     
+    - name: Clean stale artifacts
+      run: |
+        # Clean procedural macro artifacts to prevent version conflicts
+        cargo clean -p pulseengine-mcp-macros
+        cargo clean -p pulseengine-mcp-cli-derive
+        cargo clean -p pulseengine-mcp-external-validation
+    
     - name: Test protocol version ${{ matrix.protocol_version }} with ${{ matrix.transport }}
       run: |
         cargo test --package pulseengine-mcp-external-validation \
