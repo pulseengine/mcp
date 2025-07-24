@@ -31,8 +31,10 @@ COPY mcp-external-validation ./mcp-external-validation/
 COPY examples ./examples/
 COPY integration-tests ./integration-tests/
 
-# Build the validation tools
-RUN cargo build --release --package pulseengine-mcp-external-validation --features "proptest,fuzzing"
+# Build the validation tools with optimizations for smaller Docker layers
+RUN cargo build --release --package pulseengine-mcp-external-validation --features "proptest,fuzzing" \
+    && rm -rf target/release/deps target/release/build target/release/.fingerprint \
+    && find target/release -name "*.d" -delete
 
 # Runtime stage
 FROM debian:bookworm-slim
