@@ -12,6 +12,10 @@ RUN apt-get update && apt-get install -y \
 # Create app directory
 WORKDIR /app
 
+# Copy rust-toolchain.toml first to ensure consistent toolchain
+COPY rust-toolchain.toml ./
+RUN rustup show && rustc --version && cargo --version && cargo clippy --version
+
 # Copy workspace files
 COPY Cargo.toml ./
 COPY mcp-protocol ./mcp-protocol/

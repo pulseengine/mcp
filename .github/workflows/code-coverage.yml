@@ -37,6 +37,14 @@ jobs:
       with:
         components: llvm-tools-preview
     
+    - name: Log environment info
+      run: |
+        echo "Rust toolchain information:"
+        rustup show
+        echo "Rust version: $(rustc --version)"
+        echo "Cargo version: $(cargo --version)"
+        echo "LLVM tools: $(rustc --print sysroot)/lib/rustlib/x86_64-unknown-linux-gnu/bin/"
+    
     - name: Install cargo-llvm-cov
       uses: taiki-e/install-action@cargo-llvm-cov
     
@@ -47,9 +55,9 @@ jobs:
           ~/.cargo/registry
           ~/.cargo/git
           target
-        key: ${{ runner.os }}-cargo-coverage-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-coverage-1.82-${{ hashFiles('**/Cargo.lock', 'rust-toolchain.toml') }}
         restore-keys: |
-          ${{ runner.os }}-cargo-coverage-
+          ${{ runner.os }}-cargo-coverage-1.82-
           ${{ runner.os }}-cargo-
     
     - name: Generate code coverage

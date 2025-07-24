@@ -20,7 +20,8 @@
       "WebFetch(domain:app.codecov.io)",
       "Bash(grep:*)",
       "Bash(gh pr checks:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(cargo:*)"
     ],
     "deny": []
   }
