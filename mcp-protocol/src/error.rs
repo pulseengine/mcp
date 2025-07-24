@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// Result type alias for MCP protocol operations
-/// 
+///
 /// Note: Use `McpResult` instead of `Result` to avoid conflicts with std::result::Result
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -197,10 +197,18 @@ impl From<validator::ValidationErrors> for Error {
 impl From<pulseengine_mcp_logging::LoggingError> for Error {
     fn from(err: pulseengine_mcp_logging::LoggingError) -> Self {
         match err {
-            pulseengine_mcp_logging::LoggingError::Config(msg) => Error::invalid_request(format!("Logging config: {msg}")),
-            pulseengine_mcp_logging::LoggingError::Io(io_err) => Error::internal_error(format!("Logging I/O: {io_err}")),
-            pulseengine_mcp_logging::LoggingError::Serialization(serde_err) => Error::internal_error(format!("Logging serialization: {serde_err}")),
-            pulseengine_mcp_logging::LoggingError::Tracing(msg) => Error::internal_error(format!("Tracing: {msg}")),
+            pulseengine_mcp_logging::LoggingError::Config(msg) => {
+                Error::invalid_request(format!("Logging config: {msg}"))
+            }
+            pulseengine_mcp_logging::LoggingError::Io(io_err) => {
+                Error::internal_error(format!("Logging I/O: {io_err}"))
+            }
+            pulseengine_mcp_logging::LoggingError::Serialization(serde_err) => {
+                Error::internal_error(format!("Logging serialization: {serde_err}"))
+            }
+            pulseengine_mcp_logging::LoggingError::Tracing(msg) => {
+                Error::internal_error(format!("Tracing: {msg}"))
+            }
         }
     }
 }

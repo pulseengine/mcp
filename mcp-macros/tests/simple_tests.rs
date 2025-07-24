@@ -39,7 +39,7 @@ fn test_with_description() {
 }
 
 /// Test with version
-#[test] 
+#[test]
 fn test_with_version() {
     #[mcp_server(name = "Versioned", version = "1.2.3")]
     #[derive(Clone, Default)]

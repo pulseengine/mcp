@@ -25,7 +25,7 @@ fn debug_mcp_tools() {
 }
 
 /// Test without mcp_tools to see if the issue is with the macro itself
-#[test] 
+#[test]
 fn test_without_macro() {
     #[mcp_server(name = "No Macro Server")]
     #[derive(Clone, Default)]

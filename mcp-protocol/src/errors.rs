@@ -7,18 +7,15 @@
 pub use crate::error::{Error, ErrorCode, McpResult};
 
 /// Common error handling prelude
-/// 
+///
 /// Import this to get access to the most commonly used error types and utilities:
-/// 
+///
 /// ```rust,ignore
 /// use pulseengine_mcp_protocol::errors::prelude::*;
 /// ```
 pub mod prelude {
+    pub use super::{BackendErrorExt, CommonError, CommonResult, ErrorContext, ErrorContextExt};
     pub use super::{Error, ErrorCode, McpResult};
-    pub use super::{
-        BackendErrorExt, ErrorContext, ErrorContextExt, 
-        CommonError, CommonResult
-    };
 }
 
 /// Extension trait for adding context to errors
@@ -27,7 +24,7 @@ pub trait ErrorContext<T> {
     fn with_context<F>(self, f: F) -> McpResult<T>
     where
         F: FnOnce() -> String;
-    
+
     /// Add context to an error with a static string
     fn context(self, msg: &'static str) -> McpResult<T>;
 }
@@ -42,7 +39,7 @@ where
     {
         self.map_err(|e| Error::internal_error(format!("{}: {}", f(), e)))
     }
-    
+
     fn context(self, msg: &'static str) -> McpResult<T> {
         self.map_err(|e| Error::internal_error(format!("{msg}: {e}")))
     }
@@ -52,10 +49,10 @@ where
 pub trait ErrorContextExt<T> {
     /// Convert to internal error
     fn internal_error(self) -> McpResult<T>;
-    
+
     /// Convert to validation error
     fn validation_error(self) -> McpResult<T>;
-    
+
     /// Convert to invalid params error
     fn invalid_params(self) -> McpResult<T>;
 }
@@ -67,11 +64,11 @@ where
     fn internal_error(self) -> McpResult<T> {
         self.map_err(|e| Error::internal_error(e.to_string()))
     }
-    
+
     fn validation_error(self) -> McpResult<T> {
         self.map_err(|e| Error::validation_error(e.to_string()))
     }
-    
+
     fn invalid_params(self) -> McpResult<T> {
         self.map_err(|e| Error::invalid_params(e.to_string()))
     }
@@ -82,37 +79,37 @@ where
 pub enum CommonError {
     #[error("Configuration error: {0}")]
     Config(String),
-    
+
     #[error("Connection error: {0}")]
     Connection(String),
-    
+
     #[error("Authentication error: {0}")]
     Auth(String),
-    
+
     #[error("Validation error: {0}")]
     Validation(String),
-    
+
     #[error("Storage error: {0}")]
     Storage(String),
-    
+
     #[error("Network error: {0}")]
     Network(String),
-    
+
     #[error("Timeout error: {0}")]
     Timeout(String),
-    
+
     #[error("Not found: {0}")]
     NotFound(String),
-    
+
     #[error("Permission denied: {0}")]
     PermissionDenied(String),
-    
+
     #[error("Rate limited: {0}")]
     RateLimit(String),
-    
+
     #[error("Internal error: {0}")]
     Internal(String),
-    
+
     #[error("Custom error: {0}")]
     Custom(String),
 }
@@ -198,21 +195,21 @@ mod tests {
     fn test_error_context() {
         let io_error = io::Error::new(io::ErrorKind::NotFound, "file not found");
         let result: Result<(), _> = Err(io_error);
-        
+
         let mcp_error = result.context("Failed to read configuration").unwrap_err();
         assert!(mcp_error.message.contains("Failed to read configuration"));
         assert!(mcp_error.message.contains("file not found"));
     }
-    
+
     #[test]
     fn test_common_error_conversion() {
         let common_error = CommonError::Auth("invalid token".to_string());
         let mcp_error: Error = common_error.into();
-        
+
         assert_eq!(mcp_error.code, ErrorCode::Unauthorized);
         assert_eq!(mcp_error.message, "invalid token");
     }
-    
+
     #[test]
     fn test_error_macro() {
         let error = mcp_error!(validation "invalid input");

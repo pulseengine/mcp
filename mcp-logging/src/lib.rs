@@ -72,7 +72,7 @@ pub use telemetry::{
 };
 
 /// Result type for logging operations
-/// 
+///
 /// Note: Use `LoggingResult` to avoid conflicts with std::result::Result
 pub type Result<T> = std::result::Result<T, LoggingError>;
 

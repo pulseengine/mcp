@@ -63,14 +63,18 @@ impl SimpleHelloWorld {
     }
 
     /// Tool implementation: say hello
-    async fn tool_say_hello(&self, name: String, greeting: Option<String>) -> std::result::Result<CallToolResult, SimpleError> {
+    async fn tool_say_hello(
+        &self,
+        name: String,
+        greeting: Option<String>,
+    ) -> std::result::Result<CallToolResult, SimpleError> {
         let greeting = greeting.unwrap_or_else(|| "Hello".to_string());
         let count = self.greeting_count.fetch_add(1, Ordering::Relaxed) + 1;
-        
+
         let message = format!("{greeting}, {name}! 👋 (Greeting #{count})");
-        
+
         info!(tool = "say_hello", name = %name, greeting = %greeting, count = count);
-        
+
         Ok(CallToolResult {
             content: vec![Content::text(message)],
             is_error: Some(false),
@@ -81,9 +85,9 @@ impl SimpleHelloWorld {
     /// Tool implementation: count greetings
     async fn tool_count_greetings(&self) -> std::result::Result<CallToolResult, SimpleError> {
         let count = self.greeting_count.load(Ordering::Relaxed);
-        
+
         info!(tool = "count_greetings", count = count);
-        
+
         Ok(CallToolResult {
             content: vec![Content::text(format!("Total greetings: {count}"))],
             is_error: Some(false),
@@ -122,7 +126,8 @@ impl McpBackend for SimpleHelloWorld {
                 version: "1.0.0".to_string(),
             },
             instructions: Some(
-                "A simplified demonstration server with streamlined development experience".to_string(),
+                "A simplified demonstration server with streamlined development experience"
+                    .to_string(),
             ),
         }
     }
@@ -131,7 +136,10 @@ impl McpBackend for SimpleHelloWorld {
         Ok(())
     }
 
-    async fn list_tools(&self, _request: PaginatedRequestParam) -> std::result::Result<ListToolsResult, Self::Error> {
+    async fn list_tools(
+        &self,
+        _request: PaginatedRequestParam,
+    ) -> std::result::Result<ListToolsResult, Self::Error> {
         // Simplified tool definition using helper
         let tools = vec![
             Self::create_tool(
@@ -144,12 +152,12 @@ impl McpBackend for SimpleHelloWorld {
                         "greeting": {"type": "string", "description": "Custom greeting (optional)"}
                     },
                     "required": ["name"]
-                })
+                }),
             ),
             Self::create_tool(
                 "count_greetings",
                 "Get the total number of greetings sent",
-                json!({"type": "object", "properties": {}})
+                json!({"type": "object", "properties": {}}),
             ),
         ];
 
@@ -159,71 +167,112 @@ impl McpBackend for SimpleHelloWorld {
         })
     }
 
-    async fn call_tool(&self, request: CallToolRequestParam) -> std::result::Result<CallToolResult, Self::Error> {
+    async fn call_tool(
+        &self,
+        request: CallToolRequestParam,
+    ) -> std::result::Result<CallToolResult, Self::Error> {
         match request.name.as_str() {
             "say_hello" => {
                 let args = request.arguments.unwrap_or_default();
-                let name = args.get("name")
+                let name = args
+                    .get("name")
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| SimpleError::InvalidParameter("name is required".to_string()))?
                     .to_string();
-                let greeting = args.get("greeting").and_then(|v| v.as_str()).map(|s| s.to_string());
-                
+                let greeting = args
+                    .get("greeting")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string());
+
                 self.tool_say_hello(name, greeting).await
             }
-            "count_greetings" => {
-                self.tool_count_greetings().await
-            }
+            "count_greetings" => self.tool_count_greetings().await,
             _ => {
                 warn!(tool = request.name, "Unknown tool requested");
-                Err(SimpleError::InvalidParameter(format!("Unknown tool: {}", request.name)))
+                Err(SimpleError::InvalidParameter(format!(
+                    "Unknown tool: {}",
+                    request.name
+                )))
             }
         }
     }
 
     // Simplified default implementations
-    async fn list_resources(&self, _request: PaginatedRequestParam) -> std::result::Result<ListResourcesResult, Self::Error> {
-        Ok(ListResourcesResult { resources: vec![], next_cursor: None })
+    async fn list_resources(
+        &self,
+        _request: PaginatedRequestParam,
+    ) -> std::result::Result<ListResourcesResult, Self::Error> {
+        Ok(ListResourcesResult {
+            resources: vec![],
+            next_cursor: None,
+        })
     }
 
-    async fn read_resource(&self, request: ReadResourceRequestParam) -> std::result::Result<ReadResourceResult, Self::Error> {
-        Err(SimpleError::InvalidParameter(format!("Resource not found: {}", request.uri)))
+    async fn read_resource(
+        &self,
+        request: ReadResourceRequestParam,
+    ) -> std::result::Result<ReadResourceResult, Self::Error> {
+        Err(SimpleError::InvalidParameter(format!(
+            "Resource not found: {}",
+            request.uri
+        )))
     }
 
-    async fn list_prompts(&self, _request: PaginatedRequestParam) -> std::result::Result<ListPromptsResult, Self::Error> {
-        Ok(ListPromptsResult { prompts: vec![], next_cursor: None })
+    async fn list_prompts(
+        &self,
+        _request: PaginatedRequestParam,
+    ) -> std::result::Result<ListPromptsResult, Self::Error> {
+        Ok(ListPromptsResult {
+            prompts: vec![],
+            next_cursor: None,
+        })
     }
 
-    async fn get_prompt(&self, request: GetPromptRequestParam) -> std::result::Result<GetPromptResult, Self::Error> {
-        Err(SimpleError::InvalidParameter(format!("Prompt not found: {}", request.name)))
+    async fn get_prompt(
+        &self,
+        request: GetPromptRequestParam,
+    ) -> std::result::Result<GetPromptResult, Self::Error> {
+        Err(SimpleError::InvalidParameter(format!(
+            "Prompt not found: {}",
+            request.name
+        )))
     }
 }
 
 /// Builder pattern for easier server creation - this shows the direction we're heading
 impl SimpleHelloWorld {
     /// Fluent API: serve using stdio (like RMCP's simple API)
-    pub async fn serve_stdio(self) -> std::result::Result<McpServer<Self>, Box<dyn std::error::Error>> {
+    pub async fn serve_stdio(
+        self,
+    ) -> std::result::Result<McpServer<Self>, Box<dyn std::error::Error>> {
         let server_config = ServerConfig {
             server_info: self.get_server_info(),
             transport_config: TransportConfig::Stdio,
             ..Default::default()
         };
 
-        McpServer::new(self, server_config).await.map_err(Into::into)
+        McpServer::new(self, server_config)
+            .await
+            .map_err(Into::into)
     }
 
     /// Fluent API: serve using HTTP on specified port
-    pub async fn serve_http(self, port: u16) -> std::result::Result<McpServer<Self>, Box<dyn std::error::Error>> {
+    pub async fn serve_http(
+        self,
+        port: u16,
+    ) -> std::result::Result<McpServer<Self>, Box<dyn std::error::Error>> {
         let server_config = ServerConfig {
             server_info: self.get_server_info(),
-            transport_config: TransportConfig::Http { 
+            transport_config: TransportConfig::Http {
                 host: Some("127.0.0.1".to_string()),
-                port 
+                port,
             },
             ..Default::default()
         };
 
-        McpServer::new(self, server_config).await.map_err(Into::into)
+        McpServer::new(self, server_config)
+            .await
+            .map_err(Into::into)
     }
 }
 
@@ -249,7 +298,10 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     info!("📊 This example shows ~50% less code than the original");
 
     // Run server until shutdown
-    server.run().await.map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
+    server
+        .run()
+        .await
+        .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
 
     info!("👋 Simple Hello World MCP Server stopped");
     Ok(())

@@ -7,7 +7,7 @@ use syn::{Attribute, Expr, Lit, Meta};
 /// Extract documentation from function attributes
 pub fn extract_doc_comment(attrs: &[Attribute]) -> Option<String> {
     let mut docs = Vec::new();
-    
+
     for attr in attrs {
         if let Meta::NameValue(meta) = &attr.meta {
             if meta.path.is_ident("doc") {
@@ -22,7 +22,7 @@ pub fn extract_doc_comment(attrs: &[Attribute]) -> Option<String> {
             }
         }
     }
-    
+
     if docs.is_empty() {
         None
     } else {
@@ -48,7 +48,10 @@ pub fn function_name_to_tool_name(ident: &syn::Ident) -> String {
 /// Generate a unique identifier for a tool
 #[allow(dead_code)]
 pub fn generate_tool_id(base_name: &str) -> syn::Ident {
-    syn::Ident::new(&format!("{base_name}_tool_def"), proc_macro2::Span::call_site())
+    syn::Ident::new(
+        &format!("{base_name}_tool_def"),
+        proc_macro2::Span::call_site(),
+    )
 }
 
 /// Check if a type is an Option<T>
@@ -100,7 +103,7 @@ pub fn generate_error_handling(return_type: &syn::ReturnType) -> TokenStream {
                     }
                 }
             }
-            
+
             // Not a Result, wrap it with simple Display formatting
             quote! {
                 Ok(pulseengine_mcp_protocol::CallToolResult {

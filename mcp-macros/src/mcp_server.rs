@@ -39,21 +39,27 @@ pub fn mcp_server_impl(attr: TokenStream, item: TokenStream) -> syn::Result<Toke
             "Server name is required. Use #[mcp_server(name = \"Your Server Name\")]",
         ));
     }
-    
+
     let server_name = &attribute.name;
-    let server_version = attribute.version
+    let server_version = attribute
+        .version
         .map(|v| quote! { #v.to_string() })
         .unwrap_or_else(get_package_version);
-    
-    let server_description = attribute.description
+
+    let server_description = attribute
+        .description
         .or(doc_comment)
         .map(|desc| quote! { Some(#desc.to_string()) })
         .unwrap_or_else(|| quote! { None });
 
     let transport_default = match attribute.transport.as_deref() {
         Some("stdio") => quote! { pulseengine_mcp_transport::TransportConfig::Stdio },
-        Some("http") => quote! { pulseengine_mcp_transport::TransportConfig::Http { port: 8080, host: None } },
-        Some("websocket") => quote! { pulseengine_mcp_transport::TransportConfig::WebSocket { port: 8080, host: None } },
+        Some("http") => {
+            quote! { pulseengine_mcp_transport::TransportConfig::Http { port: 8080, host: None } }
+        }
+        Some("websocket") => {
+            quote! { pulseengine_mcp_transport::TransportConfig::WebSocket { port: 8080, host: None } }
+        }
         _ => quote! { pulseengine_mcp_transport::TransportConfig::Stdio }, // Default to stdio
     };
 
@@ -68,10 +74,10 @@ pub fn mcp_server_impl(attr: TokenStream, item: TokenStream) -> syn::Result<Toke
 
     Ok(quote! {
         #item
-        
+
         // Import necessary traits for macro-generated code
         use pulseengine_mcp_server::McpBackend as _;
-        
+
         #server_impl
     })
 }
@@ -116,16 +122,16 @@ fn generate_server_implementation(
         pub enum #error_type_name {
             #[error("Invalid parameter: {0}")]
             InvalidParameter(String),
-            
+
             #[error("Internal error: {0}")]
             Internal(String),
-            
+
             #[error("Server error: {0}")]
             Server(#[from] pulseengine_mcp_server::BackendError),
-            
+
             #[error("Server error: {0}")]
             ServerSetup(#[from] pulseengine_mcp_server::ServerError),
-            
+
             #[error("Transport error: {0}")]
             Transport(String),
         }
@@ -133,14 +139,14 @@ fn generate_server_implementation(
         impl From<#error_type_name> for pulseengine_mcp_protocol::Error {
             fn from(err: #error_type_name) -> Self {
                 match err {
-                    #error_type_name::InvalidParameter(msg) => 
+                    #error_type_name::InvalidParameter(msg) =>
                         pulseengine_mcp_protocol::Error::invalid_params(msg),
-                    #error_type_name::Internal(msg) => 
+                    #error_type_name::Internal(msg) =>
                         pulseengine_mcp_protocol::Error::internal_error(msg),
                     #error_type_name::Server(server_err) => server_err.into(),
-                    #error_type_name::ServerSetup(server_err) => 
+                    #error_type_name::ServerSetup(server_err) =>
                         pulseengine_mcp_protocol::Error::internal_error(server_err.to_string()),
-                    #error_type_name::Transport(msg) => 
+                    #error_type_name::Transport(msg) =>
                         pulseengine_mcp_protocol::Error::internal_error(msg),
                 }
             }
@@ -195,11 +201,11 @@ fn generate_server_implementation(
                 _request: pulseengine_mcp_protocol::PaginatedRequestParam,
             ) -> Result<pulseengine_mcp_protocol::ListToolsResult, Self::Error> {
                 let mut tools = Vec::new();
-                
+
                 // Get tools from automatic tool discovery (if #[mcp_tools] is used)
                 let automatic_tools = self.get_automatic_tools();
                 tools.extend(automatic_tools);
-                
+
                 Ok(pulseengine_mcp_protocol::ListToolsResult {
                     tools,
                     next_cursor: None,
@@ -214,7 +220,7 @@ fn generate_server_implementation(
                 if let Some(result) = self.dispatch_automatic_tool(request.clone()).await {
                     return result.map_err(|e| #error_type_name::InvalidParameter(format!("Tool error: {}", e)));
                 }
-                
+
                 // No tools available
                 Err(#error_type_name::InvalidParameter(
                     format!("Unknown tool: {}", request.name)
@@ -264,7 +270,7 @@ fn generate_server_implementation(
         trait McpToolProvider {
             /// Register all available tools
             fn register_tools(&self, tools: &mut Vec<pulseengine_mcp_protocol::Tool>);
-            
+
             /// Dispatch tool calls to appropriate handlers
             fn dispatch_tool_call(
                 &self,
@@ -286,7 +292,7 @@ fn generate_server_implementation(
                 // and the user manually calls it from their implementation
                 Vec::new()
             }
-            
+
             /// Integration hook for automatic tool dispatch
             /// This method is designed to be compatible with dispatch generated by #[mcp_tools]
             #[allow(unused_variables)]
@@ -304,9 +310,9 @@ fn generate_server_implementation(
         // Fluent builder API - this is where the magic happens!
         impl #impl_generics #struct_name #ty_generics #where_clause {
             /// Create a new instance with default configuration (requires Default to be derived)
-            pub fn with_defaults() -> Self 
-            where 
-                Self: Default 
+            pub fn with_defaults() -> Self
+            where
+                Self: Default
             {
                 Self::default()
             }
@@ -341,7 +347,7 @@ fn generate_server_implementation(
             /// Serve with custom configuration
             pub async fn serve_with_config(self, config: #config_type_name) -> Result<#service_type_name #ty_generics, #error_type_name> {
                 let backend = #struct_name::initialize(config.clone()).await?;
-                
+
                 let server_config = pulseengine_mcp_server::ServerConfig {
                     server_info: backend.get_server_info(),
                     transport_config: config.transport,

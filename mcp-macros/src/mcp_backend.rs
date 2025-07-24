@@ -3,7 +3,7 @@
 use darling::FromMeta;
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{ItemStruct, ItemEnum};
+use syn::{ItemEnum, ItemStruct};
 
 use crate::utils::*;
 
@@ -28,25 +28,33 @@ pub fn mcp_backend_impl(attr: TokenStream, item: TokenStream) -> syn::Result<Tok
         .map_err(|e| syn::Error::new(proc_macro2::Span::call_site(), e.to_string()))?;
 
     // Try parsing as struct first, then enum
-    let (struct_name, generics, fields, doc_comment) = if let Ok(item_struct) = syn::parse2::<ItemStruct>(item.clone()) {
-        let doc = extract_doc_comment(&item_struct.attrs);
-        (item_struct.ident, item_struct.generics, Some(item_struct.fields), doc)
-    } else if let Ok(item_enum) = syn::parse2::<ItemEnum>(item.clone()) {
-        let doc = extract_doc_comment(&item_enum.attrs);
-        (item_enum.ident, item_enum.generics, None, doc)
-    } else {
-        return Err(syn::Error::new(
-            proc_macro2::Span::call_site(),
-            "#[mcp_backend] can only be applied to structs or enums"
-        ));
-    };
+    let (struct_name, generics, fields, doc_comment) =
+        if let Ok(item_struct) = syn::parse2::<ItemStruct>(item.clone()) {
+            let doc = extract_doc_comment(&item_struct.attrs);
+            (
+                item_struct.ident,
+                item_struct.generics,
+                Some(item_struct.fields),
+                doc,
+            )
+        } else if let Ok(item_enum) = syn::parse2::<ItemEnum>(item.clone()) {
+            let doc = extract_doc_comment(&item_enum.attrs);
+            (item_enum.ident, item_enum.generics, None, doc)
+        } else {
+            return Err(syn::Error::new(
+                proc_macro2::Span::call_site(),
+                "#[mcp_backend] can only be applied to structs or enums",
+            ));
+        };
 
     let server_name = &attribute.name;
-    let server_version = attribute.version
+    let server_version = attribute
+        .version
         .map(|v| quote! { #v.to_string() })
         .unwrap_or_else(get_package_version);
-    
-    let server_description = attribute.description
+
+    let server_description = attribute
+        .description
         .or(doc_comment)
         .map(|desc| quote! { Some(#desc.to_string()) })
         .unwrap_or_else(|| quote! { None });
@@ -64,12 +72,13 @@ pub fn mcp_backend_impl(attr: TokenStream, item: TokenStream) -> syn::Result<Tok
                 sampling: None,
                 ..Default::default()
             }
-        }).unwrap()
+        })
+        .unwrap()
     });
 
     // Generate error type if not already defined
     let error_type_name = quote::format_ident!("{}Error", struct_name);
-    
+
     let backend_impl = generate_backend_implementation(
         &struct_name,
         &generics,
@@ -109,10 +118,10 @@ fn generate_backend_implementation(
         pub enum #error_type_name {
             #[error("Invalid parameter: {0}")]
             InvalidParameter(String),
-            
+
             #[error("Internal error: {0}")]
             Internal(String),
-            
+
             #[error("Backend error: {0}")]
             Backend(#[from] pulseengine_mcp_server::BackendError),
         }
@@ -120,9 +129,9 @@ fn generate_backend_implementation(
         impl From<#error_type_name> for pulseengine_mcp_protocol::Error {
             fn from(err: #error_type_name) -> Self {
                 match err {
-                    #error_type_name::InvalidParameter(msg) => 
+                    #error_type_name::InvalidParameter(msg) =>
                         pulseengine_mcp_protocol::Error::invalid_params(msg),
-                    #error_type_name::Internal(msg) => 
+                    #error_type_name::Internal(msg) =>
                         pulseengine_mcp_protocol::Error::internal_error(msg),
                     #error_type_name::Backend(backend_err) => backend_err.into(),
                 }
@@ -163,10 +172,10 @@ fn generate_backend_implementation(
             ) -> Result<pulseengine_mcp_protocol::ListToolsResult, Self::Error> {
                 // Auto-discover tools from impl blocks with #[mcp_tool]
                 let mut tools = Vec::new();
-                
+
                 // This will be enhanced to automatically collect tools
                 // from methods marked with #[mcp_tool]
-                
+
                 Ok(pulseengine_mcp_protocol::ListToolsResult {
                     tools,
                     next_cursor: None,
