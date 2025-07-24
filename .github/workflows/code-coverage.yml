@@ -66,6 +66,7 @@ jobs:
         cargo llvm-cov clean --workspace
         
         # Run tests with coverage for all packages (excluding same files as Codecov)
+        # Use debug mode for coverage (release mode can interfere with coverage instrumentation)
         cargo llvm-cov test --all-features --workspace --lcov --output-path lcov.info \
           --ignore-filename-regex="examples/.*|.*/build\.rs"
         
@@ -93,6 +94,11 @@ jobs:
           --ignore-filename-regex="examples/.*|.*/build\.rs" \
           > coverage-summary.txt
         cat coverage-summary.txt
+        
+        # Clean target to save space after coverage generation
+        du -sh target || true
+        cargo clean
+        echo "Cleaned target directory to save disk space"
         
         # Extract coverage percentage for PR comment (use tail -1 to get TOTAL line, not first file)
         COVERAGE=$(grep -oP '\d+\.\d+(?=%)' coverage-summary.txt | tail -1)
