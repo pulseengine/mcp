@@ -1161,18 +1161,15 @@ mod tests {
             // Set a consistent master key for persistence testing
             // Use a lock to ensure this test doesn't interfere with others
             static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-            let original_master_key = {
-                let _lock = TEST_LOCK.lock().unwrap();
-                // First, ensure no master key env var exists to avoid interference
-                let original = std::env::var("PULSEENGINE_MCP_MASTER_KEY").ok();
-
-                // Set our test master key
-                std::env::set_var(
-                    "PULSEENGINE_MCP_MASTER_KEY",
-                    "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
-                );
-                original
-            };
+            // Hold lock for entire test to ensure thread safety with env vars
+            let _lock = TEST_LOCK.lock().unwrap();
+            
+            // Store and set master key in thread-safe manner
+            let original_master_key = std::env::var("PULSEENGINE_MCP_MASTER_KEY").ok();
+            std::env::set_var(
+                "PULSEENGINE_MCP_MASTER_KEY",
+                "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
+            );
 
             // Small delay to ensure environment variable is set across threads
             tokio::time::sleep(std::time::Duration::from_millis(10)).await;
