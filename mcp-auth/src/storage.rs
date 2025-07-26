@@ -1157,13 +1157,14 @@ mod tests {
         }
 
         #[tokio::test]
+        #[allow(clippy::await_holding_lock)] // Required for thread-safe env var handling
         async fn test_file_storage_persistence() {
             // Set a consistent master key for persistence testing
             // Use a lock to ensure this test doesn't interfere with others
             static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
             // Hold lock for entire test to ensure thread safety with env vars
             let _lock = TEST_LOCK.lock().unwrap();
-            
+
             // Store and set master key in thread-safe manner
             let original_master_key = std::env::var("PULSEENGINE_MCP_MASTER_KEY").ok();
             std::env::set_var(
