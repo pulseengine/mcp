@@ -1283,11 +1283,12 @@ mod tests {
         }
 
         #[tokio::test]
+        #[allow(clippy::await_holding_lock)] // Required for thread-safe env var handling
         async fn test_file_storage_cleanup_backups() {
             // Use a lock to ensure this test doesn't interfere with others
             static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+            let _lock = TEST_LOCK.lock().unwrap();
             let original_master_key = {
-                let _lock = TEST_LOCK.lock().unwrap();
                 // Store original master key to restore later
                 let original = std::env::var("PULSEENGINE_MCP_MASTER_KEY").ok();
 
@@ -1368,11 +1369,12 @@ mod tests {
         }
 
         #[tokio::test]
+        #[allow(clippy::await_holding_lock)] // Required for thread-safe env var handling
         async fn test_file_storage_atomic_operations() {
             // Use a lock to ensure this test doesn't interfere with others
             static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+            let _lock = TEST_LOCK.lock().unwrap();
             let original_master_key = {
-                let _lock = TEST_LOCK.lock().unwrap();
                 // Store original master key to restore later
                 let original = std::env::var("PULSEENGINE_MCP_MASTER_KEY").ok();
 
