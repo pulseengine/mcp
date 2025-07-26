@@ -4,12 +4,17 @@ version = "0.1.0"
 edition = "2021"
 description = "Hello World MCP Server using PulseEngine macros"
 
+[features]
+default = ["auth"]
+auth = ["pulseengine-mcp-macros/auth"]
+
 [dependencies]
 # PulseEngine MCP Framework with macros
-pulseengine-mcp-macros = { path = "../../mcp-macros" }
+pulseengine-mcp-macros = { path = "../../mcp-macros", features = ["auth"] }
 pulseengine-mcp-protocol = { path = "../../mcp-protocol" }
 pulseengine-mcp-server = { path = "../../mcp-server" }
 pulseengine-mcp-transport = { path = "../../mcp-transport" }
+pulseengine-mcp-auth = { path = "../../mcp-auth" }
 
 # Core dependencies
 tokio = { version = "1.40", features = ["full"] }
