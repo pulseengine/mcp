@@ -94,13 +94,18 @@ pub fn generate_master_key() -> Result<[u8; 32], KeyDerivationError> {
 /// Generate an application-specific master key from environment or secure storage
 ///
 /// This checks for app-specific environment variables first, then falls back to generic ones
-pub fn generate_master_key_for_application(app_name: Option<&str>) -> Result<[u8; 32], KeyDerivationError> {
+pub fn generate_master_key_for_application(
+    app_name: Option<&str>,
+) -> Result<[u8; 32], KeyDerivationError> {
     // In production, this should come from secure storage (HSM, vault, etc.)
     // For now, we'll check environment variable or generate a new one
 
     // First try app-specific environment variable if app_name is provided
     if let Some(app) = app_name {
-        let app_specific_var = format!("PULSEENGINE_MCP_MASTER_KEY_{}", app.to_uppercase().replace('-', "_"));
+        let app_specific_var = format!(
+            "PULSEENGINE_MCP_MASTER_KEY_{}",
+            app.to_uppercase().replace('-', "_")
+        );
         if let Ok(master_key_b64) = std::env::var(&app_specific_var) {
             return decode_master_key(&master_key_b64);
         }
