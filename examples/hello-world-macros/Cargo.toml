@@ -1,0 +1,25 @@
+[package]
+name = "hello-world-macros"
+version = "0.1.0"
+edition = "2021"
+description = "Hello World MCP Server using PulseEngine macros"
+
+[dependencies]
+# PulseEngine MCP Framework with macros
+pulseengine-mcp-macros = { path = "../../mcp-macros" }
+pulseengine-mcp-protocol = { path = "../../mcp-protocol" }
+pulseengine-mcp-server = { path = "../../mcp-server" }
+pulseengine-mcp-transport = { path = "../../mcp-transport" }
+
+# Core dependencies
+tokio = { version = "1.40", features = ["full"] }
+async-trait = "0.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[[bin]]
+name = "hello-world-macros"
+path = "src/main.rs"

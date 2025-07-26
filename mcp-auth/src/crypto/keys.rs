@@ -88,37 +88,58 @@ pub fn derive_key(
 ///
 /// This is used to derive all other encryption keys
 pub fn generate_master_key() -> Result<[u8; 32], KeyDerivationError> {
+    generate_master_key_for_application(None)
+}
+
+/// Generate an application-specific master key from environment or secure storage
+///
+/// This checks for app-specific environment variables first, then falls back to generic ones
+pub fn generate_master_key_for_application(app_name: Option<&str>) -> Result<[u8; 32], KeyDerivationError> {
     // In production, this should come from secure storage (HSM, vault, etc.)
     // For now, we'll check environment variable or generate a new one
 
-    if let Ok(master_key_b64) = std::env::var("PULSEENGINE_MCP_MASTER_KEY") {
-        let key_bytes = URL_SAFE_NO_PAD
-            .decode(&master_key_b64)
-            .map_err(|e| KeyDerivationError::InvalidInput(format!("Invalid master key: {}", e)))?;
-
-        if key_bytes.len() != 32 {
-            return Err(KeyDerivationError::InvalidInput(format!(
-                "Master key must be 32 bytes, got {}",
-                key_bytes.len()
-            )));
+    // First try app-specific environment variable if app_name is provided
+    if let Some(app) = app_name {
+        let app_specific_var = format!("PULSEENGINE_MCP_MASTER_KEY_{}", app.to_uppercase().replace('-', "_"));
+        if let Ok(master_key_b64) = std::env::var(&app_specific_var) {
+            return decode_master_key(&master_key_b64);
         }
-
-        let mut key = [0u8; 32];
-        key.copy_from_slice(&key_bytes);
-        Ok(key)
-    } else {
-        // Generate a new master key
-        let mut key = [0u8; 32];
-        rand::thread_rng().fill_bytes(&mut key);
-
-        // Log warning about using generated key
-        tracing::warn!(
-            "Generated new master key. Set PULSEENGINE_MCP_MASTER_KEY={} for persistence",
-            URL_SAFE_NO_PAD.encode(&key)
-        );
-
-        Ok(key)
     }
+
+    // Fall back to generic environment variable
+    if let Ok(master_key_b64) = std::env::var("PULSEENGINE_MCP_MASTER_KEY") {
+        return decode_master_key(&master_key_b64);
+    }
+
+    // Generate a new master key
+    let mut key = [0u8; 32];
+    rand::thread_rng().fill_bytes(&mut key);
+
+    // Log warning about using generated key
+    tracing::warn!(
+        "Generated new master key. Set PULSEENGINE_MCP_MASTER_KEY={} for persistence",
+        URL_SAFE_NO_PAD.encode(&key)
+    );
+
+    Ok(key)
+}
+
+/// Decode a base64-encoded master key
+fn decode_master_key(master_key_b64: &str) -> Result<[u8; 32], KeyDerivationError> {
+    let key_bytes = URL_SAFE_NO_PAD
+        .decode(master_key_b64)
+        .map_err(|e| KeyDerivationError::InvalidInput(format!("Invalid master key: {}", e)))?;
+
+    if key_bytes.len() != 32 {
+        return Err(KeyDerivationError::InvalidInput(format!(
+            "Master key must be 32 bytes, got {}",
+            key_bytes.len()
+        )));
+    }
+
+    let mut key = [0u8; 32];
+    key.copy_from_slice(&key_bytes);
+    Ok(key)
 }
 
 #[cfg(test)]

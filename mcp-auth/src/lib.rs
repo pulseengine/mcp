@@ -344,7 +344,17 @@ pub fn default_config() -> AuthConfig {
     AuthConfig::default()
 }
 
+/// Initialize application-specific authentication configuration
+pub fn for_application(app_name: &str) -> AuthConfig {
+    AuthConfig::for_application(app_name)
+}
+
 /// Create an authentication manager with default configuration
 pub async fn create_auth_manager() -> Result<AuthenticationManager, crate::manager::AuthError> {
     AuthenticationManager::new(default_config()).await
+}
+
+/// Create an authentication manager with application-specific configuration
+pub async fn create_auth_manager_for_application(app_name: &str) -> Result<AuthenticationManager, crate::manager::AuthError> {
+    AuthenticationManager::new(for_application(app_name)).await
 }

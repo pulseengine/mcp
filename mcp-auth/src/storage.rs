@@ -82,6 +82,7 @@ pub struct FileStorage {
     #[allow(dead_code)]
     require_secure_filesystem: bool,
     enable_filesystem_monitoring: bool,
+    write_mutex: tokio::sync::Mutex<()>,
 }
 
 impl FileStorage {
@@ -128,6 +129,7 @@ impl FileStorage {
             dir_permissions,
             require_secure_filesystem,
             enable_filesystem_monitoring,
+            write_mutex: tokio::sync::Mutex::new(()),
         };
 
         // Initialize empty file if it doesn't exist
@@ -553,18 +555,27 @@ impl StorageBackend for FileStorage {
     }
 
     async fn save_key(&self, key: &ApiKey) -> Result<(), StorageError> {
+        let _lock = self.write_mutex.lock().await;
         let mut keys = self.load_keys().await?;
         keys.insert(key.id.clone(), key.clone());
-        self.save_all_keys(&keys).await
+        self.save_all_keys_internal(&keys).await
     }
 
     async fn delete_key(&self, key_id: &str) -> Result<(), StorageError> {
+        let _lock = self.write_mutex.lock().await;
         let mut keys = self.load_keys().await?;
         keys.remove(key_id);
-        self.save_all_keys(&keys).await
+        self.save_all_keys_internal(&keys).await
     }
 
     async fn save_all_keys(&self, keys: &HashMap<String, ApiKey>) -> Result<(), StorageError> {
+        let _lock = self.write_mutex.lock().await;
+        self.save_all_keys_internal(keys).await
+    }
+}
+
+impl FileStorage {
+    async fn save_all_keys_internal(&self, keys: &HashMap<String, ApiKey>) -> Result<(), StorageError> {
         // Convert to secure keys for storage
         let secure_keys: HashMap<String, SecureApiKey> = keys
             .iter()
@@ -1157,21 +1168,21 @@ mod tests {
         }
 
         #[tokio::test]
+        #[allow(clippy::await_holding_lock)] // Required for thread-safe env var handling
         async fn test_file_storage_persistence() {
             // Set a consistent master key for persistence testing
             // Use a lock to ensure this test doesn't interfere with others
             static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+            // Hold lock for entire test to ensure thread safety with env vars
             let _lock = TEST_LOCK.lock().unwrap();
-            
-            // First, ensure no master key env var exists to avoid interference
+
+            // Store and set master key in thread-safe manner
             let original_master_key = std::env::var("PULSEENGINE_MCP_MASTER_KEY").ok();
-            
-            // Set our test master key
             std::env::set_var(
                 "PULSEENGINE_MCP_MASTER_KEY",
                 "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
             );
-            
+
             // Small delay to ensure environment variable is set across threads
             tokio::time::sleep(std::time::Duration::from_millis(10)).await;
 
@@ -1187,7 +1198,7 @@ mod tests {
 
                 storage.save_all_keys(&test_keys).await.unwrap();
             }
-            
+
             // Ensure the file was created and has content
             assert!(storage_path.exists());
             let file_metadata = std::fs::metadata(&storage_path).unwrap();
@@ -1283,20 +1294,23 @@ mod tests {
         }
 
         #[tokio::test]
+        #[allow(clippy::await_holding_lock)] // Required for thread-safe env var handling
         async fn test_file_storage_cleanup_backups() {
             // Use a lock to ensure this test doesn't interfere with others
             static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
             let _lock = TEST_LOCK.lock().unwrap();
-            
-            // Store original master key to restore later
-            let original_master_key = std::env::var("PULSEENGINE_MCP_MASTER_KEY").ok();
-            
-            // Set a consistent master key for cleanup testing
-            std::env::set_var(
-                "PULSEENGINE_MCP_MASTER_KEY",
-                "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
-            );
-            
+            let original_master_key = {
+                // Store original master key to restore later
+                let original = std::env::var("PULSEENGINE_MCP_MASTER_KEY").ok();
+
+                // Set a consistent master key for cleanup testing
+                std::env::set_var(
+                    "PULSEENGINE_MCP_MASTER_KEY",
+                    "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
+                );
+                original
+            };
+
             // Small delay to ensure environment variable is set across threads
             tokio::time::sleep(std::time::Duration::from_millis(10)).await;
 
@@ -1366,20 +1380,23 @@ mod tests {
         }
 
         #[tokio::test]
+        #[allow(clippy::await_holding_lock)] // Required for thread-safe env var handling
         async fn test_file_storage_atomic_operations() {
             // Use a lock to ensure this test doesn't interfere with others
             static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
             let _lock = TEST_LOCK.lock().unwrap();
-            
-            // Store original master key to restore later
-            let original_master_key = std::env::var("PULSEENGINE_MCP_MASTER_KEY").ok();
-            
-            // Set a consistent master key for atomic operations testing
-            std::env::set_var(
-                "PULSEENGINE_MCP_MASTER_KEY",
-                "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
-            );
-            
+            let original_master_key = {
+                // Store original master key to restore later
+                let original = std::env::var("PULSEENGINE_MCP_MASTER_KEY").ok();
+
+                // Set a consistent master key for atomic operations testing
+                std::env::set_var(
+                    "PULSEENGINE_MCP_MASTER_KEY",
+                    "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
+                );
+                original
+            };
+
             // Small delay to ensure environment variable is set across threads
             tokio::time::sleep(std::time::Duration::from_millis(10)).await;
 

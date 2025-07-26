@@ -113,12 +113,19 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Setup Rust
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@1.85
+    
+    - name: Clean stale artifacts
+      run: |
+        # Clean procedural macro artifacts to prevent version conflicts
+        cargo clean -p pulseengine-mcp-macros
+        cargo clean -p pulseengine-mcp-cli-derive
+        cargo clean -p pulseengine-mcp-external-validation
     
     - name: Test protocol version ${{ matrix.protocol_version }} with ${{ matrix.transport }}
       run: |
         cargo test --package pulseengine-mcp-external-validation \
-          --features "proptest,fuzzing" \
+          --features "proptest,fuzzing" --release \
           -- --test-threads=1 \
           protocol_${{ matrix.protocol_version }}_${{ matrix.transport }}
       env:
