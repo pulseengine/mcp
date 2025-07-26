@@ -355,6 +355,8 @@ pub async fn create_auth_manager() -> Result<AuthenticationManager, crate::manag
 }
 
 /// Create an authentication manager with application-specific configuration
-pub async fn create_auth_manager_for_application(app_name: &str) -> Result<AuthenticationManager, crate::manager::AuthError> {
+pub async fn create_auth_manager_for_application(
+    app_name: &str,
+) -> Result<AuthenticationManager, crate::manager::AuthError> {
     AuthenticationManager::new(for_application(app_name)).await
 }

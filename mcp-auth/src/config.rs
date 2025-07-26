@@ -119,10 +119,7 @@ impl AuthConfig {
     pub fn with_custom_path(app_name: &str, base_path: PathBuf) -> Self {
         Self {
             storage: StorageConfig::File {
-                path: base_path
-                    .join(app_name)
-                    .join("mcp-auth")
-                    .join("keys.enc"),
+                path: base_path.join(app_name).join("mcp-auth").join("keys.enc"),
                 file_permissions: 0o600,
                 dir_permissions: 0o700,
                 require_secure_filesystem: true,
