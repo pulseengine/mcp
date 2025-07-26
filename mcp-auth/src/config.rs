@@ -96,6 +96,67 @@ impl AuthConfig {
             ..Default::default()
         }
     }
+
+    /// Create an application-specific configuration
+    pub fn for_application(app_name: &str) -> Self {
+        Self {
+            storage: StorageConfig::File {
+                path: Self::get_app_storage_path(app_name),
+                file_permissions: 0o600,
+                dir_permissions: 0o700,
+                require_secure_filesystem: true,
+                enable_filesystem_monitoring: false,
+            },
+            enabled: true,
+            cache_size: 1000,
+            session_timeout_secs: 3600, // 1 hour
+            max_failed_attempts: 5,
+            rate_limit_window_secs: 900, // 15 minutes
+        }
+    }
+
+    /// Create an application-specific configuration with custom base path
+    pub fn with_custom_path(app_name: &str, base_path: PathBuf) -> Self {
+        Self {
+            storage: StorageConfig::File {
+                path: base_path
+                    .join(app_name)
+                    .join("mcp-auth")
+                    .join("keys.enc"),
+                file_permissions: 0o600,
+                dir_permissions: 0o700,
+                require_secure_filesystem: true,
+                enable_filesystem_monitoring: false,
+            },
+            enabled: true,
+            cache_size: 1000,
+            session_timeout_secs: 3600, // 1 hour
+            max_failed_attempts: 5,
+            rate_limit_window_secs: 900, // 15 minutes
+        }
+    }
+
+    /// Get the default storage path for an application
+    fn get_app_storage_path(app_name: &str) -> PathBuf {
+        // Check for environment variable override first
+        if let Ok(app_name_override) = std::env::var("PULSEENGINE_MCP_APP_NAME") {
+            if !app_name_override.trim().is_empty() {
+                return Self::build_storage_path(&app_name_override);
+            }
+        }
+
+        Self::build_storage_path(app_name)
+    }
+
+    /// Build the storage path for an application name
+    fn build_storage_path(app_name: &str) -> PathBuf {
+        dirs::home_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join(".pulseengine")
+            .join(app_name)
+            .join("mcp-auth")
+            .join("keys.enc")
+    }
 }
 
 #[cfg(test)]
