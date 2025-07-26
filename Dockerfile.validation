@@ -1,5 +1,5 @@
 # Multi-stage build for MCP External Validation
-FROM rust:1.82-slim AS builder
+FROM rust:1.85-slim AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
@@ -12,6 +12,10 @@ RUN apt-get update && apt-get install -y \
 # Create app directory
 WORKDIR /app
 
+# Copy rust-toolchain.toml first to ensure consistent toolchain
+COPY rust-toolchain.toml ./
+RUN rustup show && rustc --version && cargo --version && cargo clippy --version
+
 # Copy workspace files
 COPY Cargo.toml ./
 COPY mcp-protocol ./mcp-protocol/
@@ -22,13 +26,16 @@ COPY mcp-monitoring ./mcp-monitoring/
 COPY mcp-transport ./mcp-transport/
 COPY mcp-cli ./mcp-cli/
 COPY mcp-cli-derive ./mcp-cli-derive/
+COPY mcp-macros ./mcp-macros/
 COPY mcp-server ./mcp-server/
 COPY mcp-external-validation ./mcp-external-validation/
 COPY examples ./examples/
 COPY integration-tests ./integration-tests/
 
-# Build the validation tools
-RUN cargo build --release --package pulseengine-mcp-external-validation --features "proptest,fuzzing"
+# Build the validation tools with optimizations for smaller Docker layers
+RUN cargo build --release --package pulseengine-mcp-external-validation --features "proptest,fuzzing" \
+    && rm -rf target/release/deps target/release/build target/release/.fingerprint \
+    && find target/release -name "*.d" -delete
 
 # Runtime stage
 FROM debian:bookworm-slim

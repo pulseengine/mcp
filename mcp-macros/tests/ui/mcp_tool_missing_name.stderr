@@ -1,0 +1,13 @@
+error: Server name is required. Use #[mcp_server(name = "Your Server Name")]
+ --> tests/ui/mcp_tool_missing_name.rs:6:1
+  |
+6 | #[mcp_server(description = "A server without a name")]
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the attribute macro `mcp_server` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0412]: cannot find type `ServerWithoutName` in this scope
+  --> tests/ui/mcp_tool_missing_name.rs:11:6
+   |
+11 | impl ServerWithoutName {
+   |      ^^^^^^^^^^^^^^^^^ not found in this scope
