@@ -82,6 +82,7 @@ pub struct FileStorage {
     #[allow(dead_code)]
     require_secure_filesystem: bool,
     enable_filesystem_monitoring: bool,
+    write_mutex: tokio::sync::Mutex<()>,
 }
 
 impl FileStorage {
@@ -128,6 +129,7 @@ impl FileStorage {
             dir_permissions,
             require_secure_filesystem,
             enable_filesystem_monitoring,
+            write_mutex: tokio::sync::Mutex::new(()),
         };
 
         // Initialize empty file if it doesn't exist
@@ -553,18 +555,27 @@ impl StorageBackend for FileStorage {
     }
 
     async fn save_key(&self, key: &ApiKey) -> Result<(), StorageError> {
+        let _lock = self.write_mutex.lock().await;
         let mut keys = self.load_keys().await?;
         keys.insert(key.id.clone(), key.clone());
-        self.save_all_keys(&keys).await
+        self.save_all_keys_internal(&keys).await
     }
 
     async fn delete_key(&self, key_id: &str) -> Result<(), StorageError> {
+        let _lock = self.write_mutex.lock().await;
         let mut keys = self.load_keys().await?;
         keys.remove(key_id);
-        self.save_all_keys(&keys).await
+        self.save_all_keys_internal(&keys).await
     }
 
     async fn save_all_keys(&self, keys: &HashMap<String, ApiKey>) -> Result<(), StorageError> {
+        let _lock = self.write_mutex.lock().await;
+        self.save_all_keys_internal(keys).await
+    }
+}
+
+impl FileStorage {
+    async fn save_all_keys_internal(&self, keys: &HashMap<String, ApiKey>) -> Result<(), StorageError> {
         // Convert to secure keys for storage
         let secure_keys: HashMap<String, SecureApiKey> = keys
             .iter()
