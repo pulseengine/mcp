@@ -575,7 +575,10 @@ impl StorageBackend for FileStorage {
 }
 
 impl FileStorage {
-    async fn save_all_keys_internal(&self, keys: &HashMap<String, ApiKey>) -> Result<(), StorageError> {
+    async fn save_all_keys_internal(
+        &self,
+        keys: &HashMap<String, ApiKey>,
+    ) -> Result<(), StorageError> {
         // Convert to secure keys for storage
         let secure_keys: HashMap<String, SecureApiKey> = keys
             .iter()
