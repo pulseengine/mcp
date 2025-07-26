@@ -13,6 +13,8 @@ use crate::utils::*;
 pub struct McpServerAttribute {
     /// Server name (required)
     pub name: String,
+    /// Application name for storage isolation (optional)
+    pub app_name: Option<String>,
     /// Server version (defaults to Cargo package version)
     pub version: Option<String>,
     /// Server description (defaults to doc comments)  
@@ -70,6 +72,7 @@ pub fn mcp_server_impl(attr: TokenStream, item: TokenStream) -> syn::Result<Toke
         &server_version,
         &server_description,
         &transport_default,
+        &attribute.app_name,
     )?;
 
     Ok(quote! {
@@ -90,11 +93,19 @@ fn generate_server_implementation(
     server_version: &TokenStream,
     server_description: &TokenStream,
     transport_default: &TokenStream,
+    app_name: &Option<String>,
 ) -> syn::Result<TokenStream> {
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
     let config_type_name = quote::format_ident!("{}Config", struct_name);
     let error_type_name = quote::format_ident!("{}Error", struct_name);
     let service_type_name = quote::format_ident!("{}Service", struct_name);
+
+    // Generate auth configuration call based on app_name
+    let auth_config_call = if let Some(app_name) = app_name {
+        quote! { pulseengine_mcp_auth::for_application(#app_name) }
+    } else {
+        quote! { pulseengine_mcp_auth::default_config() }
+    };
 
     Ok(quote! {
         // Configuration type
@@ -114,6 +125,14 @@ fn generate_server_implementation(
                     server_description: #server_description,
                     transport: #transport_default,
                 }
+            }
+        }
+
+        #[cfg(feature = "auth")]
+        impl #config_type_name {
+            /// Get the appropriate auth configuration for this server
+            pub fn get_auth_config() -> pulseengine_mcp_auth::AuthConfig {
+                #auth_config_call
             }
         }
 
@@ -315,6 +334,13 @@ fn generate_server_implementation(
                 Self: Default
             {
                 Self::default()
+            }
+
+            /// Create an authentication manager with appropriate configuration for this server
+            #[cfg(feature = "auth")]
+            pub async fn create_auth_manager() -> Result<pulseengine_mcp_auth::AuthenticationManager, pulseengine_mcp_auth::manager::AuthError> {
+                let auth_config = #config_type_name::get_auth_config();
+                pulseengine_mcp_auth::AuthenticationManager::new(auth_config).await
             }
 
             /// Serve using stdio transport (default for MCP clients like Claude Desktop)

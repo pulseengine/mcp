@@ -32,6 +32,13 @@ schemars = { version = "1.0", features = ["chrono04"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
+# Optional authentication support
+pulseengine-mcp-auth = { workspace = true, optional = true }
+
+[features]
+default = []
+auth = ["dep:pulseengine-mcp-auth"]
+
 [dev-dependencies]
 trybuild = "1.0"
 tokio-test = "0.4"
