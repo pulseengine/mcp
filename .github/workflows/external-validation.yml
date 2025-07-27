@@ -129,8 +129,8 @@ jobs:
     
     - name: Run unit tests
       run: |
-        # Use release mode and timeout for individual tests to prevent hangs
-        cargo test --all-features --release --verbose --timeout 300
+        # Use release mode to reduce disk usage and enable optimizations
+        cargo test --all-features --release --verbose
     
     - name: Run external validation tests
       run: |
