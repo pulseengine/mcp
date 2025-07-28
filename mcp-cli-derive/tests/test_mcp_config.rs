@@ -391,8 +391,11 @@ mod integration_tests {
         }
 
         // Set environment variables
-        env::set_var("TEST_PORT", "9000");
-        env::set_var("TEST_API_KEY", "secret-key");
+        // SAFETY: Setting test environment variables
+        unsafe {
+            env::set_var("TEST_PORT", "9000");
+            env::set_var("TEST_API_KEY", "secret-key");
+        }
 
         // Parse without command line args
         let config = EnvConfig::try_parse_from(["test"]).expect("Failed to parse from env");
@@ -401,8 +404,11 @@ mod integration_tests {
         assert_eq!(config.api_key, Some("secret-key".to_string()));
 
         // Clean up
-        env::remove_var("TEST_PORT");
-        env::remove_var("TEST_API_KEY");
+        // SAFETY: Removing test environment variables
+        unsafe {
+            env::remove_var("TEST_PORT");
+            env::remove_var("TEST_API_KEY");
+        }
     }
 }
 
