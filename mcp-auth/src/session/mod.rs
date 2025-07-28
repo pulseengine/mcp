@@ -13,8 +13,8 @@ pub use session_manager::{
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::Role;
     use crate::AuthContext;
+    use crate::models::Role;
     use std::sync::Arc;
 
     #[test]

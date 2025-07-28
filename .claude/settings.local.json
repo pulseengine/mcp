@@ -21,7 +21,9 @@
       "Bash(grep:*)",
       "Bash(gh pr checks:*)",
       "Bash(find:*)",
-      "Bash(cargo:*)"
+      "Bash(cargo:*)",
+      "WebFetch(domain:doc.rust-lang.org)",
+      "WebFetch(domain:forge.rust-lang.org)"
     ],
     "deny": []
   }

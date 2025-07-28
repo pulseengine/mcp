@@ -4,10 +4,10 @@
 //! master keys and configuration from external vault systems like Infisical.
 
 use crate::{
+    AuthConfig, AuthenticationManager, ValidationConfig,
     config::StorageConfig,
     manager::AuthError,
     vault::{VaultConfig, VaultError, VaultIntegration},
-    AuthConfig, AuthenticationManager, ValidationConfig,
 };
 use std::collections::HashMap;
 use tracing::{debug, info, warn};
@@ -38,7 +38,10 @@ impl VaultAuthenticationManager {
                 }
                 Err(e) => {
                     if fallback_to_env {
-                        warn!("Failed to connect to vault ({}), falling back to environment variables", e);
+                        warn!(
+                            "Failed to connect to vault ({}), falling back to environment variables",
+                            e
+                        );
                         None
                     } else {
                         return Err(VaultAuthManagerError::VaultError(e));

@@ -22,10 +22,12 @@ mod tests {
 
         // Correlation ID should be 24 hex chars (12 bytes)
         assert_eq!(context.correlation_id.len(), 24);
-        assert!(context
-            .correlation_id
-            .chars()
-            .all(|c| c.is_ascii_hexdigit()));
+        assert!(
+            context
+                .correlation_id
+                .chars()
+                .all(|c| c.is_ascii_hexdigit())
+        );
     }
 
     #[test]

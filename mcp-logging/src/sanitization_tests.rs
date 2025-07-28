@@ -168,15 +168,15 @@ mod tests {
         let test_cases = vec![
             (
                 "User ID: 550e8400-e29b-41d4-a716-446655440000",
-                "User ID: [UUID_REDACTED]"
+                "User ID: [UUID_REDACTED]",
             ),
             (
                 "session=123e4567-e89b-12d3-a456-426614174000",
-                "session=[UUID_REDACTED]"
+                "session=[UUID_REDACTED]",
             ),
             (
                 "Multiple: 550e8400-e29b-41d4-a716-446655440000 and 123e4567-e89b-12d3-a456-426614174000",
-                "Multiple: [UUID_REDACTED] and [UUID_REDACTED]"
+                "Multiple: [UUID_REDACTED] and [UUID_REDACTED]",
             ),
         ];
 

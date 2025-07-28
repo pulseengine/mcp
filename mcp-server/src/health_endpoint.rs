@@ -1,13 +1,13 @@
 //! Health check endpoints for Kubernetes and monitoring
 
-use crate::backend::McpBackend;
 use crate::McpServer;
+use crate::backend::McpBackend;
 use axum::{
+    Router,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Json},
     routing::get,
-    Router,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;

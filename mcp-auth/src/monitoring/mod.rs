@@ -7,9 +7,9 @@ pub mod dashboard_server;
 pub mod security_monitor;
 
 pub use security_monitor::{
-    create_default_alert_rules, AlertAction, AlertRule, AlertThreshold, MonitoringError,
-    SecurityAlert, SecurityDashboard, SecurityEvent, SecurityEventType, SecurityMetrics,
-    SecurityMonitor, SecurityMonitorConfig, SystemHealth,
+    AlertAction, AlertRule, AlertThreshold, MonitoringError, SecurityAlert, SecurityDashboard,
+    SecurityEvent, SecurityEventType, SecurityMetrics, SecurityMonitor, SecurityMonitorConfig,
+    SystemHealth, create_default_alert_rules,
 };
 
 #[cfg(test)]

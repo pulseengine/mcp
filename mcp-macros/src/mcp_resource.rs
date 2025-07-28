@@ -16,7 +16,7 @@
 
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{parse2, Error, FnArg, ItemFn, PatType, Result};
+use syn::{Error, FnArg, ItemFn, PatType, Result, parse2};
 
 use crate::utils::{extract_doc_comments, parse_attribute_args};
 
@@ -48,7 +48,10 @@ fn parse_resource_attributes(args: TokenStream) -> Result<McpResourceConfig> {
                 {
                     config.uri_template = Some(lit_str.value());
                 } else {
-                    return Err(Error::new_spanned(value, "uri_template must be a string literal"));
+                    return Err(Error::new_spanned(
+                        value,
+                        "uri_template must be a string literal",
+                    ));
                 }
             }
             "name" => {
@@ -70,7 +73,10 @@ fn parse_resource_attributes(args: TokenStream) -> Result<McpResourceConfig> {
                 {
                     config.description = Some(lit_str.value());
                 } else {
-                    return Err(Error::new_spanned(value, "description must be a string literal"));
+                    return Err(Error::new_spanned(
+                        value,
+                        "description must be a string literal",
+                    ));
                 }
             }
             "mime_type" => {
@@ -81,7 +87,10 @@ fn parse_resource_attributes(args: TokenStream) -> Result<McpResourceConfig> {
                 {
                     config.mime_type = Some(lit_str.value());
                 } else {
-                    return Err(Error::new_spanned(value, "mime_type must be a string literal"));
+                    return Err(Error::new_spanned(
+                        value,
+                        "mime_type must be a string literal",
+                    ));
                 }
             }
             _ => {
@@ -108,7 +117,7 @@ fn parse_resource_attributes(args: TokenStream) -> Result<McpResourceConfig> {
 fn extract_uri_parameters(uri_template: &str) -> Vec<String> {
     let mut params = Vec::new();
     let mut chars = uri_template.chars().peekable();
-    
+
     while let Some(ch) = chars.next() {
         if ch == '{' {
             let mut param = String::new();
@@ -123,7 +132,7 @@ fn extract_uri_parameters(uri_template: &str) -> Vec<String> {
             }
         }
     }
-    
+
     params
 }
 
@@ -143,21 +152,24 @@ fn generate_parameter_extraction(
         ));
     }
 
-    let extractions = uri_params.iter().zip(fn_inputs.iter()).map(|(param_name, pat_type)| {
-        let param_ident = &pat_type.pat;
-        let param_type = &pat_type.ty;
-        
-        quote! {
-            let #param_ident: #param_type = uri_params.get(#param_name)
-                .ok_or_else(|| pulseengine_mcp_protocol::McpError::InvalidParams {
-                    message: format!("Missing parameter: {}", #param_name),
-                })?
-                .parse()
-                .map_err(|e| pulseengine_mcp_protocol::McpError::InvalidParams {
-                    message: format!("Invalid parameter {}: {}", #param_name, e),
-                })?;
-        }
-    });
+    let extractions = uri_params
+        .iter()
+        .zip(fn_inputs.iter())
+        .map(|(param_name, pat_type)| {
+            let param_ident = &pat_type.pat;
+            let param_type = &pat_type.ty;
+
+            quote! {
+                let #param_ident: #param_type = uri_params.get(#param_name)
+                    .ok_or_else(|| pulseengine_mcp_protocol::McpError::InvalidParams {
+                        message: format!("Missing parameter: {}", #param_name),
+                    })?
+                    .parse()
+                    .map_err(|e| pulseengine_mcp_protocol::McpError::InvalidParams {
+                        message: format!("Invalid parameter {}: {}", #param_name, e),
+                    })?;
+            }
+        });
 
     Ok(quote! {
         #(#extractions)*
@@ -165,15 +177,14 @@ fn generate_parameter_extraction(
 }
 
 /// Generate the resource implementation
-fn generate_resource_impl(
-    config: &McpResourceConfig,
-    original_fn: &ItemFn,
-) -> Result<TokenStream> {
+fn generate_resource_impl(config: &McpResourceConfig, original_fn: &ItemFn) -> Result<TokenStream> {
     let fn_name = &original_fn.sig.ident;
     let fn_name_string = fn_name.to_string();
     let resource_name = config.name.as_ref().unwrap_or(&fn_name_string);
     let uri_template = config.uri_template.as_ref().unwrap();
-    let description = config.description.as_ref()
+    let description = config
+        .description
+        .as_ref()
         .map(|d| d.clone())
         .unwrap_or_else(|| {
             extract_doc_comments(&original_fn.attrs)
@@ -184,7 +195,7 @@ fn generate_resource_impl(
 
     // Extract URI parameters
     let uri_params = extract_uri_parameters(uri_template);
-    
+
     // Extract function parameters (excluding &self if present)
     let fn_inputs: Vec<&PatType> = original_fn
         .sig
@@ -235,7 +246,7 @@ fn generate_resource_impl(
                         Ok(json) => json,
                         Err(_) => content.to_string(), // Fallback to Display/Debug
                     };
-                    
+
                     Ok(pulseengine_mcp_protocol::ResourceContents {
                         uri: uri.to_string(),
                         mime_type: Some(#mime_type.to_string()),
@@ -265,10 +276,10 @@ fn generate_resource_impl(
 pub fn mcp_resource_impl(args: TokenStream, input: TokenStream) -> Result<TokenStream> {
     // Parse the configuration from macro arguments
     let config = parse_resource_attributes(args)?;
-    
+
     // Parse the function
     let original_fn: ItemFn = parse2(input)?;
-    
+
     // Validate function signature
     if original_fn.sig.inputs.is_empty() {
         return Err(Error::new_spanned(
@@ -288,16 +299,13 @@ mod tests {
 
     #[test]
     fn test_extract_uri_parameters() {
-        assert_eq!(
-            extract_uri_parameters("file://{path}"),
-            vec!["path"]
-        );
-        
+        assert_eq!(extract_uri_parameters("file://{path}"), vec!["path"]);
+
         assert_eq!(
             extract_uri_parameters("db://{database}/{table}"),
             vec!["database", "table"]
         );
-        
+
         assert_eq!(
             extract_uri_parameters("static://content"),
             Vec::<String>::new()
@@ -311,7 +319,7 @@ mod tests {
             name = "file_reader",
             mime_type = "application/json"
         };
-        
+
         let config = parse_resource_attributes(args).unwrap();
         assert_eq!(config.uri_template, Some("file://{path}".to_string()));
         assert_eq!(config.name, Some("file_reader".to_string()));

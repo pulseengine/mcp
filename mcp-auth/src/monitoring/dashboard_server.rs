@@ -682,9 +682,11 @@ mod tests {
         let server = DashboardServer::with_default_config(monitor);
 
         // Test valid token
-        assert!(server
-            .authenticate_request(Some("dashboard-token-123"))
-            .is_ok());
+        assert!(
+            server
+                .authenticate_request(Some("dashboard-token-123"))
+                .is_ok()
+        );
 
         // Test invalid token
         assert!(server.authenticate_request(Some("invalid-token")).is_err());
@@ -693,17 +695,23 @@ mod tests {
         assert!(server.authenticate_request(None).is_err());
 
         // Test Bearer token authentication
-        assert!(server
-            .authenticate_bearer_token(Some("Bearer dashboard-token-123"))
-            .is_ok());
-        assert!(server
-            .authenticate_bearer_token(Some("Invalid format"))
-            .is_err());
+        assert!(
+            server
+                .authenticate_bearer_token(Some("Bearer dashboard-token-123"))
+                .is_ok()
+        );
+        assert!(
+            server
+                .authenticate_bearer_token(Some("Invalid format"))
+                .is_err()
+        );
 
         // Test API key authentication
-        assert!(server
-            .authenticate_api_key(Some("dashboard-token-123"))
-            .is_ok());
+        assert!(
+            server
+                .authenticate_api_key(Some("dashboard-token-123"))
+                .is_ok()
+        );
         assert!(server.authenticate_api_key(Some("invalid-key")).is_err());
     }
 

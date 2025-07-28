@@ -1,6 +1,6 @@
 //! Tests for type system integration and complex type handling
 
-use pulseengine_mcp_macros::{mcp_server, mcp_tool, mcp_resource, mcp_prompt};
+use pulseengine_mcp_macros::{mcp_prompt, mcp_resource, mcp_server, mcp_tool};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -82,20 +82,28 @@ mod type_system_server {
     impl Default for TypeSystemServer {
         fn default() -> Self {
             let mut users = HashMap::new();
-            users.insert(1, User {
-                id: 1,
-                name: "Alice".to_string(),
-                email: "alice@example.com".to_string(),
-                active: true,
-                metadata: [("role".to_string(), "admin".to_string())].into_iter().collect(),
-            });
-            users.insert(2, User {
-                id: 2,
-                name: "Bob".to_string(),
-                email: "bob@example.com".to_string(),
-                active: true,
-                metadata: HashMap::new(),
-            });
+            users.insert(
+                1,
+                User {
+                    id: 1,
+                    name: "Alice".to_string(),
+                    email: "alice@example.com".to_string(),
+                    active: true,
+                    metadata: [("role".to_string(), "admin".to_string())]
+                        .into_iter()
+                        .collect(),
+                },
+            );
+            users.insert(
+                2,
+                User {
+                    id: 2,
+                    name: "Bob".to_string(),
+                    email: "bob@example.com".to_string(),
+                    active: true,
+                    metadata: HashMap::new(),
+                },
+            );
 
             Self {
                 users: std::sync::Arc::new(std::sync::RwLock::new(users)),
@@ -110,23 +118,31 @@ mod type_system_server {
         async fn create_user(&self, request: CreateUserRequest) -> Result<User, UserError> {
             // Validate email format
             if !request.email.contains('@') {
-                return Err(UserError::InvalidEmail { email: request.email });
+                return Err(UserError::InvalidEmail {
+                    email: request.email,
+                });
             }
 
             // Check for duplicates
             let users = self.users.read().unwrap();
             for user in users.values() {
                 if user.email == request.email {
-                    return Err(UserError::Duplicate { field: "email".to_string() });
+                    return Err(UserError::Duplicate {
+                        field: "email".to_string(),
+                    });
                 }
                 if user.name == request.name {
-                    return Err(UserError::Duplicate { field: "name".to_string() });
+                    return Err(UserError::Duplicate {
+                        field: "name".to_string(),
+                    });
                 }
             }
             drop(users);
 
             // Create new user
-            let id = self.next_id.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            let id = self
+                .next_id
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             let user = User {
                 id,
                 name: request.name,
@@ -143,11 +159,13 @@ mod type_system_server {
         }
 
         /// Get user by ID with optional field selection
-        async fn get_user(&self, id: u64, include_metadata: Option<bool>) -> Result<User, UserError> {
+        async fn get_user(
+            &self,
+            id: u64,
+            include_metadata: Option<bool>,
+        ) -> Result<User, UserError> {
             let users = self.users.read().unwrap();
-            let mut user = users.get(&id)
-                .cloned()
-                .ok_or(UserError::NotFound { id })?;
+            let mut user = users.get(&id).cloned().ok_or(UserError::NotFound { id })?;
 
             // Optionally exclude metadata
             if !include_metadata.unwrap_or(true) {
@@ -158,15 +176,20 @@ mod type_system_server {
         }
 
         /// Update user with partial update pattern
-        async fn update_user(&self, id: u64, request: UpdateUserRequest) -> Result<User, UserError> {
+        async fn update_user(
+            &self,
+            id: u64,
+            request: UpdateUserRequest,
+        ) -> Result<User, UserError> {
             let mut users = self.users.write().unwrap();
-            let user = users.get_mut(&id)
-                .ok_or(UserError::NotFound { id })?;
+            let user = users.get_mut(&id).ok_or(UserError::NotFound { id })?;
 
             // Apply updates
             if let Some(name) = request.name {
                 if name.is_empty() {
-                    return Err(UserError::Validation { message: "Name cannot be empty".to_string() });
+                    return Err(UserError::Validation {
+                        message: "Name cannot be empty".to_string(),
+                    });
                 }
                 user.name = name;
             }
@@ -214,11 +237,7 @@ mod type_system_server {
             let limit = params.limit.unwrap_or(10) as usize;
 
             // Apply pagination
-            let items = user_list
-                .into_iter()
-                .skip(offset)
-                .take(limit)
-                .collect();
+            let items = user_list.into_iter().skip(offset).take(limit).collect();
 
             PaginatedResponse {
                 items,
@@ -231,15 +250,13 @@ mod type_system_server {
         /// Delete user and return the deleted user
         async fn delete_user(&self, id: u64) -> Result<User, UserError> {
             let mut users = self.users.write().unwrap();
-            users.remove(&id)
-                .ok_or(UserError::NotFound { id })
+            users.remove(&id).ok_or(UserError::NotFound { id })
         }
 
         /// Work with enums and complex matching
         async fn set_user_role(&self, id: u64, role: UserRole) -> Result<String, UserError> {
             let mut users = self.users.write().unwrap();
-            let user = users.get_mut(&id)
-                .ok_or(UserError::NotFound { id })?;
+            let user = users.get_mut(&id).ok_or(UserError::NotFound { id })?;
 
             let role_string = match role {
                 UserRole::Admin => "admin",
@@ -248,14 +265,16 @@ mod type_system_server {
                 UserRole::Guest => "guest",
             };
 
-            user.metadata.insert("role".to_string(), role_string.to_string());
+            user.metadata
+                .insert("role".to_string(), role_string.to_string());
 
             Ok(format!("User {} role set to {}", user.name, role_string))
         }
 
         /// Generic type handling with vectors and maps
-        async fn batch_update_metadata(&self, 
-            updates: HashMap<u64, HashMap<String, String>>
+        async fn batch_update_metadata(
+            &self,
+            updates: HashMap<u64, HashMap<String, String>>,
         ) -> Result<Vec<u64>, UserError> {
             let mut users = self.users.write().unwrap();
             let mut updated_ids = Vec::new();
@@ -271,10 +290,11 @@ mod type_system_server {
         }
 
         /// Complex nested types with Options and Results
-        async fn search_users(&self, 
-            query: Option<String>, 
+        async fn search_users(
+            &self,
+            query: Option<String>,
             filters: Option<HashMap<String, String>>,
-            limit: Option<u32>
+            limit: Option<u32>,
         ) -> Result<Vec<User>, UserError> {
             let users = self.users.read().unwrap();
             let mut results: Vec<User> = users.values().cloned().collect();
@@ -283,8 +303,8 @@ mod type_system_server {
             if let Some(q) = query {
                 let query_lower = q.to_lowercase();
                 results.retain(|user| {
-                    user.name.to_lowercase().contains(&query_lower) ||
-                    user.email.to_lowercase().contains(&query_lower)
+                    user.name.to_lowercase().contains(&query_lower)
+                        || user.email.to_lowercase().contains(&query_lower)
                 });
             }
 
@@ -292,9 +312,7 @@ mod type_system_server {
             if let Some(filters) = filters {
                 results.retain(|user| {
                     filters.iter().all(|(key, value)| {
-                        user.metadata.get(key)
-                            .map(|v| v == value)
-                            .unwrap_or(false)
+                        user.metadata.get(key).map(|v| v == value).unwrap_or(false)
                     })
                 });
             }
@@ -311,13 +329,18 @@ mod type_system_server {
     #[mcp_resource(uri_template = "user://{id}/profile")]
     impl TypeSystemServer {
         /// Resource with complex type serialization
-        async fn user_profile_resource(&self, id: String) -> Result<serde_json::Value, std::io::Error> {
-            let user_id: u64 = id.parse()
-                .map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Invalid user ID"))?;
+        async fn user_profile_resource(
+            &self,
+            id: String,
+        ) -> Result<serde_json::Value, std::io::Error> {
+            let user_id: u64 = id.parse().map_err(|_| {
+                std::io::Error::new(std::io::ErrorKind::InvalidInput, "Invalid user ID")
+            })?;
 
             let users = self.users.read().unwrap();
-            let user = users.get(&user_id)
-                .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "User not found"))?;
+            let user = users.get(&user_id).ok_or_else(|| {
+                std::io::Error::new(std::io::ErrorKind::NotFound, "User not found")
+            })?;
 
             // Serialize to JSON
             serde_json::to_value(user)
@@ -328,33 +351,46 @@ mod type_system_server {
     #[mcp_prompt(name = "user_prompt")]
     impl TypeSystemServer {
         /// Prompt with complex type handling in parameters
-        async fn user_prompt(&self, 
-            user_data: serde_json::Value, 
-            template_type: String
+        async fn user_prompt(
+            &self,
+            user_data: serde_json::Value,
+            template_type: String,
         ) -> Result<pulseengine_mcp_protocol::PromptMessage, std::io::Error> {
             // Parse user data
-            let user: User = serde_json::from_value(user_data)
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidInput, e.to_string()))?;
+            let user: User = serde_json::from_value(user_data).map_err(|e| {
+                std::io::Error::new(std::io::ErrorKind::InvalidInput, e.to_string())
+            })?;
 
             let prompt_text = match template_type.as_str() {
-                "welcome" => format!("Welcome {}! We're glad to have you at {}.", user.name, user.email),
-                "profile" => format!("User Profile:\nName: {}\nEmail: {}\nActive: {}\nMetadata: {:?}", 
-                    user.name, user.email, user.active, user.metadata),
+                "welcome" => format!(
+                    "Welcome {}! We're glad to have you at {}.",
+                    user.name, user.email
+                ),
+                "profile" => format!(
+                    "User Profile:\nName: {}\nEmail: {}\nActive: {}\nMetadata: {:?}",
+                    user.name, user.email, user.active, user.metadata
+                ),
                 "admin" => {
                     if user.metadata.get("role") == Some(&"admin".to_string()) {
                         format!("Admin user {} has full system access.", user.name)
                     } else {
-                        return Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "Not an admin user"));
+                        return Err(std::io::Error::new(
+                            std::io::ErrorKind::PermissionDenied,
+                            "Not an admin user",
+                        ));
                     }
-                },
-                _ => return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Unknown template type")),
+                }
+                _ => {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidInput,
+                        "Unknown template type",
+                    ));
+                }
             };
 
             Ok(pulseengine_mcp_protocol::PromptMessage {
                 role: pulseengine_mcp_protocol::Role::User,
-                content: pulseengine_mcp_protocol::PromptContent::Text {
-                    text: prompt_text,
-                },
+                content: pulseengine_mcp_protocol::PromptContent::Text { text: prompt_text },
             })
         }
     }
@@ -363,8 +399,8 @@ mod type_system_server {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use type_system_server::*;
     use custom_types::*;
+    use type_system_server::*;
 
     #[test]
     fn test_custom_types_serialize() {
@@ -373,7 +409,9 @@ mod tests {
             name: "Test".to_string(),
             email: "test@example.com".to_string(),
             active: true,
-            metadata: [("key".to_string(), "value".to_string())].into_iter().collect(),
+            metadata: [("key".to_string(), "value".to_string())]
+                .into_iter()
+                .collect(),
         };
 
         let json = serde_json::to_string(&user).unwrap();
@@ -393,16 +431,23 @@ mod tests {
         let request = CreateUserRequest {
             name: "Charlie".to_string(),
             email: "charlie@example.com".to_string(),
-            initial_metadata: Some([("department".to_string(), "engineering".to_string())].into_iter().collect()),
+            initial_metadata: Some(
+                [("department".to_string(), "engineering".to_string())]
+                    .into_iter()
+                    .collect(),
+            ),
         };
 
         let result = server.create_user(request).await;
         assert!(result.is_ok());
-        
+
         let user = result.unwrap();
         assert_eq!(user.name, "Charlie");
         assert_eq!(user.email, "charlie@example.com");
-        assert_eq!(user.metadata.get("department"), Some(&"engineering".to_string()));
+        assert_eq!(
+            user.metadata.get("department"),
+            Some(&"engineering".to_string())
+        );
         assert!(user.active);
     }
 
@@ -473,12 +518,16 @@ mod tests {
             name: Some("Alice Updated".to_string()),
             email: None,
             active: Some(false),
-            metadata_updates: Some([("status".to_string(), "updated".to_string())].into_iter().collect()),
+            metadata_updates: Some(
+                [("status".to_string(), "updated".to_string())]
+                    .into_iter()
+                    .collect(),
+            ),
         };
 
         let result = server.update_user(1, update_request).await;
         assert!(result.is_ok());
-        
+
         let user = result.unwrap();
         assert_eq!(user.name, "Alice Updated");
         assert!(!user.active);
@@ -523,13 +572,28 @@ mod tests {
         let server = TypeSystemServer::with_defaults();
 
         let mut updates = HashMap::new();
-        updates.insert(1, [("batch_key".to_string(), "batch_value".to_string())].into_iter().collect());
-        updates.insert(2, [("another_key".to_string(), "another_value".to_string())].into_iter().collect());
-        updates.insert(999, [("nonexistent".to_string(), "value".to_string())].into_iter().collect()); // Should be ignored
+        updates.insert(
+            1,
+            [("batch_key".to_string(), "batch_value".to_string())]
+                .into_iter()
+                .collect(),
+        );
+        updates.insert(
+            2,
+            [("another_key".to_string(), "another_value".to_string())]
+                .into_iter()
+                .collect(),
+        );
+        updates.insert(
+            999,
+            [("nonexistent".to_string(), "value".to_string())]
+                .into_iter()
+                .collect(),
+        ); // Should be ignored
 
         let result = server.batch_update_metadata(updates).await;
         assert!(result.is_ok());
-        
+
         let updated_ids = result.unwrap();
         assert_eq!(updated_ids.len(), 2);
         assert!(updated_ids.contains(&1));
@@ -538,7 +602,10 @@ mod tests {
 
         // Verify updates were applied
         let user1 = server.get_user(1, Some(true)).await.unwrap();
-        assert_eq!(user1.metadata.get("batch_key"), Some(&"batch_value".to_string()));
+        assert_eq!(
+            user1.metadata.get("batch_key"),
+            Some(&"batch_value".to_string())
+        );
     }
 
     #[tokio::test]
@@ -546,7 +613,9 @@ mod tests {
         let server = TypeSystemServer::with_defaults();
 
         // Search by query
-        let result = server.search_users(Some("alice".to_string()), None, None).await;
+        let result = server
+            .search_users(Some("alice".to_string()), None, None)
+            .await;
         assert!(result.is_ok());
         let users = result.unwrap();
         assert_eq!(users.len(), 1);
@@ -574,7 +643,7 @@ mod tests {
 
         let result = server.user_profile_resource("1".to_string()).await;
         assert!(result.is_ok());
-        
+
         let json_value = result.unwrap();
         assert_eq!(json_value["name"], "Alice");
         assert_eq!(json_value["email"], "alice@example.com");
@@ -589,20 +658,22 @@ mod tests {
         assert!(result.is_err());
     }
 
-    #[tokio::test] 
+    #[tokio::test]
     async fn test_user_prompt_complex_types() {
         let server = TypeSystemServer::with_defaults();
 
         let user_data = serde_json::json!({
             "id": 1,
             "name": "Test User",
-            "email": "test@example.com", 
+            "email": "test@example.com",
             "active": true,
             "metadata": {"role": "admin"}
         });
 
         // Test welcome template
-        let result = server.user_prompt(user_data.clone(), "welcome".to_string()).await;
+        let result = server
+            .user_prompt(user_data.clone(), "welcome".to_string())
+            .await;
         assert!(result.is_ok());
         let message = result.unwrap();
         if let pulseengine_mcp_protocol::PromptContent::Text { text } = message.content {
@@ -611,18 +682,24 @@ mod tests {
         }
 
         // Test admin template
-        let result = server.user_prompt(user_data.clone(), "admin".to_string()).await;
+        let result = server
+            .user_prompt(user_data.clone(), "admin".to_string())
+            .await;
         assert!(result.is_ok());
 
         // Test non-admin user with admin template
         let mut non_admin_data = user_data.clone();
         non_admin_data["metadata"]["role"] = serde_json::Value::String("user".to_string());
-        let result = server.user_prompt(non_admin_data, "admin".to_string()).await;
+        let result = server
+            .user_prompt(non_admin_data, "admin".to_string())
+            .await;
         assert!(result.is_err());
 
         // Test invalid user data
         let invalid_data = serde_json::json!({"invalid": "data"});
-        let result = server.user_prompt(invalid_data, "welcome".to_string()).await;
+        let result = server
+            .user_prompt(invalid_data, "welcome".to_string())
+            .await;
         assert!(result.is_err());
     }
 
@@ -631,13 +708,19 @@ mod tests {
         let error1 = UserError::NotFound { id: 123 };
         assert_eq!(error1.to_string(), "User not found: 123");
 
-        let error2 = UserError::InvalidEmail { email: "bad@".to_string() };
+        let error2 = UserError::InvalidEmail {
+            email: "bad@".to_string(),
+        };
         assert_eq!(error2.to_string(), "Invalid email format: bad@");
 
-        let error3 = UserError::Duplicate { field: "email".to_string() };
+        let error3 = UserError::Duplicate {
+            field: "email".to_string(),
+        };
         assert_eq!(error3.to_string(), "Duplicate user: email");
 
-        let error4 = UserError::Validation { message: "test error".to_string() };
+        let error4 = UserError::Validation {
+            message: "test error".to_string(),
+        };
         assert_eq!(error4.to_string(), "Validation error: test error");
     }
 
@@ -652,7 +735,7 @@ mod tests {
 
         let json = serde_json::to_string(&pagination).unwrap();
         let deserialized: PaginationParams = serde_json::from_str(&json).unwrap();
-        
+
         assert_eq!(pagination.limit, deserialized.limit);
         assert_eq!(pagination.offset, deserialized.offset);
         assert_eq!(pagination.sort_by, deserialized.sort_by);
@@ -670,7 +753,7 @@ mod tests {
 
         let json = serde_json::to_string(&response).unwrap();
         let deserialized: PaginatedResponse<String> = serde_json::from_str(&json).unwrap();
-        
+
         assert_eq!(response.items, deserialized.items);
         assert_eq!(response.total, deserialized.total);
     }

@@ -1,6 +1,6 @@
 //! Tests for parameter validation and edge cases
 
-use pulseengine_mcp_macros::{mcp_server, mcp_tool, mcp_resource, mcp_prompt};
+use pulseengine_mcp_macros::{mcp_prompt, mcp_resource, mcp_server, mcp_tool};
 use serde_json::json;
 
 mod parameter_types {
@@ -13,32 +13,35 @@ mod parameter_types {
     #[mcp_tool]
     impl ParameterServer {
         /// Tool with various primitive types
-        async fn primitive_types(&self, 
-            string_param: String, 
-            int_param: i32, 
+        async fn primitive_types(
+            &self,
+            string_param: String,
+            int_param: i32,
             uint_param: u64,
-            float_param: f64, 
-            bool_param: bool
+            float_param: f64,
+            bool_param: bool,
         ) -> String {
-            format!("String: {}, Int: {}, UInt: {}, Float: {}, Bool: {}", 
-                string_param, int_param, uint_param, float_param, bool_param)
+            format!(
+                "String: {}, Int: {}, UInt: {}, Float: {}, Bool: {}",
+                string_param, int_param, uint_param, float_param, bool_param
+            )
         }
 
         /// Tool with optional parameters
-        async fn optional_params(&self, 
-            required: String, 
+        async fn optional_params(
+            &self,
+            required: String,
             optional_string: Option<String>,
-            optional_int: Option<i32>
+            optional_int: Option<i32>,
         ) -> String {
-            format!("Required: {}, OptStr: {:?}, OptInt: {:?}", 
-                required, optional_string, optional_int)
+            format!(
+                "Required: {}, OptStr: {:?}, OptInt: {:?}",
+                required, optional_string, optional_int
+            )
         }
 
         /// Tool with collection types
-        async fn collection_types(&self,
-            vec_strings: Vec<String>,
-            vec_ints: Vec<i32>
-        ) -> String {
+        async fn collection_types(&self, vec_strings: Vec<String>, vec_ints: Vec<i32>) -> String {
             format!("Strings: {:?}, Ints: {:?}", vec_strings, vec_ints)
         }
 
@@ -53,21 +56,39 @@ mod parameter_types {
         }
 
         /// Tool with many parameters
-        async fn many_params(&self, 
-            p1: String, p2: i32, p3: bool, p4: f64, p5: Vec<String>,
-            p6: Option<String>, p7: u64, p8: Option<i32>, p9: String, p10: bool
+        async fn many_params(
+            &self,
+            p1: String,
+            p2: i32,
+            p3: bool,
+            p4: f64,
+            p5: Vec<String>,
+            p6: Option<String>,
+            p7: u64,
+            p8: Option<i32>,
+            p9: String,
+            p10: bool,
         ) -> String {
-            format!("10 params: {}, {}, {}, {}, {:?}, {:?}, {}, {:?}, {}, {}", 
-                p1, p2, p3, p4, p5, p6, p7, p8, p9, p10)
+            format!(
+                "10 params: {}, {}, {}, {}, {:?}, {:?}, {}, {:?}, {}, {}",
+                p1, p2, p3, p4, p5, p6, p7, p8, p9, p10
+            )
         }
     }
 
     #[mcp_resource(uri_template = "param://{type}/{id}")]
     impl ParameterServer {
         /// Resource with multiple URI parameters
-        async fn param_resource(&self, param_type: String, id: String) -> Result<String, std::io::Error> {
+        async fn param_resource(
+            &self,
+            param_type: String,
+            id: String,
+        ) -> Result<String, std::io::Error> {
             if param_type.is_empty() || id.is_empty() {
-                Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Empty parameters"))
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "Empty parameters",
+                ))
             } else {
                 Ok(format!("Type: {}, ID: {}", param_type, id))
             }
@@ -77,11 +98,12 @@ mod parameter_types {
     #[mcp_resource(uri_template = "complex://{database}/{schema}/{table}/{action}")]
     impl ParameterServer {
         /// Resource with many URI parameters
-        async fn complex_param_resource(&self, 
-            database: String, 
-            schema: String, 
-            table: String, 
-            action: String
+        async fn complex_param_resource(
+            &self,
+            database: String,
+            schema: String,
+            table: String,
+            action: String,
         ) -> Result<serde_json::Value, std::io::Error> {
             Ok(json!({
                 "database": database,
@@ -96,18 +118,23 @@ mod parameter_types {
     #[mcp_prompt(name = "param_prompt")]
     impl ParameterServer {
         /// Prompt with multiple parameters
-        async fn param_prompt(&self, 
-            context: String, 
-            style: String, 
-            length: i32, 
-            include_examples: bool
+        async fn param_prompt(
+            &self,
+            context: String,
+            style: String,
+            length: i32,
+            include_examples: bool,
         ) -> Result<pulseengine_mcp_protocol::PromptMessage, std::io::Error> {
             let text = format!(
                 "Generate {} content about '{}' with {} words{}",
                 style,
                 context,
                 length,
-                if include_examples { " and include examples" } else { "" }
+                if include_examples {
+                    " and include examples"
+                } else {
+                    ""
+                }
             );
 
             Ok(pulseengine_mcp_protocol::PromptMessage {
@@ -147,9 +174,11 @@ mod edge_cases {
 
         /// Tool with very long string
         async fn long_string_tool(&self, long_input: String) -> String {
-            format!("Length: {}, First 50 chars: {}", 
-                long_input.len(), 
-                long_input.chars().take(50).collect::<String>())
+            format!(
+                "Length: {}, First 50 chars: {}",
+                long_input.len(),
+                long_input.chars().take(50).collect::<String>()
+            )
         }
 
         /// Tool with special characters
@@ -159,12 +188,19 @@ mod edge_cases {
 
         /// Tool with Unicode
         async fn unicode_tool(&self, unicode: String) -> String {
-            format!("Unicode: '{}', byte length: {}, char count: {}", 
-                unicode, unicode.len(), unicode.chars().count())
+            format!(
+                "Unicode: '{}', byte length: {}, char count: {}",
+                unicode,
+                unicode.len(),
+                unicode.chars().count()
+            )
         }
 
         /// Tool with nested JSON
-        async fn nested_json_tool(&self, nested: serde_json::Value) -> Result<String, serde_json::Error> {
+        async fn nested_json_tool(
+            &self,
+            nested: serde_json::Value,
+        ) -> Result<String, serde_json::Error> {
             let pretty = serde_json::to_string_pretty(&nested)?;
             Ok(format!("Nested JSON:\n{}", pretty))
         }
@@ -175,7 +211,10 @@ mod edge_cases {
         /// Resource with edge case parameters
         async fn edge_resource(&self, param: String) -> Result<String, std::io::Error> {
             match param.as_str() {
-                "" => Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Empty parameter")),
+                "" => Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "Empty parameter",
+                )),
                 "space test" => Ok("Spaces handled".to_string()),
                 "special!@#$%^&*()" => Ok("Special characters handled".to_string()),
                 "unicode_テスト_🚀" => Ok("Unicode handled".to_string()),
@@ -198,18 +237,26 @@ mod validation_errors {
         /// Tool that validates input
         async fn validate_email(&self, email: String) -> Result<String, std::io::Error> {
             if !email.contains('@') || !email.contains('.') {
-                Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Invalid email format"))
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "Invalid email format",
+                ))
             } else {
                 Ok(format!("Valid email: {}", email))
             }
         }
 
         /// Tool that validates numeric range
-        async fn validate_range(&self, value: i32, min: i32, max: i32) -> Result<i32, std::io::Error> {
+        async fn validate_range(
+            &self,
+            value: i32,
+            min: i32,
+            max: i32,
+        ) -> Result<i32, std::io::Error> {
             if value < min || value > max {
                 Err(std::io::Error::new(
-                    std::io::ErrorKind::InvalidInput, 
-                    format!("Value {} is outside range [{}, {}]", value, min, max)
+                    std::io::ErrorKind::InvalidInput,
+                    format!("Value {} is outside range [{}, {}]", value, min, max),
                 ))
             } else {
                 Ok(value)
@@ -217,11 +264,15 @@ mod validation_errors {
         }
 
         /// Tool that validates array length
-        async fn validate_array_length(&self, items: Vec<String>, max_length: usize) -> Result<Vec<String>, std::io::Error> {
+        async fn validate_array_length(
+            &self,
+            items: Vec<String>,
+            max_length: usize,
+        ) -> Result<Vec<String>, std::io::Error> {
             if items.len() > max_length {
                 Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
-                    format!("Array too long: {} > {}", items.len(), max_length)
+                    format!("Array too long: {} > {}", items.len(), max_length),
                 ))
             } else {
                 Ok(items)
@@ -233,8 +284,8 @@ mod validation_errors {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use parameter_types::*;
     use edge_cases::*;
+    use parameter_types::*;
     use validation_errors::*;
 
     #[test]
@@ -248,13 +299,9 @@ mod tests {
     async fn test_primitive_types() {
         let server = ParameterServer::with_defaults();
 
-        let result = server.primitive_types(
-            "test".to_string(),
-            42,
-            100u64,
-            3.14,
-            true
-        ).await;
+        let result = server
+            .primitive_types("test".to_string(), 42, 100u64, 3.14, true)
+            .await;
 
         assert!(result.contains("String: test"));
         assert!(result.contains("Int: 42"));
@@ -267,20 +314,20 @@ mod tests {
     async fn test_optional_parameters() {
         let server = ParameterServer::with_defaults();
 
-        let result_with_opts = server.optional_params(
-            "required".to_string(),
-            Some("optional".to_string()),
-            Some(123)
-        ).await;
+        let result_with_opts = server
+            .optional_params(
+                "required".to_string(),
+                Some("optional".to_string()),
+                Some(123),
+            )
+            .await;
         assert!(result_with_opts.contains("Required: required"));
         assert!(result_with_opts.contains("OptStr: Some(\"optional\")"));
         assert!(result_with_opts.contains("OptInt: Some(123)"));
 
-        let result_without_opts = server.optional_params(
-            "required".to_string(),
-            None,
-            None
-        ).await;
+        let result_without_opts = server
+            .optional_params("required".to_string(), None, None)
+            .await;
         assert!(result_without_opts.contains("OptStr: None"));
         assert!(result_without_opts.contains("OptInt: None"));
     }
@@ -289,10 +336,12 @@ mod tests {
     async fn test_collection_types() {
         let server = ParameterServer::with_defaults();
 
-        let result = server.collection_types(
-            vec!["hello".to_string(), "world".to_string()],
-            vec![1, 2, 3, 4, 5]
-        ).await;
+        let result = server
+            .collection_types(
+                vec!["hello".to_string(), "world".to_string()],
+                vec![1, 2, 3, 4, 5],
+            )
+            .await;
 
         assert!(result.contains("Strings: [\"hello\", \"world\"]"));
         assert!(result.contains("Ints: [1, 2, 3, 4, 5]"));
@@ -327,10 +376,20 @@ mod tests {
     async fn test_many_parameters() {
         let server = ParameterServer::with_defaults();
 
-        let result = server.many_params(
-            "p1".to_string(), 2, true, 4.0, vec!["p5".to_string()],
-            Some("p6".to_string()), 7, Some(8), "p9".to_string(), false
-        ).await;
+        let result = server
+            .many_params(
+                "p1".to_string(),
+                2,
+                true,
+                4.0,
+                vec!["p5".to_string()],
+                Some("p6".to_string()),
+                7,
+                Some(8),
+                "p9".to_string(),
+                false,
+            )
+            .await;
 
         assert!(result.contains("10 params:"));
         assert!(result.contains("p1"));
@@ -343,11 +402,15 @@ mod tests {
     async fn test_resource_parameters() {
         let server = ParameterServer::with_defaults();
 
-        let result = server.param_resource("user".to_string(), "123".to_string()).await;
+        let result = server
+            .param_resource("user".to_string(), "123".to_string())
+            .await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "Type: user, ID: 123");
 
-        let error_result = server.param_resource("".to_string(), "123".to_string()).await;
+        let error_result = server
+            .param_resource("".to_string(), "123".to_string())
+            .await;
         assert!(error_result.is_err());
     }
 
@@ -355,12 +418,14 @@ mod tests {
     async fn test_complex_resource_parameters() {
         let server = ParameterServer::with_defaults();
 
-        let result = server.complex_param_resource(
-            "testdb".to_string(),
-            "public".to_string(),
-            "users".to_string(),
-            "select".to_string()
-        ).await;
+        let result = server
+            .complex_param_resource(
+                "testdb".to_string(),
+                "public".to_string(),
+                "users".to_string(),
+                "select".to_string(),
+            )
+            .await;
 
         assert!(result.is_ok());
         let json = result.unwrap();
@@ -374,12 +439,9 @@ mod tests {
     async fn test_prompt_parameters() {
         let server = ParameterServer::with_defaults();
 
-        let result = server.param_prompt(
-            "AI".to_string(),
-            "technical".to_string(),
-            500,
-            true
-        ).await;
+        let result = server
+            .param_prompt("AI".to_string(), "technical".to_string(), 500, true)
+            .await;
 
         assert!(result.is_ok());
         let message = result.unwrap();
@@ -509,11 +571,15 @@ mod tests {
         assert!(invalid_range.is_err());
 
         // Valid array length
-        let valid_array = server.validate_array_length(vec!["a".to_string(), "b".to_string()], 5).await;
+        let valid_array = server
+            .validate_array_length(vec!["a".to_string(), "b".to_string()], 5)
+            .await;
         assert!(valid_array.is_ok());
 
         // Invalid array length
-        let invalid_array = server.validate_array_length(vec!["a".to_string(); 10], 5).await;
+        let invalid_array = server
+            .validate_array_length(vec!["a".to_string(); 10], 5)
+            .await;
         assert!(invalid_array.is_err());
     }
 }

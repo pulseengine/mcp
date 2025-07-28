@@ -1,6 +1,6 @@
 //! Tests for async and sync function handling in macros
 
-use pulseengine_mcp_macros::{mcp_backend, mcp_server, mcp_tool, mcp_resource, mcp_prompt};
+use pulseengine_mcp_macros::{mcp_backend, mcp_prompt, mcp_resource, mcp_server, mcp_tool};
 
 mod mixed_async_sync {
     use super::*;
@@ -25,7 +25,10 @@ mod mixed_async_sync {
         /// Synchronous tool with Result
         fn sync_result_tool(&self, value: i32) -> Result<i32, std::io::Error> {
             if value < 0 {
-                Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Negative value"))
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "Negative value",
+                ))
             } else {
                 Ok(value * 2)
             }
@@ -35,7 +38,10 @@ mod mixed_async_sync {
         async fn async_result_tool(&self, value: i32) -> Result<i32, std::io::Error> {
             tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
             if value == 0 {
-                Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Zero value"))
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "Zero value",
+                ))
             } else {
                 Ok(value * 3)
             }
@@ -44,7 +50,12 @@ mod mixed_async_sync {
         /// Complex async tool with multiple parameters
         async fn complex_async_tool(&self, name: String, age: u32, active: bool) -> String {
             tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
-            format!("User {} is {} years old and {}", name, age, if active { "active" } else { "inactive" })
+            format!(
+                "User {} is {} years old and {}",
+                name,
+                age,
+                if active { "active" } else { "inactive" }
+            )
         }
 
         /// Complex sync tool with optional parameters
@@ -61,7 +72,10 @@ mod mixed_async_sync {
         /// Synchronous resource
         fn sync_resource(&self, id: String) -> Result<String, std::io::Error> {
             if id.is_empty() {
-                Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Empty ID"))
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "Empty ID",
+                ))
             } else {
                 Ok(format!("Sync resource: {}", id))
             }
@@ -74,7 +88,10 @@ mod mixed_async_sync {
         async fn async_resource(&self, id: String) -> Result<String, std::io::Error> {
             tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
             if id == "error" {
-                Err(std::io::Error::new(std::io::ErrorKind::NotFound, "Resource not found"))
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::NotFound,
+                    "Resource not found",
+                ))
             } else {
                 Ok(format!("Async resource: {}", id))
             }
@@ -84,7 +101,10 @@ mod mixed_async_sync {
     #[mcp_prompt(name = "sync_prompt")]
     impl MixedServer {
         /// Synchronous prompt
-        fn sync_prompt(&self, topic: String) -> Result<pulseengine_mcp_protocol::PromptMessage, std::io::Error> {
+        fn sync_prompt(
+            &self,
+            topic: String,
+        ) -> Result<pulseengine_mcp_protocol::PromptMessage, std::io::Error> {
             Ok(pulseengine_mcp_protocol::PromptMessage {
                 role: pulseengine_mcp_protocol::Role::User,
                 content: pulseengine_mcp_protocol::PromptContent::Text {
@@ -97,7 +117,10 @@ mod mixed_async_sync {
     #[mcp_prompt(name = "async_prompt")]
     impl MixedServer {
         /// Asynchronous prompt
-        async fn async_prompt(&self, topic: String) -> Result<pulseengine_mcp_protocol::PromptMessage, std::io::Error> {
+        async fn async_prompt(
+            &self,
+            topic: String,
+        ) -> Result<pulseengine_mcp_protocol::PromptMessage, std::io::Error> {
             tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
             Ok(pulseengine_mcp_protocol::PromptMessage {
                 role: pulseengine_mcp_protocol::Role::Assistant,
@@ -173,17 +196,17 @@ mod pure_sync {
 
         fn validate_input(&self, input: String) -> Result<String, std::io::Error> {
             if input.len() < 3 {
-                Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input too short"))
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "Input too short",
+                ))
             } else {
                 Ok(format!("Valid: {}", input))
             }
         }
 
         fn parse_numbers(&self, input: String) -> Result<Vec<i32>, std::num::ParseIntError> {
-            input
-                .split(',')
-                .map(|s| s.trim().parse::<i32>())
-                .collect()
+            input.split(',').map(|s| s.trim().parse::<i32>()).collect()
         }
     }
 }
@@ -217,11 +240,19 @@ mod tests {
         let sync_result_err = server.sync_result_tool(-1).await;
         assert!(sync_result_err.is_err());
 
-        let complex_sync_with_opt = server.complex_sync_tool("required".to_string(), Some("optional".to_string())).await;
-        assert_eq!(complex_sync_with_opt, "Required: required, Optional: optional");
+        let complex_sync_with_opt = server
+            .complex_sync_tool("required".to_string(), Some("optional".to_string()))
+            .await;
+        assert_eq!(
+            complex_sync_with_opt,
+            "Required: required, Optional: optional"
+        );
 
         let complex_sync_without_opt = server.complex_sync_tool("required".to_string(), None).await;
-        assert_eq!(complex_sync_without_opt, "Required: required, Optional: None");
+        assert_eq!(
+            complex_sync_without_opt,
+            "Required: required, Optional: None"
+        );
     }
 
     #[tokio::test]
@@ -239,7 +270,9 @@ mod tests {
         let async_result_err = server.async_result_tool(0).await;
         assert!(async_result_err.is_err());
 
-        let complex_async = server.complex_async_tool("John".to_string(), 30, true).await;
+        let complex_async = server
+            .complex_async_tool("John".to_string(), 30, true)
+            .await;
         assert_eq!(complex_async, "User John is 30 years old and active");
     }
 
@@ -289,11 +322,13 @@ mod tests {
         assert!(fetch_result.is_ok());
         assert_eq!(fetch_result.unwrap(), "Data from: https://example.com");
 
-        let process_result = backend.process_async(vec![
-            "item1".to_string(),
-            "item2".to_string(),
-            "item3".to_string(),
-        ]).await;
+        let process_result = backend
+            .process_async(vec![
+                "item1".to_string(),
+                "item2".to_string(),
+                "item3".to_string(),
+            ])
+            .await;
         assert_eq!(process_result, "item1,item2,item3");
 
         let computation_result = backend.async_computation(10).await;

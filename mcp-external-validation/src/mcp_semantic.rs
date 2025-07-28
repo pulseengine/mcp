@@ -5,8 +5,8 @@
 //! transitions, and protocol compliance.
 
 use crate::{
-    report::{IssueSeverity, TestScore, ValidationIssue},
     ValidationConfig, ValidationResult,
+    report::{IssueSeverity, TestScore, ValidationIssue},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -1079,10 +1079,12 @@ mod tests {
             .validate_protocol_semantics(&messages)
             .await
             .unwrap();
-        assert!(result
-            .issues
-            .iter()
-            .any(|i| i.description.contains("Unsupported protocol version")));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|i| i.description.contains("Unsupported protocol version"))
+        );
     }
 
     #[tokio::test]
@@ -1111,9 +1113,11 @@ mod tests {
             .validate_protocol_semantics(&messages)
             .await
             .unwrap();
-        assert!(result
-            .issues
-            .iter()
-            .any(|i| i.description.contains("called before initialization")));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|i| i.description.contains("called before initialization"))
+        );
     }
 }

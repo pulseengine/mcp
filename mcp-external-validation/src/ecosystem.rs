@@ -5,8 +5,8 @@
 //! compatibility beyond protocol compliance.
 
 use crate::{
-    report::{IssueSeverity, TestScore, ValidationIssue},
     ValidationConfig, ValidationError, ValidationResult,
+    report::{IssueSeverity, TestScore, ValidationIssue},
 };
 use reqwest::Client;
 use serde::{Deserialize, Serialize};

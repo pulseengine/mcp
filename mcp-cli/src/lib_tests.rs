@@ -6,24 +6,32 @@ use pulseengine_mcp_protocol::{Implementation, ProtocolVersion, ServerCapabiliti
 #[test]
 fn test_cli_error_creation() {
     let config_err = CliError::configuration("Config test");
-    assert!(config_err
-        .to_string()
-        .contains("Configuration error: Config test"));
+    assert!(
+        config_err
+            .to_string()
+            .contains("Configuration error: Config test")
+    );
 
     let parsing_err = CliError::parsing("Parse test");
-    assert!(parsing_err
-        .to_string()
-        .contains("CLI parsing error: Parse test"));
+    assert!(
+        parsing_err
+            .to_string()
+            .contains("CLI parsing error: Parse test")
+    );
 
     let setup_err = CliError::server_setup("Setup test");
-    assert!(setup_err
-        .to_string()
-        .contains("Server setup error: Setup test"));
+    assert!(
+        setup_err
+            .to_string()
+            .contains("Server setup error: Setup test")
+    );
 
     let logging_err = CliError::logging("Log test");
-    assert!(logging_err
-        .to_string()
-        .contains("Logging setup error: Log test"));
+    assert!(
+        logging_err
+            .to_string()
+            .contains("Logging setup error: Log test")
+    );
 }
 
 #[test]
@@ -121,10 +129,12 @@ fn test_mcp_configuration_validation_failure() {
     // Test validation failure
     let result = config.validate();
     assert!(result.is_err());
-    assert!(result
-        .unwrap_err()
-        .to_string()
-        .contains("Validation failed"));
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("Validation failed")
+    );
 }
 
 #[test]

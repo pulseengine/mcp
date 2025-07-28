@@ -1,7 +1,7 @@
 //! Comprehensive tests for utility functions
 
-use crate::utils::*;
 use crate::CliError;
+use crate::utils::*;
 use std::fs;
 use std::path::Path;
 use tempfile::TempDir;

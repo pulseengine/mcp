@@ -17,8 +17,8 @@ use std::collections::HashMap;
 use std::error::Error as StdError;
 use std::fmt;
 use std::sync::{
-    atomic::{AtomicU64, Ordering},
     Arc,
+    atomic::{AtomicU64, Ordering},
 };
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -576,7 +576,7 @@ async fn test_complete_e2e_scenario() {
     // Test server creation and configuration
     let server_info = server.get_server_info();
     assert_eq!(server_info.server_info.name, "MCP Server"); // Server uses config name, not backend name
-                                                            // Verify we can get server info - the specific capabilities depend on server config vs backend
+    // Verify we can get server info - the specific capabilities depend on server config vs backend
 
     // Test health check
     let health = server.health_check().await.unwrap();

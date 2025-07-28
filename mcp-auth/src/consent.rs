@@ -441,11 +441,15 @@ mod tests {
         record.add_data_category("personal_identifiers".to_string()); // Duplicate
 
         assert_eq!(record.data_categories.len(), 2);
-        assert!(record
-            .data_categories
-            .contains(&"personal_identifiers".to_string()));
-        assert!(record
-            .data_categories
-            .contains(&"authentication_data".to_string()));
+        assert!(
+            record
+                .data_categories
+                .contains(&"personal_identifiers".to_string())
+        );
+        assert!(
+            record
+                .data_categories
+                .contains(&"authentication_data".to_string())
+        );
     }
 }

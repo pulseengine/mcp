@@ -16,7 +16,7 @@
 
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{parse2, Error, FnArg, ItemFn, PatType, Result};
+use syn::{Error, FnArg, ItemFn, PatType, Result, parse2};
 
 use crate::utils::{extract_doc_comments, parse_attribute_args};
 
@@ -57,7 +57,10 @@ fn parse_prompt_attributes(args: TokenStream) -> Result<McpPromptConfig> {
                 {
                     config.description = Some(lit_str.value());
                 } else {
-                    return Err(Error::new_spanned(value, "description must be a string literal"));
+                    return Err(Error::new_spanned(
+                        value,
+                        "description must be a string literal",
+                    ));
                 }
             }
             "arguments" => {
@@ -72,12 +75,18 @@ fn parse_prompt_attributes(args: TokenStream) -> Result<McpPromptConfig> {
                         {
                             args.push(lit_str.value());
                         } else {
-                            return Err(Error::new_spanned(elem, "argument names must be string literals"));
+                            return Err(Error::new_spanned(
+                                elem,
+                                "argument names must be string literals",
+                            ));
                         }
                     }
                     config.arguments = Some(args);
                 } else {
-                    return Err(Error::new_spanned(value, "arguments must be an array of strings"));
+                    return Err(Error::new_spanned(
+                        value,
+                        "arguments must be an array of strings",
+                    ));
                 }
             }
             _ => {
@@ -98,7 +107,7 @@ fn generate_prompt_parameter_extraction(fn_inputs: &[&PatType]) -> Result<TokenS
         let param_ident = &pat_type.pat;
         let param_type = &pat_type.ty;
         let param_name = quote!(#param_ident).to_string();
-        
+
         quote! {
             let #param_ident: #param_type = arguments.get(#param_name)
                 .ok_or_else(|| pulseengine_mcp_protocol::McpError::InvalidParams {
@@ -114,14 +123,13 @@ fn generate_prompt_parameter_extraction(fn_inputs: &[&PatType]) -> Result<TokenS
 }
 
 /// Generate the prompt implementation
-fn generate_prompt_impl(
-    config: &McpPromptConfig,
-    original_fn: &ItemFn,
-) -> Result<TokenStream> {
+fn generate_prompt_impl(config: &McpPromptConfig, original_fn: &ItemFn) -> Result<TokenStream> {
     let fn_name = &original_fn.sig.ident;
     let fn_name_string = fn_name.to_string();
     let prompt_name = config.name.as_ref().unwrap_or(&fn_name_string);
-    let description = config.description.as_ref()
+    let description = config
+        .description
+        .as_ref()
         .map(|d| d.clone())
         .unwrap_or_else(|| {
             extract_doc_comments(&original_fn.attrs)
@@ -146,7 +154,7 @@ fn generate_prompt_impl(
     let argument_schemas = fn_inputs.iter().map(|pat_type| {
         let param_name = quote!(#pat_type.pat).to_string();
         let param_type = &pat_type.ty;
-        
+
         quote! {
             serde_json::json!({
                 "name": #param_name,
@@ -214,10 +222,10 @@ fn generate_prompt_impl(
 pub fn mcp_prompt_impl(args: TokenStream, input: TokenStream) -> Result<TokenStream> {
     // Parse the configuration from macro arguments
     let config = parse_prompt_attributes(args)?;
-    
+
     // Parse the function
     let original_fn: ItemFn = parse2(input)?;
-    
+
     // Validate function signature
     if original_fn.sig.inputs.is_empty() {
         return Err(Error::new_spanned(
@@ -241,10 +249,13 @@ mod tests {
             name = "code_review",
             description = "Generate a code review prompt"
         };
-        
+
         let config = parse_prompt_attributes(args).unwrap();
         assert_eq!(config.name, Some("code_review".to_string()));
-        assert_eq!(config.description, Some("Generate a code review prompt".to_string()));
+        assert_eq!(
+            config.description,
+            Some("Generate a code review prompt".to_string())
+        );
     }
 
     #[test]
@@ -253,13 +264,16 @@ mod tests {
             name = "test_prompt",
             arguments = ["code", "language", "style"]
         };
-        
+
         let config = parse_prompt_attributes(args).unwrap();
         assert_eq!(config.name, Some("test_prompt".to_string()));
-        assert_eq!(config.arguments, Some(vec![
-            "code".to_string(),
-            "language".to_string(), 
-            "style".to_string()
-        ]));
+        assert_eq!(
+            config.arguments,
+            Some(vec![
+                "code".to_string(),
+                "language".to_string(),
+                "style".to_string()
+            ])
+        );
     }
 }

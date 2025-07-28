@@ -4,9 +4,9 @@
 //! real-time metrics, alerting, threat detection, and security dashboards.
 
 use crate::{
+    AuthContext,
     security::{SecuritySeverity, SecurityViolation, SecurityViolationType},
     session::Session,
-    AuthContext,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};

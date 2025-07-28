@@ -1,6 +1,6 @@
 //! Metrics endpoints for monitoring and observability
 
-use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get, Router};
+use axum::{Router, extract::State, http::StatusCode, response::IntoResponse, routing::get};
 use prometheus::{Counter, Encoder, Gauge, Histogram, Registry, TextEncoder};
 use pulseengine_mcp_logging::get_metrics as get_logging_metrics;
 use pulseengine_mcp_monitoring::MetricsCollector;

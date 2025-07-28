@@ -1,11 +1,11 @@
 //! Authentication manager implementation
 
 use crate::{
-    audit::{events, AuditConfig, AuditEvent, AuditEventType, AuditLogger, AuditSeverity},
+    audit::{AuditConfig, AuditEvent, AuditEventType, AuditLogger, AuditSeverity, events},
     config::AuthConfig,
     jwt::{JwtConfig, JwtManager, TokenPair},
     models::*,
-    storage::{create_storage_backend, StorageBackend},
+    storage::{StorageBackend, create_storage_backend},
 };
 use chrono::{DateTime, Utc};
 use pulseengine_mcp_protocol::{Request, Response};
@@ -887,8 +887,10 @@ impl AuthenticationManager {
             crate::audit::AuditEventType::SystemStartup,
             crate::audit::AuditSeverity::Info,
             "role_rate_limiter".to_string(),
-            format!("Rate limit configuration update requested for role '{}' (max_requests: {}, window: {} min)", 
-                role_key, config.max_requests_per_window, config.window_duration_minutes),
+            format!(
+                "Rate limit configuration update requested for role '{}' (max_requests: {}, window: {} min)",
+                role_key, config.max_requests_per_window, config.window_duration_minutes
+            ),
         );
         let _ = self.audit_logger.log(audit_event).await;
 

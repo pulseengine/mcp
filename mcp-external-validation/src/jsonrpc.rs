@@ -4,13 +4,13 @@
 //! using external validators and schema validation.
 
 use crate::{
-    report::{IssueSeverity, JsonRpcValidatorResult, TestScore, ValidationIssue},
     ValidationConfig, ValidationError, ValidationResult,
+    report::{IssueSeverity, JsonRpcValidatorResult, TestScore, ValidationIssue},
 };
 use jsonschema::{Draft, JSONSchema};
 // Note: reqwest::Client used for real message collection
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 // use std::collections::HashMap;  // Removed unused import
 use tokio::io::AsyncWriteExt;
 use tracing::{debug, info, warn};
@@ -1383,9 +1383,11 @@ mod tests {
 
         let issues = validator.validate_single_message(&invalid_request).unwrap();
         assert!(!issues.is_empty());
-        assert!(issues
-            .iter()
-            .any(|i| i.description.contains("Invalid JSON-RPC version")));
+        assert!(
+            issues
+                .iter()
+                .any(|i| i.description.contains("Invalid JSON-RPC version"))
+        );
     }
 
     #[test]

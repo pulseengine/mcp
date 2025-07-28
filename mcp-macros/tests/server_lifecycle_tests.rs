@@ -26,7 +26,7 @@ mod app_specific_lifecycle {
     use super::*;
 
     #[mcp_server(
-        name = "App Lifecycle Server", 
+        name = "App Lifecycle Server",
         app_name = "lifecycle-test-app",
         version = "1.2.3",
         description = "Server for testing application-specific lifecycle"
@@ -59,10 +59,10 @@ mod transport_server {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lifecycle_server::*;
     use app_specific_lifecycle::*;
-    use transport_server::*;
+    use lifecycle_server::*;
     use pulseengine_mcp_server::McpBackend;
+    use transport_server::*;
 
     #[test]
     fn test_server_creation() {
@@ -124,7 +124,7 @@ mod tests {
 
         // Test description
         assert_eq!(
-            app_info.instructions, 
+            app_info.instructions,
             Some("Server for testing application-specific lifecycle".to_string())
         );
         assert_eq!(lifecycle_info.instructions, None);
@@ -168,21 +168,27 @@ mod tests {
         assert_eq!(prompts.prompts.len(), 0);
 
         // Test error cases
-        let tool_result = server.call_tool(pulseengine_mcp_protocol::CallToolRequestParam {
-            name: "nonexistent".to_string(),
-            arguments: None,
-        }).await;
+        let tool_result = server
+            .call_tool(pulseengine_mcp_protocol::CallToolRequestParam {
+                name: "nonexistent".to_string(),
+                arguments: None,
+            })
+            .await;
         assert!(tool_result.is_err());
 
-        let resource_result = server.read_resource(pulseengine_mcp_protocol::ReadResourceRequestParam {
-            uri: "nonexistent://resource".to_string(),
-        }).await;
+        let resource_result = server
+            .read_resource(pulseengine_mcp_protocol::ReadResourceRequestParam {
+                uri: "nonexistent://resource".to_string(),
+            })
+            .await;
         assert!(resource_result.is_err());
 
-        let prompt_result = server.get_prompt(pulseengine_mcp_protocol::GetPromptRequestParam {
-            name: "nonexistent".to_string(),
-            arguments: None,
-        }).await;
+        let prompt_result = server
+            .get_prompt(pulseengine_mcp_protocol::GetPromptRequestParam {
+                name: "nonexistent".to_string(),
+                arguments: None,
+            })
+            .await;
         assert!(prompt_result.is_err());
     }
 
@@ -195,7 +201,7 @@ mod tests {
         assert_eq!(app_config.server_name, "App Lifecycle Server");
         assert_eq!(app_config.server_version, "1.2.3");
         assert_eq!(
-            app_config.server_description, 
+            app_config.server_description,
             Some("Server for testing application-specific lifecycle".to_string())
         );
     }

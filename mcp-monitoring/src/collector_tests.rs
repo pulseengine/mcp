@@ -368,7 +368,7 @@ mod tests {
         let metrics = collector.get_current_metrics().await;
         assert!(metrics.error_rate > 0.0); // Should have error rate from concurrent errors
         assert_eq!(metrics.requests_total, 50); // 10 tasks * 5 requests each
-                                                // Approximately 50% error rate since j % 2 == 0 determines success/error
+        // Approximately 50% error rate since j % 2 == 0 determines success/error
         assert!(metrics.error_rate >= 0.4 && metrics.error_rate <= 0.6);
     }
 

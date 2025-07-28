@@ -4,7 +4,7 @@ use crate::backend::{BackendError, McpBackend};
 use crate::handler::{GenericServerHandler, HandlerError};
 use crate::middleware::MiddlewareStack;
 use async_trait::async_trait;
-use pulseengine_mcp_auth::{config::StorageConfig, AuthConfig, AuthenticationManager};
+use pulseengine_mcp_auth::{AuthConfig, AuthenticationManager, config::StorageConfig};
 use pulseengine_mcp_protocol::error::ErrorCode;
 use pulseengine_mcp_protocol::*;
 use std::error::Error as StdError;
@@ -268,19 +268,25 @@ async fn create_test_handler() -> GenericServerHandler<MockHandlerBackend> {
 #[test]
 fn test_handler_error_types() {
     let auth_err = HandlerError::Authentication("Auth failed".to_string());
-    assert!(auth_err
-        .to_string()
-        .contains("Authentication failed: Auth failed"));
+    assert!(
+        auth_err
+            .to_string()
+            .contains("Authentication failed: Auth failed")
+    );
 
     let authz_err = HandlerError::Authorization("Authz failed".to_string());
-    assert!(authz_err
-        .to_string()
-        .contains("Authorization failed: Authz failed"));
+    assert!(
+        authz_err
+            .to_string()
+            .contains("Authorization failed: Authz failed")
+    );
 
     let backend_err = HandlerError::Backend("Backend failed".to_string());
-    assert!(backend_err
-        .to_string()
-        .contains("Backend error: Backend failed"));
+    assert!(
+        backend_err
+            .to_string()
+            .contains("Backend error: Backend failed")
+    );
 
     let protocol_err = HandlerError::Protocol(Error::internal_error("Protocol failed"));
     assert!(protocol_err.to_string().contains("Protocol error:"));

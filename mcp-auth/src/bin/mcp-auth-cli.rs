@@ -7,12 +7,12 @@
 use chrono::Utc;
 use clap::{Parser, Subcommand};
 use pulseengine_mcp_auth::{
-    config::StorageConfig,
-    consent::manager::ConsentRequest,
-    vault::{VaultConfig, VaultIntegration},
     AuthConfig, AuthenticationManager, ConsentConfig, ConsentManager, ConsentType,
     KeyCreationRequest, LegalBasis, MemoryConsentStorage, PerformanceConfig, PerformanceTest, Role,
     TestOperation, ValidationConfig,
+    config::StorageConfig,
+    consent::manager::ConsentRequest,
+    vault::{VaultConfig, VaultIntegration},
 };
 use std::path::PathBuf;
 use std::process;
@@ -2599,7 +2599,8 @@ fn print_benchmark_results(results: &pulseengine_mcp_auth::PerformanceResults, o
 }
 
 fn generate_text_report(results: &pulseengine_mcp_auth::PerformanceResults) -> String {
-    format!("Performance Test Report\n{}\n\nTest executed on: {}\nDuration: {:.1} seconds\nConcurrent Users: {}\n\nOverall Results:\n- Total Requests: {}\n- Success Rate: {:.1}%\n- Overall RPS: {:.1}\n- Peak RPS: {:.1}\n\nResource Usage:\n- Peak Memory: {:.1} MB\n- Peak CPU: {:.1}%\n- Threads: {}\n",
+    format!(
+        "Performance Test Report\n{}\n\nTest executed on: {}\nDuration: {:.1} seconds\nConcurrent Users: {}\n\nOverall Results:\n- Total Requests: {}\n- Success Rate: {:.1}%\n- Overall RPS: {:.1}\n- Peak RPS: {:.1}\n\nResource Usage:\n- Peak Memory: {:.1} MB\n- Peak CPU: {:.1}%\n- Threads: {}\n",
         "=".repeat(50),
         results.start_time.format("%Y-%m-%d %H:%M:%S UTC"),
         results.test_duration_secs,

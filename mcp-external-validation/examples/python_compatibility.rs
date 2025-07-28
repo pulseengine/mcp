@@ -1,6 +1,6 @@
 //! Example of Python SDK compatibility testing
 
-use pulseengine_mcp_external_validation::{python_sdk::PythonSdkTester, ValidationConfig};
+use pulseengine_mcp_external_validation::{ValidationConfig, python_sdk::PythonSdkTester};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

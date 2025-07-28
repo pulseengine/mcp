@@ -5,16 +5,16 @@
 //! validation and security testing.
 
 use crate::{
-    report::{IssueSeverity, TestScore, ValidationIssue},
     ValidationConfig, ValidationError, ValidationResult,
+    report::{IssueSeverity, TestScore, ValidationIssue},
 };
 use pulseengine_mcp_auth::{
-    validation::permissions, AuthenticationManager, RateLimitStats, Role,
-    ValidationConfig as AuthValidationConfig,
+    AuthenticationManager, RateLimitStats, Role, ValidationConfig as AuthValidationConfig,
+    validation::permissions,
 };
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::time::Duration;
 use tracing::{error, info, warn};
@@ -148,7 +148,7 @@ impl AuthIntegrationTester {
 
     /// Initialize authentication manager for testing
     pub async fn initialize_auth_manager(&mut self) -> ValidationResult<()> {
-        use pulseengine_mcp_auth::{config::StorageConfig, AuthConfig};
+        use pulseengine_mcp_auth::{AuthConfig, config::StorageConfig};
 
         // Create temporary in-memory authentication configuration for testing
         let auth_config = AuthConfig {

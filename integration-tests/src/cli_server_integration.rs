@@ -2,7 +2,7 @@
 
 use crate::test_utils::*;
 use async_trait::async_trait;
-use pulseengine_mcp_cli::{config::create_server_info, CliError};
+use pulseengine_mcp_cli::{CliError, config::create_server_info};
 use pulseengine_mcp_protocol::*;
 use pulseengine_mcp_server::backend::{BackendError, McpBackend};
 use pulseengine_mcp_transport::TransportConfig;
@@ -354,11 +354,13 @@ async fn test_cli_server_integration_with_backend() {
         .unwrap();
 
     assert_eq!(read_result.contents.len(), 1);
-    assert!(read_result.contents[0]
-        .text
-        .as_ref()
-        .unwrap()
-        .contains("CLI Integration Backend"));
+    assert!(
+        read_result.contents[0]
+            .text
+            .as_ref()
+            .unwrap()
+            .contains("CLI Integration Backend")
+    );
 }
 
 #[tokio::test]

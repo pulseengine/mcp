@@ -8,9 +8,9 @@
 
 use clap::Parser;
 use colored::*;
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
+use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use pulseengine_mcp_auth::{
-    config::StorageConfig, AuthConfig, AuthenticationManager, Role, ValidationConfig,
+    AuthConfig, AuthenticationManager, Role, ValidationConfig, config::StorageConfig,
 };
 use std::path::PathBuf;
 use std::process;
@@ -230,7 +230,7 @@ async fn run_setup(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn generate_master_key() -> Result<String, Box<dyn std::error::Error>> {
-    use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+    use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
     use rand::Rng;
 
     println!("Generating new master encryption key...");

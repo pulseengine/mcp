@@ -156,7 +156,7 @@ impl Validator {
             .all(|c| c.is_alphanumeric() || c == '_' || c == '-' || c == '.')
         {
             return Err(Error::validation_error(
-                "Prompt name must contain only alphanumeric characters, underscores, hyphens, and dots"
+                "Prompt name must contain only alphanumeric characters, underscores, hyphens, and dots",
             ));
         }
 
@@ -219,7 +219,7 @@ impl Validator {
                     }
                     "string" | "number" | "integer" | "boolean" | "null" => {
                         return Err(Error::validation_error(
-                            "Tool output schema should define structured data (object or array), not primitive types"
+                            "Tool output schema should define structured data (object or array), not primitive types",
                         ));
                     }
                     _ => {
@@ -391,10 +391,12 @@ mod tests {
         let args = HashMap::new();
         let result = Validator::validate_tool_arguments(&args, &schema);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("Required argument 'name' is missing"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("Required argument 'name' is missing")
+        );
 
         // Valid schema with multiple required fields
         let schema = json!({
@@ -416,10 +418,12 @@ mod tests {
         args.insert("name".to_string(), json!("John"));
         let result = Validator::validate_tool_arguments(&args, &schema);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("Required argument 'email' is missing"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("Required argument 'email' is missing")
+        );
 
         // Schema without properties
         let schema = json!({
@@ -523,10 +527,12 @@ mod tests {
         });
         let result = Validator::validate_tool_output_schema(&invalid_primitive_schema);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("should define structured data"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("should define structured data")
+        );
 
         // Invalid - object without properties
         let invalid_object_schema = json!({
@@ -534,10 +540,12 @@ mod tests {
         });
         let result = Validator::validate_tool_output_schema(&invalid_object_schema);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("must define properties"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("must define properties")
+        );
 
         // Invalid - object with invalid properties
         let invalid_props_schema = json!({
@@ -546,10 +554,12 @@ mod tests {
         });
         let result = Validator::validate_tool_output_schema(&invalid_props_schema);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("properties must be an object"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("properties must be an object")
+        );
 
         // Invalid - missing type field
         let no_type_schema = json!({
@@ -557,10 +567,12 @@ mod tests {
         });
         let result = Validator::validate_tool_output_schema(&no_type_schema);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("JSON schema must have a 'type' field"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("JSON schema must have a 'type' field")
+        );
     }
 
     #[test]
@@ -723,32 +735,40 @@ mod tests {
         // Invalid empty strings
         let result = Validator::validate_non_empty("", "field");
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("field cannot be empty"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("field cannot be empty")
+        );
 
         let result = Validator::validate_non_empty("   ", "field");
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("field cannot be empty"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("field cannot be empty")
+        );
 
         let result = Validator::validate_non_empty("\t\n\r", "field");
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("field cannot be empty"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("field cannot be empty")
+        );
 
         // Test with different field names
         let result = Validator::validate_non_empty("", "tool_name");
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("tool_name cannot be empty"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("tool_name cannot be empty")
+        );
     }
 
     #[test]
@@ -769,17 +789,21 @@ mod tests {
         // Invalid tool names
         let result = Validator::validate_tool_name("");
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("Tool name cannot be empty"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("Tool name cannot be empty")
+        );
 
         let result = Validator::validate_tool_name("   ");
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("Tool name cannot be empty"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("Tool name cannot be empty")
+        );
 
         let result = Validator::validate_tool_name("tool name");
         assert!(result.is_err());
@@ -829,45 +853,57 @@ mod tests {
         // Invalid schemas
         let result = Validator::validate_json_schema(&json!("not an object"));
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("JSON schema must be an object"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("JSON schema must be an object")
+        );
 
         let result = Validator::validate_json_schema(&json!(123));
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("JSON schema must be an object"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("JSON schema must be an object")
+        );
 
         let result = Validator::validate_json_schema(&json!([]));
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("JSON schema must be an object"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("JSON schema must be an object")
+        );
 
         let result = Validator::validate_json_schema(&json!(null));
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("JSON schema must be an object"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("JSON schema must be an object")
+        );
 
         let result = Validator::validate_json_schema(&json!({"properties": {}}));
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("JSON schema must have a 'type' field"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("JSON schema must have a 'type' field")
+        );
 
         let result = Validator::validate_json_schema(&json!({}));
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("JSON schema must have a 'type' field"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("JSON schema must have a 'type' field")
+        );
     }
 
     #[test]
@@ -878,70 +914,88 @@ mod tests {
         assert!(Validator::validate_pagination(None, Some(1)).is_ok());
         assert!(Validator::validate_pagination(Some("cursor"), Some(1)).is_ok());
         assert!(Validator::validate_pagination(Some("cursor"), Some(1000)).is_ok());
-        assert!(Validator::validate_pagination(
-            Some("very-long-cursor-value-that-should-still-be-valid"),
-            Some(500)
-        )
-        .is_ok());
+        assert!(
+            Validator::validate_pagination(
+                Some("very-long-cursor-value-that-should-still-be-valid"),
+                Some(500)
+            )
+            .is_ok()
+        );
 
         // Invalid cursor values
         let result = Validator::validate_pagination(Some(""), None);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("Cursor cannot be empty"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("Cursor cannot be empty")
+        );
 
         let result = Validator::validate_pagination(Some("   "), None);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("Cursor cannot be empty"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("Cursor cannot be empty")
+        );
 
         let result = Validator::validate_pagination(Some("\t\n\r"), None);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("Cursor cannot be empty"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("Cursor cannot be empty")
+        );
 
         // Invalid limit values
         let result = Validator::validate_pagination(None, Some(0));
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("Limit must be greater than 0"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("Limit must be greater than 0")
+        );
 
         let result = Validator::validate_pagination(None, Some(1001));
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("Limit cannot exceed 1000"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("Limit cannot exceed 1000")
+        );
 
         let result = Validator::validate_pagination(None, Some(u32::MAX));
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("Limit cannot exceed 1000"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("Limit cannot exceed 1000")
+        );
 
         // Test with both invalid cursor and limit
         let result = Validator::validate_pagination(Some(""), Some(0));
         assert!(result.is_err());
         // Should fail on cursor first
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("Cursor cannot be empty"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("Cursor cannot be empty")
+        );
 
         let result = Validator::validate_pagination(Some("valid-cursor"), Some(0));
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .message
-            .contains("Limit must be greater than 0"));
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("Limit must be greater than 0")
+        );
     }
 }

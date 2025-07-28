@@ -4,7 +4,7 @@
 //! an MCP server's robustness against malformed inputs.
 
 use pulseengine_mcp_external_validation::{
-    fuzzing::fuzz_results_to_issues, FuzzTarget, McpFuzzer, ValidationConfig,
+    FuzzTarget, McpFuzzer, ValidationConfig, fuzzing::fuzz_results_to_issues,
 };
 
 #[tokio::main]

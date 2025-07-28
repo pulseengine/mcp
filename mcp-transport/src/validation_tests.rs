@@ -429,12 +429,16 @@ mod tests {
         // Test that error messages are informative
         let oversized = "a".repeat(MAX_MESSAGE_SIZE + 1);
         let size_error = validate_message_string(&oversized, Some(MAX_MESSAGE_SIZE)).unwrap_err();
-        assert!(size_error
-            .to_string()
-            .contains("Message exceeds maximum size"));
-        assert!(size_error
-            .to_string()
-            .contains(&MAX_MESSAGE_SIZE.to_string()));
+        assert!(
+            size_error
+                .to_string()
+                .contains("Message exceeds maximum size")
+        );
+        assert!(
+            size_error
+                .to_string()
+                .contains(&MAX_MESSAGE_SIZE.to_string())
+        );
 
         let invalid_json = "{invalid}";
         let json_error = validate_json_rpc_message(invalid_json).unwrap_err();

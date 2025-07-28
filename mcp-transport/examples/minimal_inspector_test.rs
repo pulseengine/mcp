@@ -1,11 +1,11 @@
 //! Minimal test to determine what MCP Inspector expects
 
 use axum::{
+    Router,
     extract::Query,
     http::{HeaderMap, StatusCode, Uri},
     response::{IntoResponse, Json, Response},
     routing::{get, post},
-    Router,
 };
 use serde::Deserialize;
 use serde_json::json;

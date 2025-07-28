@@ -248,7 +248,7 @@ Created: {}
 
 /// Generate a new master encryption key
 fn generate_master_key() -> Result<String, SetupError> {
-    use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+    use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
     use rand::Rng;
 
     let mut key = [0u8; 32];

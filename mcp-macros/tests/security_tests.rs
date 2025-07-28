@@ -1,6 +1,6 @@
 //! Security-focused tests for macro-generated code
 
-use pulseengine_mcp_macros::{mcp_server, mcp_tool, mcp_resource, mcp_prompt};
+use pulseengine_mcp_macros::{mcp_prompt, mcp_resource, mcp_server, mcp_tool};
 
 mod security_server {
     use super::*;
@@ -15,16 +15,31 @@ mod security_server {
         async fn sanitize_input(&self, input: String) -> Result<String, std::io::Error> {
             // Check for common injection patterns
             let dangerous_patterns = [
-                "';", "script>", "<script", "javascript:", "vbscript:", "onload=", "onerror=",
-                "../", "..\\", "%2e%2e", "eval(", "exec(", "system(", "cmd.exe",
-                "DROP TABLE", "INSERT INTO", "DELETE FROM", "UPDATE SET"
+                "';",
+                "script>",
+                "<script",
+                "javascript:",
+                "vbscript:",
+                "onload=",
+                "onerror=",
+                "../",
+                "..\\",
+                "%2e%2e",
+                "eval(",
+                "exec(",
+                "system(",
+                "cmd.exe",
+                "DROP TABLE",
+                "INSERT INTO",
+                "DELETE FROM",
+                "UPDATE SET",
             ];
 
             for pattern in &dangerous_patterns {
                 if input.to_lowercase().contains(&pattern.to_lowercase()) {
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::InvalidInput,
-                        format!("Potentially dangerous input detected: {}", pattern)
+                        format!("Potentially dangerous input detected: {}", pattern),
                     ));
                 }
             }
@@ -40,7 +55,7 @@ mod security_server {
             if sanitized.len() > 1000 {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
-                    "Input too long"
+                    "Input too long",
                 ));
             }
 
@@ -53,7 +68,7 @@ mod security_server {
             if !email.contains('@') || email.split('@').count() != 2 {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
-                    "Invalid email format"
+                    "Invalid email format",
                 ));
             }
 
@@ -64,14 +79,14 @@ mod security_server {
             if local.is_empty() || domain.is_empty() {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
-                    "Empty email parts"
+                    "Empty email parts",
                 ));
             }
 
             if local.len() > 64 || domain.len() > 255 {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
-                    "Email parts too long"
+                    "Email parts too long",
                 ));
             }
 
@@ -81,7 +96,7 @@ mod security_server {
                 if email.to_lowercase().starts_with(pattern) {
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::PermissionDenied,
-                        "Restricted email address"
+                        "Restricted email address",
                     ));
                 }
             }
@@ -90,12 +105,15 @@ mod security_server {
         }
 
         /// Rate-limited operation
-        async fn rate_limited_operation(&self, operation_id: String) -> Result<String, std::io::Error> {
+        async fn rate_limited_operation(
+            &self,
+            operation_id: String,
+        ) -> Result<String, std::io::Error> {
             // Simulate rate limiting check
             if operation_id.len() > 100 {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
-                    "Operation ID too long"
+                    "Operation ID too long",
                 ));
             }
 
@@ -111,17 +129,25 @@ mod security_server {
             if path.contains("..") || path.contains("~") {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::PermissionDenied,
-                    "Directory traversal not allowed"
+                    "Directory traversal not allowed",
                 ));
             }
 
             // Prevent access to system directories
-            let forbidden_paths = ["/etc/", "/proc/", "/sys/", "/dev/", "/root/", "C:\\Windows\\", "C:\\Users\\"];
+            let forbidden_paths = [
+                "/etc/",
+                "/proc/",
+                "/sys/",
+                "/dev/",
+                "/root/",
+                "C:\\Windows\\",
+                "C:\\Users\\",
+            ];
             for forbidden in &forbidden_paths {
                 if path.starts_with(forbidden) {
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::PermissionDenied,
-                        "Access to system directories forbidden"
+                        "Access to system directories forbidden",
                     ));
                 }
             }
@@ -131,7 +157,7 @@ mod security_server {
             if !allowed_extensions.iter().any(|ext| path.ends_with(ext)) {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::PermissionDenied,
-                    "File extension not allowed"
+                    "File extension not allowed",
                 ));
             }
 
@@ -143,21 +169,23 @@ mod security_server {
             if password.len() < 8 {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
-                    "Password too short (minimum 8 characters)"
+                    "Password too short (minimum 8 characters)",
                 ));
             }
 
             if password.len() > 128 {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
-                    "Password too long (maximum 128 characters)"
+                    "Password too long (maximum 128 characters)",
                 ));
             }
 
             let has_uppercase = password.chars().any(|c| c.is_uppercase());
             let has_lowercase = password.chars().any(|c| c.is_lowercase());
             let has_digit = password.chars().any(|c| c.is_ascii_digit());
-            let has_special = password.chars().any(|c| "!@#$%^&*()_+-=[]{}|;:,.<>?".contains(c));
+            let has_special = password
+                .chars()
+                .any(|c| "!@#$%^&*()_+-=[]{}|;:,.<>?".contains(c));
 
             let strength = [has_uppercase, has_lowercase, has_digit, has_special]
                 .iter()
@@ -167,7 +195,7 @@ mod security_server {
             if strength < 3 {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
-                    "Password must contain at least 3 of: uppercase, lowercase, digit, special character"
+                    "Password must contain at least 3 of: uppercase, lowercase, digit, special character",
                 ));
             }
 
@@ -177,7 +205,7 @@ mod security_server {
                 if password.to_lowercase().contains(common) {
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::InvalidInput,
-                        "Password contains common weak patterns"
+                        "Password contains common weak patterns",
                     ));
                 }
             }
@@ -189,28 +217,35 @@ mod security_server {
     #[mcp_resource(uri_template = "secure://{resource_type}/{resource_id}")]
     impl SecurityServer {
         /// Secure resource access with validation
-        async fn secure_resource(&self, resource_type: String, resource_id: String) -> Result<String, std::io::Error> {
+        async fn secure_resource(
+            &self,
+            resource_type: String,
+            resource_id: String,
+        ) -> Result<String, std::io::Error> {
             // Validate resource type
             let allowed_types = ["user", "document", "config", "log"];
             if !allowed_types.contains(&resource_type.as_str()) {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::PermissionDenied,
-                    "Resource type not allowed"
+                    "Resource type not allowed",
                 ));
             }
 
             // Validate resource ID format
-            if !resource_id.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_') {
+            if !resource_id
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+            {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
-                    "Invalid resource ID format"
+                    "Invalid resource ID format",
                 ));
             }
 
             if resource_id.len() > 50 {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
-                    "Resource ID too long"
+                    "Resource ID too long",
                 ));
             }
 
@@ -221,7 +256,7 @@ mod security_server {
                     if resource_id.starts_with("admin_") || resource_id.starts_with("system_") {
                         return Err(std::io::Error::new(
                             std::io::ErrorKind::PermissionDenied,
-                            "Access denied to privileged resource"
+                            "Access denied to privileged resource",
                         ));
                     }
                 }
@@ -229,31 +264,48 @@ mod security_server {
                     // Config access is restricted
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::PermissionDenied,
-                        "Configuration access requires elevated privileges"
+                        "Configuration access requires elevated privileges",
                     ));
                 }
                 _ => {} // Other types allowed
             }
 
-            Ok(format!("Secure access to {} resource: {}", resource_type, resource_id))
+            Ok(format!(
+                "Secure access to {} resource: {}",
+                resource_type, resource_id
+            ))
         }
     }
 
     #[mcp_prompt(name = "secure_prompt")]
     impl SecurityServer {
         /// Generate secure prompts with content filtering
-        async fn secure_prompt(&self, topic: String, context: String) -> Result<pulseengine_mcp_protocol::PromptMessage, std::io::Error> {
+        async fn secure_prompt(
+            &self,
+            topic: String,
+            context: String,
+        ) -> Result<pulseengine_mcp_protocol::PromptMessage, std::io::Error> {
             // Content filtering
             let forbidden_topics = [
-                "password", "security", "hack", "exploit", "vulnerability", "inject",
-                "malware", "virus", "phishing", "social engineering"
+                "password",
+                "security",
+                "hack",
+                "exploit",
+                "vulnerability",
+                "inject",
+                "malware",
+                "virus",
+                "phishing",
+                "social engineering",
             ];
 
             for forbidden in &forbidden_topics {
-                if topic.to_lowercase().contains(forbidden) || context.to_lowercase().contains(forbidden) {
+                if topic.to_lowercase().contains(forbidden)
+                    || context.to_lowercase().contains(forbidden)
+                {
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::PermissionDenied,
-                        format!("Topic contains forbidden content: {}", forbidden)
+                        format!("Topic contains forbidden content: {}", forbidden),
                     ));
                 }
             }
@@ -262,22 +314,26 @@ mod security_server {
             if topic.len() > 100 || context.len() > 500 {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
-                    "Input too long"
+                    "Input too long",
                 ));
             }
 
             // Generate safe prompt
             let safe_text = format!(
                 "Please provide information about {} in the context of {}. Keep the response educational and appropriate.",
-                topic.chars().filter(|c| c.is_alphanumeric() || " .-_".contains(*c)).collect::<String>(),
-                context.chars().filter(|c| c.is_alphanumeric() || " .-_".contains(*c)).collect::<String>()
+                topic
+                    .chars()
+                    .filter(|c| c.is_alphanumeric() || " .-_".contains(*c))
+                    .collect::<String>(),
+                context
+                    .chars()
+                    .filter(|c| c.is_alphanumeric() || " .-_".contains(*c))
+                    .collect::<String>()
             );
 
             Ok(pulseengine_mcp_protocol::PromptMessage {
                 role: pulseengine_mcp_protocol::Role::User,
-                content: pulseengine_mcp_protocol::PromptContent::Text {
-                    text: safe_text,
-                },
+                content: pulseengine_mcp_protocol::PromptContent::Text { text: safe_text },
             })
         }
     }
@@ -303,20 +359,33 @@ mod tests {
         assert_eq!(safe_result.unwrap(), "Hello World 123");
 
         // Test script injection
-        let script_result = server.sanitize_input("<script>alert('xss')</script>".to_string()).await;
+        let script_result = server
+            .sanitize_input("<script>alert('xss')</script>".to_string())
+            .await;
         assert!(script_result.is_err());
-        assert!(script_result.unwrap_err().to_string().contains("dangerous input"));
+        assert!(
+            script_result
+                .unwrap_err()
+                .to_string()
+                .contains("dangerous input")
+        );
 
         // Test SQL injection
-        let sql_result = server.sanitize_input("'; DROP TABLE users; --".to_string()).await;
+        let sql_result = server
+            .sanitize_input("'; DROP TABLE users; --".to_string())
+            .await;
         assert!(sql_result.is_err());
 
         // Test directory traversal
-        let traversal_result = server.sanitize_input("../../../etc/passwd".to_string()).await;
+        let traversal_result = server
+            .sanitize_input("../../../etc/passwd".to_string())
+            .await;
         assert!(traversal_result.is_err());
 
         // Test sanitization of special characters
-        let special_result = server.sanitize_input("Hello<>World&nbsp;".to_string()).await;
+        let special_result = server
+            .sanitize_input("Hello<>World&nbsp;".to_string())
+            .await;
         assert!(special_result.is_ok());
         let sanitized = special_result.unwrap();
         assert!(!sanitized.contains('<'));
@@ -351,7 +420,9 @@ mod tests {
 
         // Test too long email
         let long_local = "a".repeat(70);
-        let long_result = server.validate_email(format!("{}@example.com", long_local)).await;
+        let long_result = server
+            .validate_email(format!("{}@example.com", long_local))
+            .await;
         assert!(long_result.is_err());
         assert!(long_result.unwrap_err().to_string().contains("too long"));
     }
@@ -361,11 +432,11 @@ mod tests {
         let server = SecurityServer::with_defaults();
 
         let start = std::time::Instant::now();
-        
+
         // Test normal operation
         let result = server.rate_limited_operation("test_op_1".to_string()).await;
         assert!(result.is_ok());
-        
+
         let duration = start.elapsed();
         // Should take at least 100ms due to rate limiting
         assert!(duration >= std::time::Duration::from_millis(100));
@@ -382,14 +453,23 @@ mod tests {
         let server = SecurityServer::with_defaults();
 
         // Test safe path
-        let safe_result = server.validate_file_path("data/config.json".to_string()).await;
+        let safe_result = server
+            .validate_file_path("data/config.json".to_string())
+            .await;
         assert!(safe_result.is_ok());
         assert_eq!(safe_result.unwrap(), "data/config.json");
 
         // Test directory traversal
-        let traversal_result = server.validate_file_path("../../../etc/passwd".to_string()).await;
+        let traversal_result = server
+            .validate_file_path("../../../etc/passwd".to_string())
+            .await;
         assert!(traversal_result.is_err());
-        assert!(traversal_result.unwrap_err().to_string().contains("traversal"));
+        assert!(
+            traversal_result
+                .unwrap_err()
+                .to_string()
+                .contains("traversal")
+        );
 
         let home_result = server.validate_file_path("~/secret.txt".to_string()).await;
         assert!(home_result.is_err());
@@ -397,15 +477,27 @@ mod tests {
         // Test system directories
         let etc_result = server.validate_file_path("/etc/passwd".to_string()).await;
         assert!(etc_result.is_err());
-        assert!(etc_result.unwrap_err().to_string().contains("system directories"));
+        assert!(
+            etc_result
+                .unwrap_err()
+                .to_string()
+                .contains("system directories")
+        );
 
-        let windows_result = server.validate_file_path("C:\\Windows\\System32\\config".to_string()).await;
+        let windows_result = server
+            .validate_file_path("C:\\Windows\\System32\\config".to_string())
+            .await;
         assert!(windows_result.is_err());
 
         // Test disallowed extensions
         let exe_result = server.validate_file_path("malware.exe".to_string()).await;
         assert!(exe_result.is_err());
-        assert!(exe_result.unwrap_err().to_string().contains("extension not allowed"));
+        assert!(
+            exe_result
+                .unwrap_err()
+                .to_string()
+                .contains("extension not allowed")
+        );
 
         let script_result = server.validate_file_path("script.sh".to_string()).await;
         assert!(script_result.is_err());
@@ -416,9 +508,15 @@ mod tests {
         let server = SecurityServer::with_defaults();
 
         // Test strong password
-        let strong_result = server.validate_password("StrongP@ssw0rd!".to_string()).await;
+        let strong_result = server
+            .validate_password("StrongP@ssw0rd!".to_string())
+            .await;
         assert!(strong_result.is_ok());
-        assert!(strong_result.unwrap().contains("meets security requirements"));
+        assert!(
+            strong_result
+                .unwrap()
+                .contains("meets security requirements")
+        );
 
         // Test too short
         let short_result = server.validate_password("weak".to_string()).await;
@@ -434,12 +532,22 @@ mod tests {
         // Test weak password (only lowercase)
         let weak_result = server.validate_password("weakpassword".to_string()).await;
         assert!(weak_result.is_err());
-        assert!(weak_result.unwrap_err().to_string().contains("at least 3 of"));
+        assert!(
+            weak_result
+                .unwrap_err()
+                .to_string()
+                .contains("at least 3 of")
+        );
 
         // Test common password patterns
         let common_result = server.validate_password("password123".to_string()).await;
         assert!(common_result.is_err());
-        assert!(common_result.unwrap_err().to_string().contains("common weak patterns"));
+        assert!(
+            common_result
+                .unwrap_err()
+                .to_string()
+                .contains("common weak patterns")
+        );
 
         let qwerty_result = server.validate_password("Qwerty123!".to_string()).await;
         assert!(qwerty_result.is_err());
@@ -450,32 +558,67 @@ mod tests {
         let server = SecurityServer::with_defaults();
 
         // Test allowed resource type
-        let user_result = server.secure_resource("user".to_string(), "john_doe".to_string()).await;
+        let user_result = server
+            .secure_resource("user".to_string(), "john_doe".to_string())
+            .await;
         assert!(user_result.is_ok());
-        assert_eq!(user_result.unwrap(), "Secure access to user resource: john_doe");
+        assert_eq!(
+            user_result.unwrap(),
+            "Secure access to user resource: john_doe"
+        );
 
         // Test disallowed resource type
-        let invalid_type_result = server.secure_resource("secrets".to_string(), "key1".to_string()).await;
+        let invalid_type_result = server
+            .secure_resource("secrets".to_string(), "key1".to_string())
+            .await;
         assert!(invalid_type_result.is_err());
-        assert!(invalid_type_result.unwrap_err().to_string().contains("not allowed"));
+        assert!(
+            invalid_type_result
+                .unwrap_err()
+                .to_string()
+                .contains("not allowed")
+        );
 
         // Test privileged resource access
-        let admin_result = server.secure_resource("user".to_string(), "admin_user".to_string()).await;
+        let admin_result = server
+            .secure_resource("user".to_string(), "admin_user".to_string())
+            .await;
         assert!(admin_result.is_err());
-        assert!(admin_result.unwrap_err().to_string().contains("privileged resource"));
+        assert!(
+            admin_result
+                .unwrap_err()
+                .to_string()
+                .contains("privileged resource")
+        );
 
-        let system_result = server.secure_resource("user".to_string(), "system_account".to_string()).await;
+        let system_result = server
+            .secure_resource("user".to_string(), "system_account".to_string())
+            .await;
         assert!(system_result.is_err());
 
         // Test config access (should be denied)
-        let config_result = server.secure_resource("config".to_string(), "app_settings".to_string()).await;
+        let config_result = server
+            .secure_resource("config".to_string(), "app_settings".to_string())
+            .await;
         assert!(config_result.is_err());
-        assert!(config_result.unwrap_err().to_string().contains("elevated privileges"));
+        assert!(
+            config_result
+                .unwrap_err()
+                .to_string()
+                .contains("elevated privileges")
+        );
 
         // Test invalid resource ID format
-        let invalid_id_result = server.secure_resource("user".to_string(), "user@domain.com".to_string()).await;
+        let invalid_id_result = server
+            .secure_resource("user".to_string(), "user@domain.com".to_string())
+            .await;
         assert!(invalid_id_result.is_err());
-        assert!(invalid_id_result.unwrap_err().to_string().contains("Invalid resource ID"));
+        assert!(
+            invalid_id_result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid resource ID")
+        );
 
         // Test too long resource ID
         let long_id = "a".repeat(60);
@@ -489,7 +632,9 @@ mod tests {
         let server = SecurityServer::with_defaults();
 
         // Test safe prompt
-        let safe_result = server.secure_prompt("cooking".to_string(), "healthy recipes".to_string()).await;
+        let safe_result = server
+            .secure_prompt("cooking".to_string(), "healthy recipes".to_string())
+            .await;
         assert!(safe_result.is_ok());
         let message = safe_result.unwrap();
         if let pulseengine_mcp_protocol::PromptContent::Text { text } = message.content {
@@ -499,24 +644,42 @@ mod tests {
         }
 
         // Test forbidden topics
-        let hack_result = server.secure_prompt("hacking".to_string(), "network security".to_string()).await;
+        let hack_result = server
+            .secure_prompt("hacking".to_string(), "network security".to_string())
+            .await;
         assert!(hack_result.is_err());
-        assert!(hack_result.unwrap_err().to_string().contains("forbidden content"));
+        assert!(
+            hack_result
+                .unwrap_err()
+                .to_string()
+                .contains("forbidden content")
+        );
 
-        let password_result = server.secure_prompt("password cracking".to_string(), "security testing".to_string()).await;
+        let password_result = server
+            .secure_prompt(
+                "password cracking".to_string(),
+                "security testing".to_string(),
+            )
+            .await;
         assert!(password_result.is_err());
 
-        let malware_result = server.secure_prompt("programming".to_string(), "malware development".to_string()).await;
+        let malware_result = server
+            .secure_prompt("programming".to_string(), "malware development".to_string())
+            .await;
         assert!(malware_result.is_err());
 
         // Test input length validation
         let long_topic = "a".repeat(150);
-        let long_result = server.secure_prompt(long_topic, "context".to_string()).await;
+        let long_result = server
+            .secure_prompt(long_topic, "context".to_string())
+            .await;
         assert!(long_result.is_err());
         assert!(long_result.unwrap_err().to_string().contains("too long"));
 
         let long_context = "b".repeat(600);
-        let long_context_result = server.secure_prompt("topic".to_string(), long_context).await;
+        let long_context_result = server
+            .secure_prompt("topic".to_string(), long_context)
+            .await;
         assert!(long_context_result.is_err());
     }
 
@@ -528,7 +691,7 @@ mod tests {
 
         // Server should be properly configured
         assert_eq!(info.server_info.name, "Security Test Server");
-        
+
         // Should have security-relevant capabilities
         assert!(info.capabilities.tools.is_some());
         assert!(info.capabilities.resources.is_some());
@@ -541,14 +704,23 @@ mod tests {
 
         // Test that security validations work correctly under concurrent load
         let mut handles = Vec::new();
-        
+
         for i in 0..50 {
             let server_clone = server.clone();
             handles.push(tokio::spawn(async move {
                 match i % 3 {
-                    0 => server_clone.sanitize_input(format!("safe_input_{}", i)).await.is_ok(),
-                    1 => server_clone.validate_email(format!("user{}@example.com", i)).await.is_ok(),
-                    _ => server_clone.validate_file_path(format!("data/file_{}.txt", i)).await.is_ok(),
+                    0 => server_clone
+                        .sanitize_input(format!("safe_input_{}", i))
+                        .await
+                        .is_ok(),
+                    1 => server_clone
+                        .validate_email(format!("user{}@example.com", i))
+                        .await
+                        .is_ok(),
+                    _ => server_clone
+                        .validate_file_path(format!("data/file_{}.txt", i))
+                        .await
+                        .is_ok(),
                 }
             }));
         }
@@ -569,7 +741,9 @@ mod tests {
         let server = SecurityServer::with_defaults();
 
         // Test that error messages don't reveal sensitive information
-        let script_error = server.sanitize_input("<script>alert('xss')</script>".to_string()).await;
+        let script_error = server
+            .sanitize_input("<script>alert('xss')</script>".to_string())
+            .await;
         assert!(script_error.is_err());
         let error_msg = script_error.unwrap_err().to_string();
         // Should indicate the pattern but not reveal system details
@@ -577,7 +751,9 @@ mod tests {
         assert!(!error_msg.contains("internal"));
         assert!(!error_msg.contains("system"));
 
-        let path_error = server.validate_file_path("../../../etc/passwd".to_string()).await;
+        let path_error = server
+            .validate_file_path("../../../etc/passwd".to_string())
+            .await;
         assert!(path_error.is_err());
         let error_msg = path_error.unwrap_err().to_string();
         assert!(error_msg.contains("traversal"));

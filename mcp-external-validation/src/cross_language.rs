@@ -5,8 +5,8 @@
 //! true protocol interoperability.
 
 use crate::{
-    report::{IssueSeverity, TestScore, ValidationIssue},
     ValidationConfig, ValidationError, ValidationResult,
+    report::{IssueSeverity, TestScore, ValidationIssue},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

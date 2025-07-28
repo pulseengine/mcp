@@ -2,8 +2,8 @@
 
 use clap::Parser;
 use pulseengine_mcp_cli::{
-    server_builder, AuthMiddleware, CorsPolicy, DefaultLoggingConfig, LogFormat, LogOutput,
-    McpConfig, McpConfiguration, RateLimitMiddleware, TransportType,
+    AuthMiddleware, CorsPolicy, DefaultLoggingConfig, LogFormat, LogOutput, McpConfig,
+    McpConfiguration, RateLimitMiddleware, TransportType, server_builder,
 };
 use pulseengine_mcp_protocol::ServerInfo;
 use std::time::Duration;
@@ -259,9 +259,10 @@ fn test_advanced_server_configuration() {
     assert!(config.cors_policy.is_some());
 
     let cors = config.cors_policy.as_ref().unwrap();
-    assert!(cors
-        .allowed_origins
-        .contains(&"https://trusted.com".to_string()));
+    assert!(
+        cors.allowed_origins
+            .contains(&"https://trusted.com".to_string())
+    );
 
     assert_eq!(config.middleware.len(), 2);
     assert_eq!(config.custom_endpoints.len(), 2);

@@ -1,10 +1,10 @@
 //! Test HTTP/SSE transport implementation
 
 use pulseengine_mcp_protocol::{Request, Response};
-use pulseengine_mcp_transport::{http::HttpTransport, RequestHandler, Transport};
+use pulseengine_mcp_transport::{RequestHandler, Transport, http::HttpTransport};
 use serde_json::json;
 use std::sync::Arc;
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 use tracing::{error, info};
 
 // Simple echo handler

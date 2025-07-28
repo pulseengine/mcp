@@ -10,24 +10,32 @@ use std::fmt;
 #[test]
 fn test_backend_error_creation() {
     let config_err = BackendError::configuration("Config test");
-    assert!(config_err
-        .to_string()
-        .contains("Configuration error: Config test"));
+    assert!(
+        config_err
+            .to_string()
+            .contains("Configuration error: Config test")
+    );
 
     let connection_err = BackendError::connection("Connection test");
-    assert!(connection_err
-        .to_string()
-        .contains("Connection error: Connection test"));
+    assert!(
+        connection_err
+            .to_string()
+            .contains("Connection error: Connection test")
+    );
 
     let not_supported_err = BackendError::not_supported("Not supported test");
-    assert!(not_supported_err
-        .to_string()
-        .contains("Operation not supported: Not supported test"));
+    assert!(
+        not_supported_err
+            .to_string()
+            .contains("Operation not supported: Not supported test")
+    );
 
     let internal_err = BackendError::internal("Internal test");
-    assert!(internal_err
-        .to_string()
-        .contains("Internal backend error: Internal test"));
+    assert!(
+        internal_err
+            .to_string()
+            .contains("Internal backend error: Internal test")
+    );
 }
 
 #[test]

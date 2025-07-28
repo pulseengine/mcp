@@ -1,19 +1,19 @@
 //! Tests for documentation extraction and formatting
 
-use pulseengine_mcp_macros::{mcp_backend, mcp_server, mcp_tool, mcp_resource, mcp_prompt};
+use pulseengine_mcp_macros::{mcp_backend, mcp_prompt, mcp_resource, mcp_server, mcp_tool};
 
 mod documented_components {
     use super::*;
 
     /// This is a comprehensive server example
-    /// 
+    ///
     /// It demonstrates various documentation patterns:
     /// - Multi-line descriptions
     /// - Code examples
     /// - Usage notes
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```rust,ignore
     /// let server = DocumentedServer::with_defaults();
     /// ```
@@ -22,14 +22,14 @@ mod documented_components {
     pub struct DocumentedServer;
 
     /// A backend with extensive documentation
-    /// 
+    ///
     /// This backend provides various utilities for:
     /// - Data processing
     /// - File operations  
     /// - Network requests
-    /// 
+    ///
     /// ## Configuration
-    /// 
+    ///
     /// The backend can be configured with different options
     /// to suit various use cases.
     #[mcp_backend(name = "Documented Backend")]
@@ -39,36 +39,41 @@ mod documented_components {
     #[mcp_tool]
     impl DocumentedServer {
         /// Process text data with various options
-        /// 
+        ///
         /// This tool can:
         /// - Transform text case
         /// - Apply filters
         /// - Generate summaries
-        /// 
+        ///
         /// # Parameters
-        /// 
+        ///
         /// - `text`: The input text to process
         /// - `operation`: The operation to perform ("upper", "lower", "summary")
         /// - `max_length`: Maximum length of output (optional)
-        /// 
+        ///
         /// # Returns
-        /// 
+        ///
         /// Returns the processed text as a String
-        /// 
+        ///
         /// # Example
-        /// 
+        ///
         /// ```rust,ignore
         /// let result = server.process_text("Hello World", "upper", Some(100)).await;
         /// assert_eq!(result, "HELLO WORLD");
         /// ```
-        async fn process_text(&self, text: String, operation: String, max_length: Option<usize>) -> String {
+        async fn process_text(
+            &self,
+            text: String,
+            operation: String,
+            max_length: Option<usize>,
+        ) -> String {
             let processed = match operation.as_str() {
                 "upper" => text.to_uppercase(),
                 "lower" => text.to_lowercase(),
                 "summary" => format!("Summary of: {}", text.chars().take(20).collect::<String>()),
                 _ => text,
             };
-            
+
             match max_length {
                 Some(len) => processed.chars().take(len).collect(),
                 None => processed,
@@ -76,32 +81,43 @@ mod documented_components {
         }
 
         /// Calculate mathematical operations
-        /// 
+        ///
         /// Supports basic arithmetic operations:
         /// - Addition (+)
         /// - Subtraction (-)
         /// - Multiplication (*)
         /// - Division (/)
-        /// 
+        ///
         /// # Error Handling
-        /// 
+        ///
         /// Returns an error for:
         /// - Division by zero
         /// - Invalid operations
         /// - Overflow conditions
-        async fn calculate(&self, a: f64, b: f64, operation: String) -> Result<f64, std::io::Error> {
+        async fn calculate(
+            &self,
+            a: f64,
+            b: f64,
+            operation: String,
+        ) -> Result<f64, std::io::Error> {
             match operation.as_str() {
                 "+" => Ok(a + b),
                 "-" => Ok(a - b),
                 "*" => Ok(a * b),
                 "/" => {
                     if b == 0.0 {
-                        Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Division by zero"))
+                        Err(std::io::Error::new(
+                            std::io::ErrorKind::InvalidInput,
+                            "Division by zero",
+                        ))
                     } else {
                         Ok(a / b)
                     }
-                },
-                _ => Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Unknown operation")),
+                }
+                _ => Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "Unknown operation",
+                )),
             }
         }
 
@@ -111,19 +127,19 @@ mod documented_components {
         }
 
         /// Multi-line documentation example
-        /// 
+        ///
         /// This function demonstrates how documentation
         /// can span multiple lines and include various
         /// formatting elements.
-        /// 
+        ///
         /// ## Features
-        /// 
+        ///
         /// - Handles complex data structures
         /// - Provides detailed error messages
         /// - Supports multiple input formats
-        /// 
+        ///
         /// ## Notes
-        /// 
+        ///
         /// This is particularly useful when you need
         /// to provide extensive context about the
         /// function's behavior and usage patterns.
@@ -135,31 +151,43 @@ mod documented_components {
     #[mcp_resource(uri_template = "docs://{section}/{page}")]
     impl DocumentedServer {
         /// Read documentation from the docs system
-        /// 
+        ///
         /// This resource provides access to documentation
         /// organized in sections and pages.
-        /// 
+        ///
         /// # URI Parameters
-        /// 
+        ///
         /// - `section`: The documentation section (e.g., "api", "guides", "tutorials")
         /// - `page`: The specific page within the section
-        /// 
+        ///
         /// # Returns
-        /// 
+        ///
         /// Returns the documentation content as a string,
         /// formatted in Markdown.
-        /// 
+        ///
         /// # Examples
-        /// 
+        ///
         /// - `docs://api/authentication` - API authentication docs
         /// - `docs://guides/getting-started` - Getting started guide
         /// - `docs://tutorials/advanced` - Advanced tutorial
         async fn read_docs(&self, section: String, page: String) -> Result<String, std::io::Error> {
             match section.as_str() {
-                "api" => Ok(format!("# API Documentation: {}\n\nDetailed API information for {}.", page, page)),
-                "guides" => Ok(format!("# Guide: {}\n\nStep-by-step guide for {}.", page, page)),
-                "tutorials" => Ok(format!("# Tutorial: {}\n\nInteractive tutorial covering {}.", page, page)),
-                _ => Err(std::io::Error::new(std::io::ErrorKind::NotFound, "Documentation section not found")),
+                "api" => Ok(format!(
+                    "# API Documentation: {}\n\nDetailed API information for {}.",
+                    page, page
+                )),
+                "guides" => Ok(format!(
+                    "# Guide: {}\n\nStep-by-step guide for {}.",
+                    page, page
+                )),
+                "tutorials" => Ok(format!(
+                    "# Tutorial: {}\n\nInteractive tutorial covering {}.",
+                    page, page
+                )),
+                _ => Err(std::io::Error::new(
+                    std::io::ErrorKind::NotFound,
+                    "Documentation section not found",
+                )),
             }
         }
     }
@@ -172,54 +200,65 @@ mod documented_components {
     )]
     impl DocumentedServer {
         /// Read file contents with full documentation
-        /// 
+        ///
         /// This resource reads files from the local filesystem
         /// and returns their contents as text.
-        /// 
+        ///
         /// # Security Notes
-        /// 
+        ///
         /// - Only reads files with appropriate permissions
         /// - Validates file paths to prevent directory traversal
         /// - Limits file size to prevent memory issues
-        /// 
+        ///
         /// # Supported File Types
-        /// 
+        ///
         /// - Text files (.txt, .md, .json, .yaml, .xml)
         /// - Source code files (.rs, .py, .js, .ts, .go)
         /// - Configuration files (.conf, .ini, .toml)
         async fn documented_file_reader(&self, path: String) -> Result<String, std::io::Error> {
             if path.contains("..") {
-                return Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "Path traversal not allowed"));
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::PermissionDenied,
+                    "Path traversal not allowed",
+                ));
             }
-            
-            Ok(format!("File contents from: {}\n\n[Simulated file content]", path))
+
+            Ok(format!(
+                "File contents from: {}\n\n[Simulated file content]",
+                path
+            ))
         }
     }
 
     #[mcp_prompt(name = "documentation_generator")]
     impl DocumentedServer {
         /// Generate comprehensive documentation from code
-        /// 
+        ///
         /// This prompt generates detailed documentation
         /// for code snippets, including:
-        /// 
+        ///
         /// - Function descriptions
         /// - Parameter explanations  
         /// - Return value details
         /// - Usage examples
         /// - Error conditions
-        /// 
+        ///
         /// # Input Requirements
-        /// 
+        ///
         /// - `code`: Valid source code in any supported language
         /// - `language`: Programming language identifier
         /// - `style`: Documentation style ("rustdoc", "jsdoc", "sphinx", "javadoc")
-        /// 
+        ///
         /// # Output Format
-        /// 
+        ///
         /// Returns a properly formatted documentation comment
         /// appropriate for the specified language and style.
-        async fn generate_documentation(&self, code: String, language: String, style: String) -> Result<pulseengine_mcp_protocol::PromptMessage, std::io::Error> {
+        async fn generate_documentation(
+            &self,
+            code: String,
+            language: String,
+            style: String,
+        ) -> Result<pulseengine_mcp_protocol::PromptMessage, std::io::Error> {
             let prompt_text = format!(
                 "Generate {} style documentation for the following {} code:\n\n```{}\n{}\n```\n\nPlease provide comprehensive documentation including:\n- Function/method description\n- Parameter descriptions\n- Return value explanation\n- Usage examples\n- Error conditions (if applicable)",
                 style, language, language, code
@@ -227,9 +266,7 @@ mod documented_components {
 
             Ok(pulseengine_mcp_protocol::PromptMessage {
                 role: pulseengine_mcp_protocol::Role::User,
-                content: pulseengine_mcp_protocol::PromptContent::Text {
-                    text: prompt_text,
-                },
+                content: pulseengine_mcp_protocol::PromptContent::Text { text: prompt_text },
             })
         }
     }
@@ -241,22 +278,27 @@ mod documented_components {
     )]
     impl DocumentedServer {
         /// Explain code with customizable detail level
-        /// 
+        ///
         /// This prompt analyzes code and provides explanations
         /// tailored to different audiences and complexity levels.
-        /// 
+        ///
         /// # Complexity Levels
-        /// 
+        ///
         /// - `beginner`: Basic explanations with fundamental concepts
         /// - `intermediate`: Moderate detail with some advanced concepts
         /// - `advanced`: Deep technical analysis with optimization notes
-        /// 
+        ///
         /// # Audience Types
-        /// 
+        ///
         /// - `student`: Educational focus with learning objectives
         /// - `developer`: Practical implementation details
         /// - `architect`: High-level design and architectural insights
-        async fn explain_code(&self, code: String, complexity_level: String, audience: String) -> Result<pulseengine_mcp_protocol::PromptMessage, std::io::Error> {
+        async fn explain_code(
+            &self,
+            code: String,
+            complexity_level: String,
+            audience: String,
+        ) -> Result<pulseengine_mcp_protocol::PromptMessage, std::io::Error> {
             let prompt_text = format!(
                 "Explain the following code for a {} audience at {} level:\n\n```\n{}\n```\n\nPlease provide:\n- Overview of what the code does\n- Explanation of key concepts\n- Line-by-line breakdown (if appropriate for complexity level)\n- Best practices and potential improvements\n- Common pitfalls to avoid",
                 audience, complexity_level, code
@@ -264,9 +306,7 @@ mod documented_components {
 
             Ok(pulseengine_mcp_protocol::PromptMessage {
                 role: pulseengine_mcp_protocol::Role::User,
-                content: pulseengine_mcp_protocol::PromptContent::Text {
-                    text: prompt_text,
-                },
+                content: pulseengine_mcp_protocol::PromptContent::Text { text: prompt_text },
             })
         }
     }
@@ -340,16 +380,28 @@ mod tests {
         let server = DocumentedServer::with_defaults();
 
         // Test process_text tool
-        let upper_result = server.process_text("hello".to_string(), "upper".to_string(), None).await;
+        let upper_result = server
+            .process_text("hello".to_string(), "upper".to_string(), None)
+            .await;
         assert_eq!(upper_result, "HELLO");
 
-        let lower_result = server.process_text("WORLD".to_string(), "lower".to_string(), None).await;
+        let lower_result = server
+            .process_text("WORLD".to_string(), "lower".to_string(), None)
+            .await;
         assert_eq!(lower_result, "world");
 
-        let summary_result = server.process_text("This is a long text".to_string(), "summary".to_string(), None).await;
+        let summary_result = server
+            .process_text(
+                "This is a long text".to_string(),
+                "summary".to_string(),
+                None,
+            )
+            .await;
         assert!(summary_result.contains("Summary of:"));
 
-        let limited_result = server.process_text("hello world".to_string(), "upper".to_string(), Some(5)).await;
+        let limited_result = server
+            .process_text("hello world".to_string(), "upper".to_string(), Some(5))
+            .await;
         assert_eq!(limited_result, "HELLO");
 
         // Test calculate tool
@@ -382,23 +434,31 @@ mod tests {
         let server = DocumentedServer::with_defaults();
 
         // Test docs resource
-        let api_docs = server.read_docs("api".to_string(), "authentication".to_string()).await;
+        let api_docs = server
+            .read_docs("api".to_string(), "authentication".to_string())
+            .await;
         assert!(api_docs.is_ok());
         let content = api_docs.unwrap();
         assert!(content.contains("# API Documentation: authentication"));
         assert!(content.contains("Detailed API information"));
 
-        let guide_docs = server.read_docs("guides".to_string(), "getting-started".to_string()).await;
+        let guide_docs = server
+            .read_docs("guides".to_string(), "getting-started".to_string())
+            .await;
         assert!(guide_docs.is_ok());
         let content = guide_docs.unwrap();
         assert!(content.contains("# Guide: getting-started"));
 
-        let tutorial_docs = server.read_docs("tutorials".to_string(), "advanced".to_string()).await;
+        let tutorial_docs = server
+            .read_docs("tutorials".to_string(), "advanced".to_string())
+            .await;
         assert!(tutorial_docs.is_ok());
         let content = tutorial_docs.unwrap();
         assert!(content.contains("# Tutorial: advanced"));
 
-        let invalid_section = server.read_docs("invalid".to_string(), "page".to_string()).await;
+        let invalid_section = server
+            .read_docs("invalid".to_string(), "page".to_string())
+            .await;
         assert!(invalid_section.is_err());
 
         // Test file reader resource
@@ -407,7 +467,9 @@ mod tests {
         let content = file_content.unwrap();
         assert!(content.contains("File contents from: test.txt"));
 
-        let traversal_attempt = server.documented_file_reader("../etc/passwd".to_string()).await;
+        let traversal_attempt = server
+            .documented_file_reader("../etc/passwd".to_string())
+            .await;
         assert!(traversal_attempt.is_err());
     }
 
@@ -416,11 +478,13 @@ mod tests {
         let server = DocumentedServer::with_defaults();
 
         // Test documentation generator prompt
-        let doc_prompt = server.generate_documentation(
-            "fn add(a: i32, b: i32) -> i32 { a + b }".to_string(),
-            "rust".to_string(),
-            "rustdoc".to_string()
-        ).await;
+        let doc_prompt = server
+            .generate_documentation(
+                "fn add(a: i32, b: i32) -> i32 { a + b }".to_string(),
+                "rust".to_string(),
+                "rustdoc".to_string(),
+            )
+            .await;
 
         assert!(doc_prompt.is_ok());
         let message = doc_prompt.unwrap();
@@ -433,11 +497,13 @@ mod tests {
         }
 
         // Test code explainer prompt
-        let explain_prompt = server.explain_code(
-            "let x = vec![1, 2, 3].iter().map(|n| n * 2).collect::<Vec<_>>();".to_string(),
-            "beginner".to_string(),
-            "student".to_string()
-        ).await;
+        let explain_prompt = server
+            .explain_code(
+                "let x = vec![1, 2, 3].iter().map(|n| n * 2).collect::<Vec<_>>();".to_string(),
+                "beginner".to_string(),
+                "student".to_string(),
+            )
+            .await;
 
         assert!(explain_prompt.is_ok());
         let message = explain_prompt.unwrap();
@@ -464,14 +530,14 @@ mod tests {
     fn test_documentation_extraction() {
         // This test verifies that the macro system correctly extracts
         // and formats documentation from doc comments
-        
+
         let documented = DocumentedServer::with_defaults();
         let info = documented.get_server_info();
-        
+
         // Should extract multi-line documentation
         assert!(info.instructions.is_some());
         let doc = info.instructions.unwrap();
-        
+
         // Should preserve formatting and structure
         assert!(doc.contains("comprehensive server"));
         assert!(doc.contains("Multi-line descriptions"));
@@ -483,7 +549,7 @@ mod tests {
     fn test_config_types_with_documentation() {
         let config = DocumentedServerConfig::default();
         assert_eq!(config.server_name, "Documented Server");
-        
+
         // The description should come from the doc comments
         assert!(config.server_description.is_some());
         let desc = config.server_description.unwrap();
@@ -495,18 +561,18 @@ mod tests {
         // Test that various documentation patterns are handled correctly
         let documented = DocumentedServer::with_defaults();
         let backend = DocumentedBackend::default();
-        
-        let server_info = documented.get_server_info(); 
+
+        let server_info = documented.get_server_info();
         let backend_info = backend.get_server_info();
-        
+
         // Both should have extracted documentation
         assert!(server_info.instructions.is_some());
         assert!(backend_info.instructions.is_some());
-        
+
         // Documentation should be different for each component
         let server_doc = server_info.instructions.unwrap();
         let backend_doc = backend_info.instructions.unwrap();
-        
+
         assert!(server_doc.contains("comprehensive server"));
         assert!(backend_doc.contains("extensive documentation"));
         assert_ne!(server_doc, backend_doc);

@@ -48,7 +48,7 @@ impl Default for DefaultLoggingConfig {
 impl DefaultLoggingConfig {
     pub fn initialize(&self) -> Result<(), CliError> {
         // Initialize tracing subscriber based on configuration
-        use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+        use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
         let level = env::var("RUST_LOG").unwrap_or_else(|_| self.level.clone());
         let filter = EnvFilter::try_from_default_env()

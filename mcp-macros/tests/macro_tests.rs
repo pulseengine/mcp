@@ -6,8 +6,8 @@
 use pulseengine_mcp_macros::mcp_server;
 use pulseengine_mcp_protocol::{ListToolsResult, PaginatedRequestParam};
 use std::sync::{
-    atomic::{AtomicU64, Ordering},
     Arc,
+    atomic::{AtomicU64, Ordering},
 };
 
 /// Test basic mcp_server macro functionality

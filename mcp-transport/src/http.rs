@@ -1,28 +1,28 @@
 //! HTTP transport with Server-Sent Events (SSE) support
 
 use crate::{
-    batch::{process_batch, JsonRpcMessage},
-    validation::validate_message_string,
     RequestHandler, Transport, TransportError,
+    batch::{JsonRpcMessage, process_batch},
+    validation::validate_message_string,
 };
 use async_trait::async_trait;
 use axum::response::sse::{Event, KeepAlive};
 use axum::{
+    Router,
     extract::{Query, State},
     http::{
-        header::{AUTHORIZATION, ORIGIN},
         HeaderMap, StatusCode,
+        header::{AUTHORIZATION, ORIGIN},
     },
     response::{IntoResponse, Response as AxumResponse, Sse},
     routing::{get, post},
-    Router,
 };
 // futures_util used for async_stream
 // mcp_protocol types are imported via batch module
 use serde::Deserialize;
 use serde_json;
 use std::{collections::HashMap, net::SocketAddr, sync::Arc, time::Duration};
-use tokio::sync::{broadcast, Mutex, RwLock};
+use tokio::sync::{Mutex, RwLock, broadcast};
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 use tracing::{debug, error, info, warn};
@@ -419,7 +419,10 @@ async fn handle_post(
 
             if wants_json_response {
                 // New Streamable HTTP transport - return response directly
-                info!("Using Streamable HTTP transport, returning response directly for session: {}, Accept: {}", session_id, accept_header);
+                info!(
+                    "Using Streamable HTTP transport, returning response directly for session: {}, Accept: {}",
+                    session_id, accept_header
+                );
                 debug!("Direct response: {}", response_json);
                 Ok(AxumResponse::builder()
                     .status(StatusCode::OK)
@@ -461,7 +464,10 @@ async fn handle_post(
                     for (sid, session) in sessions.iter() {
                         match session.event_sender.send(response_json.clone()) {
                             Ok(num_receivers) => {
-                                info!("Response sent successfully to {} receivers on fallback session: {}", num_receivers, sid);
+                                info!(
+                                    "Response sent successfully to {} receivers on fallback session: {}",
+                                    num_receivers, sid
+                                );
                                 sent = true;
                                 break;
                             }
@@ -1015,10 +1021,12 @@ mod tests {
         let headers = HeaderMap::new();
         let result = HttpTransport::validate_origin(&config, &headers);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Missing Origin header"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Missing Origin header")
+        );
     }
 
     #[test]
@@ -1033,10 +1041,12 @@ mod tests {
         headers.insert(ORIGIN, HeaderValue::from_bytes(&[0xFF, 0xFE]).unwrap());
         let result = HttpTransport::validate_origin(&config, &headers);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Invalid Origin header"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid Origin header")
+        );
     }
 
     // === Authentication Tests ===
@@ -1063,10 +1073,12 @@ mod tests {
         let headers = HeaderMap::new();
         let result = HttpTransport::validate_auth(&config, &headers);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Missing Authorization header"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Missing Authorization header")
+        );
     }
 
     #[test]
@@ -1084,10 +1096,12 @@ mod tests {
         );
         let result = HttpTransport::validate_auth(&config, &headers);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Invalid Authorization header"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid Authorization header")
+        );
     }
 
     #[test]
@@ -1118,10 +1132,12 @@ mod tests {
         headers.insert(AUTHORIZATION, "Bearer invalid-token".parse().unwrap());
         let result = HttpTransport::validate_auth(&config, &headers);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Invalid bearer token"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid bearer token")
+        );
     }
 
     #[test]
@@ -1136,18 +1152,22 @@ mod tests {
         headers.insert(AUTHORIZATION, "Basic dXNlcjpwYXNz".parse().unwrap());
         let result = HttpTransport::validate_auth(&config, &headers);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Invalid Authorization format"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid Authorization format")
+        );
 
         headers.insert(AUTHORIZATION, "just-a-token".parse().unwrap());
         let result = HttpTransport::validate_auth(&config, &headers);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Invalid Authorization format"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid Authorization format")
+        );
     }
 
     // === Session Management Tests ===
@@ -1296,10 +1316,12 @@ mod tests {
         let transport = HttpTransport::new(3000);
         let result = transport.broadcast_message("test message").await;
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Transport not started"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Transport not started")
+        );
     }
 
     #[tokio::test]
@@ -1524,13 +1546,15 @@ mod tests {
 
         let response = result.unwrap();
         assert_eq!(response.status(), StatusCode::OK);
-        assert!(response
-            .headers()
-            .get("Content-Type")
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .contains("application/json"));
+        assert!(
+            response
+                .headers()
+                .get("Content-Type")
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .contains("application/json")
+        );
         assert!(response.headers().contains_key("Mcp-Session-Id"));
     }
 
@@ -1777,10 +1801,12 @@ mod tests {
         let transport = HttpTransport::new(3000);
         let result = transport.health_check().await;
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("HTTP transport not running"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("HTTP transport not running")
+        );
     }
 
     // === Integration Tests ===
@@ -1916,12 +1942,14 @@ mod tests {
         assert_eq!(transport.config.port, 65535);
         assert_eq!(transport.config.max_message_size, 0);
         assert_eq!(transport.config.session_timeout_secs, 0);
-        assert!(transport
-            .config
-            .allowed_origins
-            .as_ref()
-            .unwrap()
-            .is_empty());
+        assert!(
+            transport
+                .config
+                .allowed_origins
+                .as_ref()
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]

@@ -4,8 +4,8 @@
 //! (@modelcontextprotocol/inspector) for automated testing and validation of MCP servers.
 
 use crate::{
-    report::{InspectorResult, IssueSeverity, ValidationIssue},
     ValidationConfig, ValidationError, ValidationResult,
+    report::{InspectorResult, IssueSeverity, ValidationIssue},
 };
 use serde::Deserialize;
 use std::path::PathBuf;

@@ -1,6 +1,6 @@
 //! Debug server to check query parameter parsing
 
-use axum::{extract::Query, response::Json, routing::get, Router};
+use axum::{Router, extract::Query, response::Json, routing::get};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::info;

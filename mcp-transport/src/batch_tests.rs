@@ -5,7 +5,7 @@ mod tests {
     use super::super::batch::*;
     use crate::TransportError;
     use pulseengine_mcp_protocol::{Error as McpError, Request, Response};
-    use serde_json::{json, Value};
+    use serde_json::{Value, json};
 
     // Mock handler for testing
     fn mock_handler(

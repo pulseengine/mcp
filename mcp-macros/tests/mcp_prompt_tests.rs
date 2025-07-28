@@ -13,7 +13,11 @@ mod basic_prompt {
     #[mcp_prompt(name = "code_review")]
     impl PromptServer {
         /// Generate a code review prompt
-        async fn generate_code_review(&self, code: String, language: String) -> Result<PromptMessage, std::io::Error> {
+        async fn generate_code_review(
+            &self,
+            code: String,
+            language: String,
+        ) -> Result<PromptMessage, std::io::Error> {
             Ok(PromptMessage {
                 role: Role::User,
                 content: pulseengine_mcp_protocol::PromptContent::Text {
@@ -38,7 +42,12 @@ mod complex_prompt {
     )]
     impl ComplexPromptServer {
         /// Generate SQL queries from natural language
-        async fn sql_helper(&self, description: String, table_schema: String, output_format: String) -> Result<PromptMessage, std::io::Error> {
+        async fn sql_helper(
+            &self,
+            description: String,
+            table_schema: String,
+            output_format: String,
+        ) -> Result<PromptMessage, std::io::Error> {
             Ok(PromptMessage {
                 role: Role::User,
                 content: pulseengine_mcp_protocol::PromptContent::Text {
@@ -54,7 +63,11 @@ mod complex_prompt {
     #[mcp_prompt(name = "documentation_generator")]
     impl ComplexPromptServer {
         /// Generate documentation from code
-        async fn generate_docs(&self, code: String, style: String) -> Result<PromptMessage, std::io::Error> {
+        async fn generate_docs(
+            &self,
+            code: String,
+            style: String,
+        ) -> Result<PromptMessage, std::io::Error> {
             Ok(PromptMessage {
                 role: Role::Assistant,
                 content: pulseengine_mcp_protocol::PromptContent::Text {
@@ -139,11 +152,13 @@ mod tests {
     #[tokio::test]
     async fn test_basic_prompt_functionality() {
         let server = PromptServer::with_defaults();
-        let result = server.generate_code_review(
-            "fn hello() { println!(\"Hello\"); }".to_string(),
-            "Rust".to_string()
-        ).await;
-        
+        let result = server
+            .generate_code_review(
+                "fn hello() { println!(\"Hello\"); }".to_string(),
+                "Rust".to_string(),
+            )
+            .await;
+
         assert!(result.is_ok());
         let message = result.unwrap();
         assert_eq!(message.role, Role::User);
@@ -158,20 +173,24 @@ mod tests {
     #[tokio::test]
     async fn test_complex_prompt_functionality() {
         let server = ComplexPromptServer::with_defaults();
-        
-        let sql_result = server.sql_helper(
-            "Get all users".to_string(),
-            "users(id, name, email)".to_string(),
-            "SELECT".to_string()
-        ).await;
-        
+
+        let sql_result = server
+            .sql_helper(
+                "Get all users".to_string(),
+                "users(id, name, email)".to_string(),
+                "SELECT".to_string(),
+            )
+            .await;
+
         assert!(sql_result.is_ok());
-        
-        let docs_result = server.generate_docs(
-            "fn add(a: i32, b: i32) -> i32 { a + b }".to_string(),
-            "rustdoc".to_string()
-        ).await;
-        
+
+        let docs_result = server
+            .generate_docs(
+                "fn add(a: i32, b: i32) -> i32 { a + b }".to_string(),
+                "rustdoc".to_string(),
+            )
+            .await;
+
         assert!(docs_result.is_ok());
         let message = docs_result.unwrap();
         assert_eq!(message.role, Role::Assistant);
@@ -181,7 +200,7 @@ mod tests {
     fn test_sync_prompt_functionality() {
         let server = SyncPromptServer::with_defaults();
         let result = server.simple_prompt("artificial intelligence".to_string());
-        
+
         assert!(result.is_ok());
         let message = result.unwrap();
         assert_eq!(message.role, Role::User);

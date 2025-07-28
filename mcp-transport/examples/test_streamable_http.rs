@@ -2,7 +2,7 @@
 
 use pulseengine_mcp_protocol::{Request, Response};
 use pulseengine_mcp_transport::{
-    streamable_http::StreamableHttpTransport, RequestHandler, Transport,
+    RequestHandler, Transport, streamable_http::StreamableHttpTransport,
 };
 use serde_json::json;
 use tracing::info;

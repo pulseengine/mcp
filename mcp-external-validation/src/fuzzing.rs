@@ -4,11 +4,11 @@
 //! against malformed, unexpected, or malicious inputs.
 
 use crate::{
-    report::{IssueSeverity, ValidationIssue},
     ValidationConfig, ValidationError, ValidationResult,
+    report::{IssueSeverity, ValidationIssue},
 };
 use arbitrary::{Arbitrary, Unstructured};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::time::{Duration, Instant};
 use tracing::{debug, info};
 
