@@ -27,7 +27,7 @@ mod app_specific_lifecycle {
 
     #[mcp_server(
         name = "App Lifecycle Server",
-        app_name = "lifecycle-test-app",
+        app_name = "lifecycle-test-app-server-lifecycle-tests",
         version = "1.2.3",
         description = "Server for testing application-specific lifecycle"
     )]

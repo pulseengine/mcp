@@ -5,7 +5,10 @@ use pulseengine_mcp_macros::{mcp_prompt, mcp_resource, mcp_server, mcp_tool};
 mod security_server {
     use super::*;
 
-    #[mcp_server(name = "Security Test Server", app_name = "security-test")]
+    #[mcp_server(
+        name = "Security Test Server",
+        app_name = "security-test-security-tests"
+    )]
     #[derive(Default, Clone)]
     pub struct SecurityServer;
 

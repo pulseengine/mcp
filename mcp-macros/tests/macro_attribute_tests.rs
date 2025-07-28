@@ -12,7 +12,7 @@ mod attribute_combinations {
 
     #[mcp_server(
         name = "Full Server",
-        app_name = "test-app",
+        app_name = "test-app-macro-attribute-tests",
         version = "1.0.0",
         description = "A server with all attributes",
         transport = "http"
