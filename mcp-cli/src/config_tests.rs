@@ -54,7 +54,12 @@ fn test_logging_config_serialization() {
     let config = DefaultLoggingConfig {
         level: "debug".to_string(),
         format: LogFormat::Json,
-        output: LogOutput::File("/tmp/test.log".to_string()),
+        output: LogOutput::File(
+            std::env::temp_dir()
+                .join("mcp-cli-config-test.log")
+                .to_string_lossy()
+                .to_string(),
+        ),
         structured: false,
     };
 

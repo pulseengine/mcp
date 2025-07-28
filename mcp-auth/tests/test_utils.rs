@@ -131,7 +131,9 @@ impl TestDataGenerator {
     pub fn file_storage_config() -> AuthConfig {
         let mut config = Self::test_config();
         config.storage = StorageConfig::File {
-            path: std::env::temp_dir().join("mcp-auth-test").join("keys.enc"),
+            path: std::env::temp_dir()
+                .join(format!("mcp-auth-test-{}", uuid::Uuid::new_v4()))
+                .join("keys.enc"),
             file_permissions: 0o600,
             dir_permissions: 0o700,
             require_secure_filesystem: false,

@@ -228,7 +228,9 @@ mod tests {
     #[test]
     fn test_storage_config_file() {
         let storage = StorageConfig::File {
-            path: PathBuf::from("/tmp/test"),
+            path: std::env::temp_dir()
+                .join("mcp-auth-config-test")
+                .join("test_storage"),
             file_permissions: 0o644,
             dir_permissions: 0o755,
             require_secure_filesystem: false,

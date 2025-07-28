@@ -15,7 +15,7 @@ mod app_specific_server {
     use super::*;
 
     // Test server with app_name parameter
-    #[mcp_server(name = "App-Specific Server", app_name = "test-app")]
+    #[mcp_server(name = "App-Specific Server", app_name = "test-app-app-name-tests")]
     #[derive(Default, Clone)]
     pub struct AppSpecificServer;
 }
@@ -26,7 +26,7 @@ mod complex_app_server {
     // Test server with app_name and other attributes
     #[mcp_server(
         name = "Complex App Server",
-        app_name = "complex-app",
+        app_name = "complex-app-app-name-tests",
         version = "2.0.0",
         description = "A complex server with app-specific configuration"
     )]

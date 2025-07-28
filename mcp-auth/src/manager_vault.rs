@@ -376,7 +376,9 @@ mod tests {
         let mut auth_config = AuthConfig {
             enabled: true,
             storage: StorageConfig::File {
-                path: "/tmp/test".into(),
+                path: std::env::temp_dir()
+                    .join("mcp-auth-vault-test")
+                    .join("test_vault"),
                 file_permissions: 0o600,
                 dir_permissions: 0o700,
                 require_secure_filesystem: false,

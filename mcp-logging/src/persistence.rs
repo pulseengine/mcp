@@ -362,7 +362,9 @@ mod tests {
     #[tokio::test]
     async fn test_metrics_persistence() {
         let _config = PersistenceConfig {
-            data_dir: std::path::PathBuf::from("/tmp/test_metrics"),
+            data_dir: std::env::temp_dir()
+                .join("mcp-logging-persistence-test")
+                .join("metrics"),
             rotation_interval: RotationInterval::Never,
             max_files: 10,
             compress: false,
