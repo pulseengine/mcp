@@ -61,13 +61,20 @@ pub fn mcp_backend_impl(attr: TokenStream, item: TokenStream) -> syn::Result<Tok
 
     // Generate capabilities based on available features
     let capabilities = attribute.capabilities.unwrap_or_else(|| {
+        // TODO: Auto-detect resources and prompts from impl blocks
+        // This will be enhanced to scan for #[mcp_resource] and #[mcp_prompt] attributes
         syn::parse2(quote! {
             pulseengine_mcp_protocol::ServerCapabilities {
                 tools: Some(pulseengine_mcp_protocol::ToolsCapability {
                     list_changed: Some(false),
                 }),
-                resources: None,
-                prompts: None,
+                resources: Some(pulseengine_mcp_protocol::ResourcesCapability {
+                    subscribe: Some(false),
+                    list_changed: Some(false),
+                }),
+                prompts: Some(pulseengine_mcp_protocol::PromptsCapability {
+                    list_changed: Some(false),
+                }),
                 logging: Some(pulseengine_mcp_protocol::LoggingCapability {}),
                 sampling: None,
                 ..Default::default()
@@ -196,8 +203,14 @@ fn generate_backend_implementation(
                 &self,
                 _request: pulseengine_mcp_protocol::PaginatedRequestParam,
             ) -> Result<pulseengine_mcp_protocol::ListResourcesResult, Self::Error> {
+                // Auto-discover resources from methods marked with #[mcp_resource]
+                let mut resources = Vec::new();
+
+                // This will be enhanced to automatically collect resources
+                // from methods with #[mcp_resource] attribute
+
                 Ok(pulseengine_mcp_protocol::ListResourcesResult {
-                    resources: vec![],
+                    resources,
                     next_cursor: None,
                 })
             }
@@ -206,6 +219,8 @@ fn generate_backend_implementation(
                 &self,
                 request: pulseengine_mcp_protocol::ReadResourceRequestParam,
             ) -> Result<pulseengine_mcp_protocol::ReadResourceResult, Self::Error> {
+                // Auto-dispatch to resource implementations
+                // This will be enhanced to automatically route to methods with #[mcp_resource]
                 Err(#error_type_name::InvalidParameter(
                     format!("Resource not found: {}", request.uri)
                 ))
@@ -215,8 +230,14 @@ fn generate_backend_implementation(
                 &self,
                 _request: pulseengine_mcp_protocol::PaginatedRequestParam,
             ) -> Result<pulseengine_mcp_protocol::ListPromptsResult, Self::Error> {
+                // Auto-discover prompts from methods marked with #[mcp_prompt]
+                let mut prompts = Vec::new();
+
+                // This will be enhanced to automatically collect prompts
+                // from methods with #[mcp_prompt] attribute
+
                 Ok(pulseengine_mcp_protocol::ListPromptsResult {
-                    prompts: vec![],
+                    prompts,
                     next_cursor: None,
                 })
             }
@@ -225,6 +246,8 @@ fn generate_backend_implementation(
                 &self,
                 request: pulseengine_mcp_protocol::GetPromptRequestParam,
             ) -> Result<pulseengine_mcp_protocol::GetPromptResult, Self::Error> {
+                // Auto-dispatch to prompt implementations
+                // This will be enhanced to automatically route to methods with #[mcp_prompt]
                 Err(#error_type_name::InvalidParameter(
                     format!("Prompt not found: {}", request.name)
                 ))

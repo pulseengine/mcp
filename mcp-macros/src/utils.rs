@@ -4,6 +4,59 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Attribute, Expr, Lit, Meta};
 
+/// Custom parser for attribute arguments
+struct AttributeArgs {
+    args: Vec<(String, Expr)>,
+}
+
+impl syn::parse::Parse for AttributeArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let mut args = Vec::new();
+        
+        while !input.is_empty() {
+            let meta: syn::Meta = input.parse()?;
+            
+            match meta {
+                syn::Meta::NameValue(name_value) => {
+                    let key = name_value
+                        .path
+                        .get_ident()
+                        .ok_or_else(|| syn::Error::new_spanned(&name_value.path, "Expected identifier"))?
+                        .to_string();
+                    args.push((key, name_value.value));
+                }
+                _ => {
+                    return Err(syn::Error::new_spanned(
+                        meta,
+                        "Expected name-value pairs like key = \"value\"",
+                    ));
+                }
+            }
+            
+            if input.peek(syn::Token![,]) {
+                input.parse::<syn::Token![,]>()?;
+            }
+        }
+        
+        Ok(AttributeArgs { args })
+    }
+}
+
+/// Parse attribute arguments into a vector of key-value pairs
+pub fn parse_attribute_args(args: TokenStream) -> syn::Result<Vec<(String, Expr)>> {
+    if args.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let parsed = syn::parse2::<AttributeArgs>(args)?;
+    Ok(parsed.args)
+}
+
+/// Extract documentation from function attributes (alias for backward compatibility)
+pub fn extract_doc_comments(attrs: &[Attribute]) -> Option<String> {
+    extract_doc_comment(attrs)
+}
+
 /// Extract documentation from function attributes
 pub fn extract_doc_comment(attrs: &[Attribute]) -> Option<String> {
     let mut docs = Vec::new();
