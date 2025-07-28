@@ -81,7 +81,10 @@ impl VaultAuthenticationManager {
         };
 
         // Set master key in environment for this process
-        std::env::set_var("PULSEENGINE_MCP_MASTER_KEY", &master_key);
+        // SAFETY: Setting environment variable in single-threaded context during initialization
+        unsafe {
+            std::env::set_var("PULSEENGINE_MCP_MASTER_KEY", &master_key);
+        }
 
         // Try to get additional configuration from vault
         if let Some(vault) = &vault_integration {

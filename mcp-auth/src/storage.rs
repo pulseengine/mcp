@@ -636,7 +636,10 @@ impl StorageBackend for EnvironmentStorage {
 
     async fn save_all_keys(&self, keys: &HashMap<String, ApiKey>) -> Result<(), StorageError> {
         let content = serde_json::to_string(keys)?;
-        std::env::set_var(&self.var_name, content);
+        // SAFETY: Setting environment variable for storage purposes
+        unsafe {
+            std::env::set_var(&self.var_name, content);
+        }
 
         debug!("Saved {} keys to environment storage", keys.len());
         Ok(())

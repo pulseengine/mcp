@@ -132,7 +132,10 @@ impl SetupBuilder {
         };
 
         // Set master key in environment for this process
-        std::env::set_var("PULSEENGINE_MCP_MASTER_KEY", &master_key);
+        // SAFETY: Setting environment variable during initialization
+        unsafe {
+            std::env::set_var("PULSEENGINE_MCP_MASTER_KEY", &master_key);
+        }
 
         // Use storage config or default
         let storage_config = self
