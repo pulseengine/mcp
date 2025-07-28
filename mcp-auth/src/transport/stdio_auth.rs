@@ -320,7 +320,10 @@ mod tests {
 
     #[test]
     fn test_environment_variable_extraction() {
-        std::env::set_var("TEST_MCP_API_KEY", "lmcp_test_1234567890abcdef");
+        // SAFETY: Setting test environment variable
+        unsafe {
+            std::env::set_var("TEST_MCP_API_KEY", "lmcp_test_1234567890abcdef");
+        }
 
         let config = StdioAuthConfig {
             api_key_env_var: "TEST_MCP_API_KEY".to_string(),
@@ -337,7 +340,10 @@ mod tests {
         assert_eq!(context.method, "Environment");
         assert_eq!(context.transport_type, TransportType::Stdio);
 
-        std::env::remove_var("TEST_MCP_API_KEY");
+        // SAFETY: Removing test environment variable
+        unsafe {
+            std::env::remove_var("TEST_MCP_API_KEY");
+        }
     }
 
     #[test]

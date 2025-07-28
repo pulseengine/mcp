@@ -146,13 +146,19 @@ fn test_env_utils_with_set_env_var() {
     use env_utils::*;
 
     // Set a temporary env var for testing
-    env::set_var("TEST_VAR_PORT", "9090");
+    // SAFETY: Setting test environment variable
+    unsafe {
+        env::set_var("TEST_VAR_PORT", "9090");
+    }
 
     let result: u16 = get_env_or_default("TEST_VAR_PORT", 8080);
     assert_eq!(result, 9090);
 
     // Clean up
-    env::remove_var("TEST_VAR_PORT");
+    // SAFETY: Removing test environment variable
+    unsafe {
+        env::remove_var("TEST_VAR_PORT");
+    }
 }
 
 #[test]
@@ -176,14 +182,20 @@ fn test_env_utils_get_required_env_present() {
     use env_utils::*;
 
     // Set a temporary env var
-    env::set_var("TEST_REQUIRED_VAR", "test_value");
+    // SAFETY: Setting test environment variable
+    unsafe {
+        env::set_var("TEST_REQUIRED_VAR", "test_value");
+    }
 
     let result: Result<String, CliError> = get_required_env("TEST_REQUIRED_VAR");
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), "test_value");
 
     // Clean up
-    env::remove_var("TEST_REQUIRED_VAR");
+    // SAFETY: Removing test environment variable
+    unsafe {
+        env::remove_var("TEST_REQUIRED_VAR");
+    }
 }
 
 #[test]
@@ -191,7 +203,10 @@ fn test_env_utils_get_required_env_invalid_type() {
     use env_utils::*;
 
     // Set env var with invalid number format
-    env::set_var("TEST_INVALID_NUMBER", "not_a_number");
+    // SAFETY: Setting test environment variable
+    unsafe {
+        env::set_var("TEST_INVALID_NUMBER", "not_a_number");
+    }
 
     let result: Result<u16, CliError> = get_required_env("TEST_INVALID_NUMBER");
     assert!(result.is_err());
@@ -204,7 +219,10 @@ fn test_env_utils_get_required_env_invalid_type() {
     );
 
     // Clean up
-    env::remove_var("TEST_INVALID_NUMBER");
+    // SAFETY: Removing test environment variable
+    unsafe {
+        env::remove_var("TEST_INVALID_NUMBER");
+    }
 }
 
 #[test]
@@ -212,14 +230,20 @@ fn test_env_utils_get_required_env_valid_type() {
     use env_utils::*;
 
     // Set env var with valid number
-    env::set_var("TEST_VALID_NUMBER", "42");
+    // SAFETY: Setting test environment variable
+    unsafe {
+        env::set_var("TEST_VALID_NUMBER", "42");
+    }
 
     let result: Result<u16, CliError> = get_required_env("TEST_VALID_NUMBER");
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), 42);
 
     // Clean up
-    env::remove_var("TEST_VALID_NUMBER");
+    // SAFETY: Removing test environment variable
+    unsafe {
+        env::remove_var("TEST_VALID_NUMBER");
+    }
 }
 
 #[test]

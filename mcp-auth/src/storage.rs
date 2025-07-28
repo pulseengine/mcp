@@ -903,7 +903,10 @@ mod tests {
             let storage = EnvironmentStorage::new("TEST_MCP_KEYS".to_string());
 
             // Clear any existing value
-            std::env::remove_var("TEST_MCP_KEYS");
+            // SAFETY: Removing test environment variable
+            unsafe {
+                std::env::remove_var("TEST_MCP_KEYS");
+            }
 
             let keys = storage.load_keys().await.unwrap();
             assert!(keys.is_empty());
@@ -912,7 +915,10 @@ mod tests {
         #[tokio::test]
         async fn test_environment_storage_save_and_load_key() {
             let var_name = "TEST_MCP_KEYS_SAVE_LOAD";
-            std::env::remove_var(var_name);
+            // SAFETY: Removing test environment variable
+            unsafe {
+                std::env::remove_var(var_name);
+            }
 
             let storage = EnvironmentStorage::new(var_name.to_string());
             let test_key = create_test_key("env-test-key", Role::Monitor);
@@ -927,13 +933,19 @@ mod tests {
             assert!(std::env::var(var_name).is_ok());
 
             // Cleanup
-            std::env::remove_var(var_name);
+            // SAFETY: Removing test environment variable
+            unsafe {
+                std::env::remove_var(var_name);
+            }
         }
 
         #[tokio::test]
         async fn test_environment_storage_multiple_keys() {
             let var_name = "TEST_MCP_KEYS_MULTIPLE";
-            std::env::remove_var(var_name);
+            // SAFETY: Removing test environment variable
+            unsafe {
+                std::env::remove_var(var_name);
+            }
 
             let storage = EnvironmentStorage::new(var_name.to_string());
             let test_keys = create_test_keys();
@@ -949,13 +961,19 @@ mod tests {
             }
 
             // Cleanup
-            std::env::remove_var(var_name);
+            // SAFETY: Removing test environment variable
+            unsafe {
+                std::env::remove_var(var_name);
+            }
         }
 
         #[tokio::test]
         async fn test_environment_storage_delete_key() {
             let var_name = "TEST_MCP_KEYS_DELETE";
-            std::env::remove_var(var_name);
+            // SAFETY: Removing test environment variable
+            unsafe {
+                std::env::remove_var(var_name);
+            }
 
             let storage = EnvironmentStorage::new(var_name.to_string());
             let test_keys = create_test_keys();
@@ -971,26 +989,38 @@ mod tests {
             assert!(!remaining_keys.contains_key(&key_to_delete));
 
             // Cleanup
-            std::env::remove_var(var_name);
+            // SAFETY: Removing test environment variable
+            unsafe {
+                std::env::remove_var(var_name);
+            }
         }
 
         #[tokio::test]
         async fn test_environment_storage_empty_content() {
             let var_name = "TEST_MCP_KEYS_EMPTY";
-            std::env::set_var(var_name, "");
+            // SAFETY: Setting test environment variable
+            unsafe {
+                std::env::set_var(var_name, "");
+            }
 
             let storage = EnvironmentStorage::new(var_name.to_string());
             let keys = storage.load_keys().await.unwrap();
             assert!(keys.is_empty());
 
             // Cleanup
-            std::env::remove_var(var_name);
+            // SAFETY: Removing test environment variable
+            unsafe {
+                std::env::remove_var(var_name);
+            }
         }
 
         #[tokio::test]
         async fn test_environment_storage_invalid_json() {
             let var_name = "TEST_MCP_KEYS_INVALID";
-            std::env::set_var(var_name, "invalid json content");
+            // SAFETY: Setting test environment variable
+            unsafe {
+                std::env::set_var(var_name, "invalid json content");
+            }
 
             let storage = EnvironmentStorage::new(var_name.to_string());
             let result = storage.load_keys().await;
@@ -1002,13 +1032,19 @@ mod tests {
             }
 
             // Cleanup
-            std::env::remove_var(var_name);
+            // SAFETY: Removing test environment variable
+            unsafe {
+                std::env::remove_var(var_name);
+            }
         }
 
         #[tokio::test]
         async fn test_environment_storage_overwrite_existing() {
             let var_name = "TEST_MCP_KEYS_OVERWRITE";
-            std::env::remove_var(var_name);
+            // SAFETY: Removing test environment variable
+            unsafe {
+                std::env::remove_var(var_name);
+            }
 
             let storage = EnvironmentStorage::new(var_name.to_string());
 
@@ -1028,7 +1064,10 @@ mod tests {
             assert!(loaded_keys.contains_key(new_keys.keys().next().unwrap()));
 
             // Cleanup
-            std::env::remove_var(var_name);
+            // SAFETY: Removing test environment variable
+            unsafe {
+                std::env::remove_var(var_name);
+            }
         }
     }
 
@@ -1037,10 +1076,13 @@ mod tests {
 
         async fn create_test_file_storage() -> (FileStorage, TempDir) {
             // Set a consistent master key for all file storage tests
-            std::env::set_var(
-                "PULSEENGINE_MCP_MASTER_KEY",
-                "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
-            );
+            // SAFETY: Setting test environment variable
+            unsafe {
+                std::env::set_var(
+                    "PULSEENGINE_MCP_MASTER_KEY",
+                    "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
+                );
+            }
             let temp_dir = TempDir::new().unwrap();
             let storage_path = temp_dir.path().join("test_keys.enc");
 
@@ -1184,10 +1226,13 @@ mod tests {
 
             // Store and set master key in thread-safe manner
             let original_master_key = std::env::var("PULSEENGINE_MCP_MASTER_KEY").ok();
-            std::env::set_var(
-                "PULSEENGINE_MCP_MASTER_KEY",
-                "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
-            );
+            // SAFETY: Setting test environment variable
+            unsafe {
+                std::env::set_var(
+                    "PULSEENGINE_MCP_MASTER_KEY",
+                    "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
+                );
+            }
 
             // Small delay to ensure environment variable is set across threads
             tokio::time::sleep(std::time::Duration::from_millis(10)).await;
@@ -1226,9 +1271,12 @@ mod tests {
             }
 
             // Restore original environment variable or remove if it didn't exist
-            match original_master_key {
-                Some(key) => std::env::set_var("PULSEENGINE_MCP_MASTER_KEY", key),
-                None => std::env::remove_var("PULSEENGINE_MCP_MASTER_KEY"),
+            // SAFETY: Restoring test environment variable
+            unsafe {
+                match original_master_key {
+                    Some(key) => std::env::set_var("PULSEENGINE_MCP_MASTER_KEY", key),
+                    None => std::env::remove_var("PULSEENGINE_MCP_MASTER_KEY"),
+                }
             }
         }
 
@@ -1310,10 +1358,13 @@ mod tests {
                 let original = std::env::var("PULSEENGINE_MCP_MASTER_KEY").ok();
 
                 // Set a consistent master key for cleanup testing
-                std::env::set_var(
-                    "PULSEENGINE_MCP_MASTER_KEY",
-                    "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
-                );
+                // SAFETY: Setting test environment variable
+                unsafe {
+                    std::env::set_var(
+                        "PULSEENGINE_MCP_MASTER_KEY",
+                        "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
+                    );
+                }
                 original
             };
 
@@ -1356,9 +1407,12 @@ mod tests {
             assert_eq!(remaining_backups, 2);
 
             // Restore original environment variable or remove if it didn't exist
-            match original_master_key {
-                Some(key) => std::env::set_var("PULSEENGINE_MCP_MASTER_KEY", key),
-                None => std::env::remove_var("PULSEENGINE_MCP_MASTER_KEY"),
+            // SAFETY: Restoring test environment variable
+            unsafe {
+                match original_master_key {
+                    Some(key) => std::env::set_var("PULSEENGINE_MCP_MASTER_KEY", key),
+                    None => std::env::remove_var("PULSEENGINE_MCP_MASTER_KEY"),
+                }
             }
         }
 
@@ -1397,10 +1451,13 @@ mod tests {
                 let original = std::env::var("PULSEENGINE_MCP_MASTER_KEY").ok();
 
                 // Set a consistent master key for atomic operations testing
-                std::env::set_var(
-                    "PULSEENGINE_MCP_MASTER_KEY",
-                    "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
-                );
+                // SAFETY: Setting test environment variable
+                unsafe {
+                    std::env::set_var(
+                        "PULSEENGINE_MCP_MASTER_KEY",
+                        "l9EYbalIRp2CF35M4mKcWDqRvx3TFc7U4nX5zvQF56Q",
+                    );
+                }
                 original
             };
 
@@ -1466,9 +1523,12 @@ mod tests {
             }
 
             // Restore original environment variable or remove if it didn't exist
-            match original_master_key {
-                Some(key) => std::env::set_var("PULSEENGINE_MCP_MASTER_KEY", key),
-                None => std::env::remove_var("PULSEENGINE_MCP_MASTER_KEY"),
+            // SAFETY: Restoring test environment variable
+            unsafe {
+                match original_master_key {
+                    Some(key) => std::env::set_var("PULSEENGINE_MCP_MASTER_KEY", key),
+                    None => std::env::remove_var("PULSEENGINE_MCP_MASTER_KEY"),
+                }
             }
         }
     }
@@ -1494,7 +1554,10 @@ mod tests {
         #[tokio::test]
         async fn test_create_environment_storage_backend() {
             let var_name = "TEST_FACTORY_ENV_STORAGE";
-            std::env::remove_var(var_name);
+            // SAFETY: Removing test environment variable
+            unsafe {
+                std::env::remove_var(var_name);
+            }
 
             let config = StorageConfig::Environment {
                 prefix: var_name.to_string(),
@@ -1510,7 +1573,10 @@ mod tests {
             assert!(keys.contains_key(&test_key.id));
 
             // Cleanup
-            std::env::remove_var(var_name);
+            // SAFETY: Removing test environment variable
+            unsafe {
+                std::env::remove_var(var_name);
+            }
         }
 
         #[tokio::test]
@@ -1595,7 +1661,10 @@ mod tests {
         }
 
         // Cleanup
-        std::env::remove_var("TEST_TRAIT_OBJECT");
+        // SAFETY: Removing test environment variable
+        unsafe {
+            std::env::remove_var("TEST_TRAIT_OBJECT");
+        }
     }
 
     #[tokio::test]

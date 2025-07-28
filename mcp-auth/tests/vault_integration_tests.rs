@@ -71,10 +71,13 @@ mod vault_tests {
         // We can't actually set them in tests without affecting the test environment
 
         // Clear any existing variables for this test
-        env::remove_var("INFISICAL_UNIVERSAL_AUTH_CLIENT_ID");
-        env::remove_var("INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET");
-        env::remove_var("INFISICAL_PROJECT_ID");
-        env::remove_var("INFISICAL_SECRET_PATH");
+        // SAFETY: Removing test environment variables
+        unsafe {
+            env::remove_var("INFISICAL_UNIVERSAL_AUTH_CLIENT_ID");
+            env::remove_var("INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET");
+            env::remove_var("INFISICAL_PROJECT_ID");
+            env::remove_var("INFISICAL_SECRET_PATH");
+        }
 
         // Test that missing credentials are handled
         assert!(env::var("INFISICAL_UNIVERSAL_AUTH_CLIENT_ID").is_err());
