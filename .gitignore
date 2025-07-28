@@ -37,4 +37,4 @@ cobertura.xml
 lcov.info
 lcov-*.info
 coverage-summary.txt
-/target/llvm-cov/
+/target/llvm-cov/.claude/
