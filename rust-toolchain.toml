@@ -1,7 +1,7 @@
 [toolchain]
 # Pin Rust version to ensure consistency across all environments
 # This file is used by rustup to automatically install and use the correct toolchain
-channel = "1.85"
+channel = "1.88"
 components = ["rustfmt", "clippy", "llvm-tools-preview"]
 targets = ["x86_64-unknown-linux-gnu", "x86_64-apple-darwin", "x86_64-pc-windows-msvc"]
 

@@ -146,7 +146,10 @@ async fn run_setup(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     );
     println!("{}", "─────────────────────────────────────────".yellow());
 
-    std::env::set_var("PULSEENGINE_MCP_MASTER_KEY", &master_key);
+    // SAFETY: Setting environment variable during initialization
+    unsafe {
+        std::env::set_var("PULSEENGINE_MCP_MASTER_KEY", &master_key);
+    }
 
     let auth_config = AuthConfig {
         enabled: true,

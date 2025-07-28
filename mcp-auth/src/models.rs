@@ -105,7 +105,7 @@ impl ApiKey {
     ) -> Result<bool, crate::crypto::hashing::HashingError> {
         use crate::crypto::hashing::verify_api_key;
 
-        if let (Some(ref hash), Some(ref salt)) = (&self.secret_hash, &self.salt) {
+        if let (Some(hash), Some(salt)) = (&self.secret_hash, &self.salt) {
             verify_api_key(provided_key, hash, salt)
         } else {
             // Fallback to plain text comparison for legacy keys
@@ -200,7 +200,7 @@ impl SecureApiKey {
     ) -> Result<bool, crate::crypto::hashing::HashingError> {
         use crate::crypto::hashing::verify_api_key;
 
-        if let (Some(ref hash), Some(ref salt)) = (&self.secret_hash, &self.salt) {
+        if let (Some(hash), Some(salt)) = (&self.secret_hash, &self.salt) {
             verify_api_key(provided_key, hash, salt)
         } else {
             // Can't verify without hash - this should not happen in production
