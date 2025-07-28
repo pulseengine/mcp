@@ -96,7 +96,7 @@ fn parse_resource_attributes(args: TokenStream) -> Result<McpResourceConfig> {
             _ => {
                 return Err(Error::new_spanned(
                     value,
-                    format!("Unknown attribute: {}", key),
+                    format!("Unknown attribute: {key}"),
                 ));
             }
         }
@@ -121,7 +121,7 @@ fn extract_uri_parameters(uri_template: &str) -> Vec<String> {
     while let Some(ch) = chars.next() {
         if ch == '{' {
             let mut param = String::new();
-            while let Some(ch) = chars.next() {
+            for ch in chars.by_ref() {
                 if ch == '}' {
                     if !param.is_empty() {
                         params.push(param);
@@ -182,14 +182,10 @@ fn generate_resource_impl(config: &McpResourceConfig, original_fn: &ItemFn) -> R
     let fn_name_string = fn_name.to_string();
     let resource_name = config.name.as_ref().unwrap_or(&fn_name_string);
     let uri_template = config.uri_template.as_ref().unwrap();
-    let description = config
-        .description
-        .as_ref()
-        .map(|d| d.clone())
-        .unwrap_or_else(|| {
-            extract_doc_comments(&original_fn.attrs)
-                .unwrap_or_else(|| format!("Resource: {}", resource_name))
-        });
+    let description = config.description.clone().unwrap_or_else(|| {
+        extract_doc_comments(&original_fn.attrs)
+            .unwrap_or_else(|| format!("Resource: {resource_name}"))
+    });
     let default_mime_type = "text/plain".to_string();
     let mime_type = config.mime_type.as_ref().unwrap_or(&default_mime_type);
 
@@ -219,7 +215,7 @@ fn generate_resource_impl(config: &McpResourceConfig, original_fn: &ItemFn) -> R
 
     // Generate the resource handler function name
     let handler_name = syn::Ident::new(
-        &format!("__mcp_resource_handler_{}", fn_name),
+        &format!("__mcp_resource_handler_{fn_name}"),
         Span::call_site(),
     );
 

@@ -92,7 +92,7 @@ fn parse_prompt_attributes(args: TokenStream) -> Result<McpPromptConfig> {
             _ => {
                 return Err(Error::new_spanned(
                     value,
-                    format!("Unknown attribute: {}", key),
+                    format!("Unknown attribute: {key}"),
                 ));
             }
         }
@@ -127,14 +127,9 @@ fn generate_prompt_impl(config: &McpPromptConfig, original_fn: &ItemFn) -> Resul
     let fn_name = &original_fn.sig.ident;
     let fn_name_string = fn_name.to_string();
     let prompt_name = config.name.as_ref().unwrap_or(&fn_name_string);
-    let description = config
-        .description
-        .as_ref()
-        .map(|d| d.clone())
-        .unwrap_or_else(|| {
-            extract_doc_comments(&original_fn.attrs)
-                .unwrap_or_else(|| format!("Prompt: {}", prompt_name))
-        });
+    let description = config.description.clone().unwrap_or_else(|| {
+        extract_doc_comments(&original_fn.attrs).unwrap_or_else(|| format!("Prompt: {prompt_name}"))
+    });
 
     // Extract function parameters (excluding &self if present)
     let fn_inputs: Vec<&PatType> = original_fn
@@ -170,7 +165,7 @@ fn generate_prompt_impl(config: &McpPromptConfig, original_fn: &ItemFn) -> Resul
 
     // Generate the prompt handler function name
     let handler_name = syn::Ident::new(
-        &format!("__mcp_prompt_handler_{}", fn_name),
+        &format!("__mcp_prompt_handler_{fn_name}"),
         Span::call_site(),
     );
 
