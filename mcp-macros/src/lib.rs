@@ -33,6 +33,8 @@
 use proc_macro::TokenStream;
 
 mod mcp_backend;
+mod mcp_prompt;
+mod mcp_resource;
 mod mcp_server;
 mod mcp_tool;
 mod utils;
@@ -161,6 +163,116 @@ pub fn mcp_backend(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn mcp_server(attr: TokenStream, item: TokenStream) -> TokenStream {
     mcp_server::mcp_server_impl(attr.into(), item.into())
+        .unwrap_or_else(|err| err.to_compile_error())
+        .into()
+}
+
+/// Automatically generates MCP resource definitions from Rust functions.
+///
+/// This macro transforms regular Rust functions into MCP resources with automatic
+/// URI template parsing, parameter extraction, and content type handling.
+///
+/// # Basic Usage
+///
+/// ```rust,ignore
+/// use pulseengine_mcp_macros::mcp_resource;
+///
+/// #[mcp_resource(uri_template = "file://{path}")]
+/// async fn read_file(&self, path: String) -> Result<String, std::io::Error> {
+///     tokio::fs::read_to_string(&path).await
+/// }
+/// ```
+///
+/// # With Custom Configuration
+///
+/// ```rust,ignore
+/// #[mcp_resource(
+///     uri_template = "db://{database}/{table}",
+///     name = "database_table",
+///     description = "Read data from a database table",
+///     mime_type = "application/json"
+/// )]
+/// async fn read_table(&self, database: String, table: String) -> Result<serde_json::Value, Error> {
+///     // Implementation
+/// }
+/// ```
+///
+/// # Parameters
+///
+/// - `uri_template`: Required URI template with parameters in `{param}` format
+/// - `name`: Optional custom resource name (defaults to function name)
+/// - `description`: Optional custom description (defaults to doc comments)
+/// - `mime_type`: Optional MIME type (defaults to "text/plain")
+///
+/// # Features
+///
+/// - **URI Template Parsing**: Automatic extraction of parameters from URI templates
+/// - **Type Safety**: Compile-time validation of parameter types
+/// - **Auto-Documentation**: Uses function doc comments as resource descriptions
+/// - **Content Type Detection**: Automatic MIME type handling
+/// - **Error Handling**: Converts function errors to MCP protocol errors
+///
+/// # References
+///
+/// - [MCP Resources Specification](https://modelcontextprotocol.io/specification/)
+/// - [Building with LLMs Tutorial](https://modelcontextprotocol.io/tutorials/building-mcp-with-llms)
+#[proc_macro_attribute]
+pub fn mcp_resource(attr: TokenStream, item: TokenStream) -> TokenStream {
+    mcp_resource::mcp_resource_impl(attr.into(), item.into())
+        .unwrap_or_else(|err| err.to_compile_error())
+        .into()
+}
+
+/// Automatically generates MCP prompt definitions from Rust functions.
+///
+/// This macro transforms regular Rust functions into MCP prompts with automatic
+/// argument validation and prompt message generation.
+///
+/// # Basic Usage
+///
+/// ```rust,ignore
+/// use pulseengine_mcp_macros::mcp_prompt;
+///
+/// #[mcp_prompt(name = "code_review")]
+/// async fn generate_code_review(&self, code: String, language: String) -> Result<PromptMessage, Error> {
+///     // Generate prompt for code review
+/// }
+/// ```
+///
+/// # With Custom Configuration
+///
+/// ```rust,ignore
+/// #[mcp_prompt(
+///     name = "sql_query_helper",
+///     description = "Generate SQL queries based on natural language",
+///     arguments = ["description", "table_schema", "output_format"]
+/// )]
+/// async fn sql_helper(&self, description: String, table_schema: String, output_format: String) -> Result<PromptMessage, Error> {
+///     // Implementation
+/// }
+/// ```
+///
+/// # Parameters
+///
+/// - `name`: Optional custom prompt name (defaults to function name)
+/// - `description`: Optional custom description (defaults to doc comments)
+/// - `arguments`: Optional array of argument names for documentation
+///
+/// # Features
+///
+/// - **Argument Validation**: Automatic validation of prompt arguments
+/// - **Type Safety**: Compile-time validation of parameter types
+/// - **Auto-Documentation**: Uses function doc comments as prompt descriptions
+/// - **Error Handling**: Converts function errors to MCP protocol errors
+/// - **Schema Generation**: Automatic argument schema generation
+///
+/// # References
+///
+/// - [MCP Prompts Specification](https://modelcontextprotocol.io/specification/)
+/// - [Building with LLMs Tutorial](https://modelcontextprotocol.io/tutorials/building-mcp-with-llms)
+#[proc_macro_attribute]
+pub fn mcp_prompt(attr: TokenStream, item: TokenStream) -> TokenStream {
+    mcp_prompt::mcp_prompt_impl(attr.into(), item.into())
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }
