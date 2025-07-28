@@ -3,7 +3,7 @@
 //! This module implements secure hashing using SHA256 HMAC and salt,
 //! following best practices from the Loxone MCP implementation.
 
-use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
+use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
 use rand::RngCore;
 use sha2::{Digest, Sha256};
 use std::fmt;

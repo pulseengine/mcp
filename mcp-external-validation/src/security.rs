@@ -5,15 +5,15 @@
 //! vulnerability scanning.
 
 use crate::{
-    report::{IssueSeverity, TestScore, ValidationIssue},
     ValidationConfig, ValidationError, ValidationResult,
+    report::{IssueSeverity, TestScore, ValidationIssue},
 };
 use reqwest::{
-    header::{HeaderMap, HeaderValue, AUTHORIZATION},
     Client,
+    header::{AUTHORIZATION, HeaderMap, HeaderValue},
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::time::Duration;
 use tokio::time::timeout;
@@ -554,7 +554,9 @@ impl SecurityTester {
                 // Check if authentication is actually enforced
                 if response.status().is_success() {
                     // Server allows access without auth - likely disabled due to framework issue
-                    warn!("Server accepts requests without authentication - likely disabled due to framework limitations");
+                    warn!(
+                        "Server accepts requests without authentication - likely disabled due to framework limitations"
+                    );
                     return Ok(false);
                 }
 

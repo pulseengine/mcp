@@ -54,8 +54,8 @@ pub use dashboard::{
     DataPoint, DataSource, GridPosition, LineStyle, Threshold,
 };
 pub use metrics::{
-    get_metrics, BusinessMetrics, ErrorMetrics, ErrorRecord, HealthMetrics, MetricsCollector,
-    MetricsSnapshot, RequestMetrics,
+    BusinessMetrics, ErrorMetrics, ErrorRecord, HealthMetrics, MetricsCollector, MetricsSnapshot,
+    RequestMetrics, get_metrics,
 };
 pub use persistence::{MetricsPersistence, PersistedMetrics, PersistenceConfig, RotationInterval};
 pub use profiling::{
@@ -67,8 +67,8 @@ pub use profiling::{
 pub use sanitization::{LogSanitizer, SanitizationConfig};
 pub use structured::{ErrorClass, StructuredContext, StructuredLogger};
 pub use telemetry::{
-    propagation, spans, BatchProcessingConfig, JaegerConfig, OtlpConfig, SamplingConfig,
-    SamplingStrategy, TelemetryConfig, TelemetryError, TelemetryManager, ZipkinConfig,
+    BatchProcessingConfig, JaegerConfig, OtlpConfig, SamplingConfig, SamplingStrategy,
+    TelemetryConfig, TelemetryError, TelemetryManager, ZipkinConfig, propagation, spans,
 };
 
 /// Result type for logging operations

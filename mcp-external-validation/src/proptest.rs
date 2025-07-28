@@ -12,12 +12,12 @@ use proptest::{collection, option};
 #[cfg(feature = "proptest")]
 use proptest_derive::Arbitrary;
 #[cfg(feature = "proptest")]
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 #[cfg(feature = "proptest")]
 use std::collections::HashMap;
 
 #[cfg(feature = "proptest")]
-use crate::{jsonrpc::JsonRpcValidator, ValidationConfig, ValidationResult};
+use crate::{ValidationConfig, ValidationResult, jsonrpc::JsonRpcValidator};
 
 /// Property-based test runner for MCP protocol compliance
 #[cfg(feature = "proptest")]

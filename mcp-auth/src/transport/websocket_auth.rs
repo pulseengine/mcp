@@ -362,7 +362,9 @@ impl AuthExtractor for WebSocketAuthExtractor {
 
         // Warn about insecure authentication methods
         if context.method == "QueryParams" {
-            tracing::warn!("WebSocket authentication via query parameters is less secure - consider using headers");
+            tracing::warn!(
+                "WebSocket authentication via query parameters is less secure - consider using headers"
+            );
         }
 
         Ok(())

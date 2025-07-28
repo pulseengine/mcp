@@ -4,8 +4,8 @@
 //! session storage, lifecycle management, and security features.
 
 use crate::{
-    jwt::{JwtConfig, JwtError, JwtManager},
     AuthContext,
+    jwt::{JwtConfig, JwtError, JwtManager},
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

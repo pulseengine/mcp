@@ -5,7 +5,7 @@ mod tests {
     use super::super::streamable_http::*;
     use crate::{Transport, TransportError};
     use pulseengine_mcp_protocol::{Request, Response};
-    use serde_json::{json, Value};
+    use serde_json::{Value, json};
 
     // Mock handler for testing
     fn mock_handler(
@@ -97,10 +97,12 @@ mod tests {
         assert_eq!(transport.config().host, "127.0.0.1");
         assert!(transport.config().enable_cors);
         // Initially not running, so health check should fail
-        assert!(tokio::runtime::Runtime::new()
-            .unwrap()
-            .block_on(transport.health_check())
-            .is_err());
+        assert!(
+            tokio::runtime::Runtime::new()
+                .unwrap()
+                .block_on(transport.health_check())
+                .is_err()
+        );
     }
 
     #[test]

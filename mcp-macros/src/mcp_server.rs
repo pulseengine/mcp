@@ -257,7 +257,7 @@ fn generate_server_implementation(
             ) -> Result<pulseengine_mcp_protocol::ListResourcesResult, Self::Error> {
                 // Auto-discover resources from methods marked with #[mcp_resource]
                 let mut resources = Vec::new();
-                
+
                 // Get resources from automatic resource discovery (if #[mcp_resource] methods exist)
                 let automatic_resources = self.get_automatic_resources();
                 resources.extend(automatic_resources);
@@ -288,7 +288,7 @@ fn generate_server_implementation(
             ) -> Result<pulseengine_mcp_protocol::ListPromptsResult, Self::Error> {
                 // Auto-discover prompts from methods marked with #[mcp_prompt]
                 let mut prompts = Vec::new();
-                
+
                 // Get prompts from automatic prompt discovery (if #[mcp_prompt] methods exist)
                 let automatic_prompts = self.get_automatic_prompts();
                 prompts.extend(automatic_prompts);

@@ -3,8 +3,8 @@
 //! This module provides secure key generation similar to Loxone's
 //! approach, with URL-safe encoding and proper randomness.
 
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
-use rand::{distributions::Alphanumeric, Rng, RngCore};
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
+use rand::{Rng, RngCore, distributions::Alphanumeric};
 
 /// Key derivation errors
 #[derive(Debug, thiserror::Error)]

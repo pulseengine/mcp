@@ -3,7 +3,7 @@
 //! This module provides comprehensive permission management for MCP tools,
 //! resources, and custom operations with role-based access control.
 
-use crate::{models::Role, AuthContext};
+use crate::{AuthContext, models::Role};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use thiserror::Error;
@@ -682,18 +682,22 @@ mod tests {
             .allow_role_resource(Role::Monitor, "system://status")
             .deny_role_resource(Role::Monitor, "loxone://admin/*");
 
-        assert!(config
-            .tools
-            .tool_permissions
-            .get("control_device")
-            .unwrap()
-            .contains(&Role::Operator));
-        assert!(config
-            .resources
-            .resource_permissions
-            .get("system://status")
-            .unwrap()
-            .contains(&Role::Monitor));
+        assert!(
+            config
+                .tools
+                .tool_permissions
+                .get("control_device")
+                .unwrap()
+                .contains(&Role::Operator)
+        );
+        assert!(
+            config
+                .resources
+                .resource_permissions
+                .get("system://status")
+                .unwrap()
+                .contains(&Role::Monitor)
+        );
         assert_eq!(config.custom_rules.len(), 1);
     }
 }

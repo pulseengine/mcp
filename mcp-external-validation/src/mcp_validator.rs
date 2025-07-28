@@ -4,8 +4,8 @@
 //! (Janix-ai/mcp-protocol-validator) to ensure compliance with MCP specifications.
 
 use crate::{
-    report::{IssueSeverity, McpValidatorResult, TestScore, ValidationIssue},
     ValidationConfig, ValidationError, ValidationResult,
+    report::{IssueSeverity, McpValidatorResult, TestScore, ValidationIssue},
 };
 use reqwest::Client;
 use serde::{Deserialize, Serialize};

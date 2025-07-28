@@ -4,11 +4,11 @@
 //! JWT token validation, and enhanced security features.
 
 use crate::{
+    AuthContext, AuthenticationManager,
     jwt::JwtError,
     middleware::mcp_auth::{AuthExtractionError, McpAuthConfig, McpRequestContext},
     security::RequestSecurityValidator,
     session::{Session, SessionError, SessionManager},
-    AuthContext, AuthenticationManager,
 };
 use pulseengine_mcp_protocol::{Error as McpError, Request, Response};
 use std::collections::HashMap;
@@ -403,7 +403,7 @@ impl SessionMiddleware {
                 Ok((auth_context, "Bearer".to_string()))
             }
             "Basic" => {
-                use base64::{engine::general_purpose, Engine as _};
+                use base64::{Engine as _, engine::general_purpose};
                 let decoded = general_purpose::STANDARD.decode(parts[1]).map_err(|_| {
                     SessionMiddlewareError::AuthError(AuthExtractionError::InvalidFormat(
                         "Invalid Base64 in Basic auth".to_string(),
@@ -554,8 +554,8 @@ impl SessionMiddleware {
 mod tests {
     use super::*;
     use crate::{
-        session::{MemorySessionStorage, SessionConfig},
         AuthConfig,
+        session::{MemorySessionStorage, SessionConfig},
     };
 
     async fn create_test_middleware() -> SessionMiddleware {

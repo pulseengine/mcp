@@ -4,10 +4,10 @@
 mod tests {
     use super::super::http::*;
     use crate::{Transport, TransportError};
-    use axum::http::header::{AUTHORIZATION, ORIGIN};
     use axum::http::HeaderMap;
+    use axum::http::header::{AUTHORIZATION, ORIGIN};
     use pulseengine_mcp_protocol::{Request, Response};
-    use serde_json::{json, Value};
+    use serde_json::{Value, json};
 
     // Mock handler for testing
     fn mock_handler(

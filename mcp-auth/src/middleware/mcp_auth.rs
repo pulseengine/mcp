@@ -4,7 +4,7 @@
 //! for MCP requests, integrating with the AuthenticationManager and
 //! permission system.
 
-use crate::{models::Role, security::RequestSecurityValidator, AuthContext, AuthenticationManager};
+use crate::{AuthContext, AuthenticationManager, models::Role, security::RequestSecurityValidator};
 use async_trait::async_trait;
 use pulseengine_mcp_protocol::{Error as McpError, Request, Response};
 use std::collections::HashMap;

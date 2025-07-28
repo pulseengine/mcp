@@ -291,7 +291,7 @@ fn parse_file_timestamp(path: &Path, interval: &RotationInterval) -> Option<Date
             // Format: metrics_YYYYMMDD_HH
             if filename.starts_with("metrics_") && filename.len() >= 19 {
                 let timestamp_str = &filename[8..19]; // Skip "metrics_", extract "YYYYMMDD_HH"
-                                                      // Parse as "20240107_14" -> parse date and hour separately
+                // Parse as "20240107_14" -> parse date and hour separately
                 if let Some((date_str, hour_str)) = timestamp_str.split_once('_') {
                     if let (Ok(date), Ok(hour)) = (
                         NaiveDate::parse_from_str(date_str, "%Y%m%d"),

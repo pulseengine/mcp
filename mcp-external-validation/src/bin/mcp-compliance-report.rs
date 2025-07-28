@@ -4,7 +4,7 @@ use clap::Parser;
 use pulseengine_mcp_external_validation::{ExternalValidator, ValidationConfig};
 use std::fs;
 use std::process;
-use tracing::{error, info, Level};
+use tracing::{Level, error, info};
 
 #[derive(Parser)]
 #[command(name = "mcp-compliance-report")]

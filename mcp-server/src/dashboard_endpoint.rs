@@ -1,11 +1,11 @@
 //! Dashboard endpoints for metrics visualization
 
 use axum::{
+    Router,
     extract::{Path, State},
     http::StatusCode,
     response::{Html, IntoResponse, Json},
     routing::get,
-    Router,
 };
 use pulseengine_mcp_logging::DashboardManager;
 use serde::{Deserialize, Serialize};

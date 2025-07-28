@@ -175,9 +175,11 @@ mod tests {
 
         assert_eq!(config.cors_origins.len(), 5);
         assert!(config.cors_origins.contains(&"*".to_string()));
-        assert!(config
-            .cors_origins
-            .contains(&"https://*.example.com".to_string()));
+        assert!(
+            config
+                .cors_origins
+                .contains(&"https://*.example.com".to_string())
+        );
     }
 
     #[test]

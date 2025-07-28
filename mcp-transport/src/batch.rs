@@ -1,6 +1,6 @@
 //! JSON-RPC batch message handling
 
-use crate::{validation::validate_batch, RequestHandler, TransportError};
+use crate::{RequestHandler, TransportError, validation::validate_batch};
 use pulseengine_mcp_protocol::{Request, Response};
 use serde_json::Value;
 use tracing::debug;

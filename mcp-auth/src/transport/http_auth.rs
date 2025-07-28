@@ -149,20 +149,20 @@ impl HttpAuthExtractor {
         }
 
         let encoded = &auth_header[6..]; // Skip "Basic "
-        use base64::{engine::general_purpose, Engine as _};
+        use base64::{Engine as _, engine::general_purpose};
         let decoded = match general_purpose::STANDARD.decode(encoded) {
             Ok(bytes) => match String::from_utf8(bytes) {
                 Ok(string) => string,
                 Err(_) => {
                     return Err(TransportAuthError::InvalidFormat(
                         "Invalid UTF-8 in Basic auth".to_string(),
-                    ))
+                    ));
                 }
             },
             Err(_) => {
                 return Err(TransportAuthError::InvalidFormat(
                     "Invalid Base64 in Basic auth".to_string(),
-                ))
+                ));
             }
         };
 
@@ -423,7 +423,7 @@ mod tests {
         });
 
         let api_key = "lmcp_test_1234567890abcdef";
-        use base64::{engine::general_purpose, Engine as _};
+        use base64::{Engine as _, engine::general_purpose};
         let encoded = general_purpose::STANDARD.encode(format!("{}:", api_key));
         let mut headers = HashMap::new();
         headers.insert("Authorization".to_string(), format!("Basic {}", encoded));

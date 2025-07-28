@@ -12,16 +12,18 @@ struct AttributeArgs {
 impl syn::parse::Parse for AttributeArgs {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let mut args = Vec::new();
-        
+
         while !input.is_empty() {
             let meta: syn::Meta = input.parse()?;
-            
+
             match meta {
                 syn::Meta::NameValue(name_value) => {
                     let key = name_value
                         .path
                         .get_ident()
-                        .ok_or_else(|| syn::Error::new_spanned(&name_value.path, "Expected identifier"))?
+                        .ok_or_else(|| {
+                            syn::Error::new_spanned(&name_value.path, "Expected identifier")
+                        })?
                         .to_string();
                     args.push((key, name_value.value));
                 }
@@ -32,12 +34,12 @@ impl syn::parse::Parse for AttributeArgs {
                     ));
                 }
             }
-            
+
             if input.peek(syn::Token![,]) {
                 input.parse::<syn::Token![,]>()?;
             }
         }
-        
+
         Ok(AttributeArgs { args })
     }
 }

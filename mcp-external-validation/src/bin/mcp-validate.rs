@@ -3,7 +3,7 @@
 use clap::Parser;
 use pulseengine_mcp_external_validation::{ExternalValidator, ValidationConfig};
 use std::process;
-use tracing::{error, info, warn, Level};
+use tracing::{Level, error, info, warn};
 
 #[derive(Parser)]
 #[command(name = "mcp-validate")]
@@ -203,11 +203,7 @@ async fn run_quick_validation(validator: &ExternalValidator, cli: &Cli) -> i32 {
             match status {
                 pulseengine_mcp_external_validation::report::ComplianceStatus::Compliant => 0,
                 pulseengine_mcp_external_validation::report::ComplianceStatus::Warning => {
-                    if cli.strict {
-                        1
-                    } else {
-                        0
-                    }
+                    if cli.strict { 1 } else { 0 }
                 }
                 _ => 1,
             }

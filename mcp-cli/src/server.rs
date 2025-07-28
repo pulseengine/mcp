@@ -432,9 +432,10 @@ mod tests {
             .allow_method("PATCH");
 
         assert!(cors.allowed_origins.contains(&"*".to_string()));
-        assert!(cors
-            .allowed_origins
-            .contains(&"https://example.com".to_string()));
+        assert!(
+            cors.allowed_origins
+                .contains(&"https://example.com".to_string())
+        );
         assert!(cors.allowed_methods.contains(&"PATCH".to_string()));
     }
 

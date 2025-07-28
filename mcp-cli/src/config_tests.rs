@@ -1,7 +1,7 @@
 //! Tests for configuration management and utilities
 
-use crate::config::*;
 use crate::CliError;
+use crate::config::*;
 use std::env;
 
 #[test]
@@ -40,9 +40,11 @@ fn test_log_output_serialization() {
 
     assert_eq!(serde_json::to_string(&stdout_output).unwrap(), "\"stdout\"");
     assert_eq!(serde_json::to_string(&stderr_output).unwrap(), "\"stderr\"");
-    assert!(serde_json::to_string(&file_output)
-        .unwrap()
-        .contains("/path/to/log"));
+    assert!(
+        serde_json::to_string(&file_output)
+            .unwrap()
+            .contains("/path/to/log")
+    );
 }
 
 #[test]
@@ -161,9 +163,11 @@ fn test_env_utils_get_required_env_missing() {
     assert!(result.is_err());
 
     let error = result.unwrap_err();
-    assert!(error
-        .to_string()
-        .contains("Missing required environment variable"));
+    assert!(
+        error
+            .to_string()
+            .contains("Missing required environment variable")
+    );
     assert!(error.to_string().contains("DEFINITELY_MISSING_VAR_12345"));
 }
 
@@ -193,9 +197,11 @@ fn test_env_utils_get_required_env_invalid_type() {
     assert!(result.is_err());
 
     let error = result.unwrap_err();
-    assert!(error
-        .to_string()
-        .contains("Invalid value for TEST_INVALID_NUMBER"));
+    assert!(
+        error
+            .to_string()
+            .contains("Invalid value for TEST_INVALID_NUMBER")
+    );
 
     // Clean up
     env::remove_var("TEST_INVALID_NUMBER");

@@ -3,7 +3,7 @@
 use crate::context::RequestContext;
 use crate::middleware::{Middleware, MiddlewareStack};
 use async_trait::async_trait;
-use pulseengine_mcp_auth::{config::StorageConfig, AuthConfig, AuthenticationManager};
+use pulseengine_mcp_auth::{AuthConfig, AuthenticationManager, config::StorageConfig};
 use pulseengine_mcp_monitoring::{MetricsCollector, MonitoringConfig};
 use pulseengine_mcp_protocol::*;
 use pulseengine_mcp_security::{SecurityConfig, SecurityMiddleware};

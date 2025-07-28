@@ -5,11 +5,11 @@
 
 use clap::{Parser, Subcommand};
 use colored::*;
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
+use dialoguer::{Confirm, Input, MultiSelect, Select, theme::ColorfulTheme};
 use pulseengine_mcp_auth::{
-    config::StorageConfig,
-    setup::{validator, SetupBuilder},
     RoleRateLimitConfig, ValidationConfig,
+    config::StorageConfig,
+    setup::{SetupBuilder, validator},
 };
 use std::path::PathBuf;
 use std::process;

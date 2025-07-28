@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use crate::{ValidationError, ValidationResult, DEFAULT_RETRIES, DEFAULT_TIMEOUT_SECONDS};
+use crate::{DEFAULT_RETRIES, DEFAULT_TIMEOUT_SECONDS, ValidationError, ValidationResult};
 
 /// Configuration for external validation
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -1,6 +1,6 @@
 //! Tests for macro attribute parsing and validation
 
-use pulseengine_mcp_macros::{mcp_backend, mcp_server, mcp_tool, mcp_resource, mcp_prompt};
+use pulseengine_mcp_macros::{mcp_backend, mcp_prompt, mcp_resource, mcp_server, mcp_tool};
 
 mod attribute_combinations {
     use super::*;
@@ -87,7 +87,11 @@ mod attribute_combinations {
     )]
     impl FullServer {
         /// A complex resource with all attributes
-        async fn complex_resource(&self, database: String, table: String) -> Result<serde_json::Value, std::io::Error> {
+        async fn complex_resource(
+            &self,
+            database: String,
+            table: String,
+        ) -> Result<serde_json::Value, std::io::Error> {
             Ok(serde_json::json!({
                 "database": database,
                 "table": table
@@ -99,7 +103,10 @@ mod attribute_combinations {
     #[mcp_prompt(name = "simple_prompt")]
     impl FullServer {
         /// A simple prompt
-        async fn simple_prompt(&self, topic: String) -> Result<pulseengine_mcp_protocol::PromptMessage, std::io::Error> {
+        async fn simple_prompt(
+            &self,
+            topic: String,
+        ) -> Result<pulseengine_mcp_protocol::PromptMessage, std::io::Error> {
             Ok(pulseengine_mcp_protocol::PromptMessage {
                 role: pulseengine_mcp_protocol::Role::User,
                 content: pulseengine_mcp_protocol::PromptContent::Text {
@@ -116,11 +123,19 @@ mod attribute_combinations {
     )]
     impl FullServer {
         /// A complex prompt with all attributes
-        async fn complex_prompt(&self, context: String, style: String, length: String) -> Result<pulseengine_mcp_protocol::PromptMessage, std::io::Error> {
+        async fn complex_prompt(
+            &self,
+            context: String,
+            style: String,
+            length: String,
+        ) -> Result<pulseengine_mcp_protocol::PromptMessage, std::io::Error> {
             Ok(pulseengine_mcp_protocol::PromptMessage {
                 role: pulseengine_mcp_protocol::Role::Assistant,
                 content: pulseengine_mcp_protocol::PromptContent::Text {
-                    text: format!("Generate {} content about {} in {} style", length, context, style),
+                    text: format!(
+                        "Generate {} content about {} in {} style",
+                        length, context, style
+                    ),
                 },
             })
         }
@@ -166,7 +181,10 @@ mod doc_comment_handling {
     impl DocumentedServer {
         /// This prompt generates documentation
         /// based on the provided input
-        async fn documented_prompt(&self, input: String) -> Result<pulseengine_mcp_protocol::PromptMessage, std::io::Error> {
+        async fn documented_prompt(
+            &self,
+            input: String,
+        ) -> Result<pulseengine_mcp_protocol::PromptMessage, std::io::Error> {
             Ok(pulseengine_mcp_protocol::PromptMessage {
                 role: pulseengine_mcp_protocol::Role::User,
                 content: pulseengine_mcp_protocol::PromptContent::Text {
@@ -190,7 +208,7 @@ mod tests {
         let _minimal_backend = MinimalBackend::default();
     }
 
-    #[test] 
+    #[test]
     fn test_full_configurations() {
         let _full_server = FullServer::with_defaults();
         let _full_backend = FullBackend::default();
@@ -198,7 +216,7 @@ mod tests {
 
     #[test]
     fn test_documented_configurations() {
-        let _doc_server = DocumentedServer::with_defaults(); 
+        let _doc_server = DocumentedServer::with_defaults();
         let _doc_backend = DocumentedBackend::default();
     }
 
@@ -221,7 +239,10 @@ mod tests {
         assert_eq!(full_info.server_info.version, "1.0.0");
 
         // Test descriptions
-        assert_eq!(full_info.instructions, Some("A server with all attributes".to_string()));
+        assert_eq!(
+            full_info.instructions,
+            Some("A server with all attributes".to_string())
+        );
         assert!(doc_info.instructions.is_some());
         assert!(doc_info.instructions.unwrap().contains("documented server"));
     }
@@ -245,7 +266,10 @@ mod tests {
         assert_eq!(full_info.server_info.version, "2.0.0");
 
         // Test descriptions
-        assert_eq!(full_info.instructions, Some("A backend with all attributes".to_string()));
+        assert_eq!(
+            full_info.instructions,
+            Some("A backend with all attributes".to_string())
+        );
         assert!(doc_info.instructions.is_some());
     }
 
@@ -259,7 +283,10 @@ mod tests {
         let full_config = FullServerConfig::default();
         assert_eq!(full_config.server_name, "Full Server");
         assert_eq!(full_config.server_version, "1.0.0");
-        assert_eq!(full_config.server_description, Some("A server with all attributes".to_string()));
+        assert_eq!(
+            full_config.server_description,
+            Some("A server with all attributes".to_string())
+        );
     }
 
     #[test]
@@ -295,7 +322,9 @@ mod tests {
         assert!(simple_result.is_ok());
         assert_eq!(simple_result.unwrap(), "Resource: 123");
 
-        let complex_result = server.complex_resource("testdb".to_string(), "users".to_string()).await;
+        let complex_result = server
+            .complex_resource("testdb".to_string(), "users".to_string())
+            .await;
         assert!(complex_result.is_ok());
         let json_value = complex_result.unwrap();
         assert_eq!(json_value["database"], "testdb");
@@ -311,11 +340,13 @@ mod tests {
         let message = simple_result.unwrap();
         assert_eq!(message.role, pulseengine_mcp_protocol::Role::User);
 
-        let complex_result = server.complex_prompt(
-            "machine learning".to_string(),
-            "academic".to_string(),
-            "detailed".to_string()
-        ).await;
+        let complex_result = server
+            .complex_prompt(
+                "machine learning".to_string(),
+                "academic".to_string(),
+                "detailed".to_string(),
+            )
+            .await;
         assert!(complex_result.is_ok());
         let message = complex_result.unwrap();
         assert_eq!(message.role, pulseengine_mcp_protocol::Role::Assistant);
@@ -328,9 +359,14 @@ mod tests {
         let tool_result = server.documented_tool("test".to_string()).await;
         assert_eq!(tool_result, "Documented: test");
 
-        let resource_result = server.documented_resource("getting-started".to_string()).await;
+        let resource_result = server
+            .documented_resource("getting-started".to_string())
+            .await;
         assert!(resource_result.is_ok());
-        assert_eq!(resource_result.unwrap(), "Documentation for: getting-started");
+        assert_eq!(
+            resource_result.unwrap(),
+            "Documentation for: getting-started"
+        );
 
         let prompt_result = server.documented_prompt("API usage".to_string()).await;
         assert!(prompt_result.is_ok());
@@ -356,13 +392,13 @@ mod tests {
 
         // All servers should have the same capabilities enabled
         assert!(minimal_info.capabilities.tools.is_some());
-        assert!(minimal_info.capabilities.resources.is_some()); 
+        assert!(minimal_info.capabilities.resources.is_some());
         assert!(minimal_info.capabilities.prompts.is_some());
         assert!(minimal_info.capabilities.logging.is_some());
 
         assert!(full_info.capabilities.tools.is_some());
         assert!(full_info.capabilities.resources.is_some());
-        assert!(full_info.capabilities.prompts.is_some()); 
+        assert!(full_info.capabilities.prompts.is_some());
         assert!(full_info.capabilities.logging.is_some());
     }
 }

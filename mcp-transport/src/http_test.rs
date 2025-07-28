@@ -2,10 +2,10 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::{http::HttpTransport, RequestHandler, Transport};
+    use crate::{RequestHandler, Transport, http::HttpTransport};
     use pulseengine_mcp_protocol::{Request, Response};
     use serde_json::json;
-    use tokio::time::{sleep, Duration};
+    use tokio::time::{Duration, sleep};
 
     // Test handler that echoes requests
     fn test_handler(

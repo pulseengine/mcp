@@ -64,7 +64,7 @@ fn test_mcp_tools_with_params() {
                 _ => {
                     return Err(pulseengine_mcp_protocol::Error::invalid_params(
                         "Unknown operation",
-                    ))
+                    ));
                 }
             };
 

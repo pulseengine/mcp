@@ -199,7 +199,7 @@ impl FileStorage {
                                         "nfs" | "nfs4" | "cifs" | "smb" | "smbfs"
                                         | "fuse.sshfs" => {
                                             return Err(StorageError::Permission(format!(
-                                                "Storage path {} is on insecure network filesystem: {}", 
+                                                "Storage path {} is on insecure network filesystem: {}",
                                                 path_str, fs_type
                                             )));
                                         }

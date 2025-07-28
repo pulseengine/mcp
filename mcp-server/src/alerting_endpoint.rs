@@ -1,11 +1,11 @@
 //! Alerting management endpoints
 
 use axum::{
+    Router,
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Json},
     routing::{get, post},
-    Router,
 };
 use pulseengine_mcp_logging::{AlertManager, AlertSeverity, AlertState};
 use serde::{Deserialize, Serialize};

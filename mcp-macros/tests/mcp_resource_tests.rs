@@ -33,7 +33,11 @@ mod complex_resource {
     )]
     impl ComplexResourceServer {
         /// Read data from a database table
-        async fn read_table(&self, database: String, table: String) -> Result<serde_json::Value, std::io::Error> {
+        async fn read_table(
+            &self,
+            database: String,
+            table: String,
+        ) -> Result<serde_json::Value, std::io::Error> {
             Ok(serde_json::json!({
                 "database": database,
                 "table": table,
@@ -129,10 +133,12 @@ mod tests {
     #[tokio::test]
     async fn test_complex_resource_functionality() {
         let server = ComplexResourceServer::with_defaults();
-        
-        let table_result = server.read_table("testdb".to_string(), "users".to_string()).await;
+
+        let table_result = server
+            .read_table("testdb".to_string(), "users".to_string())
+            .await;
         assert!(table_result.is_ok());
-        
+
         let config_result = server.read_config("database".to_string()).await;
         assert!(config_result.is_ok());
         assert_eq!(config_result.unwrap(), "Config for section: database");

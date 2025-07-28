@@ -48,7 +48,9 @@ mod complex_backend {
     impl ComplexBackend {
         /// Increment and return counter
         async fn increment(&self) -> u64 {
-            self.counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1
+            self.counter
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+                + 1
         }
 
         /// Get current counter value
@@ -83,9 +85,9 @@ mod enum_backend {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use simple_backend::*;
     use complex_backend::*;
     use enum_backend::*;
+    use simple_backend::*;
 
     #[test]
     fn test_simple_backend_compiles() {
@@ -148,12 +150,12 @@ mod tests {
     #[tokio::test]
     async fn test_complex_backend_tools() {
         let backend = ComplexBackend::default();
-        
+
         // Test counter functionality
         let count1 = backend.increment().await;
         let count2 = backend.increment().await;
         let current = backend.get_count().await;
-        
+
         assert_eq!(count1, 1);
         assert_eq!(count2, 2);
         assert_eq!(current, 2);

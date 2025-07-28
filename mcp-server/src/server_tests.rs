@@ -3,7 +3,7 @@
 use crate::backend::{BackendError, McpBackend};
 use crate::server::{HealthStatus, McpServer, ServerConfig, ServerError};
 use async_trait::async_trait;
-use pulseengine_mcp_auth::{config::StorageConfig, AuthConfig};
+use pulseengine_mcp_auth::{AuthConfig, config::StorageConfig};
 use pulseengine_mcp_monitoring::MonitoringConfig;
 use pulseengine_mcp_protocol::*;
 use pulseengine_mcp_security::SecurityConfig;
@@ -156,34 +156,48 @@ impl McpBackend for MockServerBackend {
 #[test]
 fn test_server_error_types() {
     let config_err = ServerError::Configuration("Config failed".to_string());
-    assert!(config_err
-        .to_string()
-        .contains("Server configuration error: Config failed"));
+    assert!(
+        config_err
+            .to_string()
+            .contains("Server configuration error: Config failed")
+    );
 
     let transport_err = ServerError::Transport("Transport failed".to_string());
-    assert!(transport_err
-        .to_string()
-        .contains("Transport error: Transport failed"));
+    assert!(
+        transport_err
+            .to_string()
+            .contains("Transport error: Transport failed")
+    );
 
     let auth_err = ServerError::Authentication("Auth failed".to_string());
-    assert!(auth_err
-        .to_string()
-        .contains("Authentication error: Auth failed"));
+    assert!(
+        auth_err
+            .to_string()
+            .contains("Authentication error: Auth failed")
+    );
 
     let backend_err = ServerError::Backend("Backend failed".to_string());
-    assert!(backend_err
-        .to_string()
-        .contains("Backend error: Backend failed"));
+    assert!(
+        backend_err
+            .to_string()
+            .contains("Backend error: Backend failed")
+    );
 
-    assert!(ServerError::AlreadyRunning
-        .to_string()
-        .contains("Server already running"));
-    assert!(ServerError::NotRunning
-        .to_string()
-        .contains("Server not running"));
-    assert!(ServerError::ShutdownTimeout
-        .to_string()
-        .contains("Shutdown timeout"));
+    assert!(
+        ServerError::AlreadyRunning
+            .to_string()
+            .contains("Server already running")
+    );
+    assert!(
+        ServerError::NotRunning
+            .to_string()
+            .contains("Server not running")
+    );
+    assert!(
+        ServerError::ShutdownTimeout
+            .to_string()
+            .contains("Shutdown timeout")
+    );
 }
 
 #[test]

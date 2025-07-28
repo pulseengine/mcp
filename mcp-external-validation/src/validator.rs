@@ -1,6 +1,7 @@
 //! Main external validator that orchestrates all validation components
 
 use crate::{
+    ValidationError, ValidationResult,
     auth_integration::AuthIntegrationTester,
     config::ValidationConfig,
     cross_language::CrossLanguageTester,
@@ -11,7 +12,6 @@ use crate::{
     mcp_validator::McpValidatorClient,
     report::{ComplianceReport, ComplianceStatus, ExternalValidatorResults, PythonCompatResult},
     security::SecurityTester,
-    ValidationError, ValidationResult,
 };
 use std::time::{Duration, Instant};
 use tracing::{error, info, warn};

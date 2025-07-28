@@ -467,18 +467,18 @@ mod tests {
     use crate::backend::McpBackend;
     use crate::middleware::MiddlewareStack;
     use async_trait::async_trait;
-    use pulseengine_mcp_auth::config::AuthConfig;
     use pulseengine_mcp_auth::AuthenticationManager;
+    use pulseengine_mcp_auth::config::AuthConfig;
     use pulseengine_mcp_logging::ErrorClassification;
     use pulseengine_mcp_protocol::{
-        error::ErrorCode, CallToolRequestParam, CallToolResult, CompleteRequestParam,
-        CompleteResult, CompletionInfo, Content, Error, GetPromptRequestParam, GetPromptResult,
-        Implementation, InitializeResult, ListPromptsResult, ListResourceTemplatesResult,
-        ListResourcesResult, ListToolsResult, LoggingCapability, PaginatedRequestParam, Prompt,
-        PromptMessage, PromptMessageContent, PromptMessageRole, PromptsCapability, ProtocolVersion,
-        ReadResourceRequestParam, ReadResourceResult, Request, Resource, ResourceContents,
-        ResourcesCapability, ServerCapabilities, ServerInfo, SetLevelRequestParam,
-        SubscribeRequestParam, Tool, ToolsCapability, UnsubscribeRequestParam,
+        CallToolRequestParam, CallToolResult, CompleteRequestParam, CompleteResult, CompletionInfo,
+        Content, Error, GetPromptRequestParam, GetPromptResult, Implementation, InitializeResult,
+        ListPromptsResult, ListResourceTemplatesResult, ListResourcesResult, ListToolsResult,
+        LoggingCapability, PaginatedRequestParam, Prompt, PromptMessage, PromptMessageContent,
+        PromptMessageRole, PromptsCapability, ProtocolVersion, ReadResourceRequestParam,
+        ReadResourceResult, Request, Resource, ResourceContents, ResourcesCapability,
+        ServerCapabilities, ServerInfo, SetLevelRequestParam, SubscribeRequestParam, Tool,
+        ToolsCapability, UnsubscribeRequestParam, error::ErrorCode,
     };
     use serde_json::json;
     use std::sync::Arc;

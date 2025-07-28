@@ -3,7 +3,7 @@
 #[cfg(test)]
 mod tests {
     use super::super::*;
-    use pulseengine_mcp_protocol::{error::ErrorCode, Request};
+    use pulseengine_mcp_protocol::{Request, error::ErrorCode};
     use serde_json::json;
 
     fn create_request(jsonrpc: &str, method: &str) -> Request {

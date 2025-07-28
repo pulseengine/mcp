@@ -5,7 +5,7 @@
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Attribute, Data, DeriveInput, Fields};
+use syn::{Attribute, Data, DeriveInput, Fields, parse_macro_input};
 
 /// Derive macro for `McpConfig`
 ///
@@ -98,14 +98,14 @@ fn generate_mcp_config_impl(input: &DeriveInput) -> syn::Result<proc_macro2::Tok
                 return Err(syn::Error::new_spanned(
                     input,
                     "McpConfig can only be derived for structs with named fields",
-                ))
+                ));
             }
         },
         _ => {
             return Err(syn::Error::new_spanned(
                 input,
                 "McpConfig can only be derived for structs",
-            ))
+            ));
         }
     };
 
@@ -187,14 +187,14 @@ fn generate_mcp_backend_impl(input: &DeriveInput) -> syn::Result<proc_macro2::To
                 return Err(syn::Error::new_spanned(
                     input,
                     "McpBackend can only be derived for structs with named fields",
-                ))
+                ));
             }
         },
         _ => {
             return Err(syn::Error::new_spanned(
                 input,
                 "McpBackend can only be derived for structs",
-            ))
+            ));
         }
     };
 

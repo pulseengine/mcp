@@ -7,9 +7,9 @@ pub mod encryption;
 pub mod hashing;
 pub mod keys;
 
-pub use encryption::{decrypt_data, encrypt_data, EncryptionError};
-pub use hashing::{generate_salt, hash_api_key, verify_api_key, HashingError};
-pub use keys::{derive_key, generate_secure_key, KeyDerivationError};
+pub use encryption::{EncryptionError, decrypt_data, encrypt_data};
+pub use hashing::{HashingError, generate_salt, hash_api_key, verify_api_key};
+pub use keys::{KeyDerivationError, derive_key, generate_secure_key};
 
 pub use encryption::EncryptedData;
 /// Re-export common types

@@ -3,8 +3,8 @@
 #[cfg(test)]
 mod tests {
     use super::super::*;
-    use crate::metrics::current_timestamp;
     use crate::ErrorClassification;
+    use crate::metrics::current_timestamp;
     use std::time::Duration;
     use tokio::time::sleep;
 

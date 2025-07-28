@@ -1,11 +1,11 @@
 //! Debug server to capture full request details
 
 use axum::{
+    Router,
     extract::{Query, Request},
     http::Uri,
     response::Json,
     routing::get,
-    Router,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

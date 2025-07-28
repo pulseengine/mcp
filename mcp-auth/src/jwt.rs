@@ -5,7 +5,7 @@
 
 use chrono::{Duration, Utc};
 use jsonwebtoken::{
-    decode, encode, Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation,
+    Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation, decode, encode,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
