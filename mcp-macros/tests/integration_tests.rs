@@ -223,9 +223,9 @@ fn test_server_capabilities_detection() {
     let logging_cap = info.capabilities.logging.unwrap();
     assert_eq!(logging_cap.level, Some("info".to_string()));
 
-    // Should not have resources/prompts by default
-    assert!(info.capabilities.resources.is_none());
-    assert!(info.capabilities.prompts.is_none());
+    // Should have resources/prompts capabilities set by default
+    assert!(info.capabilities.resources.is_some());
+    assert!(info.capabilities.prompts.is_some());
 }
 
 /// Test version handling and configuration
