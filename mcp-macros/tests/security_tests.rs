@@ -220,11 +220,7 @@ mod security_server {
         }
 
         /// Generate secure prompts with content filtering
-        pub async fn secure_prompt(
-            &self,
-            topic: String,
-            context: String,
-        ) -> String {
+        pub async fn secure_prompt(&self, topic: String, context: String) -> String {
             // Content filtering
             let forbidden_topics = [
                 "password",
@@ -273,8 +269,8 @@ mod security_server {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use security_server::*;
     use pulseengine_mcp_server::McpBackend;
+    use security_server::*;
 
     #[test]
     fn test_security_server_compiles() {

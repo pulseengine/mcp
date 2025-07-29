@@ -82,7 +82,10 @@ mod error_server {
         }
 
         /// Prompt that may fail
-        pub async fn error_prompt(&self, prompt_type: String) -> Result<PromptMessage, std::io::Error> {
+        pub async fn error_prompt(
+            &self,
+            prompt_type: String,
+        ) -> Result<PromptMessage, std::io::Error> {
             match prompt_type.as_str() {
                 "success" => Ok(PromptMessage {
                     role: PromptMessageRole::User,

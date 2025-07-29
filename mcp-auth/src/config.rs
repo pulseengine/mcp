@@ -230,7 +230,7 @@ mod tests {
         let expected_path = std::env::temp_dir()
             .join("mcp-auth-config-test")
             .join("test_storage");
-            
+
         let storage = StorageConfig::File {
             path: expected_path.clone(),
             file_permissions: 0o644,

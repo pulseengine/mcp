@@ -12,11 +12,7 @@ mod basic_prompt {
     #[mcp_tools]
     impl PromptServer {
         /// Generate a code review prompt
-        pub async fn generate_code_review(
-            &self,
-            code: String,
-            language: String,
-        ) -> String {
+        pub async fn generate_code_review(&self, code: String, language: String) -> String {
             format!("Please review this {} code:\n\n{}", language, code)
         }
     }
@@ -80,8 +76,8 @@ mod tests {
     use super::*;
     use basic_prompt::*;
     use complex_prompt::*;
-    use sync_prompt::*;
     use pulseengine_mcp_server::McpBackend;
+    use sync_prompt::*;
 
     #[test]
     fn test_prompt_servers_compile() {
