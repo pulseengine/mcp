@@ -9,7 +9,7 @@ mod mixed_async_sync {
     #[derive(Default, Clone)]
     pub struct MixedServer;
 
-    #[mcp_tool]
+    #[mcp_tools]
     impl MixedServer {
         /// Synchronous tool
         fn sync_tool(&self, input: String) -> String {
@@ -106,8 +106,8 @@ mod mixed_async_sync {
             topic: String,
         ) -> Result<pulseengine_mcp_protocol::PromptMessage, std::io::Error> {
             Ok(pulseengine_mcp_protocol::PromptMessage {
-                role: pulseengine_mcp_protocol::Role::User,
-                content: pulseengine_mcp_protocol::PromptContent::Text {
+                role: pulseengine_mcp_protocol::PromptMessageRole::User,
+                content: pulseengine_mcp_protocol::PromptMessageContent::Text {
                     text: format!("Sync prompt about: {}", topic),
                 },
             })
@@ -123,8 +123,8 @@ mod mixed_async_sync {
         ) -> Result<pulseengine_mcp_protocol::PromptMessage, std::io::Error> {
             tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
             Ok(pulseengine_mcp_protocol::PromptMessage {
-                role: pulseengine_mcp_protocol::Role::Assistant,
-                content: pulseengine_mcp_protocol::PromptContent::Text {
+                role: pulseengine_mcp_protocol::PromptMessageRole::Assistant,
+                content: pulseengine_mcp_protocol::PromptMessageContent::Text {
                     text: format!("Async prompt about: {}", topic),
                 },
             })
@@ -139,10 +139,10 @@ mod pure_async {
     #[derive(Default)]
     pub struct PureAsyncBackend;
 
-    #[mcp_tool]
+    #[mcp_tools]
     impl PureAsyncBackend {
         /// All tools are async
-        async fn fetch_data(&self, url: String) -> Result<String, reqwest::Error> {
+        async fn fetch_data(&self, url: String) -> Result<String, std::io::Error> {
             // Simulate network request
             tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
             Ok(format!("Data from: {}", url))
@@ -179,7 +179,7 @@ mod pure_sync {
     #[derive(Default, Clone)]
     pub struct PureSyncServer;
 
-    #[mcp_tool]
+    #[mcp_tools]
     impl PureSyncServer {
         /// All tools are synchronous
         fn calculate(&self, a: f64, b: f64) -> f64 {
@@ -305,13 +305,13 @@ mod tests {
         let sync_prompt = server.sync_prompt("AI".to_string()).await;
         assert!(sync_prompt.is_ok());
         let message = sync_prompt.unwrap();
-        assert_eq!(message.role, pulseengine_mcp_protocol::Role::User);
+        assert_eq!(message.role, pulseengine_mcp_protocol::PromptMessageRole::User);
 
         // Test asynchronous prompt
         let async_prompt = server.async_prompt("ML".to_string()).await;
         assert!(async_prompt.is_ok());
         let message = async_prompt.unwrap();
-        assert_eq!(message.role, pulseengine_mcp_protocol::Role::Assistant);
+        assert_eq!(message.role, pulseengine_mcp_protocol::PromptMessageRole::Assistant);
     }
 
     #[tokio::test]

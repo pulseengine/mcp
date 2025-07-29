@@ -44,7 +44,7 @@ mod attribute_combinations {
     }
 
     // Test tool attribute combinations
-    #[mcp_tool]
+    #[mcp_tools]
     impl MinimalServer {
         /// A minimal tool
         async fn minimal_tool(&self) -> String {
@@ -109,7 +109,7 @@ mod attribute_combinations {
         ) -> Result<pulseengine_mcp_protocol::PromptMessage, std::io::Error> {
             Ok(pulseengine_mcp_protocol::PromptMessage {
                 role: pulseengine_mcp_protocol::Role::User,
-                content: pulseengine_mcp_protocol::PromptContent::Text {
+                content: pulseengine_mcp_protocol::PromptMessageContent::Text {
                     text: format!("Tell me about: {}", topic),
                 },
             })
@@ -131,7 +131,7 @@ mod attribute_combinations {
         ) -> Result<pulseengine_mcp_protocol::PromptMessage, std::io::Error> {
             Ok(pulseengine_mcp_protocol::PromptMessage {
                 role: pulseengine_mcp_protocol::Role::Assistant,
-                content: pulseengine_mcp_protocol::PromptContent::Text {
+                content: pulseengine_mcp_protocol::PromptMessageContent::Text {
                     text: format!(
                         "Generate {} content about {} in {} style",
                         length, context, style
@@ -158,7 +158,7 @@ mod doc_comment_handling {
     #[derive(Default)]
     pub struct DocumentedBackend;
 
-    #[mcp_tool]
+    #[mcp_tools]
     impl DocumentedServer {
         /// This tool has documentation
         /// across multiple lines
@@ -187,7 +187,7 @@ mod doc_comment_handling {
         ) -> Result<pulseengine_mcp_protocol::PromptMessage, std::io::Error> {
             Ok(pulseengine_mcp_protocol::PromptMessage {
                 role: pulseengine_mcp_protocol::Role::User,
-                content: pulseengine_mcp_protocol::PromptContent::Text {
+                content: pulseengine_mcp_protocol::PromptMessageContent::Text {
                     text: format!("Generate documentation for: {}", input),
                 },
             })

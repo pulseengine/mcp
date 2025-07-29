@@ -10,7 +10,7 @@ mod parameter_types {
     #[derive(Default, Clone)]
     pub struct ParameterServer;
 
-    #[mcp_tool]
+    #[mcp_tools]
     impl ParameterServer {
         /// Tool with various primitive types
         async fn primitive_types(
@@ -139,7 +139,7 @@ mod parameter_types {
 
             Ok(pulseengine_mcp_protocol::PromptMessage {
                 role: pulseengine_mcp_protocol::Role::User,
-                content: pulseengine_mcp_protocol::PromptContent::Text { text },
+                content: pulseengine_mcp_protocol::PromptMessageContent::Text { text },
             })
         }
     }
@@ -152,7 +152,7 @@ mod edge_cases {
     #[derive(Default, Clone)]
     pub struct EdgeCaseServer;
 
-    #[mcp_tool]
+    #[mcp_tools]
     impl EdgeCaseServer {
         /// Tool with empty string parameter
         async fn empty_string_tool(&self, input: String) -> String {
@@ -232,7 +232,7 @@ mod validation_errors {
     #[derive(Default, Clone)]
     pub struct ValidationServer;
 
-    #[mcp_tool]
+    #[mcp_tools]
     impl ValidationServer {
         /// Tool that validates input
         async fn validate_email(&self, email: String) -> Result<String, std::io::Error> {
@@ -445,7 +445,7 @@ mod tests {
 
         assert!(result.is_ok());
         let message = result.unwrap();
-        if let pulseengine_mcp_protocol::PromptContent::Text { text } = message.content {
+        if let pulseengine_mcp_protocol::PromptMessageContent::Text { text } = message.content {
             assert!(text.contains("technical"));
             assert!(text.contains("AI"));
             assert!(text.contains("500"));
