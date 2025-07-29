@@ -227,10 +227,12 @@ mod tests {
 
     #[test]
     fn test_storage_config_file() {
+        let expected_path = std::env::temp_dir()
+            .join("mcp-auth-config-test")
+            .join("test_storage");
+            
         let storage = StorageConfig::File {
-            path: std::env::temp_dir()
-                .join("mcp-auth-config-test")
-                .join("test_storage"),
+            path: expected_path.clone(),
             file_permissions: 0o644,
             dir_permissions: 0o755,
             require_secure_filesystem: false,
@@ -245,7 +247,7 @@ mod tests {
                 require_secure_filesystem,
                 enable_filesystem_monitoring,
             } => {
-                assert_eq!(path, PathBuf::from("/tmp/test"));
+                assert_eq!(path, expected_path);
                 assert_eq!(file_permissions, 0o644);
                 assert_eq!(dir_permissions, 0o755);
                 assert!(!require_secure_filesystem);
