@@ -1,6 +1,6 @@
 //! Validation tests that check macros generate correct code without calling private methods
 
-use pulseengine_mcp_macros::{mcp_prompt, mcp_resource, mcp_server, mcp_tools};
+use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 
 #[test]
 fn test_mcp_server_macro_compiles() {
@@ -19,6 +19,7 @@ fn test_mcp_tools_macro_compiles() {
 
     #[mcp_tools]
     impl ToolsServer {
+        #[allow(dead_code)]
         async fn test_tool(&self, input: String) -> String {
             format!("Processed: {input}")
         }
@@ -35,6 +36,7 @@ fn test_multiple_macros_together() {
 
     #[mcp_tools]
     impl CombinedServer {
+        #[allow(dead_code)]
         async fn example_tool(&self, data: String) -> Result<String, std::io::Error> {
             Ok(format!("Tool result: {data}"))
         }
@@ -60,10 +62,12 @@ fn test_server_with_complex_types() {
 
     #[mcp_tools]
     impl ComplexServer {
+        #[allow(dead_code)]
         async fn process_data(&self, data: CustomData) -> Result<CustomData, std::io::Error> {
             Ok(data)
         }
 
+        #[allow(dead_code)]
         async fn simple_greeting(&self, name: String) -> String {
             format!("Hello, {name}!")
         }

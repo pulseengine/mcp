@@ -9,6 +9,7 @@ mod simple_backend {
     #[mcp_server(name = "Simple Backend")]
     #[derive(Default, Clone)]
     pub struct SimpleBackend {
+        #[allow(dead_code)]
         data: String,
     }
 
@@ -16,7 +17,7 @@ mod simple_backend {
     impl SimpleBackend {
         /// Echo the input string
         pub async fn echo(&self, input: String) -> String {
-            format!("Echo: {}", input)
+            format!("Echo: {input}")
         }
     }
 }

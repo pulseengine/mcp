@@ -341,7 +341,7 @@ mod type_system_server {
 
             // Serialize to JSON
             serde_json::to_value(user)
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+                .map_err(|e| std::io::Error::other(e.to_string()))
         }
 
         /// Prompt with complex type handling in parameters

@@ -80,11 +80,12 @@ mod full_integration {
         }
 
         /// Search data tool
+        #[allow(dead_code)]
         pub async fn search_data(
             &self,
             query: String,
             limit: Option<u32>,
-            include_metadata: Option<bool>,
+            _include_metadata: Option<bool>,
         ) -> Result<Vec<serde_json::Value>, std::io::Error> {
             let store = self.data_store.read().unwrap();
             let mut results = Vec::new();
@@ -108,17 +109,18 @@ mod full_integration {
             store.get(&key).map(|v| v.to_string()).ok_or_else(|| {
                 std::io::Error::new(
                     std::io::ErrorKind::NotFound,
-                    format!("Key not found: {}", key),
+                    format!("Key not found: {key}"),
                 )
             })
         }
 
         /// User profile resource
+        #[allow(dead_code)]
         pub async fn read_resource(&self, uri: String) -> Result<String, std::io::Error> {
             if uri.starts_with("user://") {
                 let user_id = uri.strip_prefix("user://").unwrap_or("unknown");
                 let store = self.data_store.read().unwrap();
-                let user_key = format!("user_{}", user_id);
+                let user_key = format!("user_{user_id}");
 
                 let user_data = store.get(&user_key).ok_or_else(|| {
                     std::io::Error::new(std::io::ErrorKind::NotFound, "User not found")
@@ -137,11 +139,8 @@ mod full_integration {
         pub async fn risky_operation(&self, mode: String) -> Result<String, std::io::Error> {
             match mode.as_str() {
                 "success" => Ok("Operation completed successfully".to_string()),
-                "fail" => Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "Operation failed as requested",
-                )),
-                _ => Ok(format!("Unknown mode: {}", mode)),
+                "fail" => Err(std::io::Error::other("Operation failed as requested")),
+                _ => Ok(format!("Unknown mode: {mode}")),
             }
         }
     }

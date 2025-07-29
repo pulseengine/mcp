@@ -24,7 +24,7 @@ mod error_backend {
     impl ErrorBackend {
         /// Tool that always succeeds
         pub async fn success_tool(&self, input: String) -> String {
-            format!("Success: {}", input)
+            format!("Success: {input}")
         }
 
         /// Tool that returns a custom error
