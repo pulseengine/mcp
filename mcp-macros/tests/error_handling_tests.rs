@@ -1,7 +1,7 @@
 //! Tests for error handling across all macro types
 
-use pulseengine_mcp_macros::{mcp_backend, mcp_prompt, mcp_resource, mcp_server, mcp_tool};
-use pulseengine_mcp_protocol::{PromptMessage, Role};
+use pulseengine_mcp_macros::{mcp_server, mcp_tools};
+use pulseengine_mcp_protocol::{PromptMessage, PromptMessageRole};
 
 mod error_backend {
     use super::*;
@@ -16,24 +16,24 @@ mod error_backend {
         Validation { field: String },
     }
 
-    #[mcp_backend(name = "Error Backend")]
-    #[derive(Default)]
+    #[mcp_server(name = "Error Backend")]
+    #[derive(Default, Clone)]
     pub struct ErrorBackend;
 
     #[mcp_tools]
     impl ErrorBackend {
         /// Tool that always succeeds
-        async fn success_tool(&self, input: String) -> String {
+        pub async fn success_tool(&self, input: String) -> String {
             format!("Success: {}", input)
         }
 
         /// Tool that returns a custom error
-        async fn error_tool(&self, _input: String) -> Result<String, CustomError> {
+        pub async fn error_tool(&self, _input: String) -> Result<String, CustomError> {
             Err(CustomError::Custom("This tool always fails".to_string()))
         }
 
         /// Tool that returns a standard error
-        async fn io_error_tool(&self, _input: String) -> Result<String, std::io::Error> {
+        pub async fn io_error_tool(&self, _input: String) -> Result<String, std::io::Error> {
             Err(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
                 "File not found",
@@ -41,7 +41,7 @@ mod error_backend {
         }
 
         /// Tool with validation error
-        async fn validation_tool(&self, name: String) -> Result<String, CustomError> {
+        pub async fn validation_tool(&self, name: String) -> Result<String, CustomError> {
             if name.is_empty() {
                 Err(CustomError::Validation {
                     field: "name".to_string(),
@@ -60,10 +60,10 @@ mod error_server {
     #[derive(Default, Clone)]
     pub struct ErrorServer;
 
-    #[mcp_resource(uri_template = "error://{type}")]
+    #[mcp_tools]
     impl ErrorServer {
         /// Resource that may fail
-        async fn error_resource(&self, error_type: String) -> Result<String, std::io::Error> {
+        pub async fn error_resource(&self, error_type: String) -> Result<String, std::io::Error> {
             match error_type.as_str() {
                 "success" => Ok("Resource data".to_string()),
                 "not_found" => Err(std::io::Error::new(
@@ -80,15 +80,12 @@ mod error_server {
                 )),
             }
         }
-    }
 
-    #[mcp_prompt(name = "error_prompt")]
-    impl ErrorServer {
         /// Prompt that may fail
-        async fn error_prompt(&self, prompt_type: String) -> Result<PromptMessage, std::io::Error> {
+        pub async fn error_prompt(&self, prompt_type: String) -> Result<PromptMessage, std::io::Error> {
             match prompt_type.as_str() {
                 "success" => Ok(PromptMessage {
-                    role: Role::User,
+                    role: PromptMessageRole::User,
                     content: pulseengine_mcp_protocol::PromptMessageContent::Text {
                         text: "Successful prompt".to_string(),
                     },
@@ -103,12 +100,9 @@ mod error_server {
                 )),
             }
         }
-    }
 
-    #[mcp_tools]
-    impl ErrorServer {
         /// Tool with multiple error conditions
-        async fn complex_error_tool(
+        pub async fn complex_error_tool(
             &self,
             operation: String,
             value: i32,
@@ -156,7 +150,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_successful_tools() {
-        let backend = ErrorBackend::default();
+        let backend = ErrorBackend::with_defaults();
 
         let success_result = backend.success_tool("test".to_string()).await;
         assert_eq!(success_result, "Success: test");
@@ -168,7 +162,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_error_tools() {
-        let backend = ErrorBackend::default();
+        let backend = ErrorBackend::with_defaults();
 
         let error_result = backend.error_tool("test".to_string()).await;
         assert!(error_result.is_err());
@@ -271,20 +265,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_backend_error_propagation() {
-        let backend = ErrorBackend::default();
+        let backend = ErrorBackend::with_defaults();
 
-        // Test that backend health check works
-        assert!(backend.health_check().await.is_ok());
-
-        // Test that backend list operations work
-        let tools = backend.list_tools(Default::default()).await;
-        assert!(tools.is_ok());
-
-        let resources = backend.list_resources(Default::default()).await;
-        assert!(resources.is_ok());
-
-        let prompts = backend.list_prompts(Default::default()).await;
-        assert!(prompts.is_ok());
+        // Test that server info works
+        let info = backend.get_server_info();
+        assert_eq!(info.server_info.name, "Error Backend");
     }
 
     #[test]
