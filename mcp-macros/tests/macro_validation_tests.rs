@@ -27,7 +27,7 @@ fn test_mcp_tools_macro_compiles() {
     let _server = ToolsServer::with_defaults();
 }
 
-#[test] 
+#[test]
 fn test_multiple_macros_together() {
     #[mcp_server(name = "Combined Test Server")]
     #[derive(Clone, Default)]
@@ -46,7 +46,7 @@ fn test_multiple_macros_together() {
 #[test]
 fn test_server_with_complex_types() {
     use serde::{Deserialize, Serialize};
-    
+
     #[derive(Debug, Clone, Serialize, Deserialize)]
     struct CustomData {
         id: u64,
@@ -63,7 +63,7 @@ fn test_server_with_complex_types() {
         async fn process_data(&self, data: CustomData) -> Result<CustomData, std::io::Error> {
             Ok(data)
         }
-        
+
         async fn simple_greeting(&self, name: String) -> String {
             format!("Hello, {name}!")
         }
@@ -80,7 +80,7 @@ fn test_server_configuration_types() {
 
     let server = ConfigServer::with_defaults();
     let info = server.get_server_info();
-    
+
     assert_eq!(info.server_info.name, "Config Test");
     assert_eq!(info.server_info.version, "1.0.0");
 }

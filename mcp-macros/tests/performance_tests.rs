@@ -53,7 +53,11 @@ mod performance_server {
         /// Memory-intensive operation
         pub async fn memory_intensive(&self, size: usize) -> String {
             let _data: Vec<u8> = vec![42; size];
-            let checksum = if size > 0 { 42u64 * (size as u64 % 100) } else { 0 };
+            let checksum = if size > 0 {
+                42u64 * (size as u64 % 100)
+            } else {
+                0
+            };
             format!("Allocated {} bytes, checksum: {}", size, checksum)
         }
 
@@ -83,25 +87,39 @@ mod performance_server {
         }
 
         /// Performance resource access
-        pub async fn performance_resource(&self, resource_type: String, resource_id: String) -> Result<String, std::io::Error> {
+        pub async fn performance_resource(
+            &self,
+            resource_type: String,
+            resource_id: String,
+        ) -> Result<String, std::io::Error> {
             if resource_type.is_empty() || resource_id.is_empty() {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
-                    "Resource type and ID cannot be empty"
+                    "Resource type and ID cannot be empty",
                 ));
             }
-            
+
             // Simulate performance tracking
             let start = Instant::now();
             tokio::time::sleep(Duration::from_millis(1)).await;
             let elapsed = start.elapsed();
-            
-            Ok(format!("Resource {}/{} accessed in {:?}", resource_type, resource_id, elapsed))
+
+            Ok(format!(
+                "Resource {}/{} accessed in {:?}",
+                resource_type, resource_id, elapsed
+            ))
         }
 
         /// Generate performance prompt
-        pub async fn performance_prompt(&self, query: String, optimization_level: String) -> String {
-            format!("Performance analysis for '{}' with optimization level: {}", query, optimization_level)
+        pub async fn performance_prompt(
+            &self,
+            query: String,
+            optimization_level: String,
+        ) -> String {
+            format!(
+                "Performance analysis for '{}' with optimization level: {}",
+                query, optimization_level
+            )
         }
     }
 }
@@ -137,9 +155,14 @@ mod tests {
     async fn test_bulk_operations() {
         let server = PerformanceServer::with_defaults();
 
-        let keys = vec!["key_1".to_string(), "key_2".to_string(), "key_999".to_string(), "nonexistent".to_string()];
+        let keys = vec![
+            "key_1".to_string(),
+            "key_2".to_string(),
+            "key_999".to_string(),
+            "nonexistent".to_string(),
+        ];
         let results = server.bulk_lookup(keys).await;
-        
+
         assert_eq!(results.len(), 4);
         assert_eq!(results[0], Some("value_1".to_string()));
         assert_eq!(results[1], Some("value_2".to_string()));
@@ -163,11 +186,11 @@ mod tests {
     #[tokio::test]
     async fn test_io_simulation() {
         let server = PerformanceServer::with_defaults();
-        
+
         let start = Instant::now();
         let result = server.simulated_io(50).await;
         let elapsed = start.elapsed();
-        
+
         assert!(result.contains("50ms"));
         assert!(elapsed >= Duration::from_millis(45)); // Allow some tolerance
     }
@@ -175,34 +198,40 @@ mod tests {
     #[tokio::test]
     async fn test_concurrent_access() {
         let server = PerformanceServer::with_defaults();
-        
+
         let results = server.concurrent_access(10).await;
         assert_eq!(results.len(), 10);
-        
+
         // Results should be sequential (each increment returns the previous value)
         for i in 1..results.len() {
-            assert_eq!(results[i], results[i-1] + 1);
+            assert_eq!(results[i], results[i - 1] + 1);
         }
     }
 
     #[tokio::test]
     async fn test_performance_resource() {
         let server = PerformanceServer::with_defaults();
-        
-        let result = server.performance_resource("cache".to_string(), "item_1".to_string()).await;
+
+        let result = server
+            .performance_resource("cache".to_string(), "item_1".to_string())
+            .await;
         assert!(result.is_ok());
         assert!(result.unwrap().contains("cache/item_1"));
-        
+
         // Test error case
-        let result = server.performance_resource("".to_string(), "item_1".to_string()).await;
+        let result = server
+            .performance_resource("".to_string(), "item_1".to_string())
+            .await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn test_performance_prompt() {
         let server = PerformanceServer::with_defaults();
-        
-        let result = server.performance_prompt("database query".to_string(), "O3".to_string()).await;
+
+        let result = server
+            .performance_prompt("database query".to_string(), "O3".to_string())
+            .await;
         assert!(result.contains("database query"));
         assert!(result.contains("O3"));
     }
@@ -215,9 +244,7 @@ mod tests {
         // Spawn multiple concurrent tasks
         for _ in 0..20 {
             let server_clone = Arc::clone(&server);
-            let handle = tokio::spawn(async move {
-                server_clone.increment_counter().await
-            });
+            let handle = tokio::spawn(async move { server_clone.increment_counter().await });
             handles.push(handle);
         }
 
@@ -228,7 +255,7 @@ mod tests {
         }
 
         assert_eq!(results.len(), 20);
-        
+
         // Final counter should be at least 20
         let final_count = server.get_counter().await;
         assert!(final_count >= 20);

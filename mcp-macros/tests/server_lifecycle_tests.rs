@@ -158,13 +158,22 @@ mod tests {
         let server = LifecycleServer::with_defaults();
 
         // Test list operations return empty results
-        let tools = server.list_tools(pulseengine_mcp_protocol::PaginatedRequestParam { cursor: None }).await.unwrap();
+        let tools = server
+            .list_tools(pulseengine_mcp_protocol::PaginatedRequestParam { cursor: None })
+            .await
+            .unwrap();
         assert_eq!(tools.tools.len(), 0);
 
-        let resources = server.list_resources(pulseengine_mcp_protocol::PaginatedRequestParam { cursor: None }).await.unwrap();
+        let resources = server
+            .list_resources(pulseengine_mcp_protocol::PaginatedRequestParam { cursor: None })
+            .await
+            .unwrap();
         assert_eq!(resources.resources.len(), 0);
 
-        let prompts = server.list_prompts(pulseengine_mcp_protocol::PaginatedRequestParam { cursor: None }).await.unwrap();
+        let prompts = server
+            .list_prompts(pulseengine_mcp_protocol::PaginatedRequestParam { cursor: None })
+            .await
+            .unwrap();
         assert_eq!(prompts.prompts.len(), 0);
 
         // Test error cases

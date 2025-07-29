@@ -80,8 +80,8 @@ mod tests {
     use super::*;
     use basic_resource::*;
     use complex_resource::*;
-    use sync_resource::*;
     use pulseengine_mcp_server::McpBackend;
+    use sync_resource::*;
 
     #[test]
     fn test_resource_servers_compile() {

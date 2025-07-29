@@ -46,10 +46,7 @@ mod parameter_types {
             string_vec: Vec<String>,
             number_vec: Vec<i32>,
         ) -> String {
-            format!(
-                "Strings: {:?}, Numbers: {:?}",
-                string_vec, number_vec
-            )
+            format!("Strings: {:?}, Numbers: {:?}", string_vec, number_vec)
         }
 
         /// Tool with JSON parameter
@@ -66,7 +63,7 @@ mod parameter_types {
             if resource_type.is_empty() || resource_id.is_empty() {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
-                    "Resource type and ID cannot be empty"
+                    "Resource type and ID cannot be empty",
                 ));
             }
             Ok(format!("Resource: {}/{}", resource_type, resource_id))
@@ -83,10 +80,13 @@ mod parameter_types {
             if database.is_empty() || schema.is_empty() || table.is_empty() || action.is_empty() {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
-                    "All parameters must be provided"
+                    "All parameters must be provided",
                 ));
             }
-            Ok(format!("Complex resource: {}.{}.{} action={}", database, schema, table, action))
+            Ok(format!(
+                "Complex resource: {}.{}.{} action={}",
+                database, schema, table, action
+            ))
         }
 
         /// Generate prompt with parameters
@@ -111,7 +111,8 @@ mod edge_cases {
             this_is_a_very_long_parameter_name_that_tests_edge_cases: String,
             another_extremely_long_parameter_name_for_comprehensive_testing: String,
         ) -> String {
-            format!("Long params: {} and {}", 
+            format!(
+                "Long params: {} and {}",
                 this_is_a_very_long_parameter_name_that_tests_edge_cases,
                 another_extremely_long_parameter_name_for_comprehensive_testing
             )
@@ -120,11 +121,21 @@ mod edge_cases {
         /// Tool with many parameters
         pub async fn many_parameters(
             &self,
-            p1: String, p2: String, p3: String, p4: String, p5: String,
-            p6: i32, p7: i32, p8: i32, p9: i32, p10: i32,
+            p1: String,
+            p2: String,
+            p3: String,
+            p4: String,
+            p5: String,
+            p6: i32,
+            p7: i32,
+            p8: i32,
+            p9: i32,
+            p10: i32,
         ) -> String {
-            format!("Many params: {},{},{},{},{},{},{},{},{},{}", 
-                p1, p2, p3, p4, p5, p6, p7, p8, p9, p10)
+            format!(
+                "Many params: {},{},{},{},{},{},{},{},{},{}",
+                p1, p2, p3, p4, p5, p6, p7, p8, p9, p10
+            )
         }
 
         /// Edge case resource access
@@ -132,7 +143,7 @@ mod edge_cases {
             if param.len() > 100 {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
-                    "Parameter too long"
+                    "Parameter too long",
                 ));
             }
             Ok(format!("Edge resource: {}", param))
@@ -159,7 +170,7 @@ mod validation_server {
             if !email.contains('@') {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
-                    "Invalid email format"
+                    "Invalid email format",
                 ));
             }
 
@@ -167,7 +178,7 @@ mod validation_server {
             if age < 18 || age > 120 {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
-                    "Age must be between 18 and 120"
+                    "Age must be between 18 and 120",
                 ));
             }
 
@@ -182,8 +193,10 @@ mod validation_server {
             small_float: f32,
             large_float: f64,
         ) -> String {
-            format!("Boundaries: int={}-{}, float={}-{}", 
-                min_int, max_int, small_float, large_float)
+            format!(
+                "Boundaries: int={}-{}, float={}-{}",
+                min_int, max_int, small_float, large_float
+            )
         }
     }
 }
@@ -191,10 +204,10 @@ mod validation_server {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use parameter_types::*;
     use edge_cases::*;
-    use validation_server::*;
+    use parameter_types::*;
     use pulseengine_mcp_server::McpBackend;
+    use validation_server::*;
 
     #[test]
     fn test_parameter_servers_compile() {
@@ -214,14 +227,10 @@ mod tests {
     #[tokio::test]
     async fn test_primitive_types() {
         let server = ParameterServer::with_defaults();
-        let result = server.primitive_types(
-            "test".to_string(),
-            42,
-            100u64,
-            3.14,
-            true
-        ).await;
-        
+        let result = server
+            .primitive_types("test".to_string(), 42, 100u64, 3.14, true)
+            .await;
+
         assert!(result.contains("test"));
         assert!(result.contains("42"));
         assert!(result.contains("100"));
@@ -232,23 +241,23 @@ mod tests {
     #[tokio::test]
     async fn test_optional_parameters() {
         let server = ParameterServer::with_defaults();
-        
+
         // With all parameters
-        let result = server.optional_params(
-            "required".to_string(),
-            Some("optional".to_string()),
-            Some(123)
-        ).await;
+        let result = server
+            .optional_params(
+                "required".to_string(),
+                Some("optional".to_string()),
+                Some(123),
+            )
+            .await;
         assert!(result.contains("required"));
         assert!(result.contains("optional"));
         assert!(result.contains("123"));
 
         // With only required parameter
-        let result = server.optional_params(
-            "required_only".to_string(),
-            None,
-            None
-        ).await;
+        let result = server
+            .optional_params("required_only".to_string(), None, None)
+            .await;
         assert!(result.contains("required_only"));
         assert!(result.contains("None"));
     }
@@ -258,16 +267,22 @@ mod tests {
         let server = ValidationServer::with_defaults();
 
         // Valid input
-        let result = server.strict_validation("test@example.com".to_string(), 25).await;
+        let result = server
+            .strict_validation("test@example.com".to_string(), 25)
+            .await;
         assert!(result.is_ok());
         assert!(result.unwrap().contains("test@example.com"));
 
         // Invalid email
-        let result = server.strict_validation("invalid_email".to_string(), 25).await;
+        let result = server
+            .strict_validation("invalid_email".to_string(), 25)
+            .await;
         assert!(result.is_err());
 
         // Invalid age
-        let result = server.strict_validation("test@example.com".to_string(), 15).await;
+        let result = server
+            .strict_validation("test@example.com".to_string(), 15)
+            .await;
         assert!(result.is_err());
     }
 
@@ -275,18 +290,27 @@ mod tests {
     async fn test_edge_cases() {
         let server = EdgeCaseServer::with_defaults();
 
-        let result = server.very_long_parameter_names(
-            "test1".to_string(),
-            "test2".to_string()
-        ).await;
+        let result = server
+            .very_long_parameter_names("test1".to_string(), "test2".to_string())
+            .await;
         assert!(result.contains("test1"));
         assert!(result.contains("test2"));
 
         // Test many parameters
-        let result = server.many_parameters(
-            "a".to_string(), "b".to_string(), "c".to_string(), "d".to_string(), "e".to_string(),
-            1, 2, 3, 4, 5
-        ).await;
+        let result = server
+            .many_parameters(
+                "a".to_string(),
+                "b".to_string(),
+                "c".to_string(),
+                "d".to_string(),
+                "e".to_string(),
+                1,
+                2,
+                3,
+                4,
+                5,
+            )
+            .await;
         assert!(result.contains("a,b,c,d,e,1,2,3,4,5"));
     }
 }

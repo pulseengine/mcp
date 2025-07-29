@@ -66,7 +66,6 @@ mod complex_backend {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -82,7 +81,6 @@ mod tests {
     fn test_complex_backend_compiles() {
         let _backend = ComplexBackend::with_defaults();
     }
-
 
     #[test]
     fn test_backend_server_info() {
@@ -136,9 +134,6 @@ mod tests {
         let result = backend.process_data("hello".to_string()).await;
         assert_eq!(result, "Processed 'hello' with config 'default'");
     }
-
-
-
 
     #[test]
     fn test_error_types_exist() {

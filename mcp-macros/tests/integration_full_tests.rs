@@ -49,7 +49,9 @@ mod full_integration {
 
         /// Simple asynchronous tool
         pub async fn increment_counter(&self) -> u64 {
-            self.counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1
+            self.counter
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+                + 1
         }
 
         /// Data processing tool
@@ -65,7 +67,7 @@ mod full_integration {
                     } else {
                         Err(std::io::Error::new(
                             std::io::ErrorKind::InvalidInput,
-                            "Input must be an object"
+                            "Input must be an object",
                         ))
                     }
                 }
@@ -73,7 +75,7 @@ mod full_integration {
                     let count = self.counter.load(std::sync::atomic::Ordering::SeqCst);
                     Ok(json!({"count": count, "input": input}))
                 }
-                _ => Ok(json!({"operation": operation, "input": input}))
+                _ => Ok(json!({"operation": operation, "input": input})),
             }
         }
 
@@ -86,17 +88,17 @@ mod full_integration {
         ) -> Result<Vec<serde_json::Value>, std::io::Error> {
             let store = self.data_store.read().unwrap();
             let mut results = Vec::new();
-            
+
             for (_key, value) in store.iter() {
                 if value.to_string().contains(&query) {
                     results.push(value.clone());
                 }
             }
-            
+
             if let Some(limit) = limit {
                 results.truncate(limit as usize);
             }
-            
+
             Ok(results)
         }
 
@@ -117,16 +119,16 @@ mod full_integration {
                 let user_id = uri.strip_prefix("user://").unwrap_or("unknown");
                 let store = self.data_store.read().unwrap();
                 let user_key = format!("user_{}", user_id);
-                
+
                 let user_data = store.get(&user_key).ok_or_else(|| {
                     std::io::Error::new(std::io::ErrorKind::NotFound, "User not found")
                 })?;
-                
+
                 Ok(user_data.to_string())
             } else {
                 Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
-                    "Invalid URI format"
+                    "Invalid URI format",
                 ))
             }
         }
@@ -137,9 +139,9 @@ mod full_integration {
                 "success" => Ok("Operation completed successfully".to_string()),
                 "fail" => Err(std::io::Error::new(
                     std::io::ErrorKind::Other,
-                    "Operation failed as requested"
+                    "Operation failed as requested",
                 )),
-                _ => Ok(format!("Unknown mode: {}", mode))
+                _ => Ok(format!("Unknown mode: {}", mode)),
             }
         }
     }
@@ -163,11 +165,14 @@ mod tests {
     fn test_server_configuration() {
         let server = FullIntegrationServer::with_defaults();
         let info = server.get_server_info();
-        
+
         assert_eq!(info.server_info.name, "Full Integration Test Server");
         assert_eq!(info.server_info.version, "1.0.0");
-        assert_eq!(info.instructions, Some("A server demonstrating all macro capabilities".to_string()));
-        
+        assert_eq!(
+            info.instructions,
+            Some("A server demonstrating all macro capabilities".to_string())
+        );
+
         // Test that all capabilities are enabled
         assert!(info.capabilities.tools.is_some());
         assert!(info.capabilities.resources.is_some());
@@ -178,10 +183,10 @@ mod tests {
     #[tokio::test]
     async fn test_basic_tool_functionality() {
         let server = FullIntegrationServer::with_defaults();
-        
+
         let status = server.get_server_status();
         assert_eq!(status, "Server is running");
-        
+
         let count1 = server.increment_counter().await;
         let count2 = server.increment_counter().await;
         assert_eq!(count2, count1 + 1);
@@ -190,35 +195,42 @@ mod tests {
     #[tokio::test]
     async fn test_data_processing() {
         let server = FullIntegrationServer::with_defaults();
-        
+
         let valid_input = json!({"key": "value"});
-        let result = server.process_data(valid_input.clone(), "validate".to_string()).await;
+        let result = server
+            .process_data(valid_input.clone(), "validate".to_string())
+            .await;
         assert!(result.is_ok());
-        
-        let count_result = server.process_data(json!("test"), "count".to_string()).await;
+
+        let count_result = server
+            .process_data(json!("test"), "count".to_string())
+            .await;
         assert!(count_result.is_ok());
     }
 
     #[tokio::test]
     async fn test_resource_access() {
         let server = FullIntegrationServer::with_defaults();
-        
+
         let config_result = server.data_resource("config".to_string()).await;
         assert!(config_result.is_ok());
         assert!(config_result.unwrap().contains("dark"));
-        
+
         let missing_result = server.data_resource("nonexistent".to_string()).await;
         assert!(missing_result.is_err());
-        assert_eq!(missing_result.unwrap_err().kind(), std::io::ErrorKind::NotFound);
+        assert_eq!(
+            missing_result.unwrap_err().kind(),
+            std::io::ErrorKind::NotFound
+        );
     }
 
     #[tokio::test]
     async fn test_error_handling() {
         let server = FullIntegrationServer::with_defaults();
-        
+
         let success_result = server.risky_operation("success".to_string()).await;
         assert!(success_result.is_ok());
-        
+
         let fail_result = server.risky_operation("fail".to_string()).await;
         assert!(fail_result.is_err());
     }

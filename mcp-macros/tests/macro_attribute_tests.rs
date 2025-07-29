@@ -132,9 +132,9 @@ mod doc_comment_handling {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use minimal_server::*;
-    use full_server::*;
     use doc_comment_handling::*;
+    use full_server::*;
+    use minimal_server::*;
     use pulseengine_mcp_server::McpBackend;
 
     #[test]
@@ -278,7 +278,6 @@ mod tests {
         let prompt_result = server.documented_prompt("API usage".to_string()).await;
         assert!(prompt_result.is_ok());
     }
-
 
     #[test]
     fn test_capabilities_configuration() {

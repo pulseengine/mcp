@@ -388,7 +388,6 @@ mod type_system_server {
             })
         }
     }
-
 }
 
 #[cfg(test)]
