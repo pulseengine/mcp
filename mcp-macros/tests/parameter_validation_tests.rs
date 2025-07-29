@@ -1,7 +1,6 @@
 //! Tests for parameter validation and edge cases
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
-use serde_json::json;
 
 mod parameter_types {
     use super::*;
@@ -146,7 +145,7 @@ mod edge_cases {
                     "Parameter too long",
                 ));
             }
-            Ok(format!("Edge resource: {}", param))
+            Ok(format!("Edge resource: {param}"))
         }
     }
 }
@@ -175,14 +174,14 @@ mod validation_server {
             }
 
             // Age validation
-            if age < 18 || age > 120 {
+            if !(18..=120).contains(&age) {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
                     "Age must be between 18 and 120",
                 ));
             }
 
-            Ok(format!("Valid user: {} (age {})", email, age))
+            Ok(format!("Valid user: {email} (age {age})"))
         }
 
         /// Numeric boundary testing
@@ -193,10 +192,7 @@ mod validation_server {
             small_float: f32,
             large_float: f64,
         ) -> String {
-            format!(
-                "Boundaries: int={}-{}, float={}-{}",
-                min_int, max_int, small_float, large_float
-            )
+            format!("Boundaries: int={min_int}-{max_int}, float={small_float}-{large_float}")
         }
     }
 }
@@ -228,7 +224,7 @@ mod tests {
     async fn test_primitive_types() {
         let server = ParameterServer::with_defaults();
         let result = server
-            .primitive_types("test".to_string(), 42, 100u64, 3.14, true)
+            .primitive_types("test".to_string(), 42, 100u64, std::f32::consts::PI, true)
             .await;
 
         assert!(result.contains("test"));

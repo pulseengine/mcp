@@ -19,7 +19,7 @@ mod performance_server {
         fn default() -> Self {
             let mut data = std::collections::HashMap::new();
             for i in 0..1000 {
-                data.insert(format!("key_{}", i), format!("value_{}", i));
+                data.insert(format!("key_{i}"), format!("value_{i}"));
             }
 
             Self {
@@ -58,7 +58,7 @@ mod performance_server {
             } else {
                 0
             };
-            format!("Allocated {} bytes, checksum: {}", size, checksum)
+            format!("Allocated {size} bytes, checksum: {checksum}")
         }
 
         /// CPU-intensive operation
@@ -73,7 +73,7 @@ mod performance_server {
         /// Simulated I/O operation
         pub async fn simulated_io(&self, duration_ms: u64) -> String {
             tokio::time::sleep(Duration::from_millis(duration_ms)).await;
-            format!("IO operation completed after {}ms", duration_ms)
+            format!("IO operation completed after {duration_ms}ms")
         }
 
         /// Concurrent data access
@@ -104,10 +104,7 @@ mod performance_server {
             tokio::time::sleep(Duration::from_millis(1)).await;
             let elapsed = start.elapsed();
 
-            Ok(format!(
-                "Resource {}/{} accessed in {:?}",
-                resource_type, resource_id, elapsed
-            ))
+            Ok(format!("Resource {resource_type}/{resource_id} accessed in {elapsed:?}"))
         }
 
         /// Generate performance prompt
@@ -116,10 +113,7 @@ mod performance_server {
             query: String,
             optimization_level: String,
         ) -> String {
-            format!(
-                "Performance analysis for '{}' with optimization level: {}",
-                query, optimization_level
-            )
+            format!("Performance analysis for '{query}' with optimization level: {optimization_level}")
         }
     }
 }
