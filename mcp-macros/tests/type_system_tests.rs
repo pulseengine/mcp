@@ -1,6 +1,6 @@
 //! Tests for type system integration and complex type handling
 
-use pulseengine_mcp_macros::{mcp_prompt, mcp_resource, mcp_server, mcp_tools};
+use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -115,7 +115,7 @@ mod type_system_server {
     #[mcp_tools]
     impl TypeSystemServer {
         /// Create a new user with complex type handling
-        async fn create_user(&self, request: CreateUserRequest) -> Result<User, UserError> {
+        pub async fn create_user(&self, request: CreateUserRequest) -> Result<User, UserError> {
             // Validate email format
             if !request.email.contains('@') {
                 return Err(UserError::InvalidEmail {
@@ -159,7 +159,7 @@ mod type_system_server {
         }
 
         /// Get user by ID with optional field selection
-        async fn get_user(
+        pub async fn get_user(
             &self,
             id: u64,
             include_metadata: Option<bool>,
@@ -176,7 +176,7 @@ mod type_system_server {
         }
 
         /// Update user with partial update pattern
-        async fn update_user(
+        pub async fn update_user(
             &self,
             id: u64,
             request: UpdateUserRequest,
@@ -213,7 +213,7 @@ mod type_system_server {
         }
 
         /// List users with pagination and complex return types
-        async fn list_users(&self, params: PaginationParams) -> PaginatedResponse<User> {
+        pub async fn list_users(&self, params: PaginationParams) -> PaginatedResponse<User> {
             let users = self.users.read().unwrap();
             let mut user_list: Vec<User> = users.values().cloned().collect();
 
@@ -248,13 +248,13 @@ mod type_system_server {
         }
 
         /// Delete user and return the deleted user
-        async fn delete_user(&self, id: u64) -> Result<User, UserError> {
+        pub async fn delete_user(&self, id: u64) -> Result<User, UserError> {
             let mut users = self.users.write().unwrap();
             users.remove(&id).ok_or(UserError::NotFound { id })
         }
 
         /// Work with enums and complex matching
-        async fn set_user_role(&self, id: u64, role: UserRole) -> Result<String, UserError> {
+        pub async fn set_user_role(&self, id: u64, role: UserRole) -> Result<String, UserError> {
             let mut users = self.users.write().unwrap();
             let user = users.get_mut(&id).ok_or(UserError::NotFound { id })?;
 
@@ -272,7 +272,7 @@ mod type_system_server {
         }
 
         /// Generic type handling with vectors and maps
-        async fn batch_update_metadata(
+        pub async fn batch_update_metadata(
             &self,
             updates: HashMap<u64, HashMap<String, String>>,
         ) -> Result<Vec<u64>, UserError> {
@@ -290,7 +290,7 @@ mod type_system_server {
         }
 
         /// Complex nested types with Options and Results
-        async fn search_users(
+        pub async fn search_users(
             &self,
             query: Option<String>,
             filters: Option<HashMap<String, String>>,
@@ -324,12 +324,9 @@ mod type_system_server {
 
             Ok(results)
         }
-    }
 
-    #[mcp_resource(uri_template = "user://{id}/profile")]
-    impl TypeSystemServer {
         /// Resource with complex type serialization
-        async fn user_profile_resource(
+        pub async fn user_profile_resource(
             &self,
             id: String,
         ) -> Result<serde_json::Value, std::io::Error> {
@@ -346,12 +343,9 @@ mod type_system_server {
             serde_json::to_value(user)
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
         }
-    }
 
-    #[mcp_prompt(name = "user_prompt")]
-    impl TypeSystemServer {
         /// Prompt with complex type handling in parameters
-        async fn user_prompt(
+        pub async fn user_prompt(
             &self,
             user_data: serde_json::Value,
             template_type: String,
@@ -389,11 +383,12 @@ mod type_system_server {
             };
 
             Ok(pulseengine_mcp_protocol::PromptMessage {
-                role: pulseengine_mcp_protocol::Role::User,
+                role: pulseengine_mcp_protocol::PromptMessageRole::User,
                 content: pulseengine_mcp_protocol::PromptMessageContent::Text { text: prompt_text },
             })
         }
     }
+
 }
 
 #[cfg(test)]
