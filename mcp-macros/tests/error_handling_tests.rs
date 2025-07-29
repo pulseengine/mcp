@@ -20,7 +20,7 @@ mod error_backend {
     #[derive(Default)]
     pub struct ErrorBackend;
 
-    #[mcp_tool]
+    #[mcp_tools]
     impl ErrorBackend {
         /// Tool that always succeeds
         async fn success_tool(&self, input: String) -> String {
@@ -89,7 +89,7 @@ mod error_server {
             match prompt_type.as_str() {
                 "success" => Ok(PromptMessage {
                     role: Role::User,
-                    content: pulseengine_mcp_protocol::PromptContent::Text {
+                    content: pulseengine_mcp_protocol::PromptMessageContent::Text {
                         text: "Successful prompt".to_string(),
                     },
                 }),
@@ -105,7 +105,7 @@ mod error_server {
         }
     }
 
-    #[mcp_tool]
+    #[mcp_tools]
     impl ErrorServer {
         /// Tool with multiple error conditions
         async fn complex_error_tool(

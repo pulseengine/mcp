@@ -1,6 +1,6 @@
 //! Tests for documentation extraction and formatting
 
-use pulseengine_mcp_macros::{mcp_backend, mcp_prompt, mcp_resource, mcp_server, mcp_tool};
+use pulseengine_mcp_macros::{mcp_backend, mcp_prompt, mcp_resource, mcp_server, mcp_tools};
 
 mod documented_components {
     use super::*;
@@ -33,10 +33,10 @@ mod documented_components {
     /// The backend can be configured with different options
     /// to suit various use cases.
     #[mcp_backend(name = "Documented Backend")]
-    #[derive(Default)]
+    #[derive(Default, Clone)]
     pub struct DocumentedBackend;
 
-    #[mcp_tool]
+    #[mcp_tools]
     impl DocumentedServer {
         /// Process text data with various options
         ///
@@ -265,8 +265,8 @@ mod documented_components {
             );
 
             Ok(pulseengine_mcp_protocol::PromptMessage {
-                role: pulseengine_mcp_protocol::Role::User,
-                content: pulseengine_mcp_protocol::PromptContent::Text { text: prompt_text },
+                role: pulseengine_mcp_protocol::PromptMessageRole::User,
+                content: pulseengine_mcp_protocol::PromptMessageContent::Text { text: prompt_text },
             })
         }
     }
@@ -305,8 +305,8 @@ mod documented_components {
             );
 
             Ok(pulseengine_mcp_protocol::PromptMessage {
-                role: pulseengine_mcp_protocol::Role::User,
-                content: pulseengine_mcp_protocol::PromptContent::Text { text: prompt_text },
+                role: pulseengine_mcp_protocol::PromptMessageRole::User,
+                content: pulseengine_mcp_protocol::PromptMessageContent::Text { text: prompt_text },
             })
         }
     }
@@ -319,7 +319,7 @@ mod minimal_docs {
     #[derive(Default, Clone)]
     pub struct MinimalDocsServer;
 
-    #[mcp_tool]
+    #[mcp_tools]
     impl MinimalDocsServer {
         async fn undocumented_tool(&self) -> String {
             "No documentation".to_string()
@@ -488,8 +488,8 @@ mod tests {
 
         assert!(doc_prompt.is_ok());
         let message = doc_prompt.unwrap();
-        assert_eq!(message.role, pulseengine_mcp_protocol::Role::User);
-        if let pulseengine_mcp_protocol::PromptContent::Text { text } = message.content {
+        assert_eq!(message.role, pulseengine_mcp_protocol::PromptMessageRole::User);
+        if let pulseengine_mcp_protocol::PromptMessageContent::Text { text } = message.content {
             assert!(text.contains("rustdoc style documentation"));
             assert!(text.contains("fn add"));
             assert!(text.contains("Parameter descriptions"));
@@ -507,7 +507,7 @@ mod tests {
 
         assert!(explain_prompt.is_ok());
         let message = explain_prompt.unwrap();
-        if let pulseengine_mcp_protocol::PromptContent::Text { text } = message.content {
+        if let pulseengine_mcp_protocol::PromptMessageContent::Text { text } = message.content {
             assert!(text.contains("student audience"));
             assert!(text.contains("beginner level"));
             assert!(text.contains("vec![1, 2, 3]"));

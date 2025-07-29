@@ -12,7 +12,7 @@ mod simple_backend {
         data: String,
     }
 
-    #[mcp_tool]
+    #[mcp_tools]
     impl SimpleBackend {
         /// Echo the input string
         async fn echo(&self, input: String) -> String {
@@ -44,7 +44,7 @@ mod complex_backend {
         }
     }
 
-    #[mcp_tool]
+    #[mcp_tools]
     impl ComplexBackend {
         /// Increment and return counter
         async fn increment(&self) -> u64 {

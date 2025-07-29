@@ -12,7 +12,7 @@ mod security_server {
     #[derive(Default, Clone)]
     pub struct SecurityServer;
 
-    #[mcp_tool]
+    #[mcp_tools]
     impl SecurityServer {
         /// Validate and sanitize user input
         async fn sanitize_input(&self, input: String) -> Result<String, std::io::Error> {
@@ -336,7 +336,7 @@ mod security_server {
 
             Ok(pulseengine_mcp_protocol::PromptMessage {
                 role: pulseengine_mcp_protocol::Role::User,
-                content: pulseengine_mcp_protocol::PromptContent::Text { text: safe_text },
+                content: pulseengine_mcp_protocol::PromptMessageContent::Text { text: safe_text },
             })
         }
     }
@@ -640,7 +640,7 @@ mod tests {
             .await;
         assert!(safe_result.is_ok());
         let message = safe_result.unwrap();
-        if let pulseengine_mcp_protocol::PromptContent::Text { text } = message.content {
+        if let pulseengine_mcp_protocol::PromptMessageContent::Text { text } = message.content {
             assert!(text.contains("cooking"));
             assert!(text.contains("healthy recipes"));
             assert!(text.contains("educational"));

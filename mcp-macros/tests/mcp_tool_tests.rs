@@ -1,4 +1,4 @@
-//! Comprehensive tests for the #[mcp_tool] and #[mcp_tools] macros
+//! Comprehensive tests for the #[mcp_tools] and #[mcp_tools] macros
 //!
 //! These tests verify that the procedural macros generate correct tool definitions
 //! and integrate properly with the MCP framework.

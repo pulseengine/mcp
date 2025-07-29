@@ -29,7 +29,7 @@ mod performance_server {
         }
     }
 
-    #[mcp_tool]
+    #[mcp_tools]
     impl PerformanceServer {
         /// Fast counter increment
         async fn increment_counter(&self) -> u64 {
@@ -194,7 +194,7 @@ mod performance_server {
 
             Ok(pulseengine_mcp_protocol::PromptMessage {
                 role: pulseengine_mcp_protocol::Role::User,
-                content: pulseengine_mcp_protocol::PromptContent::Text { text },
+                content: pulseengine_mcp_protocol::PromptMessageContent::Text { text },
             })
         }
     }
@@ -411,7 +411,7 @@ mod tests {
 
         assert!(complex_result.is_ok());
         let message = complex_result.unwrap();
-        if let pulseengine_mcp_protocol::PromptContent::Text { text } = message.content {
+        if let pulseengine_mcp_protocol::PromptMessageContent::Text { text } = message.content {
             assert!(text.contains("Complex part 0"));
             assert!(text.contains("Complex part 99"));
         }

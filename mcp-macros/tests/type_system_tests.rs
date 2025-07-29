@@ -1,6 +1,6 @@
 //! Tests for type system integration and complex type handling
 
-use pulseengine_mcp_macros::{mcp_prompt, mcp_resource, mcp_server, mcp_tool};
+use pulseengine_mcp_macros::{mcp_prompt, mcp_resource, mcp_server, mcp_tools};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -112,7 +112,7 @@ mod type_system_server {
         }
     }
 
-    #[mcp_tool]
+    #[mcp_tools]
     impl TypeSystemServer {
         /// Create a new user with complex type handling
         async fn create_user(&self, request: CreateUserRequest) -> Result<User, UserError> {
@@ -390,7 +390,7 @@ mod type_system_server {
 
             Ok(pulseengine_mcp_protocol::PromptMessage {
                 role: pulseengine_mcp_protocol::Role::User,
-                content: pulseengine_mcp_protocol::PromptContent::Text { text: prompt_text },
+                content: pulseengine_mcp_protocol::PromptMessageContent::Text { text: prompt_text },
             })
         }
     }
@@ -676,7 +676,7 @@ mod tests {
             .await;
         assert!(result.is_ok());
         let message = result.unwrap();
-        if let pulseengine_mcp_protocol::PromptContent::Text { text } = message.content {
+        if let pulseengine_mcp_protocol::PromptMessageContent::Text { text } = message.content {
             assert!(text.contains("Test User"));
             assert!(text.contains("test@example.com"));
         }

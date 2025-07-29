@@ -20,7 +20,7 @@ mod basic_prompt {
         ) -> Result<PromptMessage, std::io::Error> {
             Ok(PromptMessage {
                 role: Role::User,
-                content: pulseengine_mcp_protocol::PromptContent::Text {
+                content: pulseengine_mcp_protocol::PromptMessageContent::Text {
                     text: format!("Please review this {} code:\n\n{}", language, code),
                 },
             })
@@ -50,7 +50,7 @@ mod complex_prompt {
         ) -> Result<PromptMessage, std::io::Error> {
             Ok(PromptMessage {
                 role: Role::User,
-                content: pulseengine_mcp_protocol::PromptContent::Text {
+                content: pulseengine_mcp_protocol::PromptMessageContent::Text {
                     text: format!(
                         "Generate a {} SQL query for: {}\nTable schema: {}\nOutput format: {}",
                         output_format, description, table_schema, output_format
@@ -70,7 +70,7 @@ mod complex_prompt {
         ) -> Result<PromptMessage, std::io::Error> {
             Ok(PromptMessage {
                 role: Role::Assistant,
-                content: pulseengine_mcp_protocol::PromptContent::Text {
+                content: pulseengine_mcp_protocol::PromptMessageContent::Text {
                     text: format!("Generate {} style documentation for:\n\n{}", style, code),
                 },
             })
@@ -91,7 +91,7 @@ mod sync_prompt {
         fn simple_prompt(&self, topic: String) -> Result<PromptMessage, std::io::Error> {
             Ok(PromptMessage {
                 role: Role::User,
-                content: pulseengine_mcp_protocol::PromptContent::Text {
+                content: pulseengine_mcp_protocol::PromptMessageContent::Text {
                     text: format!("Tell me about: {}", topic),
                 },
             })
@@ -162,7 +162,7 @@ mod tests {
         assert!(result.is_ok());
         let message = result.unwrap();
         assert_eq!(message.role, Role::User);
-        if let pulseengine_mcp_protocol::PromptContent::Text { text } = message.content {
+        if let pulseengine_mcp_protocol::PromptMessageContent::Text { text } = message.content {
             assert!(text.contains("Rust"));
             assert!(text.contains("fn hello()"));
         } else {
@@ -204,7 +204,7 @@ mod tests {
         assert!(result.is_ok());
         let message = result.unwrap();
         assert_eq!(message.role, Role::User);
-        if let pulseengine_mcp_protocol::PromptContent::Text { text } = message.content {
+        if let pulseengine_mcp_protocol::PromptMessageContent::Text { text } = message.content {
             assert!(text.contains("artificial intelligence"));
         } else {
             panic!("Expected text content");
