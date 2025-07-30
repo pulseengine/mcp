@@ -32,15 +32,16 @@ mod full_server {
     pub struct FullServer;
 
     #[mcp_tools]
+    #[allow(dead_code)]
     impl FullServer {
         /// A tool with all attributes
         pub async fn full_tool(&self, input: String, optional: Option<i32>) -> String {
-            format!("Input: {}, Optional: {:?}", input, optional)
+            format!("Input: {input}, Optional: {optional:?}")
         }
 
         /// A simple resource
         pub async fn simple_resource(&self, id: String) -> Result<String, std::io::Error> {
-            Ok(format!("Resource: {}", id))
+            Ok(format!("Resource: {id}"))
         }
 
         /// A complex resource with all attributes
@@ -63,7 +64,7 @@ mod full_server {
             Ok(pulseengine_mcp_protocol::PromptMessage {
                 role: pulseengine_mcp_protocol::PromptMessageRole::User,
                 content: pulseengine_mcp_protocol::PromptMessageContent::Text {
-                    text: format!("Tell me about: {}", topic),
+                    text: format!("Tell me about: {topic}"),
                 },
             })
         }
@@ -79,8 +80,7 @@ mod full_server {
                 role: pulseengine_mcp_protocol::PromptMessageRole::Assistant,
                 content: pulseengine_mcp_protocol::PromptMessageContent::Text {
                     text: format!(
-                        "Generate {} content about {} in {} style",
-                        length, context, style
+                        "Generate {length} content about {context} in {style} style"
                     ),
                 },
             })
@@ -104,13 +104,13 @@ mod doc_comment_handling {
         /// across multiple lines
         /// with detailed information
         pub async fn documented_tool(&self, param: String) -> String {
-            format!("Documented: {}", param)
+            format!("Documented: {param}")
         }
 
         /// This resource reads documentation
         /// from various sections
         pub async fn documented_resource(&self, section: String) -> Result<String, std::io::Error> {
-            Ok(format!("Documentation for: {}", section))
+            Ok(format!("Documentation for: {section}"))
         }
 
         /// This prompt generates documentation
@@ -122,7 +122,7 @@ mod doc_comment_handling {
             Ok(pulseengine_mcp_protocol::PromptMessage {
                 role: pulseengine_mcp_protocol::PromptMessageRole::User,
                 content: pulseengine_mcp_protocol::PromptMessageContent::Text {
-                    text: format!("Generate documentation for: {}", input),
+                    text: format!("Generate documentation for: {input}"),
                 },
             })
         }

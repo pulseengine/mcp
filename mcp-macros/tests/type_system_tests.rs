@@ -113,6 +113,7 @@ mod type_system_server {
     }
 
     #[mcp_tools]
+    #[allow(dead_code)]
     impl TypeSystemServer {
         /// Create a new user with complex type handling
         pub async fn create_user(&self, request: CreateUserRequest) -> Result<User, UserError> {

@@ -53,11 +53,9 @@ fn test_documented_server() {
         ) -> String {
             match operation.as_str() {
                 "uppercase" => {
-                    if case_sensitive {
-                        text.to_uppercase()
-                    } else {
-                        text.to_uppercase()
-                    }
+                    // For this example, both case_sensitive and non-case_sensitive do the same thing
+                    let _ = case_sensitive; // Acknowledge the parameter
+                    text.to_uppercase()
                 }
                 "lowercase" => text.to_lowercase(),
                 "reverse" => text.chars().rev().collect(),

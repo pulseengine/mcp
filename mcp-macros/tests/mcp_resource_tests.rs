@@ -19,7 +19,7 @@ mod basic_resource {
                     "Path cannot be empty",
                 ));
             }
-            Ok(format!("Content of file: {}", path))
+            Ok(format!("Content of file: {path}"))
         }
     }
 }
@@ -45,7 +45,7 @@ mod complex_resource {
                     "Database and table names cannot be empty",
                 ));
             }
-            Ok(format!("Data from {}.{}", database, table))
+            Ok(format!("Data from {database}.{table}"))
         }
 
         /// Get API data from external service
@@ -54,7 +54,7 @@ mod complex_resource {
             endpoint: String,
             version: String,
         ) -> Result<String, std::io::Error> {
-            Ok(format!("API data from {} (version {})", endpoint, version))
+            Ok(format!("API data from {endpoint} (version {version})"))
         }
     }
 }
@@ -70,7 +70,7 @@ mod sync_resource {
     impl SyncResourceServer {
         /// Get configuration synchronously
         pub fn get_config(&self, key: String) -> String {
-            format!("Config value for: {}", key)
+            format!("Config value for: {key}")
         }
     }
 }

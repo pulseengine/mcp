@@ -13,6 +13,7 @@ mod security_server {
     pub struct SecurityServer;
 
     #[mcp_tools]
+    #[allow(dead_code)]
     impl SecurityServer {
         /// Validate and sanitize user input
         pub async fn sanitize_input(&self, input: String) -> Result<String, std::io::Error> {
@@ -42,7 +43,7 @@ mod security_server {
                 if input.to_lowercase().contains(&pattern.to_lowercase()) {
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::InvalidInput,
-                        format!("Potentially dangerous input detected: {}", pattern),
+                        format!("Potentially dangerous input detected: {pattern}"),
                     ));
                 }
             }
@@ -111,7 +112,7 @@ mod security_server {
                 ));
             }
 
-            Ok(format!("Operation {} executed", operation_id))
+            Ok(format!("Operation {operation_id} executed"))
         }
 
         /// Validate file paths to prevent directory traversal
@@ -214,8 +215,7 @@ mod security_server {
             }
 
             Ok(format!(
-                "Secure access to {} resource: {}",
-                resource_type, resource_id
+                "Secure access to {resource_type} resource: {resource_id}"
             ))
         }
 
@@ -239,7 +239,7 @@ mod security_server {
                 if topic.to_lowercase().contains(forbidden)
                     || context.to_lowercase().contains(forbidden)
                 {
-                    return format!("Error: Topic contains forbidden content: {}", forbidden);
+                    return format!("Error: Topic contains forbidden content: {forbidden}");
                 }
             }
 
