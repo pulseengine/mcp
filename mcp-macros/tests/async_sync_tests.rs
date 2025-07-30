@@ -9,6 +9,7 @@ fn test_mixed_async_sync_server() {
     struct MixedServer;
 
     #[mcp_tools]
+    #[allow(dead_code)]
     impl MixedServer {
         /// Synchronous tool
         pub fn sync_tool(&self, input: String) -> String {
@@ -74,6 +75,7 @@ fn test_pure_sync_server() {
     struct PureSyncServer;
 
     #[mcp_tools]
+    #[allow(dead_code)]
     impl PureSyncServer {
         /// All tools are synchronous
         pub fn calculate(&self, a: f64, b: f64) -> f64 {
@@ -110,6 +112,7 @@ fn test_return_type_combinations() {
     struct ReturnTypeServer;
 
     #[mcp_tools]
+    #[allow(dead_code)]
     impl ReturnTypeServer {
         // String return
         pub fn string_return(&self) -> String {
@@ -151,6 +154,7 @@ fn test_parameter_combinations() {
     struct ParameterServer;
 
     #[mcp_tools]
+    #[allow(dead_code)]
     impl ParameterServer {
         // No parameters (besides &self)
         pub fn no_params(&self) -> String {

@@ -12,6 +12,7 @@ mod lifecycle_server {
     }
 
     impl LifecycleServer {
+        #[allow(dead_code)]
         pub fn new_with_flag(flag: bool) -> Self {
             Self { initialized: flag }
         }

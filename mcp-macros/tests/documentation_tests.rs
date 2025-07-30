@@ -21,6 +21,7 @@ fn test_documented_server() {
     struct DocumentedServer;
 
     #[mcp_tools]
+    #[allow(dead_code)]
     impl DocumentedServer {
         /// Process text data with various options
         ///
@@ -114,6 +115,7 @@ fn test_parameter_documentation() {
     struct ParameterDocServer;
 
     #[mcp_tools]
+    #[allow(dead_code)]
     impl ParameterDocServer {
         /// Tool with extensively documented parameters
         ///
@@ -185,6 +187,7 @@ fn test_example_documentation() {
     struct ExampleDocServer;
 
     #[mcp_tools]
+    #[allow(dead_code)]
     impl ExampleDocServer {
         /// Mathematical operations with comprehensive examples
         ///
