@@ -47,7 +47,7 @@ mod error_backend {
                     field: "name".to_string(),
                 })
             } else {
-                Ok(format!("Valid name: {}", name))
+                Ok(format!("Valid name: {name}"))
             }
         }
     }
@@ -97,10 +97,7 @@ mod error_server {
                     std::io::ErrorKind::InvalidInput,
                     "Invalid prompt type",
                 )),
-                _ => Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "Unknown prompt type",
-                )),
+                _ => Err(std::io::Error::other("Unknown prompt type")),
             }
         }
 
@@ -120,9 +117,9 @@ mod error_server {
                 }
                 "parse" => {
                     let parsed: i32 = value.to_string().parse()?;
-                    Ok(format!("Parsed: {}", parsed))
+                    Ok(format!("Parsed: {parsed}"))
                 }
-                _ => Err(format!("Unknown operation: {}", operation).into()),
+                _ => Err(format!("Unknown operation: {operation}").into()),
             }
         }
     }
@@ -282,9 +279,9 @@ mod tests {
         let server_error = ErrorServerError::InvalidParameter("param error".to_string());
 
         // Test that errors format properly
-        assert!(format!("{:?}", custom_error).contains("Custom"));
-        assert!(format!("{:?}", backend_error).contains("Internal"));
-        assert!(format!("{:?}", server_error).contains("InvalidParameter"));
+        assert!(format!("{custom_error:?}").contains("Custom"));
+        assert!(format!("{backend_error:?}").contains("Internal"));
+        assert!(format!("{server_error:?}").contains("InvalidParameter"));
 
         // Test display formatting
         assert_eq!(custom_error.to_string(), "Custom error: test error");

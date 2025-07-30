@@ -13,7 +13,7 @@ mod basic_prompt {
     impl PromptServer {
         /// Generate a code review prompt
         pub async fn generate_code_review(&self, code: String, language: String) -> String {
-            format!("Please review this {} code:\n\n{}", language, code)
+            format!("Please review this {language} code:\n\n{code}")
         }
     }
 }
@@ -35,8 +35,7 @@ mod complex_prompt {
             output_format: String,
         ) -> String {
             format!(
-                "Generate a {} SQL query for: {}\nUsing schema: {}\nOutput format: {}",
-                output_format, description, table_schema, output_format
+                "Generate a {output_format} SQL query for: {description}\nUsing schema: {table_schema}\nOutput format: {output_format}"
             )
         }
 
@@ -48,8 +47,7 @@ mod complex_prompt {
             audience: String,
         ) -> String {
             format!(
-                "Create {} documentation about {} for audience: {}",
-                detail_level, topic, audience
+                "Create {detail_level} documentation about {topic} for audience: {audience}"
             )
         }
     }
@@ -66,7 +64,7 @@ mod sync_prompt {
     impl SyncPromptServer {
         /// Generate simple prompts synchronously
         pub fn simple_prompt(&self, topic: String) -> String {
-            format!("Please provide information about: {}", topic)
+            format!("Please provide information about: {topic}")
         }
     }
 }

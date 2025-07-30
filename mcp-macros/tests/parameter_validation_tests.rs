@@ -10,6 +10,7 @@ mod parameter_types {
     pub struct ParameterServer;
 
     #[mcp_tools]
+    #[allow(dead_code)]
     impl ParameterServer {
         /// Tool with various primitive types
         pub async fn primitive_types(
@@ -21,8 +22,7 @@ mod parameter_types {
             bool_param: bool,
         ) -> String {
             format!(
-                "String: {}, Int: {}, UInt: {}, Float: {}, Bool: {}",
-                string_param, int_param, uint_param, float_param, bool_param
+                "String: {string_param}, Int: {int_param}, UInt: {uint_param}, Float: {float_param}, Bool: {bool_param}"
             )
         }
 
@@ -34,8 +34,7 @@ mod parameter_types {
             optional_int: Option<i32>,
         ) -> String {
             format!(
-                "Required: {}, OptStr: {:?}, OptInt: {:?}",
-                required, optional_string, optional_int
+                "Required: {required}, OptStr: {optional_string:?}, OptInt: {optional_int:?}"
             )
         }
 
@@ -45,12 +44,12 @@ mod parameter_types {
             string_vec: Vec<String>,
             number_vec: Vec<i32>,
         ) -> String {
-            format!("Strings: {:?}, Numbers: {:?}", string_vec, number_vec)
+            format!("Strings: {string_vec:?}, Numbers: {number_vec:?}")
         }
 
         /// Tool with JSON parameter
         pub async fn json_param(&self, data: serde_json::Value) -> String {
-            format!("JSON data: {}", data.to_string())
+            format!("JSON data: {data}")
         }
 
         /// Resource access with parameter validation
@@ -65,7 +64,7 @@ mod parameter_types {
                     "Resource type and ID cannot be empty",
                 ));
             }
-            Ok(format!("Resource: {}/{}", resource_type, resource_id))
+            Ok(format!("Resource: {resource_type}/{resource_id}"))
         }
 
         /// Complex resource with multiple parameters
@@ -83,14 +82,13 @@ mod parameter_types {
                 ));
             }
             Ok(format!(
-                "Complex resource: {}.{}.{} action={}",
-                database, schema, table, action
+                "Complex resource: {database}.{schema}.{table} action={action}"
             ))
         }
 
         /// Generate prompt with parameters
         pub async fn generate_prompt(&self, context: String, query: String) -> String {
-            format!("Context: {} | Query: {}", context, query)
+            format!("Context: {context} | Query: {query}")
         }
     }
 }
@@ -103,6 +101,7 @@ mod edge_cases {
     pub struct EdgeCaseServer;
 
     #[mcp_tools]
+    #[allow(dead_code)]
     impl EdgeCaseServer {
         /// Tool with very long parameter names
         pub async fn very_long_parameter_names(
@@ -111,13 +110,12 @@ mod edge_cases {
             another_extremely_long_parameter_name_for_comprehensive_testing: String,
         ) -> String {
             format!(
-                "Long params: {} and {}",
-                this_is_a_very_long_parameter_name_that_tests_edge_cases,
-                another_extremely_long_parameter_name_for_comprehensive_testing
+                "Long params: {this_is_a_very_long_parameter_name_that_tests_edge_cases} and {another_extremely_long_parameter_name_for_comprehensive_testing}"
             )
         }
 
         /// Tool with many parameters
+        #[allow(clippy::too_many_arguments)]
         pub async fn many_parameters(
             &self,
             p1: String,
@@ -132,8 +130,7 @@ mod edge_cases {
             p10: i32,
         ) -> String {
             format!(
-                "Many params: {},{},{},{},{},{},{},{},{},{}",
-                p1, p2, p3, p4, p5, p6, p7, p8, p9, p10
+                "Many params: {p1},{p2},{p3},{p4},{p5},{p6},{p7},{p8},{p9},{p10}"
             )
         }
 
@@ -158,6 +155,7 @@ mod validation_server {
     pub struct ValidationServer;
 
     #[mcp_tools]
+    #[allow(dead_code)]
     impl ValidationServer {
         /// Strict validation tool
         pub async fn strict_validation(
@@ -224,7 +222,7 @@ mod tests {
     async fn test_primitive_types() {
         let server = ParameterServer::with_defaults();
         let result = server
-            .primitive_types("test".to_string(), 42, 100u64, std::f32::consts::PI, true)
+            .primitive_types("test".to_string(), 42, 100u64, std::f64::consts::PI, true)
             .await;
 
         assert!(result.contains("test"));
