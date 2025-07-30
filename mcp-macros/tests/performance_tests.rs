@@ -104,7 +104,9 @@ mod performance_server {
             tokio::time::sleep(Duration::from_millis(1)).await;
             let elapsed = start.elapsed();
 
-            Ok(format!("Resource {resource_type}/{resource_id} accessed in {elapsed:?}"))
+            Ok(format!(
+                "Resource {resource_type}/{resource_id} accessed in {elapsed:?}"
+            ))
         }
 
         /// Generate performance prompt
@@ -113,7 +115,9 @@ mod performance_server {
             query: String,
             optimization_level: String,
         ) -> String {
-            format!("Performance analysis for '{query}' with optimization level: {optimization_level}")
+            format!(
+                "Performance analysis for '{query}' with optimization level: {optimization_level}"
+            )
         }
     }
 }

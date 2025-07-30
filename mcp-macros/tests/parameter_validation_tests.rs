@@ -33,9 +33,7 @@ mod parameter_types {
             optional_string: Option<String>,
             optional_int: Option<i32>,
         ) -> String {
-            format!(
-                "Required: {required}, OptStr: {optional_string:?}, OptInt: {optional_int:?}"
-            )
+            format!("Required: {required}, OptStr: {optional_string:?}, OptInt: {optional_int:?}")
         }
 
         /// Tool with collection parameters
@@ -129,9 +127,7 @@ mod edge_cases {
             p9: i32,
             p10: i32,
         ) -> String {
-            format!(
-                "Many params: {p1},{p2},{p3},{p4},{p5},{p6},{p7},{p8},{p9},{p10}"
-            )
+            format!("Many params: {p1},{p2},{p3},{p4},{p5},{p6},{p7},{p8},{p9},{p10}")
         }
 
         /// Edge case resource access
