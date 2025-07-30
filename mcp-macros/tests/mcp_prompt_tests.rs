@@ -46,9 +46,7 @@ mod complex_prompt {
             detail_level: String,
             audience: String,
         ) -> String {
-            format!(
-                "Create {detail_level} documentation about {topic} for audience: {audience}"
-            )
+            format!("Create {detail_level} documentation about {topic} for audience: {audience}")
         }
     }
 }

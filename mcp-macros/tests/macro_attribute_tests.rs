@@ -79,9 +79,7 @@ mod full_server {
             Ok(pulseengine_mcp_protocol::PromptMessage {
                 role: pulseengine_mcp_protocol::PromptMessageRole::Assistant,
                 content: pulseengine_mcp_protocol::PromptMessageContent::Text {
-                    text: format!(
-                        "Generate {length} content about {context} in {style} style"
-                    ),
+                    text: format!("Generate {length} content about {context} in {style} style"),
                 },
             })
         }
