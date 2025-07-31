@@ -49,7 +49,7 @@ The `#[mcp_server]` macro transforms a simple struct into a fully-featured MCP s
 ```rust
 #[mcp_server(
     name = "Advanced Server",
-    version = "1.0.0", 
+    version = "1.0.0",
     description = "A sophisticated MCP server",
     app_name = "my-app"  // For isolated storage
 )]
@@ -60,6 +60,7 @@ struct AdvancedServer {
 ```
 
 **Key Parameters:**
+
 - `name` - Display name for your server (required)
 - `version` - Server version (defaults to Cargo.toml version)
 - `description` - Server description (defaults to doc comments)
@@ -78,14 +79,14 @@ impl AdvancedServer {
     async fn add(&self, a: f64, b: f64) -> f64 {
         a + b
     }
-    
+
     /// Process text with various operations
     async fn process_text(&self, text: String, operation: String) -> Result<String, std::io::Error> {
         match operation.as_str() {
             "uppercase" => Ok(text.to_uppercase()),
             "reverse" => Ok(text.chars().rev().collect()),
             _ => Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidInput, 
+                std::io::ErrorKind::InvalidInput,
                 "Unknown operation"
             ))
         }
@@ -94,6 +95,7 @@ impl AdvancedServer {
 ```
 
 **Tool Features:**
+
 - **Automatic Schema Generation** - Parameter types become JSON schemas
 - **Error Handling** - Rust errors are converted to MCP protocol errors
 - **Documentation** - Doc comments become tool descriptions
@@ -132,6 +134,7 @@ impl AdvancedServer {
 ```
 
 **Resource Features:**
+
 - **URI Templates** - Flexible parameter extraction from URIs
 - **MIME Type Support** - Specify content types for proper handling
 - **Path Parameters** - Automatic extraction and validation
@@ -141,7 +144,7 @@ impl AdvancedServer {
 
 Prompts help Claude generate better responses. Use `#[mcp_prompt]`:
 
-```rust
+````rust
 use pulseengine_mcp_macros::mcp_prompt;
 use pulseengine_mcp_protocol::{PromptMessage, Role, PromptContent};
 
@@ -160,7 +163,7 @@ impl AdvancedServer {
         })
     }
 }
-```
+````
 
 ## Advanced Patterns
 
@@ -200,9 +203,9 @@ impl AdvancedServer {
         // Validation and processing
         Ok(user_data)
     }
-    
+
     /// Search users with complex parameters
-    async fn search_users(&self, 
+    async fn search_users(&self,
         query: Option<String>,
         limit: Option<u32>,
         filters: std::collections::HashMap<String, String>
@@ -267,14 +270,14 @@ impl PerformanceServer {
         let data = self.data.read().await;
         data.get(&key).cloned()
     }
-    
+
     /// Batch processing for efficiency
     async fn process_batch(&self, items: Vec<String>) -> Vec<String> {
         // Process items concurrently
         let tasks: Vec<_> = items.into_iter()
             .map(|item| async move { format!("processed: {}", item) })
             .collect();
-        
+
         futures::future::join_all(tasks).await
     }
 }
@@ -295,18 +298,18 @@ When designing tools for Claude, follow these principles:
 #[mcp_tool]
 impl AdvancedServer {
     /// Analyze text sentiment and extract key insights
-    /// 
+    ///
     /// This tool processes natural language text to determine emotional tone
     /// and extract meaningful insights for content analysis.
-    /// 
+    ///
     /// # Parameters
     /// - `text`: The text content to analyze
     /// - `detailed`: Whether to include detailed breakdown
-    /// 
+    ///
     /// # Returns
     /// A structured analysis with sentiment scores and key insights
-    async fn analyze_sentiment(&self, 
-        text: String, 
+    async fn analyze_sentiment(&self,
+        text: String,
         detailed: Option<bool>
     ) -> Result<SentimentAnalysis, std::io::Error> {
         // Your analysis logic
@@ -345,8 +348,8 @@ Create prompts that help Claude understand your domain:
 #[mcp_prompt(name = "database_query")]
 impl AdvancedServer {
     /// Generate optimized database queries
-    async fn database_query_prompt(&self, 
-        table_schema: String, 
+    async fn database_query_prompt(&self,
+        table_schema: String,
         requirements: String
     ) -> Result<PromptMessage, std::io::Error> {
         let prompt_text = format!(
@@ -354,7 +357,7 @@ impl AdvancedServer {
             table_schema,
             requirements
         );
-        
+
         Ok(PromptMessage {
             role: Role::User,
             content: PromptContent::Text { text: prompt_text },
@@ -381,7 +384,7 @@ impl AdvancedServer {
                 "Invalid path"
             ));
         }
-        
+
         // Restrict to safe directory
         let safe_path = format!("./data/{}", path);
         tokio::fs::read_to_string(safe_path).await
@@ -397,15 +400,15 @@ Write comprehensive tests for your MCP server:
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[tokio::test]
     async fn test_server_functionality() {
         let server = AdvancedServer::with_defaults();
-        
+
         // Test tools
         let result = server.add(2.0, 3.0).await;
         assert_eq!(result, 5.0);
-        
+
         // Test error handling
         let error_result = server.process_text("test".to_string(), "invalid".to_string()).await;
         assert!(error_result.is_err());
@@ -422,10 +425,10 @@ Structure your main function for robust deployment:
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging
     tracing_subscriber::fmt::init();
-    
+
     // Create server instance
     let server = AdvancedServer::with_defaults();
-    
+
     // Choose transport based on environment
     let service = match std::env::var("MCP_TRANSPORT") {
         Ok(transport) if transport == "http" => {
@@ -437,13 +440,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         _ => server.serve_stdio().await?
     };
-    
+
     // Handle graceful shutdown
     let shutdown = async {
         tokio::signal::ctrl_c().await.expect("Failed to listen for Ctrl+C");
         tracing::info!("Shutdown signal received");
     };
-    
+
     service.run_with_shutdown(shutdown).await?;
     Ok(())
 }

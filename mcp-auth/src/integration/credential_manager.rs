@@ -4,15 +4,15 @@
 //! that MCP servers need to connect to their target systems (IPs, usernames, passwords, etc.).
 
 use crate::{
-    crypto::{CryptoManager, CryptoError},
-    vault::{VaultIntegration, VaultError},
+    crypto::{CryptoError, CryptoManager},
     models::AuthContext,
+    vault::{VaultError, VaultIntegration},
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use thiserror::Error;
-use tracing::{debug, warn, error, info};
+use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
 /// Errors that can occur during credential management
@@ -20,22 +20,22 @@ use uuid::Uuid;
 pub enum CredentialError {
     #[error("Credential not found: {credential_id}")]
     CredentialNotFound { credential_id: String },
-    
+
     #[error("Invalid credential format: {reason}")]
     InvalidFormat { reason: String },
-    
+
     #[error("Encryption error: {0}")]
     EncryptionError(#[from] CryptoError),
-    
+
     #[error("Vault error: {0}")]
     VaultError(#[from] VaultError),
-    
+
     #[error("Access denied: {reason}")]
     AccessDenied { reason: String },
-    
+
     #[error("Credential validation failed: {reason}")]
     ValidationFailed { reason: String },
-    
+
     #[error("Storage error: {0}")]
     StorageError(String),
 }
@@ -45,19 +45,19 @@ pub enum CredentialError {
 pub enum CredentialType {
     /// Username/password combination
     UserPassword,
-    
+
     /// SSH private key
     SshKey,
-    
+
     /// API token/key
     ApiToken,
-    
+
     /// Database connection string
     DatabaseConnection,
-    
+
     /// Certificate/TLS credentials
     Certificate,
-    
+
     /// Custom credential type
     Custom(String),
 }
@@ -67,34 +67,34 @@ pub enum CredentialType {
 pub struct HostCredential {
     /// Unique credential identifier
     pub credential_id: String,
-    
+
     /// Human-readable name for the credential
     pub name: String,
-    
+
     /// Type of credential
     pub credential_type: CredentialType,
-    
+
     /// Target host information
     pub host: HostInfo,
-    
+
     /// Encrypted credential data
     pub encrypted_data: String,
-    
+
     /// Credential metadata
     pub metadata: HashMap<String, String>,
-    
+
     /// Creation timestamp
     pub created_at: chrono::DateTime<chrono::Utc>,
-    
+
     /// Last used timestamp
     pub last_used: Option<chrono::DateTime<chrono::Utc>>,
-    
+
     /// Expiration timestamp (if applicable)
     pub expires_at: Option<chrono::DateTime<chrono::Utc>>,
-    
+
     /// Whether credential is active
     pub is_active: bool,
-    
+
     /// Tags for organization
     pub tags: Vec<String>,
 }
@@ -104,16 +104,16 @@ pub struct HostCredential {
 pub struct HostInfo {
     /// Host IP address or hostname
     pub address: String,
-    
+
     /// Port number
     pub port: Option<u16>,
-    
+
     /// Protocol (SSH, HTTP, etc.)
     pub protocol: Option<String>,
-    
+
     /// Host description
     pub description: Option<String>,
-    
+
     /// Host environment (dev, staging, prod)
     pub environment: Option<String>,
 }
@@ -123,22 +123,22 @@ pub struct HostInfo {
 pub struct CredentialData {
     /// Username (if applicable)
     pub username: Option<String>,
-    
+
     /// Password (if applicable)
     pub password: Option<String>,
-    
+
     /// Private key data (if applicable)
     pub private_key: Option<String>,
-    
+
     /// API token (if applicable)
     pub token: Option<String>,
-    
+
     /// Connection string (if applicable)
     pub connection_string: Option<String>,
-    
+
     /// Certificate data (if applicable)
     pub certificate: Option<String>,
-    
+
     /// Additional custom fields
     pub custom_fields: HashMap<String, String>,
 }
@@ -156,7 +156,7 @@ impl CredentialData {
             custom_fields: HashMap::new(),
         }
     }
-    
+
     /// Create credential data for SSH key
     pub fn ssh_key(username: String, private_key: String) -> Self {
         Self {
@@ -169,7 +169,7 @@ impl CredentialData {
             custom_fields: HashMap::new(),
         }
     }
-    
+
     /// Create credential data for API token
     pub fn api_token(token: String) -> Self {
         Self {
@@ -182,7 +182,7 @@ impl CredentialData {
             custom_fields: HashMap::new(),
         }
     }
-    
+
     /// Add custom field
     pub fn with_custom_field(mut self, key: String, value: String) -> Self {
         self.custom_fields.insert(key, value);
@@ -195,22 +195,22 @@ impl CredentialData {
 pub struct CredentialConfig {
     /// Enable vault integration for storage
     pub use_vault: bool,
-    
+
     /// Encryption key for local storage
     pub encryption_key: Option<String>,
-    
+
     /// Maximum credential age (for auto-expiration)
     pub max_credential_age: Option<chrono::Duration>,
-    
+
     /// Enable credential rotation
     pub enable_rotation: bool,
-    
+
     /// Rotation interval
     pub rotation_interval: chrono::Duration,
-    
+
     /// Enable access logging
     pub enable_access_logging: bool,
-    
+
     /// Allowed host patterns (for validation)
     pub allowed_host_patterns: Vec<String>,
 }
@@ -251,17 +251,13 @@ impl CredentialManager {
             credentials: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
         }
     }
-    
+
     /// Create with default configuration
     pub async fn with_default_config() -> Result<Self, CredentialError> {
         let crypto_manager = Arc::new(CryptoManager::new()?);
-        Ok(Self::new(
-            CredentialConfig::default(),
-            crypto_manager,
-            None,
-        ))
+        Ok(Self::new(CredentialConfig::default(), crypto_manager, None))
     }
-    
+
     /// Store a new host credential
     pub async fn store_credential(
         &self,
@@ -273,21 +269,22 @@ impl CredentialManager {
     ) -> Result<String, CredentialError> {
         // Validate host against allowed patterns
         self.validate_host(&host)?;
-        
+
         // Validate access permissions
         self.validate_access(auth_context, "store")?;
-        
+
         // Generate credential ID
         let credential_id = Uuid::new_v4().to_string();
-        
+
         // Encrypt credential data
-        let serialized_data = serde_json::to_string(&credential_data)
-            .map_err(|e| CredentialError::InvalidFormat { 
-                reason: format!("Failed to serialize credential data: {}", e) 
-            })?;
-        
+        let serialized_data = serde_json::to_string(&credential_data).map_err(|e| {
+            CredentialError::InvalidFormat {
+                reason: format!("Failed to serialize credential data: {}", e),
+            }
+        })?;
+
         let encrypted_data = self.crypto_manager.encrypt_string(&serialized_data)?;
-        
+
         // Create credential
         let credential = HostCredential {
             credential_id: credential_id.clone(),
@@ -298,25 +295,30 @@ impl CredentialManager {
             metadata: HashMap::new(),
             created_at: chrono::Utc::now(),
             last_used: None,
-            expires_at: self.config.max_credential_age.map(|age| chrono::Utc::now() + age),
+            expires_at: self
+                .config
+                .max_credential_age
+                .map(|age| chrono::Utc::now() + age),
             is_active: true,
             tags: Vec::new(),
         };
-        
+
         // Store in vault if configured
         if self.config.use_vault {
             if let Some(vault) = &self.vault_integration {
                 let credential_json = serde_json::to_string(&credential)
                     .map_err(|e| CredentialError::StorageError(e.to_string()))?;
-                
-                vault.store_secret(&format!("credentials/{}", credential_id), &credential_json).await?;
+
+                vault
+                    .store_secret(&format!("credentials/{}", credential_id), &credential_json)
+                    .await?;
             }
         }
-        
+
         // Store in memory
         let mut credentials = self.credentials.write().await;
         credentials.insert(credential_id.clone(), credential);
-        
+
         if self.config.enable_access_logging {
             info!(
                 "Stored credential {} for host {} by user {:?}",
@@ -325,10 +327,10 @@ impl CredentialManager {
                 auth_context.user_id
             );
         }
-        
+
         Ok(credential_id)
     }
-    
+
     /// Retrieve and decrypt a host credential
     pub async fn get_credential(
         &self,
@@ -337,24 +339,24 @@ impl CredentialManager {
     ) -> Result<(HostCredential, CredentialData), CredentialError> {
         // Validate access permissions
         self.validate_access(auth_context, "read")?;
-        
+
         // Get credential
         let mut credential = {
             let credentials = self.credentials.read().await;
-            credentials.get(credential_id)
-                .cloned()
-                .ok_or_else(|| CredentialError::CredentialNotFound {
+            credentials.get(credential_id).cloned().ok_or_else(|| {
+                CredentialError::CredentialNotFound {
                     credential_id: credential_id.to_string(),
-                })?
+                }
+            })?
         };
-        
+
         // Check if credential is active and not expired
         if !credential.is_active {
             return Err(CredentialError::ValidationFailed {
                 reason: "Credential is inactive".to_string(),
             });
         }
-        
+
         if let Some(expires_at) = credential.expires_at {
             if chrono::Utc::now() > expires_at {
                 return Err(CredentialError::ValidationFailed {
@@ -362,43 +364,45 @@ impl CredentialManager {
                 });
             }
         }
-        
+
         // Decrypt credential data
-        let decrypted_data = self.crypto_manager.decrypt_string(&credential.encrypted_data)?;
-        let credential_data: CredentialData = serde_json::from_str(&decrypted_data)
-            .map_err(|e| CredentialError::InvalidFormat {
+        let decrypted_data = self
+            .crypto_manager
+            .decrypt_string(&credential.encrypted_data)?;
+        let credential_data: CredentialData =
+            serde_json::from_str(&decrypted_data).map_err(|e| CredentialError::InvalidFormat {
                 reason: format!("Failed to deserialize credential data: {}", e),
             })?;
-        
+
         // Update last used timestamp
         credential.last_used = Some(chrono::Utc::now());
         {
             let mut credentials = self.credentials.write().await;
             credentials.insert(credential_id.to_string(), credential.clone());
         }
-        
+
         // Update in vault if configured
         if self.config.use_vault {
             if let Some(vault) = &self.vault_integration {
                 let credential_json = serde_json::to_string(&credential)
                     .map_err(|e| CredentialError::StorageError(e.to_string()))?;
-                
-                let _ = vault.store_secret(&format!("credentials/{}", credential_id), &credential_json).await;
+
+                let _ = vault
+                    .store_secret(&format!("credentials/{}", credential_id), &credential_json)
+                    .await;
             }
         }
-        
+
         if self.config.enable_access_logging {
             info!(
                 "Retrieved credential {} for host {} by user {:?}",
-                credential_id,
-                credential.host.address,
-                auth_context.user_id
+                credential_id, credential.host.address, auth_context.user_id
             );
         }
-        
+
         Ok((credential, credential_data))
     }
-    
+
     /// List available credentials for a user
     pub async fn list_credentials(
         &self,
@@ -407,45 +411,48 @@ impl CredentialManager {
     ) -> Result<Vec<HostCredential>, CredentialError> {
         // Validate access permissions
         self.validate_access(auth_context, "list")?;
-        
+
         let credentials = self.credentials.read().await;
         let mut result: Vec<HostCredential> = credentials.values().cloned().collect();
-        
+
         // Apply filters
         if let Some(filter) = filter {
-            result = result.into_iter().filter(|cred| {
-                if let Some(ref cred_type) = filter.credential_type {
-                    if &cred.credential_type != cred_type {
+            result = result
+                .into_iter()
+                .filter(|cred| {
+                    if let Some(ref cred_type) = filter.credential_type {
+                        if &cred.credential_type != cred_type {
+                            return false;
+                        }
+                    }
+
+                    if let Some(ref host_pattern) = filter.host_pattern {
+                        if !cred.host.address.contains(host_pattern) {
+                            return false;
+                        }
+                    }
+
+                    if let Some(ref environment) = filter.environment {
+                        if cred.host.environment.as_ref() != Some(environment) {
+                            return false;
+                        }
+                    }
+
+                    if filter.active_only && !cred.is_active {
                         return false;
                     }
-                }
-                
-                if let Some(ref host_pattern) = filter.host_pattern {
-                    if !cred.host.address.contains(host_pattern) {
-                        return false;
-                    }
-                }
-                
-                if let Some(ref environment) = filter.environment {
-                    if cred.host.environment.as_ref() != Some(environment) {
-                        return false;
-                    }
-                }
-                
-                if filter.active_only && !cred.is_active {
-                    return false;
-                }
-                
-                true
-            }).collect();
+
+                    true
+                })
+                .collect();
         }
-        
+
         // Sort by name
         result.sort_by(|a, b| a.name.cmp(&b.name));
-        
+
         Ok(result)
     }
-    
+
     /// Update a host credential
     pub async fn update_credential(
         &self,
@@ -455,65 +462,68 @@ impl CredentialManager {
     ) -> Result<(), CredentialError> {
         // Validate access permissions
         self.validate_access(auth_context, "update")?;
-        
+
         let mut credentials = self.credentials.write().await;
-        let credential = credentials.get_mut(credential_id)
-            .ok_or_else(|| CredentialError::CredentialNotFound {
+        let credential = credentials.get_mut(credential_id).ok_or_else(|| {
+            CredentialError::CredentialNotFound {
                 credential_id: credential_id.to_string(),
-            })?;
-        
+            }
+        })?;
+
         // Apply updates
         if let Some(name) = updates.name {
             credential.name = name;
         }
-        
+
         if let Some(host) = updates.host {
             self.validate_host(&host)?;
             credential.host = host;
         }
-        
+
         if let Some(credential_data) = updates.credential_data {
-            let serialized_data = serde_json::to_string(&credential_data)
-                .map_err(|e| CredentialError::InvalidFormat { 
-                    reason: format!("Failed to serialize credential data: {}", e) 
-                })?;
-            
+            let serialized_data = serde_json::to_string(&credential_data).map_err(|e| {
+                CredentialError::InvalidFormat {
+                    reason: format!("Failed to serialize credential data: {}", e),
+                }
+            })?;
+
             credential.encrypted_data = self.crypto_manager.encrypt_string(&serialized_data)?;
         }
-        
+
         if let Some(is_active) = updates.is_active {
             credential.is_active = is_active;
         }
-        
+
         if let Some(tags) = updates.tags {
             credential.tags = tags;
         }
-        
+
         if let Some(metadata) = updates.metadata {
             credential.metadata = metadata;
         }
-        
+
         // Update in vault if configured
         if self.config.use_vault {
             if let Some(vault) = &self.vault_integration {
                 let credential_json = serde_json::to_string(&credential)
                     .map_err(|e| CredentialError::StorageError(e.to_string()))?;
-                
-                vault.store_secret(&format!("credentials/{}", credential_id), &credential_json).await?;
+
+                vault
+                    .store_secret(&format!("credentials/{}", credential_id), &credential_json)
+                    .await?;
             }
         }
-        
+
         if self.config.enable_access_logging {
             info!(
                 "Updated credential {} by user {:?}",
-                credential_id,
-                auth_context.user_id
+                credential_id, auth_context.user_id
             );
         }
-        
+
         Ok(())
     }
-    
+
     /// Delete a host credential
     pub async fn delete_credential(
         &self,
@@ -522,75 +532,83 @@ impl CredentialManager {
     ) -> Result<(), CredentialError> {
         // Validate access permissions
         self.validate_access(auth_context, "delete")?;
-        
+
         let mut credentials = self.credentials.write().await;
-        let credential = credentials.remove(credential_id)
-            .ok_or_else(|| CredentialError::CredentialNotFound {
+        let credential = credentials.remove(credential_id).ok_or_else(|| {
+            CredentialError::CredentialNotFound {
                 credential_id: credential_id.to_string(),
-            })?;
-        
+            }
+        })?;
+
         // Delete from vault if configured
         if self.config.use_vault {
             if let Some(vault) = &self.vault_integration {
-                let _ = vault.delete_secret(&format!("credentials/{}", credential_id)).await;
+                let _ = vault
+                    .delete_secret(&format!("credentials/{}", credential_id))
+                    .await;
             }
         }
-        
+
         if self.config.enable_access_logging {
             info!(
                 "Deleted credential {} for host {} by user {:?}",
-                credential_id,
-                credential.host.address,
-                auth_context.user_id
+                credential_id, credential.host.address, auth_context.user_id
             );
         }
-        
+
         Ok(())
     }
-    
+
     /// Test connectivity using stored credentials
     pub async fn test_credential(
         &self,
         credential_id: &str,
         auth_context: &AuthContext,
     ) -> Result<CredentialTestResult, CredentialError> {
-        let (credential, credential_data) = self.get_credential(credential_id, auth_context).await?;
-        
+        let (credential, credential_data) =
+            self.get_credential(credential_id, auth_context).await?;
+
         // Perform basic connectivity test based on credential type
         let test_result = match credential.credential_type {
             CredentialType::UserPassword => {
-                self.test_user_password_credential(&credential, &credential_data).await
+                self.test_user_password_credential(&credential, &credential_data)
+                    .await
             }
             CredentialType::SshKey => {
-                self.test_ssh_key_credential(&credential, &credential_data).await
+                self.test_ssh_key_credential(&credential, &credential_data)
+                    .await
             }
             CredentialType::ApiToken => {
-                self.test_api_token_credential(&credential, &credential_data).await
+                self.test_api_token_credential(&credential, &credential_data)
+                    .await
             }
             _ => CredentialTestResult {
                 success: false,
                 message: "Test not implemented for this credential type".to_string(),
                 response_time: None,
-            }
+            },
         };
-        
+
         Ok(test_result)
     }
-    
+
     /// Get credential usage statistics
     pub async fn get_credential_stats(&self) -> CredentialStats {
         let credentials = self.credentials.read().await;
-        
+
         let total_credentials = credentials.len();
         let active_credentials = credentials.values().filter(|c| c.is_active).count();
-        let expired_credentials = credentials.values().filter(|c| {
-            if let Some(expires_at) = c.expires_at {
-                chrono::Utc::now() > expires_at
-            } else {
-                false
-            }
-        }).count();
-        
+        let expired_credentials = credentials
+            .values()
+            .filter(|c| {
+                if let Some(expires_at) = c.expires_at {
+                    chrono::Utc::now() > expires_at
+                } else {
+                    false
+                }
+            })
+            .count();
+
         // Count by type
         let mut by_type = HashMap::new();
         for credential in credentials.values() {
@@ -604,7 +622,7 @@ impl CredentialManager {
             };
             *by_type.entry(type_name.to_string()).or_insert(0) += 1;
         }
-        
+
         CredentialStats {
             total_credentials,
             active_credentials,
@@ -613,9 +631,9 @@ impl CredentialManager {
             last_updated: chrono::Utc::now(),
         }
     }
-    
+
     // Private helper methods
-    
+
     fn validate_host(&self, host: &HostInfo) -> Result<(), CredentialError> {
         // Validate against allowed host patterns
         let allowed = self.config.allowed_host_patterns.iter().any(|pattern| {
@@ -625,30 +643,37 @@ impl CredentialManager {
                 host.address.contains(pattern)
             }
         });
-        
+
         if !allowed {
             return Err(CredentialError::ValidationFailed {
                 reason: format!("Host {} not allowed by configuration", host.address),
             });
         }
-        
+
         Ok(())
     }
-    
-    fn validate_access(&self, auth_context: &AuthContext, operation: &str) -> Result<(), CredentialError> {
+
+    fn validate_access(
+        &self,
+        auth_context: &AuthContext,
+        operation: &str,
+    ) -> Result<(), CredentialError> {
         // Check if user has required permissions
         let required_permission = format!("credential:{}", operation);
-        
-        if !auth_context.permissions.contains(&required_permission) && 
-           !auth_context.permissions.contains(&"credential:*".to_string()) {
+
+        if !auth_context.permissions.contains(&required_permission)
+            && !auth_context
+                .permissions
+                .contains(&"credential:*".to_string())
+        {
             return Err(CredentialError::AccessDenied {
                 reason: format!("Missing permission: {}", required_permission),
             });
         }
-        
+
         Ok(())
     }
-    
+
     async fn test_user_password_credential(
         &self,
         _credential: &HostCredential,
@@ -662,7 +687,7 @@ impl CredentialManager {
             response_time: Some(chrono::Duration::milliseconds(150)),
         }
     }
-    
+
     async fn test_ssh_key_credential(
         &self,
         _credential: &HostCredential,
@@ -675,7 +700,7 @@ impl CredentialManager {
             response_time: Some(chrono::Duration::milliseconds(200)),
         }
     }
-    
+
     async fn test_api_token_credential(
         &self,
         _credential: &HostCredential,
@@ -734,7 +759,7 @@ mod tests {
     use crate::models::Role;
     use chrono::{Duration, Utc};
     use std::collections::HashMap;
-    
+
     fn create_test_auth_context() -> AuthContext {
         AuthContext {
             user_id: Some("test_user".to_string()),
@@ -756,10 +781,7 @@ mod tests {
             user_id: Some("limited_user".to_string()),
             roles: vec![Role::Monitor],
             api_key_id: Some("limited_key".to_string()),
-            permissions: vec![
-                "credential:read".to_string(),
-                "credential:list".to_string(),
-            ],
+            permissions: vec!["credential:read".to_string(), "credential:list".to_string()],
         }
     }
 
@@ -784,7 +806,11 @@ mod tests {
         let invalid_format_error = CredentialError::InvalidFormat {
             reason: "Bad JSON".to_string(),
         };
-        assert!(invalid_format_error.to_string().contains("Invalid credential format"));
+        assert!(
+            invalid_format_error
+                .to_string()
+                .contains("Invalid credential format")
+        );
 
         let access_denied_error = CredentialError::AccessDenied {
             reason: "Insufficient permissions".to_string(),
@@ -794,7 +820,11 @@ mod tests {
         let validation_failed_error = CredentialError::ValidationFailed {
             reason: "Expired credential".to_string(),
         };
-        assert!(validation_failed_error.to_string().contains("Credential validation failed"));
+        assert!(
+            validation_failed_error
+                .to_string()
+                .contains("Credential validation failed")
+        );
 
         let storage_error = CredentialError::StorageError("Storage failed".to_string());
         assert!(storage_error.to_string().contains("Storage error"));
@@ -822,11 +852,11 @@ mod tests {
     fn test_credential_type_equality() {
         assert_eq!(CredentialType::UserPassword, CredentialType::UserPassword);
         assert_ne!(CredentialType::UserPassword, CredentialType::SshKey);
-        
+
         let custom1 = CredentialType::Custom("oauth".to_string());
         let custom2 = CredentialType::Custom("oauth".to_string());
         let custom3 = CredentialType::Custom("saml".to_string());
-        
+
         assert_eq!(custom1, custom2);
         assert_ne!(custom1, custom3);
     }
@@ -881,8 +911,14 @@ mod tests {
             .with_custom_field("region".to_string(), "us-east-1".to_string())
             .with_custom_field("tenant".to_string(), "acme-corp".to_string());
 
-        assert_eq!(data.custom_fields.get("region"), Some(&"us-east-1".to_string()));
-        assert_eq!(data.custom_fields.get("tenant"), Some(&"acme-corp".to_string()));
+        assert_eq!(
+            data.custom_fields.get("region"),
+            Some(&"us-east-1".to_string())
+        );
+        assert_eq!(
+            data.custom_fields.get("tenant"),
+            Some(&"acme-corp".to_string())
+        );
     }
 
     #[test]
@@ -947,7 +983,10 @@ mod tests {
         let update = CredentialUpdate {
             name: Some("Updated Credential".to_string()),
             host: Some(create_test_host_info()),
-            credential_data: Some(CredentialData::user_password("new_user".to_string(), "new_pass".to_string())),
+            credential_data: Some(CredentialData::user_password(
+                "new_user".to_string(),
+                "new_pass".to_string(),
+            )),
             is_active: Some(false),
             tags: Some(vec!["updated".to_string(), "test".to_string()]),
             metadata: Some(metadata.clone()),
@@ -957,7 +996,10 @@ mod tests {
         assert!(update.host.is_some());
         assert!(update.credential_data.is_some());
         assert_eq!(update.is_active, Some(false));
-        assert_eq!(update.tags, Some(vec!["updated".to_string(), "test".to_string()]));
+        assert_eq!(
+            update.tags,
+            Some(vec!["updated".to_string(), "test".to_string()])
+        );
         assert_eq!(update.metadata, Some(metadata));
     }
 
@@ -999,7 +1041,7 @@ mod tests {
         assert_eq!(deserialized.expired_credentials, stats.expired_credentials);
         assert_eq!(deserialized.by_type, stats.by_type);
     }
-    
+
     #[tokio::test]
     async fn test_credential_manager_creation() {
         let manager = CredentialManager::with_default_config().await;
@@ -1027,38 +1069,48 @@ mod tests {
         let manager = CredentialManager::new(config.clone(), crypto_manager, None);
 
         assert!(!manager.config.use_vault);
-        assert_eq!(manager.config.encryption_key, Some("custom_key".to_string()));
+        assert_eq!(
+            manager.config.encryption_key,
+            Some("custom_key".to_string())
+        );
         assert_eq!(manager.config.max_credential_age, Some(Duration::days(30)));
         assert!(manager.config.enable_rotation);
         assert!(!manager.config.enable_access_logging);
         assert_eq!(manager.config.allowed_host_patterns.len(), 2);
     }
-    
+
     #[tokio::test]
     async fn test_store_and_retrieve_credential() {
         let manager = CredentialManager::with_default_config().await.unwrap();
         let auth_context = create_test_auth_context();
-        
+
         let host = create_test_host_info();
-        let credential_data = CredentialData::user_password(
-            "admin".to_string(),
-            "password123".to_string(),
-        );
-        
-        let credential_id = manager.store_credential(
-            "Test Credential".to_string(),
-            CredentialType::UserPassword,
-            host.clone(),
-            credential_data.clone(),
-            &auth_context,
-        ).await.unwrap();
-        
+        let credential_data =
+            CredentialData::user_password("admin".to_string(), "password123".to_string());
+
+        let credential_id = manager
+            .store_credential(
+                "Test Credential".to_string(),
+                CredentialType::UserPassword,
+                host.clone(),
+                credential_data.clone(),
+                &auth_context,
+            )
+            .await
+            .unwrap();
+
         assert!(!credential_id.is_empty());
-        
-        let (stored_credential, retrieved_data) = manager.get_credential(&credential_id, &auth_context).await.unwrap();
-        
+
+        let (stored_credential, retrieved_data) = manager
+            .get_credential(&credential_id, &auth_context)
+            .await
+            .unwrap();
+
         assert_eq!(stored_credential.name, "Test Credential");
-        assert_eq!(stored_credential.credential_type, CredentialType::UserPassword);
+        assert_eq!(
+            stored_credential.credential_type,
+            CredentialType::UserPassword
+        );
         assert_eq!(stored_credential.host.address, host.address);
         assert_eq!(stored_credential.host.port, host.port);
         assert!(stored_credential.is_active);
@@ -1074,82 +1126,114 @@ mod tests {
         let host = create_test_host_info();
 
         // Test SSH key credential
-        let ssh_data = CredentialData::ssh_key("sshuser".to_string(), "ssh_private_key".to_string());
-        let ssh_id = manager.store_credential(
-            "SSH Credential".to_string(),
-            CredentialType::SshKey,
-            host.clone(),
-            ssh_data.clone(),
-            &auth_context,
-        ).await.unwrap();
+        let ssh_data =
+            CredentialData::ssh_key("sshuser".to_string(), "ssh_private_key".to_string());
+        let ssh_id = manager
+            .store_credential(
+                "SSH Credential".to_string(),
+                CredentialType::SshKey,
+                host.clone(),
+                ssh_data.clone(),
+                &auth_context,
+            )
+            .await
+            .unwrap();
 
-        let (ssh_cred, ssh_retrieved) = manager.get_credential(&ssh_id, &auth_context).await.unwrap();
+        let (ssh_cred, ssh_retrieved) = manager
+            .get_credential(&ssh_id, &auth_context)
+            .await
+            .unwrap();
         assert_eq!(ssh_cred.credential_type, CredentialType::SshKey);
         assert_eq!(ssh_retrieved.username, ssh_data.username);
         assert_eq!(ssh_retrieved.private_key, ssh_data.private_key);
 
         // Test API token credential
         let api_data = CredentialData::api_token("api_token_123".to_string());
-        let api_id = manager.store_credential(
-            "API Credential".to_string(),
-            CredentialType::ApiToken,
-            host.clone(),
-            api_data.clone(),
-            &auth_context,
-        ).await.unwrap();
+        let api_id = manager
+            .store_credential(
+                "API Credential".to_string(),
+                CredentialType::ApiToken,
+                host.clone(),
+                api_data.clone(),
+                &auth_context,
+            )
+            .await
+            .unwrap();
 
-        let (api_cred, api_retrieved) = manager.get_credential(&api_id, &auth_context).await.unwrap();
+        let (api_cred, api_retrieved) = manager
+            .get_credential(&api_id, &auth_context)
+            .await
+            .unwrap();
         assert_eq!(api_cred.credential_type, CredentialType::ApiToken);
         assert_eq!(api_retrieved.token, api_data.token);
 
         // Test custom credential type
-        let custom_data = CredentialData::user_password("custom_user".to_string(), "custom_pass".to_string())
-            .with_custom_field("client_id".to_string(), "oauth_client".to_string());
-        let custom_id = manager.store_credential(
-            "OAuth Credential".to_string(),
-            CredentialType::Custom("oauth2".to_string()),
-            host,
-            custom_data.clone(),
-            &auth_context,
-        ).await.unwrap();
+        let custom_data =
+            CredentialData::user_password("custom_user".to_string(), "custom_pass".to_string())
+                .with_custom_field("client_id".to_string(), "oauth_client".to_string());
+        let custom_id = manager
+            .store_credential(
+                "OAuth Credential".to_string(),
+                CredentialType::Custom("oauth2".to_string()),
+                host,
+                custom_data.clone(),
+                &auth_context,
+            )
+            .await
+            .unwrap();
 
-        let (custom_cred, custom_retrieved) = manager.get_credential(&custom_id, &auth_context).await.unwrap();
-        assert_eq!(custom_cred.credential_type, CredentialType::Custom("oauth2".to_string()));
-        assert_eq!(custom_retrieved.custom_fields.get("client_id"), Some(&"oauth_client".to_string()));
+        let (custom_cred, custom_retrieved) = manager
+            .get_credential(&custom_id, &auth_context)
+            .await
+            .unwrap();
+        assert_eq!(
+            custom_cred.credential_type,
+            CredentialType::Custom("oauth2".to_string())
+        );
+        assert_eq!(
+            custom_retrieved.custom_fields.get("client_id"),
+            Some(&"oauth_client".to_string())
+        );
     }
 
     #[tokio::test]
     async fn test_credential_with_expiration() {
         let manager = CredentialManager::with_default_config().await.unwrap();
         let auth_context = create_test_auth_context();
-        
+
         let host = create_test_host_info();
         let credential_data = CredentialData::user_password("user".to_string(), "pass".to_string());
-        
-        let credential_id = manager.store_credential(
-            "Expiring Credential".to_string(),
-            CredentialType::UserPassword,
-            host,
-            credential_data,
-            &auth_context,
-        ).await.unwrap();
-        
-        let (stored_credential, _) = manager.get_credential(&credential_id, &auth_context).await.unwrap();
-        
+
+        let credential_id = manager
+            .store_credential(
+                "Expiring Credential".to_string(),
+                CredentialType::UserPassword,
+                host,
+                credential_data,
+                &auth_context,
+            )
+            .await
+            .unwrap();
+
+        let (stored_credential, _) = manager
+            .get_credential(&credential_id, &auth_context)
+            .await
+            .unwrap();
+
         // Should have expiration based on max_credential_age
         assert!(stored_credential.expires_at.is_some());
         let expires_at = stored_credential.expires_at.unwrap();
         let expected_expiry = Utc::now() + Duration::days(90);
-        
+
         // Allow some tolerance for test execution time
         assert!((expires_at - expected_expiry).num_minutes().abs() < 1);
     }
-    
+
     #[tokio::test]
     async fn test_list_credentials() {
         let manager = CredentialManager::with_default_config().await.unwrap();
         let auth_context = create_test_auth_context();
-        
+
         // Store multiple test credentials
         for i in 1..=3 {
             let host = HostInfo {
@@ -1159,35 +1243,36 @@ mod tests {
                 description: Some(format!("Server {}", i)),
                 environment: Some("test".to_string()),
             };
-            
-            let credential_data = CredentialData::user_password(
-                "admin".to_string(),
-                format!("password{}", i),
-            );
-            
-            manager.store_credential(
-                format!("Test Credential {}", i),
-                CredentialType::UserPassword,
-                host,
-                credential_data,
-                &auth_context,
-            ).await.unwrap();
+
+            let credential_data =
+                CredentialData::user_password("admin".to_string(), format!("password{}", i));
+
+            manager
+                .store_credential(
+                    format!("Test Credential {}", i),
+                    CredentialType::UserPassword,
+                    host,
+                    credential_data,
+                    &auth_context,
+                )
+                .await
+                .unwrap();
         }
-        
+
         let credentials = manager.list_credentials(&auth_context, None).await.unwrap();
         assert_eq!(credentials.len(), 3);
-        
+
         // Should be sorted by name
         assert_eq!(credentials[0].name, "Test Credential 1");
         assert_eq!(credentials[1].name, "Test Credential 2");
         assert_eq!(credentials[2].name, "Test Credential 3");
     }
-    
+
     #[tokio::test]
     async fn test_credential_filtering() {
         let manager = CredentialManager::with_default_config().await.unwrap();
         let auth_context = create_test_auth_context();
-        
+
         // Store SSH credential
         let ssh_host = HostInfo {
             address: "ssh.prod.example.com".to_string(),
@@ -1196,15 +1281,18 @@ mod tests {
             description: None,
             environment: Some("prod".to_string()),
         };
-        
-        manager.store_credential(
-            "SSH Credential".to_string(),
-            CredentialType::SshKey,
-            ssh_host,
-            CredentialData::ssh_key("admin".to_string(), "private_key_data".to_string()),
-            &auth_context,
-        ).await.unwrap();
-        
+
+        manager
+            .store_credential(
+                "SSH Credential".to_string(),
+                CredentialType::SshKey,
+                ssh_host,
+                CredentialData::ssh_key("admin".to_string(), "private_key_data".to_string()),
+                &auth_context,
+            )
+            .await
+            .unwrap();
+
         // Store API credential
         let api_host = HostInfo {
             address: "api.staging.example.com".to_string(),
@@ -1213,14 +1301,17 @@ mod tests {
             description: None,
             environment: Some("staging".to_string()),
         };
-        
-        manager.store_credential(
-            "API Credential".to_string(),
-            CredentialType::ApiToken,
-            api_host,
-            CredentialData::api_token("token123".to_string()),
-            &auth_context,
-        ).await.unwrap();
+
+        manager
+            .store_credential(
+                "API Credential".to_string(),
+                CredentialType::ApiToken,
+                api_host,
+                CredentialData::api_token("token123".to_string()),
+                &auth_context,
+            )
+            .await
+            .unwrap();
 
         // Store database credential
         let db_host = HostInfo {
@@ -1231,14 +1322,17 @@ mod tests {
             environment: Some("prod".to_string()),
         };
 
-        manager.store_credential(
-            "Database Credential".to_string(),
-            CredentialType::DatabaseConnection,
-            db_host,
-            CredentialData::user_password("dbuser".to_string(), "dbpass".to_string()),
-            &auth_context,
-        ).await.unwrap();
-        
+        manager
+            .store_credential(
+                "Database Credential".to_string(),
+                CredentialType::DatabaseConnection,
+                db_host,
+                CredentialData::user_password("dbuser".to_string(), "dbpass".to_string()),
+                &auth_context,
+            )
+            .await
+            .unwrap();
+
         // Filter by credential type
         let ssh_filter = CredentialFilter {
             credential_type: Some(CredentialType::SshKey),
@@ -1246,8 +1340,11 @@ mod tests {
             environment: None,
             active_only: true,
         };
-        
-        let ssh_credentials = manager.list_credentials(&auth_context, Some(ssh_filter)).await.unwrap();
+
+        let ssh_credentials = manager
+            .list_credentials(&auth_context, Some(ssh_filter))
+            .await
+            .unwrap();
         assert_eq!(ssh_credentials.len(), 1);
         assert_eq!(ssh_credentials[0].credential_type, CredentialType::SshKey);
 
@@ -1259,7 +1356,10 @@ mod tests {
             active_only: true,
         };
 
-        let prod_credentials = manager.list_credentials(&auth_context, Some(prod_filter)).await.unwrap();
+        let prod_credentials = manager
+            .list_credentials(&auth_context, Some(prod_filter))
+            .await
+            .unwrap();
         assert_eq!(prod_credentials.len(), 2); // SSH and DB credentials
 
         // Filter by environment
@@ -1270,9 +1370,15 @@ mod tests {
             active_only: true,
         };
 
-        let staging_credentials = manager.list_credentials(&auth_context, Some(env_filter)).await.unwrap();
+        let staging_credentials = manager
+            .list_credentials(&auth_context, Some(env_filter))
+            .await
+            .unwrap();
         assert_eq!(staging_credentials.len(), 1);
-        assert_eq!(staging_credentials[0].credential_type, CredentialType::ApiToken);
+        assert_eq!(
+            staging_credentials[0].credential_type,
+            CredentialType::ApiToken
+        );
     }
 
     #[tokio::test]
@@ -1282,22 +1388,28 @@ mod tests {
         let host = create_test_host_info();
 
         // Store active credential
-        let active_id = manager.store_credential(
-            "Active Credential".to_string(),
-            CredentialType::UserPassword,
-            host.clone(),
-            CredentialData::user_password("user".to_string(), "pass".to_string()),
-            &auth_context,
-        ).await.unwrap();
+        let active_id = manager
+            .store_credential(
+                "Active Credential".to_string(),
+                CredentialType::UserPassword,
+                host.clone(),
+                CredentialData::user_password("user".to_string(), "pass".to_string()),
+                &auth_context,
+            )
+            .await
+            .unwrap();
 
         // Store and deactivate credential
-        let inactive_id = manager.store_credential(
-            "Inactive Credential".to_string(),
-            CredentialType::UserPassword,
-            host,
-            CredentialData::user_password("user2".to_string(), "pass2".to_string()),
-            &auth_context,
-        ).await.unwrap();
+        let inactive_id = manager
+            .store_credential(
+                "Inactive Credential".to_string(),
+                CredentialType::UserPassword,
+                host,
+                CredentialData::user_password("user2".to_string(), "pass2".to_string()),
+                &auth_context,
+            )
+            .await
+            .unwrap();
 
         // Deactivate the second credential
         let update = CredentialUpdate {
@@ -1308,7 +1420,10 @@ mod tests {
             tags: None,
             metadata: None,
         };
-        manager.update_credential(&inactive_id, update, &auth_context).await.unwrap();
+        manager
+            .update_credential(&inactive_id, update, &auth_context)
+            .await
+            .unwrap();
 
         // Filter for active only
         let active_filter = CredentialFilter {
@@ -1318,7 +1433,10 @@ mod tests {
             active_only: true,
         };
 
-        let active_credentials = manager.list_credentials(&auth_context, Some(active_filter)).await.unwrap();
+        let active_credentials = manager
+            .list_credentials(&auth_context, Some(active_filter))
+            .await
+            .unwrap();
         assert_eq!(active_credentials.len(), 1);
         assert_eq!(active_credentials[0].credential_id, active_id);
 
@@ -1331,17 +1449,20 @@ mod tests {
     async fn test_update_credential() {
         let manager = CredentialManager::with_default_config().await.unwrap();
         let auth_context = create_test_auth_context();
-        
+
         let host = create_test_host_info();
         let credential_data = CredentialData::user_password("user".to_string(), "pass".to_string());
-        
-        let credential_id = manager.store_credential(
-            "Original Credential".to_string(),
-            CredentialType::UserPassword,
-            host,
-            credential_data,
-            &auth_context,
-        ).await.unwrap();
+
+        let credential_id = manager
+            .store_credential(
+                "Original Credential".to_string(),
+                CredentialType::UserPassword,
+                host,
+                credential_data,
+                &auth_context,
+            )
+            .await
+            .unwrap();
 
         // Update credential
         let new_host = HostInfo {
@@ -1365,11 +1486,17 @@ mod tests {
             metadata: Some(metadata.clone()),
         };
 
-        manager.update_credential(&credential_id, update, &auth_context).await.unwrap();
+        manager
+            .update_credential(&credential_id, update, &auth_context)
+            .await
+            .unwrap();
 
         // Verify updates
-        let (updated_credential, updated_data) = manager.get_credential(&credential_id, &auth_context).await.unwrap();
-        
+        let (updated_credential, updated_data) = manager
+            .get_credential(&credential_id, &auth_context)
+            .await
+            .unwrap();
+
         assert_eq!(updated_credential.name, "Updated Credential");
         assert_eq!(updated_credential.host.address, new_host.address);
         assert_eq!(updated_credential.host.port, new_host.port);
@@ -1383,17 +1510,20 @@ mod tests {
     async fn test_update_credential_partial() {
         let manager = CredentialManager::with_default_config().await.unwrap();
         let auth_context = create_test_auth_context();
-        
+
         let host = create_test_host_info();
         let credential_data = CredentialData::user_password("user".to_string(), "pass".to_string());
-        
-        let credential_id = manager.store_credential(
-            "Original Credential".to_string(),
-            CredentialType::UserPassword,
-            host.clone(),
-            credential_data.clone(),
-            &auth_context,
-        ).await.unwrap();
+
+        let credential_id = manager
+            .store_credential(
+                "Original Credential".to_string(),
+                CredentialType::UserPassword,
+                host.clone(),
+                credential_data.clone(),
+                &auth_context,
+            )
+            .await
+            .unwrap();
 
         // Partial update - only name and active status
         let partial_update = CredentialUpdate {
@@ -1405,11 +1535,17 @@ mod tests {
             metadata: None,
         };
 
-        manager.update_credential(&credential_id, partial_update, &auth_context).await.unwrap();
+        manager
+            .update_credential(&credential_id, partial_update, &auth_context)
+            .await
+            .unwrap();
 
         // Verify only specified fields were updated
-        let (updated_credential, updated_data) = manager.get_credential(&credential_id, &auth_context).await.unwrap();
-        
+        let (updated_credential, updated_data) = manager
+            .get_credential(&credential_id, &auth_context)
+            .await
+            .unwrap();
+
         assert_eq!(updated_credential.name, "Partially Updated Credential");
         assert!(!updated_credential.is_active);
         assert_eq!(updated_credential.host.address, host.address); // Should remain unchanged
@@ -1420,28 +1556,42 @@ mod tests {
     async fn test_delete_credential() {
         let manager = CredentialManager::with_default_config().await.unwrap();
         let auth_context = create_test_auth_context();
-        
+
         let host = create_test_host_info();
         let credential_data = CredentialData::user_password("user".to_string(), "pass".to_string());
-        
-        let credential_id = manager.store_credential(
-            "To Delete".to_string(),
-            CredentialType::UserPassword,
-            host,
-            credential_data,
-            &auth_context,
-        ).await.unwrap();
+
+        let credential_id = manager
+            .store_credential(
+                "To Delete".to_string(),
+                CredentialType::UserPassword,
+                host,
+                credential_data,
+                &auth_context,
+            )
+            .await
+            .unwrap();
 
         // Verify credential exists
-        assert!(manager.get_credential(&credential_id, &auth_context).await.is_ok());
+        assert!(
+            manager
+                .get_credential(&credential_id, &auth_context)
+                .await
+                .is_ok()
+        );
 
         // Delete credential
-        manager.delete_credential(&credential_id, &auth_context).await.unwrap();
+        manager
+            .delete_credential(&credential_id, &auth_context)
+            .await
+            .unwrap();
 
         // Verify credential is gone
         let result = manager.get_credential(&credential_id, &auth_context).await;
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), CredentialError::CredentialNotFound { .. }));
+        assert!(matches!(
+            result.unwrap_err(),
+            CredentialError::CredentialNotFound { .. }
+        ));
 
         // Verify it's not in the list
         let credentials = manager.list_credentials(&auth_context, None).await.unwrap();
@@ -1452,95 +1602,125 @@ mod tests {
     async fn test_test_credential() {
         let manager = CredentialManager::with_default_config().await.unwrap();
         let auth_context = create_test_auth_context();
-        
+
         // Test user/password credential
         let host = create_test_host_info();
         let user_pass_data = CredentialData::user_password("user".to_string(), "pass".to_string());
-        
-        let user_pass_id = manager.store_credential(
-            "User/Pass Test".to_string(),
-            CredentialType::UserPassword,
-            host.clone(),
-            user_pass_data,
-            &auth_context,
-        ).await.unwrap();
 
-        let user_pass_result = manager.test_credential(&user_pass_id, &auth_context).await.unwrap();
+        let user_pass_id = manager
+            .store_credential(
+                "User/Pass Test".to_string(),
+                CredentialType::UserPassword,
+                host.clone(),
+                user_pass_data,
+                &auth_context,
+            )
+            .await
+            .unwrap();
+
+        let user_pass_result = manager
+            .test_credential(&user_pass_id, &auth_context)
+            .await
+            .unwrap();
         assert!(user_pass_result.success);
         assert!(user_pass_result.message.contains("Username/password"));
         assert!(user_pass_result.response_time.is_some());
 
         // Test SSH key credential
         let ssh_data = CredentialData::ssh_key("sshuser".to_string(), "ssh_key".to_string());
-        
-        let ssh_id = manager.store_credential(
-            "SSH Test".to_string(),
-            CredentialType::SshKey,
-            host.clone(),
-            ssh_data,
-            &auth_context,
-        ).await.unwrap();
 
-        let ssh_result = manager.test_credential(&ssh_id, &auth_context).await.unwrap();
+        let ssh_id = manager
+            .store_credential(
+                "SSH Test".to_string(),
+                CredentialType::SshKey,
+                host.clone(),
+                ssh_data,
+                &auth_context,
+            )
+            .await
+            .unwrap();
+
+        let ssh_result = manager
+            .test_credential(&ssh_id, &auth_context)
+            .await
+            .unwrap();
         assert!(ssh_result.success);
         assert!(ssh_result.message.contains("SSH key"));
 
         // Test API token credential
         let api_data = CredentialData::api_token("token123".to_string());
-        
-        let api_id = manager.store_credential(
-            "API Test".to_string(),
-            CredentialType::ApiToken,
-            host,
-            api_data,
-            &auth_context,
-        ).await.unwrap();
 
-        let api_result = manager.test_credential(&api_id, &auth_context).await.unwrap();
+        let api_id = manager
+            .store_credential(
+                "API Test".to_string(),
+                CredentialType::ApiToken,
+                host,
+                api_data,
+                &auth_context,
+            )
+            .await
+            .unwrap();
+
+        let api_result = manager
+            .test_credential(&api_id, &auth_context)
+            .await
+            .unwrap();
         assert!(api_result.success);
         assert!(api_result.message.contains("API token"));
     }
-    
+
     #[tokio::test]
     async fn test_credential_stats() {
         let manager = CredentialManager::with_default_config().await.unwrap();
         let auth_context = create_test_auth_context();
-        
+
         let host = create_test_host_info();
 
         // Store different types of credentials
-        manager.store_credential(
-            "User/Pass 1".to_string(),
-            CredentialType::UserPassword,
-            host.clone(),
-            CredentialData::user_password("user1".to_string(), "pass1".to_string()),
-            &auth_context,
-        ).await.unwrap();
-        
-        manager.store_credential(
-            "User/Pass 2".to_string(),
-            CredentialType::UserPassword,
-            host.clone(),
-            CredentialData::user_password("user2".to_string(), "pass2".to_string()),
-            &auth_context,
-        ).await.unwrap();
-        
-        manager.store_credential(
-            "SSH Key".to_string(),
-            CredentialType::SshKey,
-            host.clone(),
-            CredentialData::ssh_key("user".to_string(), "key".to_string()),
-            &auth_context,
-        ).await.unwrap();
+        manager
+            .store_credential(
+                "User/Pass 1".to_string(),
+                CredentialType::UserPassword,
+                host.clone(),
+                CredentialData::user_password("user1".to_string(), "pass1".to_string()),
+                &auth_context,
+            )
+            .await
+            .unwrap();
 
-        manager.store_credential(
-            "API Token".to_string(),
-            CredentialType::ApiToken,
-            host,
-            CredentialData::api_token("token".to_string()),
-            &auth_context,
-        ).await.unwrap();
-        
+        manager
+            .store_credential(
+                "User/Pass 2".to_string(),
+                CredentialType::UserPassword,
+                host.clone(),
+                CredentialData::user_password("user2".to_string(), "pass2".to_string()),
+                &auth_context,
+            )
+            .await
+            .unwrap();
+
+        manager
+            .store_credential(
+                "SSH Key".to_string(),
+                CredentialType::SshKey,
+                host.clone(),
+                CredentialData::ssh_key("user".to_string(), "key".to_string()),
+                &auth_context,
+            )
+            .await
+            .unwrap();
+
+        manager
+            .store_credential(
+                "API Token".to_string(),
+                CredentialType::ApiToken,
+                host,
+                CredentialData::api_token("token".to_string()),
+                &auth_context,
+            )
+            .await
+            .unwrap();
+
         let stats = manager.get_credential_stats().await;
         assert_eq!(stats.total_credentials, 4);
         assert_eq!(stats.active_credentials, 4);
@@ -1556,33 +1736,51 @@ mod tests {
         let manager = CredentialManager::with_default_config().await.unwrap();
         let full_auth_context = create_test_auth_context();
         let limited_auth_context = create_limited_auth_context();
-        
+
         let host = create_test_host_info();
         let credential_data = CredentialData::user_password("user".to_string(), "pass".to_string());
 
         // Store credential with full permissions
-        let credential_id = manager.store_credential(
-            "Access Test".to_string(),
-            CredentialType::UserPassword,
-            host.clone(),
-            credential_data.clone(),
-            &full_auth_context,
-        ).await.unwrap();
+        let credential_id = manager
+            .store_credential(
+                "Access Test".to_string(),
+                CredentialType::UserPassword,
+                host.clone(),
+                credential_data.clone(),
+                &full_auth_context,
+            )
+            .await
+            .unwrap();
 
         // Limited user can read and list
-        assert!(manager.get_credential(&credential_id, &limited_auth_context).await.is_ok());
-        assert!(manager.list_credentials(&limited_auth_context, None).await.is_ok());
+        assert!(
+            manager
+                .get_credential(&credential_id, &limited_auth_context)
+                .await
+                .is_ok()
+        );
+        assert!(
+            manager
+                .list_credentials(&limited_auth_context, None)
+                .await
+                .is_ok()
+        );
 
         // Limited user cannot store
-        let store_result = manager.store_credential(
-            "Unauthorized".to_string(),
-            CredentialType::UserPassword,
-            host.clone(),
-            credential_data.clone(),
-            &limited_auth_context,
-        ).await;
+        let store_result = manager
+            .store_credential(
+                "Unauthorized".to_string(),
+                CredentialType::UserPassword,
+                host.clone(),
+                credential_data.clone(),
+                &limited_auth_context,
+            )
+            .await;
         assert!(store_result.is_err());
-        assert!(matches!(store_result.unwrap_err(), CredentialError::AccessDenied { .. }));
+        assert!(matches!(
+            store_result.unwrap_err(),
+            CredentialError::AccessDenied { .. }
+        ));
 
         // Limited user cannot update
         let update = CredentialUpdate {
@@ -1593,21 +1791,31 @@ mod tests {
             tags: None,
             metadata: None,
         };
-        let update_result = manager.update_credential(&credential_id, update, &limited_auth_context).await;
+        let update_result = manager
+            .update_credential(&credential_id, update, &limited_auth_context)
+            .await;
         assert!(update_result.is_err());
-        assert!(matches!(update_result.unwrap_err(), CredentialError::AccessDenied { .. }));
+        assert!(matches!(
+            update_result.unwrap_err(),
+            CredentialError::AccessDenied { .. }
+        ));
 
         // Limited user cannot delete
-        let delete_result = manager.delete_credential(&credential_id, &limited_auth_context).await;
+        let delete_result = manager
+            .delete_credential(&credential_id, &limited_auth_context)
+            .await;
         assert!(delete_result.is_err());
-        assert!(matches!(delete_result.unwrap_err(), CredentialError::AccessDenied { .. }));
+        assert!(matches!(
+            delete_result.unwrap_err(),
+            CredentialError::AccessDenied { .. }
+        ));
     }
 
     #[tokio::test]
     async fn test_host_validation() {
         let mut config = CredentialConfig::default();
         config.allowed_host_patterns = vec!["192.168.*".to_string(), "*.example.com".to_string()];
-        
+
         let crypto_manager = Arc::new(crate::crypto::CryptoManager::new().unwrap());
         let manager = CredentialManager::new(config, crypto_manager, None);
         let auth_context = create_test_auth_context();
@@ -1632,21 +1840,31 @@ mod tests {
         let credential_data = CredentialData::user_password("user".to_string(), "pass".to_string());
 
         // Should succeed for valid hosts
-        assert!(manager.store_credential(
-            "Valid 1".to_string(),
-            CredentialType::UserPassword,
-            valid_host1,
-            credential_data.clone(),
-            &auth_context,
-        ).await.is_ok());
+        assert!(
+            manager
+                .store_credential(
+                    "Valid 1".to_string(),
+                    CredentialType::UserPassword,
+                    valid_host1,
+                    credential_data.clone(),
+                    &auth_context,
+                )
+                .await
+                .is_ok()
+        );
 
-        assert!(manager.store_credential(
-            "Valid 2".to_string(),
-            CredentialType::UserPassword,
-            valid_host2,
-            credential_data.clone(),
-            &auth_context,
-        ).await.is_ok());
+        assert!(
+            manager
+                .store_credential(
+                    "Valid 2".to_string(),
+                    CredentialType::UserPassword,
+                    valid_host2,
+                    credential_data.clone(),
+                    &auth_context,
+                )
+                .await
+                .is_ok()
+        );
 
         // Invalid host
         let invalid_host = HostInfo {
@@ -1657,33 +1875,41 @@ mod tests {
             environment: None,
         };
 
-        let result = manager.store_credential(
-            "Invalid".to_string(),
-            CredentialType::UserPassword,
-            invalid_host,
-            credential_data,
-            &auth_context,
-        ).await;
+        let result = manager
+            .store_credential(
+                "Invalid".to_string(),
+                CredentialType::UserPassword,
+                invalid_host,
+                credential_data,
+                &auth_context,
+            )
+            .await;
 
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), CredentialError::ValidationFailed { .. }));
+        assert!(matches!(
+            result.unwrap_err(),
+            CredentialError::ValidationFailed { .. }
+        ));
     }
 
     #[tokio::test]
     async fn test_credential_retrieval_inactive() {
         let manager = CredentialManager::with_default_config().await.unwrap();
         let auth_context = create_test_auth_context();
-        
+
         let host = create_test_host_info();
         let credential_data = CredentialData::user_password("user".to_string(), "pass".to_string());
-        
-        let credential_id = manager.store_credential(
-            "To Deactivate".to_string(),
-            CredentialType::UserPassword,
-            host,
-            credential_data,
-            &auth_context,
-        ).await.unwrap();
+
+        let credential_id = manager
+            .store_credential(
+                "To Deactivate".to_string(),
+                CredentialType::UserPassword,
+                host,
+                credential_data,
+                &auth_context,
+            )
+            .await
+            .unwrap();
 
         // Deactivate credential
         let update = CredentialUpdate {
@@ -1694,25 +1920,34 @@ mod tests {
             tags: None,
             metadata: None,
         };
-        manager.update_credential(&credential_id, update, &auth_context).await.unwrap();
+        manager
+            .update_credential(&credential_id, update, &auth_context)
+            .await
+            .unwrap();
 
         // Should fail to retrieve inactive credential
         let result = manager.get_credential(&credential_id, &auth_context).await;
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), CredentialError::ValidationFailed { .. }));
+        assert!(matches!(
+            result.unwrap_err(),
+            CredentialError::ValidationFailed { .. }
+        ));
     }
 
     #[tokio::test]
     async fn test_nonexistent_credential_operations() {
         let manager = CredentialManager::with_default_config().await.unwrap();
         let auth_context = create_test_auth_context();
-        
+
         let fake_id = "nonexistent-credential-id";
 
         // Get nonexistent credential
         let get_result = manager.get_credential(fake_id, &auth_context).await;
         assert!(get_result.is_err());
-        assert!(matches!(get_result.unwrap_err(), CredentialError::CredentialNotFound { .. }));
+        assert!(matches!(
+            get_result.unwrap_err(),
+            CredentialError::CredentialNotFound { .. }
+        ));
 
         // Update nonexistent credential
         let update = CredentialUpdate {
@@ -1723,33 +1958,44 @@ mod tests {
             tags: None,
             metadata: None,
         };
-        let update_result = manager.update_credential(fake_id, update, &auth_context).await;
+        let update_result = manager
+            .update_credential(fake_id, update, &auth_context)
+            .await;
         assert!(update_result.is_err());
-        assert!(matches!(update_result.unwrap_err(), CredentialError::CredentialNotFound { .. }));
+        assert!(matches!(
+            update_result.unwrap_err(),
+            CredentialError::CredentialNotFound { .. }
+        ));
 
         // Delete nonexistent credential
         let delete_result = manager.delete_credential(fake_id, &auth_context).await;
         assert!(delete_result.is_err());
-        assert!(matches!(delete_result.unwrap_err(), CredentialError::CredentialNotFound { .. }));
+        assert!(matches!(
+            delete_result.unwrap_err(),
+            CredentialError::CredentialNotFound { .. }
+        ));
 
         // Test nonexistent credential
         let test_result = manager.test_credential(fake_id, &auth_context).await;
         assert!(test_result.is_err());
-        assert!(matches!(test_result.unwrap_err(), CredentialError::CredentialNotFound { .. }));
+        assert!(matches!(
+            test_result.unwrap_err(),
+            CredentialError::CredentialNotFound { .. }
+        ));
     }
 
     #[tokio::test]
     async fn test_concurrent_credential_operations() {
         let manager = Arc::new(CredentialManager::with_default_config().await.unwrap());
         let auth_context = create_test_auth_context();
-        
+
         let mut handles = vec![];
 
         // Spawn multiple tasks that create credentials concurrently
         for i in 0..10 {
             let manager_clone = manager.clone();
             let auth_context_clone = auth_context.clone();
-            
+
             let handle = tokio::spawn(async move {
                 let host = HostInfo {
                     address: format!("192.168.1.{}", i),
@@ -1758,19 +2004,19 @@ mod tests {
                     description: Some(format!("Concurrent test {}", i)),
                     environment: Some("test".to_string()),
                 };
-                
-                let credential_data = CredentialData::user_password(
-                    format!("user{}", i),
-                    format!("pass{}", i),
-                );
-                
-                manager_clone.store_credential(
-                    format!("Concurrent Credential {}", i),
-                    CredentialType::UserPassword,
-                    host,
-                    credential_data,
-                    &auth_context_clone,
-                ).await
+
+                let credential_data =
+                    CredentialData::user_password(format!("user{}", i), format!("pass{}", i));
+
+                manager_clone
+                    .store_credential(
+                        format!("Concurrent Credential {}", i),
+                        CredentialType::UserPassword,
+                        host,
+                        credential_data,
+                        &auth_context_clone,
+                    )
+                    .await
             });
             handles.push(handle);
         }
@@ -1810,13 +2056,15 @@ mod tests {
 
         let empty_data = CredentialData::user_password("".to_string(), "".to_string());
 
-        let result = manager.store_credential(
-            "".to_string(),
-            CredentialType::UserPassword,
-            empty_host,
-            empty_data,
-            &auth_context,
-        ).await;
+        let result = manager
+            .store_credential(
+                "".to_string(),
+                CredentialType::UserPassword,
+                empty_host,
+                empty_data,
+                &auth_context,
+            )
+            .await;
 
         // Should succeed even with empty strings (validation may differ in real implementation)
         assert!(result.is_ok());
@@ -1837,13 +2085,15 @@ mod tests {
         let long_data = CredentialData::user_password("user".to_string(), long_password)
             .with_custom_field("long_field".to_string(), "e".repeat(1000));
 
-        let long_result = manager.store_credential(
-            long_name,
-            CredentialType::Custom("custom-type-with-very-long-name".to_string()),
-            long_host,
-            long_data,
-            &auth_context,
-        ).await;
+        let long_result = manager
+            .store_credential(
+                long_name,
+                CredentialType::Custom("custom-type-with-very-long-name".to_string()),
+                long_host,
+                long_data,
+                &auth_context,
+            )
+            .await;
 
         assert!(long_result.is_ok());
     }

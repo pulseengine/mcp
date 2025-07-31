@@ -8,7 +8,7 @@
 //! 3. Handle errors consistently across different layers
 //! 4. Use the CommonError type for simplified backend implementations
 
-use pulseengine_mcp_protocol::{errors::prelude::*, mcp_error, Error, ErrorCode};
+use pulseengine_mcp_protocol::{Error, ErrorCode, errors::prelude::*, mcp_error};
 
 // Demonstrate different error handling patterns
 fn main() -> Result<(), Box<dyn std::error::Error>> {

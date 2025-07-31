@@ -5,18 +5,22 @@ This document explains the comprehensive error harmonization improvements made t
 ## 🎯 Goals Achieved
 
 ### 1. **Resolved Result Type Conflicts**
+
 - **Problem**: Multiple crates defined their own `Result<T>` aliases, causing conflicts with `std::result::Result`
 - **Solution**: Added non-conflicting aliases like `McpResult<T>` and `LoggingResult<T>` while maintaining backward compatibility
 
 ### 2. **Unified Error Conversion**
+
 - **Problem**: Inconsistent error conversion patterns across crates
 - **Solution**: Implemented comprehensive `From` trait implementations for automatic error conversion
 
 ### 3. **Simplified Backend Development**
+
 - **Problem**: Backend implementers had to create complex custom error types
 - **Solution**: Provided `CommonError` type covering 90% of common error scenarios
 
 ### 4. **Enhanced Developer Experience**
+
 - **Problem**: Verbose error handling code
 - **Solution**: Added convenience macros, extension traits, and fluent APIs
 
@@ -34,7 +38,7 @@ ErrorCode::MethodNotFound      // -32601
 ErrorCode::InvalidParams       // -32602
 ErrorCode::InternalError       // -32603
 
-// MCP-specific error codes  
+// MCP-specific error codes
 ErrorCode::Unauthorized        // -32000
 ErrorCode::Forbidden           // -32001
 ErrorCode::ResourceNotFound    // -32002
@@ -52,6 +56,7 @@ use pulseengine_mcp_protocol::errors::prelude::*;
 ```
 
 This provides:
+
 - `Error`, `ErrorCode`, `McpResult`
 - `CommonError`, `CommonResult`
 - Extension traits for error context and conversion
@@ -197,31 +202,33 @@ async fn call_tool(&self, request: CallToolRequestParam) -> McpResult<CallToolRe
 
 ## 📊 Improvements Summary
 
-| Aspect | Before | After |
-|--------|--------|-------|
-| **Result Type Conflicts** | Multiple conflicting `Result<T>` aliases | Non-conflicting `McpResult<T>`, `LoggingResult<T>` |
-| **Error Conversion** | Manual, inconsistent `From` implementations | Automatic, comprehensive conversions |
-| **Backend Errors** | 50+ lines of custom error boilerplate | Use `CommonError` - 90% reduction |
-| **Error Context** | Manual error wrapping and formatting | Extension traits with `.context()` |
-| **Developer Experience** | Verbose, error-prone error handling | `mcp_error!` macro, prelude imports |
-| **Consistency** | Each crate had different patterns | Unified patterns across framework |
+| Aspect                    | Before                                      | After                                              |
+| ------------------------- | ------------------------------------------- | -------------------------------------------------- |
+| **Result Type Conflicts** | Multiple conflicting `Result<T>` aliases    | Non-conflicting `McpResult<T>`, `LoggingResult<T>` |
+| **Error Conversion**      | Manual, inconsistent `From` implementations | Automatic, comprehensive conversions               |
+| **Backend Errors**        | 50+ lines of custom error boilerplate       | Use `CommonError` - 90% reduction                  |
+| **Error Context**         | Manual error wrapping and formatting        | Extension traits with `.context()`                 |
+| **Developer Experience**  | Verbose, error-prone error handling         | `mcp_error!` macro, prelude imports                |
+| **Consistency**           | Each crate had different patterns           | Unified patterns across framework                  |
 
 ## 🔄 Migration Guide
 
 ### For Backend Implementers
 
 1. **Replace custom error enums**:
+
    ```rust
    // OLD
    #[derive(Debug, thiserror::Error)]
    pub enum MyError { /* many variants */ }
-   
+
    // NEW
    use pulseengine_mcp_protocol::CommonResult;
    // Use CommonResult<T> for most functions
    ```
 
 2. **Simplify error conversion**:
+
    ```rust
    // OLD
    fn some_operation() -> Result<Data, MyError> { /* ... */ }
@@ -229,8 +236,8 @@ async fn call_tool(&self, request: CallToolRequestParam) -> McpResult<CallToolRe
        Ok(data) => Ok(data),
        Err(e) => Err(MyError::Internal(e.to_string()).into())
    }
-   
-   // NEW  
+
+   // NEW
    fn some_operation() -> CommonResult<Data> { /* ... */ }
    let data = some_operation()?; // Automatic conversion!
    ```
@@ -244,19 +251,21 @@ async fn call_tool(&self, request: CallToolRequestParam) -> McpResult<CallToolRe
 ### For Application Developers
 
 1. **Replace Result type usage**:
+
    ```rust
    // OLD - potential conflicts
    use pulseengine_mcp_protocol::Result;
-   
+
    // NEW - no conflicts
    use pulseengine_mcp_protocol::McpResult;
    ```
 
 2. **Use convenience methods**:
+
    ```rust
    // OLD
    Error::new(ErrorCode::ValidationError, "Invalid input")
-   
+
    // NEW
    mcp_error!(validation "Invalid input")
    ```
@@ -270,15 +279,17 @@ cargo run -p error-harmonization-demo
 ```
 
 This demonstrates:
+
 - Basic error creation patterns
 - Error conversion and context addition
-- CommonError usage for backend development  
+- CommonError usage for backend development
 - Error classification features
 - All harmonization improvements
 
 ## ✅ Backward Compatibility
 
 All changes are backward compatible:
+
 - Original `Result<T>` type aliases remain available
 - Existing error conversion implementations are preserved
 - All public APIs maintain the same signatures

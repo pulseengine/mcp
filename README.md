@@ -47,11 +47,11 @@ struct MyBackend;
 impl McpBackend for MyBackend {
     type Error = Box<dyn std::error::Error + Send + Sync>;
     type Config = ();
-    
+
     async fn initialize(_: Self::Config) -> Result<Self, Self::Error> {
         Ok(MyBackend)
     }
-    
+
     fn get_server_info(&self) -> ServerInfo {
         ServerInfo {
             protocol_version: ProtocolVersion::default(),
@@ -66,7 +66,7 @@ impl McpBackend for MyBackend {
             instructions: Some("A simple example server".to_string()),
         }
     }
-    
+
     async fn list_tools(&self, _: PaginatedRequestParam) -> Result<ListToolsResult, Self::Error> {
         Ok(ListToolsResult {
             tools: vec![
@@ -85,7 +85,7 @@ impl McpBackend for MyBackend {
             next_cursor: String::new(),
         })
     }
-    
+
     async fn call_tool(&self, request: CallToolRequestParam) -> Result<CallToolResult, Self::Error> {
         match request.name.as_str() {
             "hello" => {
@@ -93,7 +93,7 @@ impl McpBackend for MyBackend {
                     .and_then(|args| args.get("name"))
                     .and_then(|v| v.as_str())
                     .unwrap_or("World");
-                
+
                 Ok(CallToolResult {
                     content: vec![Content::text(format!("Hello, {}!", name))],
                     is_error: Some(false),
@@ -102,7 +102,7 @@ impl McpBackend for MyBackend {
             _ => Err("Unknown tool".into()),
         }
     }
-    
+
     // Simple implementations for unused features
     async fn list_resources(&self, _: PaginatedRequestParam) -> Result<ListResourcesResult, Self::Error> {
         Ok(ListResourcesResult { resources: vec![], next_cursor: String::new() })
@@ -131,41 +131,49 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ## Framework Components
 
 ### 🔧 [mcp-protocol](mcp-protocol/) - Core Protocol Types
+
 - MCP request/response types with validation
 - JSON-RPC 2.0 support and error handling
 - Schema validation for tool parameters
 
-### 🏗️ [mcp-server](mcp-server/) - Server Infrastructure  
+### 🏗️ [mcp-server](mcp-server/) - Server Infrastructure
+
 - Pluggable backend system via `McpBackend` trait
 - Request routing and protocol compliance
 - Middleware integration for auth, security, monitoring
 
 ### 📡 [mcp-transport](mcp-transport/) - Multiple Transports
+
 - stdio (Claude Desktop), HTTP (web apps), WebSocket (real-time)
 - MCP Inspector compatibility with content negotiation
 - Session management and CORS support
 
 ### 🔑 [mcp-auth](mcp-auth/) - Authentication Framework
+
 - API key management with role-based access control
 - Rate limiting and IP whitelisting
 - Audit logging and security features
 
 ### 🛡️ [mcp-security](mcp-security/) - Security Middleware
+
 - Input validation and XSS/injection prevention
 - Request size limits and parameter validation
 - CORS policies and security headers
 
 ### 📊 [mcp-monitoring](mcp-monitoring/) - Observability
+
 - Health checks and metrics collection
 - Performance tracking and request tracing
 - Integration with monitoring systems
 
 ### 📝 [mcp-logging](mcp-logging/) - Structured Logging
+
 - JSON logging with correlation IDs
 - Automatic credential sanitization
 - Security audit trails
 
 ### 🖥️ [mcp-cli](mcp-cli/) & [mcp-cli-derive](mcp-cli-derive/) - CLI Integration
+
 - Command-line interface generation
 - Configuration management
 - Derive macros for backends
@@ -173,19 +181,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ## Examples
 
 ### 🌍 [Hello World](examples/hello-world/)
+
 Complete minimal MCP server demonstrating basic concepts.
 
 ### 🏗️ [Backend Example](examples/backend-example/)
+
 Shows advanced backend implementation patterns.
 
 ### 🖥️ [CLI Example](examples/cli-example/)
+
 Demonstrates CLI integration and configuration.
 
 ### 🏠 Real-World Reference: Loxone MCP Server
+
 The framework was extracted from a production Loxone home automation server that provides:
 
 - **30+ Tools** - Complete home automation control (lighting, climate, security, energy)
-- **Multiple Transports** - Works with Claude Desktop, MCP Inspector, n8n workflows  
+- **Multiple Transports** - Works with Claude Desktop, MCP Inspector, n8n workflows
 - **Production Security** - API keys, rate limiting, input validation, audit logging
 - **Real-Time Integration** - WebSocket support for live device status updates
 - **Proven Reliability** - Handles concurrent operations and error conditions
@@ -193,6 +205,7 @@ The framework was extracted from a production Loxone home automation server that
 ## Development Workflow
 
 ### Building the Framework
+
 ```bash
 # Build all framework crates
 cargo build --workspace
@@ -239,7 +252,7 @@ cargo run --bin hello-world-server
 This framework grows from real-world usage. The most valuable contributions come from:
 
 1. **New Backend Examples** - Show how to integrate different types of systems
-2. **Production Patterns** - Share patterns from your own MCP server deployments  
+2. **Production Patterns** - Share patterns from your own MCP server deployments
 3. **Client Compatibility** - Test with different MCP clients and report issues
 4. **Performance Improvements** - Optimizations based on real usage patterns
 5. **Security Enhancements** - Better validation, authentication, or audit capabilities
@@ -253,6 +266,7 @@ This framework grows from real-world usage. The most valuable contributions come
 ## License
 
 Licensed under either of:
+
 - Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
 - MIT license ([LICENSE-MIT](LICENSE-MIT))
 

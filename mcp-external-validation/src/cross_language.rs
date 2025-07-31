@@ -713,7 +713,7 @@ async def test_mcp_cross_language(server_url, protocol_version):
         "bidirectional": False,
         "issues": []
     }}
-    
+
     try:
         # Placeholder for actual MCP client implementation
         # In real implementation, this would use the Python MCP SDK
@@ -724,13 +724,13 @@ async def test_mcp_cross_language(server_url, protocol_version):
         result["bidirectional"] = True
     except Exception as e:
         result["issues"].append(str(e))
-    
+
     return result
 
 if __name__ == "__main__":
     server_url = "{}"
     protocol_version = "{}"
-    
+
     result = asyncio.run(test_mcp_cross_language(server_url, protocol_version))
     print(json.dumps(result))
 "#,
@@ -767,7 +767,7 @@ async function testMcpCrossLanguage(serverUrl, protocolVersion) {{
         bidirectional: false,
         issues: []
     }};
-    
+
     try {{
         // Placeholder for actual MCP client implementation
         // In real implementation, this would use the JavaScript MCP SDK
@@ -779,14 +779,14 @@ async function testMcpCrossLanguage(serverUrl, protocolVersion) {{
     }} catch (error) {{
         result.issues.push(error.message);
     }}
-    
+
     return result;
 }}
 
 (async () => {{
     const serverUrl = '{}';
     const protocolVersion = '{}';
-    
+
     const result = await testMcpCrossLanguage(serverUrl, protocolVersion);
     console.log(JSON.stringify(result));
 }})();

@@ -474,12 +474,12 @@ impl DashboardManager {
                 <span id="last-updated">Last updated: {}</span>
             </div>
         </header>
-        
+
         <div class="dashboard-grid">
             {}
         </div>
     </div>
-    
+
     <script>
         {}
     </script>

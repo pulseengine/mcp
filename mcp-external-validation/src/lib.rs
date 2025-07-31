@@ -42,10 +42,10 @@
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     let mut validator = ExternalValidator::new().await?;
-//!     
+//!
 //!     // Validate a running MCP server
 //!     let report = validator.validate_compliance("http://localhost:3000").await?;
-//!     
+//!
 //!     if report.is_compliant() {
 //!         println!("✅ Server is fully MCP compliant!");
 //!     } else {
@@ -54,7 +54,7 @@
 //!             println!("  - {:?}", issue);
 //!         }
 //!     }
-//!     
+//!
 //!     Ok(())
 //! }
 //! ```

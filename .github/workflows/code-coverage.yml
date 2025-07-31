@@ -2,19 +2,19 @@ name: Code Coverage
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [main, dev]
     paths:
-      - '**.rs'
-      - '**/Cargo.toml'
-      - '**/Cargo.lock'
-      - '.github/workflows/code-coverage.yml'
+      - "**.rs"
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - ".github/workflows/code-coverage.yml"
   pull_request:
-    branches: [ main, dev ]
+    branches: [main, dev]
     paths:
-      - '**.rs'
-      - '**/Cargo.toml'
-      - '**/Cargo.lock'
-      - '.github/workflows/code-coverage.yml'
+      - "**.rs"
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - ".github/workflows/code-coverage.yml"
 
 env:
   CARGO_TERM_COLOR: always
@@ -27,143 +27,143 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Setup Rust
-      uses: dtolnay/rust-toolchain@1.88
-      with:
-        components: llvm-tools-preview
-    
-    - name: Log environment info
-      run: |
-        echo "Rust toolchain information:"
-        rustup show
-        echo "Rust version: $(rustc --version)"
-        echo "Cargo version: $(cargo --version)"
-        echo "LLVM tools: $(rustc --print sysroot)/lib/rustlib/x86_64-unknown-linux-gnu/bin/"
-    
-    - name: Install cargo-llvm-cov
-      uses: taiki-e/install-action@cargo-llvm-cov
-    
-    - name: Cache dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-cargo-coverage-1.88-${{ hashFiles('**/Cargo.lock', 'rust-toolchain.toml') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-coverage-1.88-
-          ${{ runner.os }}-cargo-
-    
-    - name: Generate code coverage
-      run: |
-        # Clean any existing coverage data
-        cargo llvm-cov clean --workspace
-        
-        # Run tests with coverage for all packages (excluding same files as Codecov)
-        # Use debug mode for coverage (release mode can interfere with coverage instrumentation)
-        cargo llvm-cov test --all-features --workspace --lcov --output-path lcov.info \
-          --ignore-filename-regex="examples/.*|.*/build\.rs"
-        
-        # Also run integration tests
-        cargo llvm-cov test --all-features --package pulseengine-mcp-integration-tests --lcov --output-path lcov-integration.info
-        
-        # Merge coverage files
-        cargo llvm-cov report --lcov --output-path lcov-merged.info
-    
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v4
-      with:
-        files: lcov-merged.info
-        flags: unittests
-        name: pulseengine-mcp
-        fail_ci_if_error: true
-        verbose: true
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-    
-    - name: Generate coverage summary
-      run: |
-        # Generate a human-readable summary (with same exclusions as Codecov)
-        cargo llvm-cov report --summary-only \
-          --ignore-filename-regex="examples/.*|.*/build\.rs" \
-          > coverage-summary.txt
-        cat coverage-summary.txt
-        
-        # Clean target to save space after coverage generation
-        du -sh target || true
-        cargo clean
-        echo "Cleaned target directory to save disk space"
-        
-        # Extract coverage percentage for PR comment (use tail -1 to get TOTAL line, not first file)
-        COVERAGE=$(grep -oP '\d+\.\d+(?=%)' coverage-summary.txt | tail -1)
-        echo "COVERAGE_PERCENT=$COVERAGE" >> $GITHUB_ENV
-        
-        # Note: Coverage validation is now handled by Codecov, not locally
-        echo "ℹ️  Coverage validation delegated to Codecov - see https://codecov.io/gh/${{ github.repository }}"
-    
-    - name: Post coverage comment
-      if: github.event_name == 'pull_request'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const coverage = process.env.COVERAGE_PERCENT;
-          
-          const comment = `## Code Coverage Report 📊
-          
-          **Local Coverage**: ${coverage}%
-          **Validation**: Handled by [Codecov](https://codecov.io/gh/${{ github.repository }})
-          
-          > **Note**: Coverage validation is now performed by Codecov to ensure consistency across all platforms.
-          
-          <details>
-          <summary>Coverage Details</summary>
-          
-          \`\`\`
-          ${require('fs').readFileSync('coverage-summary.txt', 'utf8')}
-          \`\`\`
-          
-          </details>
-          
-          
-          **📋 Full Report**: [View on Codecov](https://codecov.io/gh/${{ github.repository }})`;
-          
-          // Find existing coverage comment
-          const { data: comments } = await github.rest.issues.listComments({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: context.payload.pull_request.number,
-          });
-          
-          const botComment = comments.find(comment => 
-            comment.user.type === 'Bot' && comment.body.includes('Code Coverage Report')
-          );
-          
-          if (botComment) {
-            await github.rest.issues.updateComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: botComment.id,
-              body: comment
-            });
-          } else {
-            await github.rest.issues.createComment({
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@1.88
+        with:
+          components: llvm-tools-preview
+
+      - name: Log environment info
+        run: |
+          echo "Rust toolchain information:"
+          rustup show
+          echo "Rust version: $(rustc --version)"
+          echo "Cargo version: $(cargo --version)"
+          echo "LLVM tools: $(rustc --print sysroot)/lib/rustlib/x86_64-unknown-linux-gnu/bin/"
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-coverage-1.88-${{ hashFiles('**/Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-coverage-1.88-
+            ${{ runner.os }}-cargo-
+
+      - name: Generate code coverage
+        run: |
+          # Clean any existing coverage data
+          cargo llvm-cov clean --workspace
+
+          # Run tests with coverage for all packages (excluding same files as Codecov)
+          # Use debug mode for coverage (release mode can interfere with coverage instrumentation)
+          cargo llvm-cov test --all-features --workspace --lcov --output-path lcov.info \
+            --ignore-filename-regex="examples/.*|.*/build\.rs"
+
+          # Also run integration tests
+          cargo llvm-cov test --all-features --package pulseengine-mcp-integration-tests --lcov --output-path lcov-integration.info
+
+          # Merge coverage files
+          cargo llvm-cov report --lcov --output-path lcov-merged.info
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: lcov-merged.info
+          flags: unittests
+          name: pulseengine-mcp
+          fail_ci_if_error: true
+          verbose: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Generate coverage summary
+        run: |
+          # Generate a human-readable summary (with same exclusions as Codecov)
+          cargo llvm-cov report --summary-only \
+            --ignore-filename-regex="examples/.*|.*/build\.rs" \
+            > coverage-summary.txt
+          cat coverage-summary.txt
+
+          # Clean target to save space after coverage generation
+          du -sh target || true
+          cargo clean
+          echo "Cleaned target directory to save disk space"
+
+          # Extract coverage percentage for PR comment (use tail -1 to get TOTAL line, not first file)
+          COVERAGE=$(grep -oP '\d+\.\d+(?=%)' coverage-summary.txt | tail -1)
+          echo "COVERAGE_PERCENT=$COVERAGE" >> $GITHUB_ENV
+
+          # Note: Coverage validation is now handled by Codecov, not locally
+          echo "ℹ️  Coverage validation delegated to Codecov - see https://codecov.io/gh/${{ github.repository }}"
+
+      - name: Post coverage comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const coverage = process.env.COVERAGE_PERCENT;
+
+            const comment = `## Code Coverage Report 📊
+
+            **Local Coverage**: ${coverage}%
+            **Validation**: Handled by [Codecov](https://codecov.io/gh/${{ github.repository }})
+
+            > **Note**: Coverage validation is now performed by Codecov to ensure consistency across all platforms.
+
+            <details>
+            <summary>Coverage Details</summary>
+
+            \`\`\`
+            ${require('fs').readFileSync('coverage-summary.txt', 'utf8')}
+            \`\`\`
+
+            </details>
+
+
+            **📋 Full Report**: [View on Codecov](https://codecov.io/gh/${{ github.repository }})`;
+
+            // Find existing coverage comment
+            const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.payload.pull_request.number,
-              body: comment
             });
-          }
-    
-    - name: Upload coverage artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-report
-        path: |
-          lcov-merged.info
-          coverage-summary.txt
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' && comment.body.includes('Code Coverage Report')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: comment
+              });
+            }
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            lcov-merged.info
+            coverage-summary.txt

@@ -31,11 +31,11 @@ coverage:
 # Ignore certain files/paths from coverage
 ignore:
   - "examples/**/*"
-  - "mcp-cli-derive/**/*"  # Procedural macros are hard to test
-  - "**/tests/**/*"        # Test files themselves
-  - "**/benches/**/*"      # Benchmark files
-  - "**/*_tests.rs"        # Test modules
-  - "**/build.rs"          # Build scripts
+  - "mcp-cli-derive/**/*" # Procedural macros are hard to test
+  - "**/tests/**/*" # Test files themselves
+  - "**/benches/**/*" # Benchmark files
+  - "**/*_tests.rs" # Test modules
+  - "**/build.rs" # Build scripts
 
 # Comment settings for PRs
 comment:
@@ -44,8 +44,8 @@ comment:
   require_changes: false
   require_base: false
   require_head: true
-  
-# Flag configuration for different test types  
+
+# Flag configuration for different test types
 flags:
   unittests:
     paths:

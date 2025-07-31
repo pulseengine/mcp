@@ -16,7 +16,7 @@ fn test_mcp_server_compiles() {
     let _server = TestServer::with_defaults();
 }
 
-/// Test that minimal configuration works  
+/// Test that minimal configuration works
 #[test]
 fn test_minimal_config() {
     #[mcp_server(name = "Minimal")]

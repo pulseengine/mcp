@@ -34,13 +34,16 @@ npx @modelcontextprotocol/inspector stdio -- cargo run --bin hello-world-server
 ## Available Tools
 
 ### `say_hello`
+
 Says hello to someone with an optional custom greeting.
 
 **Parameters:**
+
 - `name` (required): The name to greet
 - `greeting` (optional): Custom greeting, defaults to "Hello"
 
 **Example:**
+
 ```json
 {
   "name": "say_hello",
@@ -54,6 +57,7 @@ Says hello to someone with an optional custom greeting.
 **Response:** "Hi, World! 👋"
 
 ### `count_greetings`
+
 Returns the total number of greetings sent since the server started.
 
 **Parameters:** None
@@ -63,6 +67,7 @@ Returns the total number of greetings sent since the server started.
 ## What's Not Included
 
 This is intentionally a minimal example. It doesn't include:
+
 - Authentication (see mcp-auth crate)
 - Security validation (see mcp-security crate)
 - Advanced monitoring (see mcp-monitoring crate)
@@ -74,6 +79,7 @@ For a more comprehensive example, check out the Loxone MCP server implementation
 ## Key Patterns Demonstrated
 
 ### Backend Structure
+
 ```rust
 #[derive(Clone)]
 pub struct HelloWorldBackend {
@@ -85,12 +91,13 @@ pub struct HelloWorldBackend {
 impl McpBackend for HelloWorldBackend {
     type Error = HelloWorldError;
     type Config = HelloWorldConfig;
-    
+
     // Implementation methods...
 }
 ```
 
 ### Error Handling
+
 ```rust
 #[derive(Debug, Error)]
 pub enum HelloWorldError {
@@ -107,6 +114,7 @@ impl From<HelloWorldError> for mcp_protocol::Error {
 ```
 
 ### Tool Implementation
+
 ```rust
 async fn call_tool(&self, request: CallToolRequestParam) -> Result<CallToolResult, Self::Error> {
     match request.name.as_str() {

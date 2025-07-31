@@ -7,6 +7,7 @@ This guide covers the setup and initialization tools for the MCP Authentication 
 The framework provides three setup tools with increasing levels of complexity:
 
 ### 1. `mcp-auth-setup` - Basic Setup Wizard
+
 A simple interactive wizard for quick setup with sensible defaults.
 
 ```bash
@@ -21,6 +22,7 @@ cargo run --bin mcp-auth-setup -- --output config.txt
 ```
 
 ### 2. `mcp-auth-init` - Advanced Initialization Tool
+
 A comprehensive tool with system validation, expert mode, and migration support.
 
 ```bash
@@ -41,6 +43,7 @@ cargo run --bin mcp-auth-init -- --non-interactive --output config.txt
 ```
 
 ### 3. Programmatic Setup API
+
 For integration into other tools or automated deployments.
 
 ```rust
@@ -59,14 +62,18 @@ println!("Admin key: {}", result.admin_key.unwrap().key);
 ## Setup Process
 
 ### Step 1: System Validation
+
 The setup tools automatically validate:
+
 - Operating system compatibility
 - Secure random number generation
 - File system permissions
 - Optional system keyring support
 
 ### Step 2: Master Key Configuration
+
 Options:
+
 - Generate new master key (recommended for new installations)
 - Use existing key from environment
 - Import from secure storage
@@ -74,27 +81,34 @@ Options:
 **Important**: The master key is used for all encryption operations. Store it securely!
 
 ### Step 3: Storage Backend Selection
+
 Choose where API keys are stored:
 
 #### File Storage (Default)
+
 - Encrypted file at `~/.pulseengine/mcp-auth/keys.enc`
 - SSH-style permissions (600)
 - Automatic backup support
 
 #### Environment Variables
+
 - Keys stored in environment
 - Useful for containerized deployments
 - Prefix configurable (default: `PULSEENGINE_MCP`)
 
 ### Step 4: Security Configuration
+
 Configure security policies:
+
 - Failed login attempt limits
 - Rate limiting windows
 - IP validation strictness
 - Role-based rate limiting
 
 ### Step 5: Admin Key Creation
+
 Optionally create an initial admin API key:
+
 - Full administrative permissions
 - Optional IP whitelisting
 - No expiration by default
@@ -102,13 +116,15 @@ Optionally create an initial admin API key:
 ## Configuration Examples
 
 ### Quick Setup (Development)
+
 ```bash
 # Uses all defaults, creates admin key
 cargo run --bin mcp-auth-setup -- --non-interactive
 ```
 
 ### Production Setup
-```bash
+
+````bash
 # Interactive setup with custom options
 cargo run --bin mcp-auth-init -- setup --expert
 
@@ -125,13 +141,14 @@ validation.enable_role_based_rate_limiting = true;
 let result = SetupBuilder::new()
     .with_default_storage()
     .with_validation(validation)
-    .with_admin_key("prod-admin".to_string(), 
+    .with_admin_key("prod-admin".to_string(),
         Some(vec!["10.0.0.0/8".to_string()]))
     .build()
     .await?;
-```
+````
 
 ### Docker/Kubernetes Setup
+
 ```bash
 # Use environment storage
 export PULSEENGINE_MCP_MASTER_KEY=$(openssl rand -base64 32)
@@ -146,6 +163,7 @@ cargo run --bin mcp-auth-init -- --non-interactive
 ## Post-Setup Tasks
 
 ### 1. Secure the Master Key
+
 ```bash
 # Add to secure environment
 echo "export PULSEENGINE_MCP_MASTER_KEY=<key>" >> ~/.zshrc
@@ -155,6 +173,7 @@ vault kv put secret/mcp-auth master_key=<key>
 ```
 
 ### 2. Test the Installation
+
 ```bash
 # List keys (should show admin key)
 mcp-auth-cli list
@@ -167,6 +186,7 @@ mcp-auth-cli rate-limit config
 ```
 
 ### 3. Create Service Keys
+
 ```bash
 # Create operator key for services
 mcp-auth-cli create --name api-service --role operator
@@ -179,6 +199,7 @@ mcp-auth-cli create --name device-1 --role device --devices device-1
 ```
 
 ### 4. Enable Monitoring
+
 ```bash
 # Check audit logs
 mcp-auth-cli audit query --limit 10
@@ -190,15 +211,18 @@ mcp-auth-cli audit export --format json > audit.json
 ## Troubleshooting
 
 ### "Failed to initialize authentication manager"
+
 - Check master key is set: `echo $PULSEENGINE_MCP_MASTER_KEY`
 - Verify file permissions: `ls -la ~/.pulseengine/mcp-auth/`
 - Run system validation: `mcp-auth-init validate`
 
 ### "Decryption failed: aead::Error"
+
 - Master key mismatch - ensure using same key that encrypted the data
 - Corrupted storage file - restore from backup or reinitialize
 
 ### "System keyring not available"
+
 - Normal on headless systems
 - Use environment variable for master key instead
 
@@ -231,6 +255,7 @@ mcp-auth-cli audit export --format json > audit.json
 ## Migration Guide
 
 ### From Environment Variables
+
 ```bash
 # Export existing keys
 export OLD_KEYS=$MY_API_KEYS
@@ -243,6 +268,7 @@ mcp-auth-cli list
 ```
 
 ### From Other Systems
+
 Custom migration scripts can use the programmatic API:
 
 ```rust
@@ -269,6 +295,7 @@ for (name, key_data) in old_keys {
 ## Advanced Configuration
 
 ### Custom Validation Rules
+
 ```rust
 let mut validation = ValidationConfig::default();
 
@@ -291,6 +318,7 @@ validation.role_rate_limits.insert(
 ```
 
 ### Storage Backend Extension
+
 The framework supports custom storage backends:
 
 ```rust
@@ -299,11 +327,11 @@ impl StorageBackend for MyCustomStorage {
     async fn save_key(&self, key: &ApiKey) -> Result<(), StorageError> {
         // Custom implementation
     }
-    
+
     async fn load_keys(&self) -> Result<HashMap<String, ApiKey>, StorageError> {
         // Custom implementation
     }
-    
+
     // ... other methods
 }
 ```

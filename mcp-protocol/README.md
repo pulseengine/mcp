@@ -46,6 +46,7 @@ let result = CallToolResult {
 ## Real-World Usage
 
 This crate is currently used in production by:
+
 - **Loxone MCP Server** - A home automation server with 30+ tools that successfully integrates with MCP Inspector and Claude Desktop
 
 ## Current Status
@@ -53,6 +54,7 @@ This crate is currently used in production by:
 **Stable core functionality** - The basic protocol types and validation work well. We've tested this with real MCP clients and it handles the protocol correctly.
 
 **What works:**
+
 - ✅ All core MCP types (Tool, Resource, Prompt, etc.)
 - ✅ JSON-RPC 2.0 message handling
 - ✅ Schema validation for tool inputs
@@ -60,6 +62,7 @@ This crate is currently used in production by:
 - ✅ Compatibility with MCP Inspector and Claude Desktop
 
 **What's still developing:**
+
 - 📝 API documentation could be more comprehensive
 - 🧪 Test coverage could be broader
 - 🔧 Some edge cases in validation might need refinement
@@ -140,6 +143,7 @@ This crate works well with other parts of the MCP framework:
 This crate is part of the larger MCP framework for Rust. The Loxone MCP server serves as our main testing ground for new features and improvements.
 
 If you find issues or have suggestions:
+
 1. Check if it works with the Loxone implementation first
 2. Open an issue with a minimal reproduction case
 3. Consider how changes might affect existing users

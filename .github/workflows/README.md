@@ -5,11 +5,13 @@ This directory contains GitHub Actions workflows for continuous integration and 
 ## Workflows
 
 ### 1. External Validation (`external-validation.yml`)
+
 **Trigger:** Push to main/develop, PRs, daily schedule, manual dispatch
 
 **Purpose:** Comprehensive validation testing across platforms and Rust versions
 
 **Features:**
+
 - Multi-OS testing (Ubuntu, macOS, Windows)
 - Multiple Rust versions (stable, nightly)
 - Python SDK compatibility testing
@@ -20,37 +22,44 @@ This directory contains GitHub Actions workflows for continuous integration and 
 - Security scanning
 
 **Artifacts:**
+
 - Compliance reports (JSON format)
 - Test results
 
 ### 2. Docker Validation (`docker-validation.yml`)
+
 **Trigger:** Push to main/develop, PRs, manual dispatch
 
 **Purpose:** Containerized validation testing
 
 **Features:**
+
 - Docker image build and push to GitHub Container Registry
 - Multi-version protocol testing
 - Container-based validation runs
 - Matrix testing for protocol versions and transports
 
 ### 3. Scheduled Validation (`scheduled-validation.yml`)
+
 **Trigger:** Every 6 hours, manual dispatch
 
 **Purpose:** Regular validation of external MCP servers
 
 **Features:**
+
 - Tests against known MCP server implementations
 - Generates compatibility matrix
 - Creates issues for validation failures
 - Updates COMPATIBILITY.md automatically
 
 ### 4. Release Validation (`release-validation.yml`)
+
 **Trigger:** Release creation, manual dispatch
 
 **Purpose:** Comprehensive validation for releases
 
 **Features:**
+
 - Full test suite execution
 - Code coverage with Codecov
 - Cross-platform builds (Linux, macOS, Windows)
@@ -58,11 +67,13 @@ This directory contains GitHub Actions workflows for continuous integration and 
 - Automatic release notes update
 
 ### 5. PR Validation (`pr-validation.yml`)
+
 **Trigger:** Pull request events
 
 **Purpose:** Quick validation for pull requests
 
 **Features:**
+
 - Code formatting checks
 - Clippy linting
 - Unit tests
@@ -73,17 +84,21 @@ This directory contains GitHub Actions workflows for continuous integration and 
 ## Configuration
 
 ### Environment Variables
+
 - `CARGO_TERM_COLOR`: Always colored output
 - `RUST_BACKTRACE`: Full backtraces for debugging
 - `MCP_VALIDATOR_API_URL`: External MCP validator API endpoint
 - `JSONRPC_VALIDATOR_URL`: JSON-RPC validator endpoint
 
 ### Secrets Required
+
 - `GITHUB_TOKEN`: Automatically provided by GitHub Actions
 - No additional secrets required for public repositories
 
 ### Cache Configuration
+
 All workflows use GitHub Actions cache for:
+
 - Cargo registry
 - Git dependencies
 - Build artifacts
@@ -91,6 +106,7 @@ All workflows use GitHub Actions cache for:
 ## Usage
 
 ### Manual Workflow Dispatch
+
 Most workflows support manual triggering with parameters:
 
 ```bash
@@ -102,12 +118,14 @@ gh workflow run scheduled-validation.yml -f test_servers="https://server1.com,ht
 ```
 
 ### Adding New Validation Tests
+
 1. Add test to appropriate workflow file
 2. Update matrix if testing multiple configurations
 3. Add artifact collection if needed
 4. Update this README
 
 ### Monitoring
+
 - Check Actions tab for workflow runs
 - Review artifacts for detailed results
 - Monitor issues for automated failure reports
@@ -143,6 +161,8 @@ gh workflow run scheduled-validation.yml -f test_servers="https://server1.com,ht
    - Clear cache if corrupted
 
 ### Debug Mode
+
 Enable debug logging by setting repository secret:
+
 - `ACTIONS_RUNNER_DEBUG=true`
 - `ACTIONS_STEP_DEBUG=true`

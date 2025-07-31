@@ -4,10 +4,10 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
-      - '**.rs'
-      - '**/Cargo.toml'
-      - '**/Cargo.lock'
-      - '.github/workflows/pr-validation.yml'
+      - "**.rs"
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - ".github/workflows/pr-validation.yml"
 
 permissions:
   contents: read
@@ -26,148 +26,148 @@ jobs:
       validation: ${{ steps.filter.outputs.validation }}
       core: ${{ steps.filter.outputs.core }}
     steps:
-    - uses: actions/checkout@v4
-    - uses: dorny/paths-filter@v2
-      id: filter
-      with:
-        filters: |
-          validation:
-            - 'mcp-external-validation/**'
-          core:
-            - 'mcp-protocol/**'
-            - 'mcp-server/**'
-            - 'mcp-transport/**'
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            validation:
+              - 'mcp-external-validation/**'
+            core:
+              - 'mcp-protocol/**'
+              - 'mcp-server/**'
+              - 'mcp-transport/**'
 
   quick-validation:
     name: Quick PR Validation
     runs-on: ubuntu-latest
     needs: changes
-    
+
     steps:
-    - name: Checkout PR
-      uses: actions/checkout@v4
-    
-    - name: Setup Rust
-      uses: dtolnay/rust-toolchain@1.88
-      with:
-        components: rustfmt, clippy
-    
-    - name: Log environment info
-      run: |
-        echo "Rust toolchain information:"
-        rustup show
-        echo "Rust version: $(rustc --version)"
-        echo "Cargo version: $(cargo --version)"
-        echo "Clippy version: $(cargo clippy --version)"
-        echo "Rustfmt version: $(cargo fmt --version)"
-    
-    - name: Cache dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-cargo-pr-release-1.88-${{ hashFiles('**/Cargo.lock', 'rust-toolchain.toml') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-pr-1.88-
-          ${{ runner.os }}-cargo-
-    
-    - name: Check formatting
-      run: cargo fmt --all -- --check
-    
-    - name: Clean stale artifacts
-      run: |
-        # Clean procedural macro artifacts to prevent version conflicts
-        cargo clean -p pulseengine-mcp-macros
-        cargo clean -p pulseengine-mcp-cli-derive
-    
-    - name: Run clippy
-      run: |
-        # Use release mode to reduce disk usage (32GB debug vs ~2GB release)
-        cargo clippy --all-features --all-targets --release -- -D warnings
-    
-    - name: Run tests
-      run: |
-        # Use release mode to reduce disk usage while testing everything
-        cargo test --all-features --release --verbose
-    
-    - name: Install cargo-llvm-cov
-      uses: taiki-e/install-action@cargo-llvm-cov
-    
-    - name: Generate coverage report
-      run: |
-        # Clean previous builds to save space, then generate coverage
-        cargo clean
-        cargo llvm-cov test --all-features --workspace --lcov --output-path lcov.info
-        cargo llvm-cov report --summary-only > coverage-summary.txt
-        COVERAGE=$(grep -oP '\d+\.\d+(?=%)' coverage-summary.txt | head -1)
-        echo "Coverage: $COVERAGE%"
-    
-    - name: Check documentation
-      run: |
-        # Clean before docs to save space, build docs for all packages
-        cargo clean
-        cargo doc --all-features --no-deps
+      - name: Checkout PR
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@1.88
+        with:
+          components: rustfmt, clippy
+
+      - name: Log environment info
+        run: |
+          echo "Rust toolchain information:"
+          rustup show
+          echo "Rust version: $(rustc --version)"
+          echo "Cargo version: $(cargo --version)"
+          echo "Clippy version: $(cargo clippy --version)"
+          echo "Rustfmt version: $(cargo fmt --version)"
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-pr-release-1.88-${{ hashFiles('**/Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-pr-1.88-
+            ${{ runner.os }}-cargo-
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Clean stale artifacts
+        run: |
+          # Clean procedural macro artifacts to prevent version conflicts
+          cargo clean -p pulseengine-mcp-macros
+          cargo clean -p pulseengine-mcp-cli-derive
+
+      - name: Run clippy
+        run: |
+          # Use release mode to reduce disk usage (32GB debug vs ~2GB release)
+          cargo clippy --all-features --all-targets --release -- -D warnings
+
+      - name: Run tests
+        run: |
+          # Use release mode to reduce disk usage while testing everything
+          cargo test --all-features --release --verbose
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Generate coverage report
+        run: |
+          # Clean previous builds to save space, then generate coverage
+          cargo clean
+          cargo llvm-cov test --all-features --workspace --lcov --output-path lcov.info
+          cargo llvm-cov report --summary-only > coverage-summary.txt
+          COVERAGE=$(grep -oP '\d+\.\d+(?=%)' coverage-summary.txt | head -1)
+          echo "Coverage: $COVERAGE%"
+
+      - name: Check documentation
+        run: |
+          # Clean before docs to save space, build docs for all packages
+          cargo clean
+          cargo doc --all-features --no-deps
 
   validation-specific-tests:
     name: Validation Framework Tests
     runs-on: ubuntu-latest
     needs: changes
     if: needs.changes.outputs.validation == 'true'
-    
+
     steps:
-    - name: Checkout PR
-      uses: actions/checkout@v4
-    
-    - name: Setup Rust
-      uses: dtolnay/rust-toolchain@1.88
-    
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-    
-    - name: Install Python dependencies
-      run: |
-        pip install mcp aiohttp websockets pytest
-    
-    - name: Run validation framework tests
-      run: |
-        # Use release mode to reduce disk usage
-        cargo test --package pulseengine-mcp-external-validation --all-features --release
-    
-    - name: Run property tests
-      run: |
-        # Use release mode to reduce disk usage
-        cargo test --package pulseengine-mcp-external-validation --features proptest --release -- proptest --test-threads=1
-    
-    - name: Test CLI tools
-      run: |
-        cargo build --package pulseengine-mcp-external-validation --bins
-        ./target/debug/mcp-validate --help
-        ./target/debug/mcp-compliance-report --help
+      - name: Checkout PR
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@1.88
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          pip install mcp aiohttp websockets pytest
+
+      - name: Run validation framework tests
+        run: |
+          # Use release mode to reduce disk usage
+          cargo test --package pulseengine-mcp-external-validation --all-features --release
+
+      - name: Run property tests
+        run: |
+          # Use release mode to reduce disk usage
+          cargo test --package pulseengine-mcp-external-validation --features proptest --release -- proptest --test-threads=1
+
+      - name: Test CLI tools
+        run: |
+          cargo build --package pulseengine-mcp-external-validation --bins
+          ./target/debug/mcp-validate --help
+          ./target/debug/mcp-compliance-report --help
 
   compatibility-check:
     name: Compatibility Check
     runs-on: ubuntu-latest
     needs: changes
     if: needs.changes.outputs.core == 'true'
-    
+
     steps:
-    - name: Checkout PR
-      uses: actions/checkout@v4
-    
-    - name: Setup Rust
-      uses: dtolnay/rust-toolchain@1.88
-    
-    - name: Test validation tool CLI
-      run: |
-        # Test that the validation tools have correct CLI interfaces
-        cargo run --bin mcp-validate -- --help
-        cargo run --bin mcp-compliance-report -- --help
-        echo "✅ Validation tools CLI interfaces are correct"
-    
+      - name: Checkout PR
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@1.88
+
+      - name: Test validation tool CLI
+        run: |
+          # Test that the validation tools have correct CLI interfaces
+          cargo run --bin mcp-validate -- --help
+          cargo run --bin mcp-compliance-report -- --help
+          echo "✅ Validation tools CLI interfaces are correct"
+
     # TODO: Add actual server validation once we have a proper HTTP test server
     # - name: Run compatibility validation
     #   run: |
@@ -178,73 +178,73 @@ jobs:
     runs-on: ubuntu-latest
     needs: [quick-validation, validation-specific-tests, compatibility-check]
     if: always()
-    
+
     steps:
-    - name: Checkout PR
-      uses: actions/checkout@v4
-    
-    - name: Create PR comment
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const quickValidation = '${{ needs.quick-validation.result }}';
-          const validationTests = '${{ needs.validation-specific-tests.result }}';
-          const compatibilityCheck = '${{ needs.compatibility-check.result }}';
-          
-          let comment = '## PR Validation Results\n\n';
-          
-          // Quick validation
-          comment += `### Quick Validation: ${quickValidation === 'success' ? '✅' : '❌'}\n`;
-          comment += '- Format check\n';
-          comment += '- Clippy lints\n';
-          comment += '- Unit tests\n';
-          comment += '- Documentation\n\n';
-          
-          // Validation framework tests
-          if (validationTests !== 'skipped') {
-            comment += `### Validation Framework: ${validationTests === 'success' ? '✅' : '❌'}\n`;
-            comment += '- Framework tests\n';
-            comment += '- Property-based tests\n';
-            comment += '- CLI tools\n\n';
-          }
-          
-          // Compatibility check
-          if (compatibilityCheck !== 'skipped') {
-            comment += `### Compatibility Check: ${compatibilityCheck === 'success' ? '✅' : '❌'}\n`;
-            comment += '- Protocol compliance\n';
-            comment += '- Server compatibility\n\n';
-          }
-          
-          // Summary
-          const allPassed = quickValidation === 'success' && 
-                          (validationTests === 'success' || validationTests === 'skipped') &&
-                          (compatibilityCheck === 'success' || compatibilityCheck === 'skipped');
-          
-          comment += `### Summary: ${allPassed ? '✅ All checks passed' : '❌ Some checks failed'}\n`;
-          
-          // Find existing comment
-          const { data: comments } = await github.rest.issues.listComments({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: context.payload.pull_request.number,
-          });
-          
-          const botComment = comments.find(comment => 
-            comment.user.type === 'Bot' && comment.body.includes('PR Validation Results')
-          );
-          
-          if (botComment) {
-            await github.rest.issues.updateComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: botComment.id,
-              body: comment
-            });
-          } else {
-            await github.rest.issues.createComment({
+      - name: Checkout PR
+        uses: actions/checkout@v4
+
+      - name: Create PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const quickValidation = '${{ needs.quick-validation.result }}';
+            const validationTests = '${{ needs.validation-specific-tests.result }}';
+            const compatibilityCheck = '${{ needs.compatibility-check.result }}';
+
+            let comment = '## PR Validation Results\n\n';
+
+            // Quick validation
+            comment += `### Quick Validation: ${quickValidation === 'success' ? '✅' : '❌'}\n`;
+            comment += '- Format check\n';
+            comment += '- Clippy lints\n';
+            comment += '- Unit tests\n';
+            comment += '- Documentation\n\n';
+
+            // Validation framework tests
+            if (validationTests !== 'skipped') {
+              comment += `### Validation Framework: ${validationTests === 'success' ? '✅' : '❌'}\n`;
+              comment += '- Framework tests\n';
+              comment += '- Property-based tests\n';
+              comment += '- CLI tools\n\n';
+            }
+
+            // Compatibility check
+            if (compatibilityCheck !== 'skipped') {
+              comment += `### Compatibility Check: ${compatibilityCheck === 'success' ? '✅' : '❌'}\n`;
+              comment += '- Protocol compliance\n';
+              comment += '- Server compatibility\n\n';
+            }
+
+            // Summary
+            const allPassed = quickValidation === 'success' &&
+                            (validationTests === 'success' || validationTests === 'skipped') &&
+                            (compatibilityCheck === 'success' || compatibilityCheck === 'skipped');
+
+            comment += `### Summary: ${allPassed ? '✅ All checks passed' : '❌ Some checks failed'}\n`;
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.payload.pull_request.number,
-              body: comment
             });
-          }
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' && comment.body.includes('PR Validation Results')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: comment
+              });
+            }

@@ -91,7 +91,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Run with graceful shutdown
     service.run_with_shutdown(shutdown_signal).await?;
-    
+
     tracing::info!("Server shutdown complete");
     Ok(())
 }
@@ -145,7 +145,7 @@ CMD ["/usr/local/bin/myapp-mcp-server", "--transport", "http", "--port", "8080"]
 
 ```yaml
 # docker-compose.yml
-version: '3.8'
+version: "3.8"
 services:
   mcp-server:
     build: .
@@ -213,15 +213,15 @@ data:
     name = "Production MCP Server"
     version = "1.0.0"
     max_connections = 1000
-    
+
     [database]
     url = "postgresql://postgres:password@postgres:5432/myapp"
     max_connections = 20
-    
+
     [redis]
     url = "redis://redis:6379"
     max_connections = 10
-    
+
     [logging]
     level = "info"
     format = "json"
@@ -243,47 +243,47 @@ spec:
         app: mcp-server
     spec:
       containers:
-      - name: mcp-server
-        image: myapp/mcp-server:1.0.0
-        ports:
-        - containerPort: 8080
-        env:
-        - name: RUST_LOG
-          value: "info"
-        - name: CONFIG_PATH
-          value: "/etc/config/config.toml"
-        volumeMounts:
-        - name: config
-          mountPath: /etc/config
-          readOnly: true
-        - name: data
-          mountPath: /app/data
-        resources:
-          requests:
-            memory: "128Mi"
-            cpu: "100m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8080
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /ready
-            port: 8080
-          initialDelaySeconds: 5
-          periodSeconds: 5
+        - name: mcp-server
+          image: myapp/mcp-server:1.0.0
+          ports:
+            - containerPort: 8080
+          env:
+            - name: RUST_LOG
+              value: "info"
+            - name: CONFIG_PATH
+              value: "/etc/config/config.toml"
+          volumeMounts:
+            - name: config
+              mountPath: /etc/config
+              readOnly: true
+            - name: data
+              mountPath: /app/data
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
       volumes:
-      - name: config
-        configMap:
-          name: mcp-server-config
-      - name: data
-        persistentVolumeClaim:
-          claimName: mcp-server-data
+        - name: config
+          configMap:
+            name: mcp-server-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: mcp-server-data
 ---
 # k8s/service.yaml
 apiVersion: v1
@@ -295,9 +295,9 @@ spec:
   selector:
     app: mcp-server
   ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 8080
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
   type: ClusterIP
 ---
 # k8s/ingress.yaml
@@ -311,20 +311,20 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   tls:
-  - hosts:
-    - mcp.example.com
-    secretName: mcp-server-tls
+    - hosts:
+        - mcp.example.com
+      secretName: mcp-server-tls
   rules:
-  - host: mcp.example.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: mcp-server
-            port:
-              number: 80
+    - host: mcp.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mcp-server
+                port:
+                  number: 80
 ```
 
 ## Configuration Management
@@ -406,7 +406,7 @@ pub struct ServerConfig {
 impl ServerConfig {
     pub fn from_env() -> Result<Self, ConfigError> {
         let env = std::env::var("ENVIRONMENT").unwrap_or_else(|_| "development".into());
-        
+
         let config = Config::builder()
             // Default configuration
             .add_source(File::with_name("config/default"))
@@ -417,7 +417,7 @@ impl ServerConfig {
             // Environment variables
             .add_source(Environment::with_prefix("MYAPP").separator("_"))
             .build()?;
-        
+
         config.try_deserialize()
     }
 
@@ -426,7 +426,7 @@ impl ServerConfig {
             .add_source(File::from(path.as_ref()))
             .add_source(Environment::with_prefix("MYAPP").separator("_"))
             .build()?;
-        
+
         config.try_deserialize()
     }
 
@@ -474,44 +474,44 @@ pub struct Metrics {
 impl Metrics {
     pub fn new(namespace: &str) -> Result<Self, prometheus::Error> {
         let registry = Arc::new(Registry::new());
-        
+
         let request_count = Counter::new(
             format!("{}_requests_total", namespace),
             "Total number of requests processed"
         )?;
-        
+
         let request_duration = Histogram::with_opts(
             prometheus::HistogramOpts::new(
                 format!("{}_request_duration_seconds", namespace),
                 "Request duration in seconds"
             ).buckets(vec![0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 2.5, 5.0, 10.0])
         )?;
-        
+
         let active_connections = IntGauge::new(
             format!("{}_active_connections", namespace),
             "Number of active connections"
         )?;
-        
+
         let tool_calls = Counter::new(
             format!("{}_tool_calls_total", namespace),
             "Total number of tool calls"
         )?;
-        
+
         let resource_reads = Counter::new(
             format!("{}_resource_reads_total", namespace),
             "Total number of resource reads"
         )?;
-        
+
         let prompt_generations = Counter::new(
             format!("{}_prompt_generations_total", namespace),
             "Total number of prompt generations"
         )?;
-        
+
         let errors = Counter::new(
             format!("{}_errors_total", namespace),
             "Total number of errors"
         )?;
-        
+
         // Register metrics
         registry.register(Box::new(request_count.clone()))?;
         registry.register(Box::new(request_duration.clone()))?;
@@ -520,7 +520,7 @@ impl Metrics {
         registry.register(Box::new(resource_reads.clone()))?;
         registry.register(Box::new(prompt_generations.clone()))?;
         registry.register(Box::new(errors.clone()))?;
-        
+
         Ok(Self {
             registry,
             request_count,
@@ -532,36 +532,36 @@ impl Metrics {
             errors,
         })
     }
-    
+
     pub fn record_request(&self, duration: f64) {
         self.request_count.inc();
         self.request_duration.observe(duration);
     }
-    
+
     pub fn increment_active_connections(&self) {
         self.active_connections.inc();
     }
-    
+
     pub fn decrement_active_connections(&self) {
         self.active_connections.dec();
     }
-    
+
     pub fn record_tool_call(&self) {
         self.tool_calls.inc();
     }
-    
+
     pub fn record_resource_read(&self) {
         self.resource_reads.inc();
     }
-    
+
     pub fn record_prompt_generation(&self) {
         self.prompt_generations.inc();
     }
-    
+
     pub fn record_error(&self) {
         self.errors.inc();
     }
-    
+
     pub fn registry(&self) -> Arc<Registry> {
         self.registry.clone()
     }
@@ -578,7 +578,7 @@ pub struct MonitoredServer {
 impl MonitoredServer {
     pub async fn serve_with_metrics(&self, port: u16) -> Result<(), ServerError> {
         let metrics = self.metrics.clone();
-        
+
         // Start metrics endpoint
         let metrics_handler = {
             let registry = metrics.registry();
@@ -588,12 +588,12 @@ impl MonitoredServer {
                 encoder.encode_to_string(&metric_families).unwrap_or_default()
             }
         };
-        
+
         // Serve metrics on /metrics endpoint
         let metrics_route = warp::path("metrics")
             .and(warp::get())
             .map(metrics_handler);
-        
+
         // Serve main MCP endpoints with metrics middleware
         let mcp_routes = self.create_mcp_routes()
             .with(warp::filters::trace::trace(|info| {
@@ -605,23 +605,23 @@ impl MonitoredServer {
                 async move {
                     metrics.increment_active_connections();
                     let start = std::time::Instant::now();
-                    
+
                     let result = next.run(req).await;
-                    
+
                     let duration = start.elapsed().as_secs_f64();
                     metrics.record_request(duration);
                     metrics.decrement_active_connections();
-                    
+
                     result
                 }
             }));
-        
+
         let routes = metrics_route.or(mcp_routes);
-        
+
         warp::serve(routes)
             .run(([0, 0, 0, 0], port))
             .await;
-            
+
         Ok(())
     }
 }
@@ -664,19 +664,19 @@ impl MonitoredServer {
     async fn traced_operation(&self, input: String) -> Result<String, OperationError> {
         let span = tracing::Span::current();
         span.record("input_length", input.len());
-        
+
         // Child span for database operation
         let db_result = {
             let _db_span = tracing::info_span!("database_query").entered();
             self.query_database(&input).await?
         };
-        
+
         // Child span for processing
         let processed = {
             let _process_span = tracing::info_span!("data_processing").entered();
             self.process_data(db_result).await?
         };
-        
+
         span.record("output_length", processed.len());
         Ok(processed)
     }
@@ -709,11 +709,11 @@ impl TlsManager {
         let key_file = std::fs::File::open(key_path)?;
         let mut key_reader = BufReader::new(key_file);
         let keys = rustls_pemfile::pkcs8_private_keys(&mut key_reader)?;
-        
+
         if keys.is_empty() {
             return Err(TlsError::NoPrivateKey);
         }
-        
+
         let key = PrivateKey(keys[0].clone());
 
         // Configure TLS
@@ -728,7 +728,7 @@ impl TlsManager {
             config: Arc::new(config),
         })
     }
-    
+
     pub fn config(&self) -> Arc<TlsConfig> {
         self.config.clone()
     }
@@ -738,16 +738,16 @@ impl TlsManager {
 impl ProductionServer {
     pub async fn serve_https(&self, port: u16, tls_manager: TlsManager) -> Result<impl McpService, ServerError> {
         use warp::Filter;
-        
+
         let routes = self.create_routes();
-        
+
         warp::serve(routes)
             .tls()
             .cert_path("path/to/cert.pem")
             .key_path("path/to/key.pem")
             .run(([0, 0, 0, 0], port))
             .await;
-            
+
         Ok(())
     }
 }
@@ -771,20 +771,20 @@ impl RateLimitManager {
     pub fn new(requests_per_minute: u32, burst_size: u32) -> Self {
         let quota = Quota::per_minute(nonzero::NonZeroU32::new(requests_per_minute).unwrap())
             .allow_burst(nonzero::NonZeroU32::new(burst_size).unwrap());
-        
+
         let global_limiter = Arc::new(RateLimiter::direct(quota));
-        
+
         Self {
             global_limiter,
             per_ip_limiters: Arc::new(RwLock::new(HashMap::new())),
             quota,
         }
     }
-    
+
     pub async fn check_rate_limit(&self, ip: IpAddr) -> Result<(), RateLimitError> {
         // Check global rate limit
         self.global_limiter.check().map_err(|_| RateLimitError::GlobalLimitExceeded)?;
-        
+
         // Check per-IP rate limit
         let limiters = self.per_ip_limiters.read().await;
         let limiter = if let Some(limiter) = limiters.get(&ip) {
@@ -796,7 +796,7 @@ impl RateLimitManager {
             limiters.insert(ip, limiter.clone());
             limiter
         };
-        
+
         limiter.check().map_err(|_| RateLimitError::IpLimitExceeded { ip })
     }
 }
@@ -805,7 +805,7 @@ impl RateLimitManager {
 impl ProductionServer {
     pub async fn serve_with_rate_limiting(&self, port: u16) -> Result<(), ServerError> {
         let rate_limiter = RateLimitManager::new(100, 10); // 100 requests per minute, burst of 10
-        
+
         let routes = self.create_routes()
             .with(warp::wrap_fn(move |req, next| {
                 let rate_limiter = rate_limiter.clone();
@@ -813,7 +813,7 @@ impl ProductionServer {
                     let ip = req.remote_addr()
                         .map(|addr| addr.ip())
                         .unwrap_or(IpAddr::V4(std::net::Ipv4Addr::LOCALHOST));
-                    
+
                     if let Err(e) = rate_limiter.check_rate_limit(ip).await {
                         return Ok(warp::reply::with_status(
                             warp::reply::json(&serde_json::json!({
@@ -823,11 +823,11 @@ impl ProductionServer {
                             warp::http::StatusCode::TOO_MANY_REQUESTS
                         ).into_response());
                     }
-                    
+
                     next.run(req).await
                 }
             }));
-        
+
         warp::serve(routes).run(([0, 0, 0, 0], port)).await;
         Ok(())
     }
@@ -859,9 +859,9 @@ impl ProductionServer {
     pub async fn health_check(&self) -> HealthStatus {
         let start_time = self.start_time;
         let uptime = Utc::now().signed_duration_since(start_time);
-        
+
         let mut checks = HashMap::new();
-        
+
         // Database health check
         let db_start = std::time::Instant::now();
         let db_health = match self.check_database_health().await {
@@ -877,7 +877,7 @@ impl ProductionServer {
             },
         };
         checks.insert("database".to_string(), db_health);
-        
+
         // Redis health check
         let redis_start = std::time::Instant::now();
         let redis_health = match self.check_redis_health().await {
@@ -893,14 +893,14 @@ impl ProductionServer {
             },
         };
         checks.insert("redis".to_string(), redis_health);
-        
+
         // Overall status
         let overall_status = if checks.values().all(|h| h.status == "healthy") {
             "healthy"
         } else {
             "unhealthy"
         };
-        
+
         HealthStatus {
             status: overall_status.to_string(),
             timestamp: Utc::now(),
@@ -909,14 +909,14 @@ impl ProductionServer {
             checks,
         }
     }
-    
+
     async fn check_database_health(&self) -> Result<(), DatabaseError> {
         // Simple query to check database connectivity
         let _result = self.database_pool.get().await?
             .query_one("SELECT 1", &[]).await?;
         Ok(())
     }
-    
+
     async fn check_redis_health(&self) -> Result<(), RedisError> {
         let mut conn = self.redis_pool.get().await?;
         let _result: String = redis::cmd("PING").query_async(&mut *conn).await?;
@@ -940,50 +940,50 @@ server {
     listen 80;
     listen 443 ssl http2;
     server_name mcp.example.com;
-    
+
     ssl_certificate /etc/ssl/certs/mcp.example.com.crt;
     ssl_certificate_key /etc/ssl/private/mcp.example.com.key;
-    
+
     # Security headers
     add_header X-Frame-Options DENY;
     add_header X-Content-Type-Options nosniff;
     add_header X-XSS-Protection "1; mode=block";
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-    
+
     # Rate limiting
     limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
     limit_req zone=api burst=20 nodelay;
-    
+
     location /health {
         proxy_pass http://mcp_servers/health;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        
+
         # Health check specific settings
         proxy_connect_timeout 5s;
         proxy_send_timeout 5s;
         proxy_read_timeout 5s;
     }
-    
+
     location / {
         proxy_pass http://mcp_servers;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        
+
         # WebSocket support
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        
+
         # Timeouts
         proxy_connect_timeout 10s;
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
-        
+
         # Buffer settings
         proxy_buffering on;
         proxy_buffer_size 4k;

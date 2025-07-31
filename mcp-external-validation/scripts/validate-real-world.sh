@@ -65,21 +65,21 @@ validate_server() {
     local server_name="$1"
     local server_url="$2"
     local result_file="$RESULTS_DIR/${server_name//\//_}_${TIMESTAMP}.json"
-    
+
     log_info "Validating server: $server_name"
-    
+
     # Clone and set up the server if it's a GitHub repository
     if [[ "$server_url" == https://github.com/* ]]; then
         local repo_dir="/tmp/mcp_validation_$(basename "$server_url")"
-        
+
         log_info "Cloning $server_url to $repo_dir"
         if git clone --depth 1 "$server_url" "$repo_dir" 2>/dev/null; then
             cd "$repo_dir"
-            
+
             # Try to start the server (implementation-specific)
             local server_pid=""
             local server_port=""
-            
+
             case "$server_name" in
                 "anthropic/mcp-server-sqlite")
                     if command -v python3 &> /dev/null && [ -f "src/mcp_server_sqlite/__init__.py" ]; then
@@ -114,15 +114,15 @@ validate_server() {
                     fi
                     ;;
             esac
-            
+
             if [ -n "$server_pid" ] && [ -n "$server_port" ]; then
                 # Wait for server to start
                 sleep 3
-                
+
                 # Check if server is still running
                 if kill -0 "$server_pid" 2>/dev/null; then
                     log_info "Server started on port $server_port, running validation..."
-                    
+
                     # Run comprehensive validation
                     cd "$PROJECT_ROOT"
                     if timeout $TIMEOUT_SECONDS ./target/release/mcp-validate "http://localhost:$server_port" \
@@ -131,7 +131,7 @@ validate_server() {
                     else
                         log_warning "Validation completed with warnings for $server_name"
                     fi
-                    
+
                     # Stop the server
                     kill "$server_pid" 2>/dev/null || true
                     wait "$server_pid" 2>/dev/null || true
@@ -143,7 +143,7 @@ validate_server() {
                 log_warning "Could not start server $server_name (missing dependencies or unsupported)"
                 echo "{\"server_name\":\"$server_name\",\"status\":\"unsupported\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > "$result_file"
             fi
-            
+
             # Cleanup
             cd /
             rm -rf "$repo_dir" 2>/dev/null || true
@@ -167,9 +167,9 @@ validate_server() {
 # Function to run protocol fuzzing against known patterns
 run_protocol_fuzzing() {
     log_info "Running protocol fuzzing tests..."
-    
+
     local fuzz_result="$RESULTS_DIR/protocol_fuzzing_${TIMESTAMP}.json"
-    
+
     # Create a simple test server for fuzzing
     cat > "/tmp/test_mcp_server.py" << 'EOF'
 #!/usr/bin/env python3
@@ -183,10 +183,10 @@ class MCPHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         content_length = int(self.headers.get('Content-Length', 0))
         post_data = self.rfile.read(content_length)
-        
+
         try:
             request = json.loads(post_data.decode('utf-8'))
-            
+
             # Basic MCP server response
             if request.get('method') == 'initialize':
                 response = {
@@ -219,17 +219,17 @@ class MCPHandler(BaseHTTPRequestHandler):
                         "message": "Method not found"
                     }
                 }
-            
+
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps(response).encode('utf-8'))
-            
+
         except Exception as e:
             self.send_response(400)
             self.end_headers()
             self.wfile.write(b'{"error": "Invalid request"}')
-    
+
     def log_message(self, format, *args):
         pass  # Suppress log messages
 
@@ -244,7 +244,7 @@ EOF
     python3 /tmp/test_mcp_server.py 8080 &
     local test_server_pid=$!
     sleep 2
-    
+
     # Run fuzzing example
     cd "$PROJECT_ROOT"
     if MCP_SERVER_URL="http://localhost:8080" timeout $TIMEOUT_SECONDS \
@@ -253,7 +253,7 @@ EOF
     else
         log_warning "Protocol fuzzing completed with issues"
     fi
-    
+
     # Stop test server
     kill "$test_server_pid" 2>/dev/null || true
     rm -f /tmp/test_mcp_server.py
@@ -262,24 +262,24 @@ EOF
 # Function to test against public MCP endpoints (if any)
 test_public_endpoints() {
     log_info "Testing known public MCP endpoints..."
-    
+
     # Add any known public MCP endpoints here
     local public_endpoints=(
         # Add actual public endpoints when available
         # "https://api.example-mcp.com"
     )
-    
+
     if [ ${#public_endpoints[@]} -eq 0 ]; then
         log_info "No public MCP endpoints configured for testing"
         return
     fi
-    
+
     for endpoint in "${public_endpoints[@]}"; do
         local endpoint_name=$(echo "$endpoint" | sed 's|https\?://||' | sed 's|/.*||' | tr '.' '_')
         local result_file="$RESULTS_DIR/public_${endpoint_name}_${TIMESTAMP}.json"
-        
+
         log_info "Testing public endpoint: $endpoint"
-        
+
         cd "$PROJECT_ROOT"
         if timeout $TIMEOUT_SECONDS ./target/release/mcp-validate "$endpoint" \
             --all --output "$result_file" --timeout $TIMEOUT_SECONDS; then
@@ -293,9 +293,9 @@ test_public_endpoints() {
 # Function to generate summary report
 generate_summary() {
     log_info "Generating validation summary..."
-    
+
     local summary_file="$RESULTS_DIR/validation_summary_${TIMESTAMP}.md"
-    
+
     cat > "$summary_file" << EOF
 # Real-World MCP Validation Summary
 
@@ -305,21 +305,21 @@ generate_summary() {
 ## Test Results
 
 EOF
-    
+
     local total_tests=0
     local successful_tests=0
     local failed_tests=0
-    
+
     for result_file in "$RESULTS_DIR"/*_"$TIMESTAMP".json; do
         if [ -f "$result_file" ]; then
             total_tests=$((total_tests + 1))
-            
+
             local server_name=$(basename "$result_file" | sed "s/_${TIMESTAMP}.json$//" | tr '_' '/')
             local status=$(jq -r '.status // "unknown"' "$result_file" 2>/dev/null || echo "unknown")
-            
+
             echo "### $server_name" >> "$summary_file"
             echo "- **Status:** $status" >> "$summary_file"
-            
+
             if [[ "$status" == "compliant" || "$status" == "passed" ]]; then
                 successful_tests=$((successful_tests + 1))
                 echo "- **Result:** ✅ PASSED" >> "$summary_file"
@@ -327,17 +327,17 @@ EOF
                 failed_tests=$((failed_tests + 1))
                 echo "- **Result:** ❌ FAILED" >> "$summary_file"
             fi
-            
+
             # Add compliance score if available
             local score=$(jq -r '.compliance_score // "N/A"' "$result_file" 2>/dev/null || echo "N/A")
             if [ "$score" != "N/A" ]; then
                 echo "- **Compliance Score:** ${score}%" >> "$summary_file"
             fi
-            
+
             echo "" >> "$summary_file"
         fi
     done
-    
+
     # Add summary statistics
     cat >> "$summary_file" << EOF
 
@@ -364,9 +364,9 @@ fi)
 ---
 *Generated by PulseEngine MCP External Validation Framework*
 EOF
-    
+
     log_success "Summary report generated: $summary_file"
-    
+
     # Display summary to console
     echo ""
     log_info "=== VALIDATION SUMMARY ==="
@@ -383,21 +383,21 @@ EOF
 # Main execution
 main() {
     log_info "Real-world MCP validation starting..."
-    
+
     # Validate against known server implementations
     for server_name in "${!MCP_SERVERS[@]}"; do
         validate_server "$server_name" "${MCP_SERVERS[$server_name]}"
     done
-    
+
     # Run protocol fuzzing
     run_protocol_fuzzing
-    
+
     # Test public endpoints
     test_public_endpoints
-    
+
     # Generate summary
     generate_summary
-    
+
     log_success "Real-world validation completed!"
     log_info "Check results in: $RESULTS_DIR"
 }

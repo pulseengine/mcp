@@ -9,6 +9,7 @@ This crate provides security middleware for MCP servers, including input validat
 ## What This Protects Against
 
 **Input Validation:**
+
 - JSON injection attacks
 - XSS prevention in tool parameters
 - SQL injection prevention (when parameters go to databases)
@@ -16,6 +17,7 @@ This crate provides security middleware for MCP servers, including input validat
 - Command injection in system tools
 
 **Request Protection:**
+
 - Request size limits to prevent DoS
 - Rate limiting integration
 - CORS policy enforcement
@@ -25,6 +27,7 @@ This crate provides security middleware for MCP servers, including input validat
 ## Real-World Testing
 
 This security layer is actively used in the **Loxone MCP Server** where it:
+
 - Validates 30+ tool parameters against injection attacks
 - Sanitizes device names and commands for safe execution
 - Protects file system operations from path traversal
@@ -117,6 +120,7 @@ let config = SecurityConfig {
 **Solid foundation with room for growth.** The basic security validations work well and catch common attack vectors, but this area can always be improved.
 
 **What works reliably:**
+
 - ✅ Basic input sanitization and validation
 - ✅ Request size and parameter limits
 - ✅ CORS policy enforcement
@@ -125,6 +129,7 @@ let config = SecurityConfig {
 - ✅ Integration with mcp-server framework
 
 **Areas for improvement:**
+
 - 🔧 More sophisticated injection detection
 - 📝 Better examples for different attack scenarios
 - 🧪 Security testing utilities
@@ -272,12 +277,12 @@ use pulseengine_mcp_security::validate_file_path;
 fn handle_read_file(path: &str) -> Result<String, SecurityError> {
     // Prevent path traversal
     let safe_path = validate_file_path(path)?;
-    
+
     // Ensure it's within allowed directory
     if !safe_path.starts_with("/safe/directory/") {
         return Err(SecurityError::unauthorized_path(path));
     }
-    
+
     // Safe to read file
     std::fs::read_to_string(safe_path)
 }
@@ -292,13 +297,13 @@ fn validate_device_command(device: &str, action: &str) -> Result<(), SecurityErr
     if !device.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-') {
         return Err(SecurityError::invalid_device_name(device));
     }
-    
+
     // Validate action against whitelist
     let allowed_actions = ["on", "off", "dim", "up", "down", "stop"];
     if !allowed_actions.contains(&action) {
         return Err(SecurityError::invalid_action(action));
     }
-    
+
     Ok(())
 }
 ```

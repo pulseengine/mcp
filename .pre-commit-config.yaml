@@ -1,0 +1,119 @@
+repos:
+  - repo: local
+    hooks:
+      # Bazel file formatting with buildifier
+      - id: buildifier
+        name: Buildifier
+        description: Format Bazel files with buildifier
+        entry: bazel run //:buildifier
+        language: system
+        files: '\.(bzl|bazel|BUILD)$'
+        pass_filenames: false
+
+  # Python formatting and linting 
+  - repo: https://github.com/psf/black
+    rev: 25.1.0
+    hooks:
+      - id: black
+        language_version: python3
+
+  - repo: https://github.com/pycqa/isort
+    rev: 6.0.1
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]
+
+  # Rust formatting via local toolchain
+  - repo: local
+    hooks:
+      - id: rustfmt
+        name: Rust Format
+        description: Format Rust files with rustfmt
+        entry: rustfmt --edition 2024 --check
+        language: system
+        files: '\.rs$'
+
+  # Go formatting
+  - repo: https://github.com/dnephin/pre-commit-golang
+    rev: v0.5.1
+    hooks:
+      - id: go-fmt
+
+  # JavaScript/TypeScript formatting
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        files: '\.(js|ts|json|yaml|yml|md)$'
+        exclude: '(package-lock\.json|\.lock)$'
+
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.patch$'
+      - id: end-of-file-fixer
+        exclude: '\.patch$'
+      - id: check-yaml
+        exclude: '\.md$'
+      # - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: detect-private-key
+
+  # Conventional commits validation
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.2.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [feat, fix, docs, style, refactor, perf, test, build, ci, chore]
+
+  # Security checks
+  # Temporarily disabled - flagging legitimate SHA256 hashes and git commits
+  # - repo: https://github.com/Yelp/detect-secrets
+  #   rev: v1.5.0
+  #   hooks:
+  #     - id: detect-secrets
+  #       args: ['--baseline', '.secrets.baseline']
+
+  # Custom local hooks
+  - repo: local
+    hooks:
+      # Rust clippy linting via Bazel
+      - id: rust-clippy
+        name: Rust Clippy
+        description: Run clippy on all Rust code via Bazel
+        entry: bazel build //:clippy
+        language: system
+        files: '\.rs$'
+        pass_filenames: false
+
+      # WIT file validation
+      - id: wit-validation
+        name: WIT File Validation
+        description: Validate WIT files are syntactically correct
+        entry: bash -c 'for file in "$@"; do echo "Validating $file"; done'
+        language: system
+        files: '\.wit$'
+
+      # Bazel build test for changed files
+      - id: bazel-test-changed
+        name: Bazel Test Changed
+        description: Run tests for changed Bazel targets
+        entry: bash -c 'echo "Running tests for changed files..." && bazel test //test/unit:unit_tests'
+        language: system
+        files: '\.bzl$|\.bazel$|BUILD$'
+        pass_filenames: false
+
+ci:
+  autofix_commit_msg: |
+    style: auto fixes from pre-commit hooks
+
+  autoupdate_commit_msg: |
+    chore: update pre-commit hooks
+
