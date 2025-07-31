@@ -11,7 +11,7 @@ This project uses comprehensive code coverage tracking to ensure high-quality, w
 - **New Code Coverage**: 80%
 - **Coverage Drop Tolerance**: 1%
 
-> **Important**: Local coverage scripts are for development debugging only. 
+> **Important**: Local coverage scripts are for development debugging only.
 > All official coverage validation is performed by Codecov to ensure consistency across platforms.
 
 ## Running Coverage Locally
@@ -25,6 +25,7 @@ Run the coverage script for local development:
 ```
 
 This will:
+
 1. Install `cargo-llvm-cov` if not already installed
 2. Run all tests with coverage instrumentation
 3. Generate coverage reports in multiple formats
@@ -57,10 +58,12 @@ cargo llvm-cov report --summary-only
 ### GitHub Actions
 
 Code coverage runs automatically on:
+
 - Every push to `main` or `dev` branches
 - Every pull request
 
 The workflow:
+
 1. Runs all tests with coverage instrumentation
 2. Uploads results to Codecov
 3. Posts coverage summary as PR comment
@@ -69,6 +72,7 @@ The workflow:
 ### Codecov Integration
 
 We use [Codecov](https://codecov.io) for:
+
 - Coverage tracking over time
 - PR coverage reports
 - Coverage badges
@@ -94,6 +98,7 @@ start target/llvm-cov/html/index.html
 ### PR Comments
 
 Each PR receives an automated comment showing:
+
 - Current coverage percentage
 - Required coverage (80%)
 - Pass/fail status
@@ -102,6 +107,7 @@ Each PR receives an automated comment showing:
 ## Excluded Files
 
 The following are excluded from coverage:
+
 - `examples/**/*` - Example code
 - `mcp-cli-derive/**/*` - Procedural macros
 - `**/tests/**/*` - Test files themselves
@@ -121,6 +127,7 @@ The following are excluded from coverage:
 ### Writing Effective Tests
 
 Focus on:
+
 - **Error paths**: Test error handling and edge cases
 - **Configuration**: Test different configuration combinations
 - **Concurrency**: Test concurrent operations
@@ -157,6 +164,7 @@ cargo install cargo-llvm-cov --locked
 ### False Coverage Reports
 
 Some code might show as uncovered due to:
+
 - Conditional compilation (`#[cfg(...)]`)
 - Macro-generated code
 - Async runtime internals

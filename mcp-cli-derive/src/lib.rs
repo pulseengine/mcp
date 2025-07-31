@@ -29,10 +29,10 @@ use syn::{Attribute, Data, DeriveInput, Fields, parse_macro_input};
 /// struct MyConfig {
 ///     #[clap(short, long)]
 ///     port: u16,
-///     
+///
 ///     #[mcp(auto_populate)]
 ///     server_info: ServerInfo,
-///     
+///
 ///     #[mcp(logging(level = "debug", format = "json"))]
 ///     logging: LoggingConfig,
 /// }

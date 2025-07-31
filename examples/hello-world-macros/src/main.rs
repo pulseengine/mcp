@@ -265,7 +265,7 @@ impl EnhancedHelloWorldServer {
     /// Provides powerful search capabilities across the greeting history.
     /// Searches through names, greeting text, and languages.
     ///
-    /// # Parameters  
+    /// # Parameters
     /// - query: Search term to look for
     /// - limit: Maximum number of results to return (default: 10)
     ///

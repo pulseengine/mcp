@@ -90,7 +90,7 @@ validate:full-compliance:
     - name: your-mcp-server:latest
       alias: mcp-server
   script:
-    - sleep 10  # Wait for service to start
+    - sleep 10 # Wait for service to start
     - ./target/release/mcp-validate http://mcp-server:3000 --all --timeout 60
   artifacts:
     paths:
@@ -108,7 +108,7 @@ generate:compliance-report:
   artifacts:
     paths:
       - compliance-report.html
-    expose_as: 'Compliance Report'
+    expose_as: "Compliance Report"
     expire_in: 30 days
 
 generate:badges:
@@ -155,7 +155,7 @@ scheduled:external-validation:
         "https://mcp-test-server.example.com"
         "https://reference.mcp-server.org"
       )
-      
+
       for server in "${SERVERS[@]}"; do
         echo "Validating $server..."
         ./target/release/mcp-validate "$server" --quick || true

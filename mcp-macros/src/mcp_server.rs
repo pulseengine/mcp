@@ -17,7 +17,7 @@ pub struct McpServerAttribute {
     pub app_name: Option<String>,
     /// Server version (defaults to Cargo package version)
     pub version: Option<String>,
-    /// Server description (defaults to doc comments)  
+    /// Server description (defaults to doc comments)
     pub description: Option<String>,
     /// Default transport type
     pub transport: Option<String>,

@@ -4,33 +4,33 @@
 //! with existing MCP servers and enhance their security capabilities.
 
 use crate::{
-    AuthenticationManager, SessionManager, SecurityMonitor, CredentialManager,
-    middleware::{SessionMiddleware, SessionMiddlewareConfig},
-    monitoring::{SecurityEvent, SecurityEventType, create_default_alert_rules},
-    security::{RequestSecurityValidator, RequestSecurityConfig},
-    models::{AuthContext, Role},
+    AuthenticationManager, CredentialManager, SecurityMonitor, SessionManager,
     integration::{SecurityProfile, SecurityProfileBuilder, SecurityProfileConfigurations},
+    middleware::{SessionMiddleware, SessionMiddlewareConfig},
+    models::{AuthContext, Role},
+    monitoring::{SecurityEvent, SecurityEventType, create_default_alert_rules},
+    security::{RequestSecurityConfig, RequestSecurityValidator},
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use thiserror::Error;
-use tracing::{debug, warn, error, info};
+use tracing::{debug, error, info, warn};
 
 /// Errors that can occur during framework integration
 #[derive(Debug, Error)]
 pub enum IntegrationError {
     #[error("Configuration error: {reason}")]
     ConfigError { reason: String },
-    
+
     #[error("Initialization failed: {reason}")]
     InitializationFailed { reason: String },
-    
+
     #[error("Integration not supported: {integration_type}")]
     UnsupportedIntegration { integration_type: String },
-    
+
     #[error("Authentication manager error: {0}")]
     AuthError(String),
-    
+
     #[error("Security error: {0}")]
     SecurityError(String),
 }
@@ -40,28 +40,28 @@ pub enum IntegrationError {
 pub struct FrameworkConfig {
     /// Enable session management
     pub enable_sessions: bool,
-    
+
     /// Enable security monitoring
     pub enable_monitoring: bool,
-    
+
     /// Enable credential management
     pub enable_credentials: bool,
-    
+
     /// Enable request security validation
     pub enable_security_validation: bool,
-    
+
     /// Security level (permissive, balanced, strict)
     pub security_level: SecurityLevel,
-    
+
     /// Default session duration
     pub default_session_duration: chrono::Duration,
-    
+
     /// Enable auto-setup of default alert rules
     pub setup_default_alerts: bool,
-    
+
     /// Enable background cleanup tasks
     pub enable_background_tasks: bool,
-    
+
     /// Integration-specific settings
     pub integration_settings: IntegrationSettings,
 }
@@ -71,10 +71,10 @@ pub struct FrameworkConfig {
 pub enum SecurityLevel {
     /// Minimal security validation
     Permissive,
-    
+
     /// Balanced security (recommended)
     Balanced,
-    
+
     /// Maximum security validation
     Strict,
 }
@@ -84,16 +84,16 @@ pub enum SecurityLevel {
 pub struct IntegrationSettings {
     /// MCP server name/identifier
     pub server_name: String,
-    
+
     /// Server version
     pub server_version: Option<String>,
-    
+
     /// Custom authentication header names
     pub custom_headers: Vec<String>,
-    
+
     /// Allowed host patterns for credential management
     pub allowed_hosts: Vec<String>,
-    
+
     /// Custom permission mappings
     pub permission_mappings: std::collections::HashMap<String, Vec<String>>,
 }
@@ -176,7 +176,7 @@ impl Default for FrameworkConfig {
 /// if let Some(session_context) = context {
 ///     // Request is authenticated and validated
 ///     let auth_context = &session_context.base_context.auth.auth_context;
-///     
+///
 ///     // Use authentication context to make authorization decisions
 ///     if auth_context.as_ref().map_or(false, |ctx| ctx.roles.contains(&Role::Admin)) {
 ///         // Admin user - allow all operations
@@ -266,19 +266,19 @@ impl Default for FrameworkConfig {
 pub struct AuthFramework {
     /// Core authentication manager - always available
     pub auth_manager: Arc<AuthenticationManager>,
-    
+
     /// Session manager for stateful authentication - optional
     pub session_manager: Option<Arc<SessionManager>>,
-    
+
     /// Security monitoring and alerting - optional
     pub security_monitor: Option<Arc<SecurityMonitor>>,
-    
+
     /// Encrypted credential storage for host connections - optional
     pub credential_manager: Option<Arc<CredentialManager>>,
-    
+
     /// Request processing middleware - optional (requires sessions + monitoring)
     pub middleware: Option<Arc<SessionMiddleware>>,
-    
+
     /// Framework configuration settings
     pub config: FrameworkConfig,
 }
@@ -337,15 +337,19 @@ impl AuthFramework {
     /// - `InitializationFailed` - Any component fails to initialize properly
     /// - `ConfigError` - Invalid configuration parameters
     pub async fn new(config: FrameworkConfig) -> Result<Self, IntegrationError> {
-        info!("Initializing MCP authentication framework for server: {}", config.integration_settings.server_name);
-        
+        info!(
+            "Initializing MCP authentication framework for server: {}",
+            config.integration_settings.server_name
+        );
+
         // Initialize authentication manager
         let auth_config = crate::AuthConfig::default();
         let auth_manager = Arc::new(
-            AuthenticationManager::new(auth_config).await
-                .map_err(|e| IntegrationError::AuthError(e.to_string()))?
+            AuthenticationManager::new(auth_config)
+                .await
+                .map_err(|e| IntegrationError::AuthError(e.to_string()))?,
         );
-        
+
         // Initialize session manager if enabled
         let session_manager = if config.enable_sessions {
             let session_config = crate::session::SessionConfig {
@@ -353,77 +357,82 @@ impl AuthFramework {
                 enable_jwt: true,
                 ..Default::default()
             };
-            
+
             let session_storage = Arc::new(crate::session::MemorySessionStorage::new());
-            Some(Arc::new(crate::session::SessionManager::new(session_config, session_storage)))
+            Some(Arc::new(crate::session::SessionManager::new(
+                session_config,
+                session_storage,
+            )))
         } else {
             None
         };
-        
+
         // Initialize security monitor if enabled
         let security_monitor = if config.enable_monitoring {
             let monitor_config = crate::monitoring::SecurityMonitorConfig::default();
             let monitor = Arc::new(SecurityMonitor::new(monitor_config));
-            
+
             // Set up default alert rules if requested
             if config.setup_default_alerts {
                 for rule in create_default_alert_rules() {
                     monitor.add_alert_rule(rule).await;
                 }
             }
-            
+
             Some(monitor)
         } else {
             None
         };
-        
+
         // Initialize credential manager if enabled
         let credential_manager = if config.enable_credentials {
             let cred_config = crate::integration::CredentialConfig {
                 allowed_host_patterns: config.integration_settings.allowed_hosts.clone(),
                 ..Default::default()
             };
-            
+
             Some(Arc::new(
-                CredentialManager::with_default_config().await
-                    .map_err(|e| IntegrationError::InitializationFailed { 
-                        reason: format!("Failed to initialize credential manager: {}", e) 
-                    })?
+                CredentialManager::with_default_config()
+                    .await
+                    .map_err(|e| IntegrationError::InitializationFailed {
+                        reason: format!("Failed to initialize credential manager: {}", e),
+                    })?,
             ))
         } else {
             None
         };
-        
+
         // Initialize middleware if we have the required components
-        let middleware = if let (Some(session_mgr), Some(monitor)) = (&session_manager, &security_monitor) {
-            let security_config = match config.security_level {
-                SecurityLevel::Permissive => RequestSecurityConfig::permissive(),
-                SecurityLevel::Balanced => RequestSecurityConfig::default(),
-                SecurityLevel::Strict => RequestSecurityConfig::strict(),
+        let middleware =
+            if let (Some(session_mgr), Some(monitor)) = (&session_manager, &security_monitor) {
+                let security_config = match config.security_level {
+                    SecurityLevel::Permissive => RequestSecurityConfig::permissive(),
+                    SecurityLevel::Balanced => RequestSecurityConfig::default(),
+                    SecurityLevel::Strict => RequestSecurityConfig::strict(),
+                };
+
+                let security_validator = Arc::new(RequestSecurityValidator::new(security_config));
+
+                let middleware_config = SessionMiddlewareConfig {
+                    enable_sessions: config.enable_sessions,
+                    enable_jwt_auth: true,
+                    jwt_header_name: "Authorization".to_string(),
+                    session_header_name: "X-Session-ID".to_string(),
+                    auto_create_sessions: true,
+                    auto_session_duration: Some(config.default_session_duration),
+                    ..Default::default()
+                };
+
+                Some(Arc::new(SessionMiddleware::new(
+                    Arc::clone(&auth_manager),
+                    Arc::clone(session_mgr),
+                    security_validator,
+                    middleware_config,
+                )))
+            } else {
+                None
             };
-            
-            let security_validator = Arc::new(RequestSecurityValidator::new(security_config));
-            
-            let middleware_config = SessionMiddlewareConfig {
-                enable_sessions: config.enable_sessions,
-                enable_jwt_auth: true,
-                jwt_header_name: "Authorization".to_string(),
-                session_header_name: "X-Session-ID".to_string(),
-                auto_create_sessions: true,
-                auto_session_duration: Some(config.default_session_duration),
-                ..Default::default()
-            };
-            
-            Some(Arc::new(SessionMiddleware::new(
-                Arc::clone(&auth_manager),
-                Arc::clone(session_mgr),
-                security_validator,
-                middleware_config,
-            )))
-        } else {
-            None
-        };
-        
+
         let framework = Self {
             auth_manager,
             session_manager,
@@ -432,23 +441,23 @@ impl AuthFramework {
             middleware,
             config,
         };
-        
+
         // Start background tasks if enabled
         if config.enable_background_tasks {
             framework.start_background_tasks().await;
         }
-        
+
         info!("MCP authentication framework initialized successfully");
         Ok(framework)
     }
-    
+
     /// Create framework with default configuration
     pub async fn with_default_config(server_name: String) -> Result<Self, IntegrationError> {
         let mut config = FrameworkConfig::default();
         config.integration_settings.server_name = server_name;
         Self::new(config).await
     }
-    
+
     /// Create framework using a security profile
     pub async fn with_security_profile(
         server_name: String,
@@ -457,7 +466,7 @@ impl AuthFramework {
         let config = SecurityProfileBuilder::new(profile, server_name).build();
         Self::new(config).await
     }
-    
+
     /// Create framework for a specific environment (auto-selects profile)
     pub async fn for_environment(
         server_name: String,
@@ -466,7 +475,7 @@ impl AuthFramework {
         let profile = crate::integration::get_recommended_profile_for_environment(&environment);
         Self::with_security_profile(server_name, profile).await
     }
-    
+
     /// Create a minimal framework (auth only)
     pub async fn minimal(server_name: String) -> Result<Self, IntegrationError> {
         let config = FrameworkConfig {
@@ -485,17 +494,26 @@ impl AuthFramework {
         };
         Self::new(config).await
     }
-    
+
     /// Process an MCP request through the authentication framework
     pub async fn process_request(
         &self,
         request: pulseengine_mcp_protocol::Request,
         headers: Option<&std::collections::HashMap<String, String>>,
-    ) -> Result<(pulseengine_mcp_protocol::Request, Option<crate::middleware::SessionRequestContext>), IntegrationError> {
+    ) -> Result<
+        (
+            pulseengine_mcp_protocol::Request,
+            Option<crate::middleware::SessionRequestContext>,
+        ),
+        IntegrationError,
+    > {
         if let Some(middleware) = &self.middleware {
-            let (processed_request, context) = middleware.process_request(request, headers).await
-                .map_err(|e| IntegrationError::SecurityError(e.to_string()))?;
-            
+            let (processed_request, context) =
+                middleware
+                    .process_request(request, headers)
+                    .await
+                    .map_err(|e| IntegrationError::SecurityError(e.to_string()))?;
+
             // Record security events if monitoring is enabled
             if let Some(monitor) = &self.security_monitor {
                 let event_type = if context.base_context.auth.is_anonymous {
@@ -503,25 +521,25 @@ impl AuthFramework {
                 } else {
                     SecurityEventType::AuthSuccess
                 };
-                
+
                 let client_ip = headers
                     .and_then(|h| h.get("X-Forwarded-For"))
                     .or_else(|| headers.and_then(|h| h.get("X-Real-IP")))
                     .cloned();
-                
-                let user_agent = headers
-                    .and_then(|h| h.get("User-Agent"))
-                    .cloned();
-                
-                monitor.record_auth_event(
-                    event_type,
-                    context.base_context.auth.auth_context.as_ref(),
-                    client_ip,
-                    user_agent,
-                    format!("Request processed: {}", processed_request.method),
-                ).await;
+
+                let user_agent = headers.and_then(|h| h.get("User-Agent")).cloned();
+
+                monitor
+                    .record_auth_event(
+                        event_type,
+                        context.base_context.auth.auth_context.as_ref(),
+                        client_ip,
+                        user_agent,
+                        format!("Request processed: {}", processed_request.method),
+                    )
+                    .await;
             }
-            
+
             Ok((processed_request, Some(context)))
         } else {
             // Basic authentication without sessions/monitoring
@@ -529,7 +547,7 @@ impl AuthFramework {
             Ok((request, None))
         }
     }
-    
+
     /// Create a new API key with appropriate permissions
     pub async fn create_api_key(
         &self,
@@ -560,31 +578,29 @@ impl AuthFramework {
                     "session:read".to_string(),
                     "monitor:read".to_string(),
                 ],
-                Role::Device => vec![
-                    "auth:read".to_string(),
-                    "credential:read".to_string(),
-                ],
+                Role::Device => vec!["auth:read".to_string(), "credential:read".to_string()],
                 Role::Custom(ref custom_role) => {
                     // Look up custom permissions
-                    self.config.integration_settings.permission_mappings
+                    self.config
+                        .integration_settings
+                        .permission_mappings
                         .get(custom_role)
                         .cloned()
                         .unwrap_or_default()
                 }
             }
         });
-        
+
         // Add server-specific permissions
         let server_prefix = format!("server:{}:", self.config.integration_settings.server_name);
         key_permissions.push(format!("{}connect", server_prefix));
-        
-        let api_key = self.auth_manager.create_api_key(
-            name,
-            role,
-            expires_at,
-            ip_whitelist,
-        ).await.map_err(|e| IntegrationError::AuthError(e.to_string()))?;
-        
+
+        let api_key = self
+            .auth_manager
+            .create_api_key(name, role, expires_at, ip_whitelist)
+            .await
+            .map_err(|e| IntegrationError::AuthError(e.to_string()))?;
+
         // Record creation event
         if let Some(monitor) = &self.security_monitor {
             let event = SecurityEvent::new(
@@ -594,10 +610,10 @@ impl AuthFramework {
             );
             monitor.record_event(event).await;
         }
-        
+
         Ok(api_key)
     }
-    
+
     /// Store host credentials securely
     pub async fn store_host_credential(
         &self,
@@ -608,11 +624,13 @@ impl AuthFramework {
         password: String,
         auth_context: &AuthContext,
     ) -> Result<String, IntegrationError> {
-        let credential_manager = self.credential_manager.as_ref()
-            .ok_or_else(|| IntegrationError::ConfigError { 
-                reason: "Credential management not enabled".to_string() 
-            })?;
-        
+        let credential_manager =
+            self.credential_manager
+                .as_ref()
+                .ok_or_else(|| IntegrationError::ConfigError {
+                    reason: "Credential management not enabled".to_string(),
+                })?;
+
         let host = crate::integration::HostInfo {
             address: host_ip,
             port,
@@ -620,48 +638,57 @@ impl AuthFramework {
             description: Some(format!("Host credentials for {}", name)),
             environment: None,
         };
-        
+
         let credential_data = crate::integration::CredentialData::user_password(username, password);
-        
-        let credential_id = credential_manager.store_credential(
-            name,
-            crate::integration::CredentialType::UserPassword,
-            host,
-            credential_data,
-            auth_context,
-        ).await.map_err(|e| IntegrationError::SecurityError(e.to_string()))?;
-        
+
+        let credential_id = credential_manager
+            .store_credential(
+                name,
+                crate::integration::CredentialType::UserPassword,
+                host,
+                credential_data,
+                auth_context,
+            )
+            .await
+            .map_err(|e| IntegrationError::SecurityError(e.to_string()))?;
+
         info!("Stored host credential: {}", credential_id);
         Ok(credential_id)
     }
-    
+
     /// Get host credentials for MCP server use
     pub async fn get_host_credential(
         &self,
         credential_id: &str,
         auth_context: &AuthContext,
     ) -> Result<(String, String, String), IntegrationError> {
-        let credential_manager = self.credential_manager.as_ref()
-            .ok_or_else(|| IntegrationError::ConfigError { 
-                reason: "Credential management not enabled".to_string() 
-            })?;
-        
-        let (credential, credential_data) = credential_manager.get_credential(credential_id, auth_context).await
+        let credential_manager =
+            self.credential_manager
+                .as_ref()
+                .ok_or_else(|| IntegrationError::ConfigError {
+                    reason: "Credential management not enabled".to_string(),
+                })?;
+
+        let (credential, credential_data) = credential_manager
+            .get_credential(credential_id, auth_context)
+            .await
             .map_err(|e| IntegrationError::SecurityError(e.to_string()))?;
-        
+
         let host_ip = credential.host.address;
-        let username = credential_data.username
-            .ok_or_else(|| IntegrationError::ConfigError { 
-                reason: "Username not found in credential".to_string() 
+        let username = credential_data
+            .username
+            .ok_or_else(|| IntegrationError::ConfigError {
+                reason: "Username not found in credential".to_string(),
             })?;
-        let password = credential_data.password
-            .ok_or_else(|| IntegrationError::ConfigError { 
-                reason: "Password not found in credential".to_string() 
+        let password = credential_data
+            .password
+            .ok_or_else(|| IntegrationError::ConfigError {
+                reason: "Password not found in credential".to_string(),
             })?;
-        
+
         Ok((host_ip, username, password))
     }
-    
+
     /// Get framework health and status
     pub async fn get_framework_status(&self) -> FrameworkStatus {
         let auth_status = ComponentStatus {
@@ -669,7 +696,7 @@ impl AuthFramework {
             healthy: true, // Could check auth manager health
             message: "Authentication manager active".to_string(),
         };
-        
+
         let session_status = if let Some(session_mgr) = &self.session_manager {
             ComponentStatus {
                 enabled: true,
@@ -683,13 +710,16 @@ impl AuthFramework {
                 message: "Session management disabled".to_string(),
             }
         };
-        
+
         let monitoring_status = if let Some(monitor) = &self.security_monitor {
             let health = monitor.get_dashboard_data().await.system_health;
             ComponentStatus {
                 enabled: true,
                 healthy: health.active_alerts < 10, // Arbitrary threshold
-                message: format!("Monitoring active, {} events in memory", health.events_in_memory),
+                message: format!(
+                    "Monitoring active, {} events in memory",
+                    health.events_in_memory
+                ),
             }
         } else {
             ComponentStatus {
@@ -698,13 +728,16 @@ impl AuthFramework {
                 message: "Security monitoring disabled".to_string(),
             }
         };
-        
+
         let credential_status = if let Some(cred_mgr) = &self.credential_manager {
             let stats = cred_mgr.get_credential_stats().await;
             ComponentStatus {
                 enabled: true,
                 healthy: true,
-                message: format!("Credential manager active, {} credentials stored", stats.total_credentials),
+                message: format!(
+                    "Credential manager active, {} credentials stored",
+                    stats.total_credentials
+                ),
             }
         } else {
             ComponentStatus {
@@ -713,7 +746,7 @@ impl AuthFramework {
                 message: "Credential management disabled".to_string(),
             }
         };
-        
+
         FrameworkStatus {
             server_name: self.config.integration_settings.server_name.clone(),
             version: env!("CARGO_PKG_VERSION").to_string(),
@@ -724,7 +757,7 @@ impl AuthFramework {
             uptime: chrono::Utc::now(), // Would track actual uptime
         }
     }
-    
+
     /// Start background maintenance tasks
     async fn start_background_tasks(&self) {
         if let Some(monitor) = &self.security_monitor {
@@ -735,7 +768,7 @@ impl AuthFramework {
                 }
             });
         }
-        
+
         if let Some(session_mgr) = &self.session_manager {
             tokio::spawn({
                 let session_mgr = Arc::clone(session_mgr);
@@ -744,7 +777,7 @@ impl AuthFramework {
                 }
             });
         }
-        
+
         info!("Background tasks started for authentication framework");
     }
 }
@@ -773,8 +806,8 @@ pub struct FrameworkStatus {
 mod tests {
     use super::*;
     use crate::models::{ApiKey, AuthContext};
-    use std::collections::HashMap;
     use chrono::{Duration, Utc};
+    use std::collections::HashMap;
 
     // Helper function to create test auth context
     fn create_test_auth_context() -> AuthContext {
@@ -807,10 +840,18 @@ mod tests {
         let unsupported_error = IntegrationError::UnsupportedIntegration {
             integration_type: "custom".to_string(),
         };
-        assert!(unsupported_error.to_string().contains("Integration not supported"));
+        assert!(
+            unsupported_error
+                .to_string()
+                .contains("Integration not supported")
+        );
 
         let auth_error = IntegrationError::AuthError("Auth failed".to_string());
-        assert!(auth_error.to_string().contains("Authentication manager error"));
+        assert!(
+            auth_error
+                .to_string()
+                .contains("Authentication manager error")
+        );
 
         let security_error = IntegrationError::SecurityError("Security violation".to_string());
         assert!(security_error.to_string().contains("Security error"));
@@ -831,7 +872,8 @@ mod tests {
         assert!(strict_json.contains("Strict"));
 
         // Test deserialization
-        let deserialized_permissive: SecurityLevel = serde_json::from_str(&permissive_json).unwrap();
+        let deserialized_permissive: SecurityLevel =
+            serde_json::from_str(&permissive_json).unwrap();
         let deserialized_balanced: SecurityLevel = serde_json::from_str(&balanced_json).unwrap();
         let deserialized_strict: SecurityLevel = serde_json::from_str(&strict_json).unwrap();
 
@@ -876,7 +918,10 @@ mod tests {
         assert_eq!(deserialized.server_version, settings.server_version);
         assert_eq!(deserialized.custom_headers, settings.custom_headers);
         assert_eq!(deserialized.allowed_hosts, settings.allowed_hosts);
-        assert_eq!(deserialized.permission_mappings, settings.permission_mappings);
+        assert_eq!(
+            deserialized.permission_mappings,
+            settings.permission_mappings
+        );
     }
 
     #[test]
@@ -929,26 +974,38 @@ mod tests {
         assert_eq!(deserialized.server_name, status.server_name);
         assert_eq!(deserialized.version, status.version);
         assert_eq!(deserialized.auth_status.enabled, status.auth_status.enabled);
-        assert_eq!(deserialized.session_status.enabled, status.session_status.enabled);
-        assert_eq!(deserialized.monitoring_status.healthy, status.monitoring_status.healthy);
-        assert_eq!(deserialized.credential_status.message, status.credential_status.message);
+        assert_eq!(
+            deserialized.session_status.enabled,
+            status.session_status.enabled
+        );
+        assert_eq!(
+            deserialized.monitoring_status.healthy,
+            status.monitoring_status.healthy
+        );
+        assert_eq!(
+            deserialized.credential_status.message,
+            status.credential_status.message
+        );
     }
 
     #[tokio::test]
     async fn test_framework_creation() {
         let framework = AuthFramework::with_default_config("test-server".to_string()).await;
         assert!(framework.is_ok());
-        
+
         let framework = framework.unwrap();
-        assert_eq!(framework.config.integration_settings.server_name, "test-server");
+        assert_eq!(
+            framework.config.integration_settings.server_name,
+            "test-server"
+        );
         assert!(framework.auth_manager.as_ref() != std::ptr::null());
     }
-    
+
     #[tokio::test]
     async fn test_minimal_framework() {
         let framework = AuthFramework::minimal("minimal-server".to_string()).await;
         assert!(framework.is_ok());
-        
+
         let framework = framework.unwrap();
         assert!(!framework.config.enable_sessions);
         assert!(!framework.config.enable_monitoring);
@@ -959,7 +1016,7 @@ mod tests {
         assert!(framework.credential_manager.is_none());
         assert!(framework.middleware.is_none());
     }
-    
+
     #[tokio::test]
     async fn test_custom_config_framework() {
         let mut permission_mappings = HashMap::new();
@@ -987,8 +1044,14 @@ mod tests {
         assert!(framework.is_ok());
 
         let framework = framework.unwrap();
-        assert_eq!(framework.config.integration_settings.server_name, "custom-server");
-        assert_eq!(framework.config.default_session_duration, Duration::hours(2));
+        assert_eq!(
+            framework.config.integration_settings.server_name,
+            "custom-server"
+        );
+        assert_eq!(
+            framework.config.default_session_duration,
+            Duration::hours(2)
+        );
         assert!(framework.session_manager.is_some());
         assert!(framework.security_monitor.is_none());
         assert!(framework.credential_manager.is_some());
@@ -1000,54 +1063,63 @@ mod tests {
         let framework = AuthFramework::with_security_profile(
             "profile-test".to_string(),
             crate::integration::SecurityProfile::Development,
-        ).await;
+        )
+        .await;
         assert!(framework.is_ok());
-        
+
         let framework = framework.unwrap();
-        assert_eq!(framework.config.integration_settings.server_name, "profile-test");
+        assert_eq!(
+            framework.config.integration_settings.server_name,
+            "profile-test"
+        );
     }
-    
+
     #[tokio::test]
     async fn test_environment_framework_production() {
-        let framework = AuthFramework::for_environment(
-            "env-test".to_string(),
-            "production".to_string(),
-        ).await;
+        let framework =
+            AuthFramework::for_environment("env-test".to_string(), "production".to_string()).await;
         assert!(framework.is_ok());
-        
+
         let framework = framework.unwrap();
-        assert_eq!(framework.config.integration_settings.server_name, "env-test");
+        assert_eq!(
+            framework.config.integration_settings.server_name,
+            "env-test"
+        );
     }
 
     #[tokio::test]
     async fn test_environment_framework_development() {
-        let framework = AuthFramework::for_environment(
-            "dev-test".to_string(),
-            "development".to_string(),
-        ).await;
+        let framework =
+            AuthFramework::for_environment("dev-test".to_string(), "development".to_string()).await;
         assert!(framework.is_ok());
-        
+
         let framework = framework.unwrap();
-        assert_eq!(framework.config.integration_settings.server_name, "dev-test");
+        assert_eq!(
+            framework.config.integration_settings.server_name,
+            "dev-test"
+        );
     }
 
     #[tokio::test]
     async fn test_environment_framework_testing() {
-        let framework = AuthFramework::for_environment(
-            "test-server".to_string(),
-            "testing".to_string(),
-        ).await;
+        let framework =
+            AuthFramework::for_environment("test-server".to_string(), "testing".to_string()).await;
         assert!(framework.is_ok());
 
         let framework = framework.unwrap();
-        assert_eq!(framework.config.integration_settings.server_name, "test-server");
+        assert_eq!(
+            framework.config.integration_settings.server_name,
+            "test-server"
+        );
     }
-    
+
     #[tokio::test]
     async fn test_framework_status() {
-        let framework = AuthFramework::with_default_config("status-test".to_string()).await.unwrap();
+        let framework = AuthFramework::with_default_config("status-test".to_string())
+            .await
+            .unwrap();
         let status = framework.get_framework_status().await;
-        
+
         assert_eq!(status.server_name, "status-test");
         assert!(status.auth_status.enabled);
         assert!(status.auth_status.healthy);
@@ -1057,7 +1129,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_framework_status_with_disabled_components() {
-        let framework = AuthFramework::minimal("minimal-status".to_string()).await.unwrap();
+        let framework = AuthFramework::minimal("minimal-status".to_string())
+            .await
+            .unwrap();
         let status = framework.get_framework_status().await;
 
         assert_eq!(status.server_name, "minimal-status");
@@ -1070,19 +1144,17 @@ mod tests {
         assert!(status.monitoring_status.healthy);
         assert!(status.credential_status.healthy);
     }
-    
+
     #[tokio::test]
     async fn test_api_key_creation_with_defaults() {
-        let framework = AuthFramework::with_default_config("api-test".to_string()).await.unwrap();
-        
-        let api_key = framework.create_api_key(
-            "Test Key".to_string(),
-            Role::Operator,
-            None,
-            None,
-            None,
-        ).await;
-        
+        let framework = AuthFramework::with_default_config("api-test".to_string())
+            .await
+            .unwrap();
+
+        let api_key = framework
+            .create_api_key("Test Key".to_string(), Role::Operator, None, None, None)
+            .await;
+
         assert!(api_key.is_ok());
         let key = api_key.unwrap();
         assert_eq!(key.name, "Test Key");
@@ -1093,21 +1165,22 @@ mod tests {
 
     #[tokio::test]
     async fn test_api_key_creation_with_custom_permissions() {
-        let framework = AuthFramework::with_default_config("api-perm-test".to_string()).await.unwrap();
-        
-        let custom_permissions = vec![
-            "custom:read".to_string(),
-            "custom:write".to_string(),
-        ];
+        let framework = AuthFramework::with_default_config("api-perm-test".to_string())
+            .await
+            .unwrap();
 
-        let api_key = framework.create_api_key(
-            "Custom Key".to_string(),
-            Role::Monitor,
-            Some(custom_permissions.clone()),
-            Some(Utc::now() + Duration::days(7)),
-            Some(vec!["192.168.1.0/24".to_string()]),
-        ).await;
-        
+        let custom_permissions = vec!["custom:read".to_string(), "custom:write".to_string()];
+
+        let api_key = framework
+            .create_api_key(
+                "Custom Key".to_string(),
+                Role::Monitor,
+                Some(custom_permissions.clone()),
+                Some(Utc::now() + Duration::days(7)),
+                Some(vec!["192.168.1.0/24".to_string()]),
+            )
+            .await;
+
         assert!(api_key.is_ok());
         let key = api_key.unwrap();
         assert_eq!(key.name, "Custom Key");
@@ -1118,48 +1191,55 @@ mod tests {
 
     #[tokio::test]
     async fn test_api_key_creation_for_different_roles() {
-        let framework = AuthFramework::with_default_config("role-test".to_string()).await.unwrap();
-        
+        let framework = AuthFramework::with_default_config("role-test".to_string())
+            .await
+            .unwrap();
+
         // Test Admin role
-        let admin_key = framework.create_api_key(
-            "Admin Key".to_string(),
-            Role::Admin,
-            None,
-            None,
-            None,
-        ).await.unwrap();
+        let admin_key = framework
+            .create_api_key("Admin Key".to_string(), Role::Admin, None, None, None)
+            .await
+            .unwrap();
         assert_eq!(admin_key.role, Role::Admin);
 
         // Test Device role
-        let device_key = framework.create_api_key(
-            "Device Key".to_string(),
-            Role::Device {
-                allowed_devices: vec!["device1".to_string()],
-            },
-            None,
-            None,
-            None,
-        ).await.unwrap();
+        let device_key = framework
+            .create_api_key(
+                "Device Key".to_string(),
+                Role::Device {
+                    allowed_devices: vec!["device1".to_string()],
+                },
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
         assert!(matches!(device_key.role, Role::Device { .. }));
 
         // Test Custom role
         let custom_role = Role::Custom {
             permissions: vec!["test:custom".to_string()],
         };
-        let custom_key = framework.create_api_key(
-            "Custom Key".to_string(),
-            custom_role.clone(),
-            None,
-            None,
-            None,
-        ).await.unwrap();
+        let custom_key = framework
+            .create_api_key(
+                "Custom Key".to_string(),
+                custom_role.clone(),
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
         assert_eq!(custom_key.role, custom_role);
     }
 
     #[tokio::test]
     async fn test_process_request_without_middleware() {
-        let framework = AuthFramework::minimal("process-test".to_string()).await.unwrap();
-        
+        let framework = AuthFramework::minimal("process-test".to_string())
+            .await
+            .unwrap();
+
         // Create a mock request
         let request = pulseengine_mcp_protocol::Request {
             method: "test/method".to_string(),
@@ -1167,8 +1247,10 @@ mod tests {
         };
 
         let headers = HashMap::new();
-        let result = framework.process_request(request.clone(), Some(&headers)).await;
-        
+        let result = framework
+            .process_request(request.clone(), Some(&headers))
+            .await;
+
         assert!(result.is_ok());
         let (processed_request, context) = result.unwrap();
         assert_eq!(processed_request.method, request.method);
@@ -1177,8 +1259,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_process_request_with_middleware() {
-        let framework = AuthFramework::with_default_config("middleware-test".to_string()).await.unwrap();
-        
+        let framework = AuthFramework::with_default_config("middleware-test".to_string())
+            .await
+            .unwrap();
+
         // Framework with default config should have middleware
         assert!(framework.middleware.is_some());
 
@@ -1191,8 +1275,10 @@ mod tests {
         headers.insert("Authorization".to_string(), "Bearer test-token".to_string());
         headers.insert("User-Agent".to_string(), "Test Client".to_string());
 
-        let result = framework.process_request(request.clone(), Some(&headers)).await;
-        
+        let result = framework
+            .process_request(request.clone(), Some(&headers))
+            .await;
+
         // This might fail authentication, but should process through middleware
         // The exact result depends on the middleware implementation
         assert!(result.is_ok() || result.is_err());
@@ -1200,42 +1286,57 @@ mod tests {
 
     #[tokio::test]
     async fn test_credential_operations_without_manager() {
-        let framework = AuthFramework::minimal("no-creds".to_string()).await.unwrap();
+        let framework = AuthFramework::minimal("no-creds".to_string())
+            .await
+            .unwrap();
         let auth_context = create_test_auth_context();
 
         // Should fail because credential manager is not enabled
-        let store_result = framework.store_host_credential(
-            "Test Host".to_string(),
-            "192.168.1.100".to_string(),
-            Some(22),
-            "admin".to_string(),
-            "password".to_string(),
-            &auth_context,
-        ).await;
+        let store_result = framework
+            .store_host_credential(
+                "Test Host".to_string(),
+                "192.168.1.100".to_string(),
+                Some(22),
+                "admin".to_string(),
+                "password".to_string(),
+                &auth_context,
+            )
+            .await;
 
         assert!(store_result.is_err());
-        assert!(store_result.unwrap_err().to_string().contains("not enabled"));
+        assert!(
+            store_result
+                .unwrap_err()
+                .to_string()
+                .contains("not enabled")
+        );
 
         // Get should also fail
-        let get_result = framework.get_host_credential("dummy-id", &auth_context).await;
+        let get_result = framework
+            .get_host_credential("dummy-id", &auth_context)
+            .await;
         assert!(get_result.is_err());
         assert!(get_result.unwrap_err().to_string().contains("not enabled"));
     }
 
     #[tokio::test]
     async fn test_credential_operations_with_manager() {
-        let framework = AuthFramework::with_default_config("with-creds".to_string()).await.unwrap();
+        let framework = AuthFramework::with_default_config("with-creds".to_string())
+            .await
+            .unwrap();
         let auth_context = create_test_auth_context();
 
         // Should work because credential manager is enabled
-        let store_result = framework.store_host_credential(
-            "Test Host".to_string(),
-            "192.168.1.101".to_string(),
-            Some(80),
-            "user".to_string(),
-            "secret".to_string(),
-            &auth_context,
-        ).await;
+        let store_result = framework
+            .store_host_credential(
+                "Test Host".to_string(),
+                "192.168.1.101".to_string(),
+                Some(80),
+                "user".to_string(),
+                "secret".to_string(),
+                &auth_context,
+            )
+            .await;
 
         // This may succeed or fail depending on credential manager implementation
         // but should not fail due to missing credential manager
@@ -1248,7 +1349,7 @@ mod tests {
     async fn test_framework_component_availability() {
         // Test various component combinations
         let mut config = FrameworkConfig::default();
-        
+
         // Test with only auth
         config.enable_sessions = false;
         config.enable_monitoring = false;
@@ -1302,30 +1403,42 @@ mod tests {
         // Test Permissive level
         config.security_level = SecurityLevel::Permissive;
         let framework = AuthFramework::new(config.clone()).await.unwrap();
-        assert!(matches!(framework.config.security_level, SecurityLevel::Permissive));
+        assert!(matches!(
+            framework.config.security_level,
+            SecurityLevel::Permissive
+        ));
 
         // Test Balanced level
         config.security_level = SecurityLevel::Balanced;
         let framework = AuthFramework::new(config.clone()).await.unwrap();
-        assert!(matches!(framework.config.security_level, SecurityLevel::Balanced));
+        assert!(matches!(
+            framework.config.security_level,
+            SecurityLevel::Balanced
+        ));
 
         // Test Strict level
         config.security_level = SecurityLevel::Strict;
         let framework = AuthFramework::new(config).await.unwrap();
-        assert!(matches!(framework.config.security_level, SecurityLevel::Strict));
+        assert!(matches!(
+            framework.config.security_level,
+            SecurityLevel::Strict
+        ));
     }
 
     #[tokio::test]
     async fn test_framework_config_serialization() {
         let config = FrameworkConfig::default();
-        
+
         let json = serde_json::to_string(&config).unwrap();
         let deserialized: FrameworkConfig = serde_json::from_str(&json).unwrap();
 
         assert_eq!(deserialized.enable_sessions, config.enable_sessions);
         assert_eq!(deserialized.enable_monitoring, config.enable_monitoring);
         assert_eq!(deserialized.enable_credentials, config.enable_credentials);
-        assert_eq!(deserialized.default_session_duration, config.default_session_duration);
+        assert_eq!(
+            deserialized.default_session_duration,
+            config.default_session_duration
+        );
         assert_eq!(
             deserialized.integration_settings.server_name,
             config.integration_settings.server_name
@@ -1339,11 +1452,14 @@ mod tests {
         config.integration_settings.server_name = "bg-tasks-test".to_string();
 
         let framework = AuthFramework::new(config).await.unwrap();
-        
+
         // Background tasks should start automatically
         // We can't easily test the background tasks themselves without
         // significant time delays, but we can verify the framework was created
-        assert_eq!(framework.config.integration_settings.server_name, "bg-tasks-test");
+        assert_eq!(
+            framework.config.integration_settings.server_name,
+            "bg-tasks-test"
+        );
         assert!(framework.config.enable_background_tasks);
     }
 
@@ -1354,8 +1470,11 @@ mod tests {
         config.integration_settings.server_name = "no-bg-tasks".to_string();
 
         let framework = AuthFramework::new(config).await.unwrap();
-        
-        assert_eq!(framework.config.integration_settings.server_name, "no-bg-tasks");
+
+        assert_eq!(
+            framework.config.integration_settings.server_name,
+            "no-bg-tasks"
+        );
         assert!(!framework.config.enable_background_tasks);
     }
 
@@ -1376,7 +1495,7 @@ mod tests {
         for (i, handle) in handles {
             let result = handle.await.unwrap();
             assert!(result.is_ok(), "Framework {} failed to create", i);
-            
+
             let framework = result.unwrap();
             assert_eq!(
                 framework.config.integration_settings.server_name,
@@ -1403,6 +1522,9 @@ mod tests {
         let framework = AuthFramework::with_default_config(special_name.clone()).await;
         assert!(framework.is_ok());
         let framework = framework.unwrap();
-        assert_eq!(framework.config.integration_settings.server_name, special_name);
+        assert_eq!(
+            framework.config.integration_settings.server_name,
+            special_name
+        );
     }
 }

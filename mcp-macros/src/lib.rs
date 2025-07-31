@@ -25,7 +25,7 @@
 //! ## Features
 //!
 //! - **Zero Boilerplate**: Focus on business logic, not protocol details
-//! - **Type Safety**: Compile-time validation of tool definitions  
+//! - **Type Safety**: Compile-time validation of tool definitions
 //! - **Auto Schema Generation**: JSON schemas derived from Rust types
 //! - **Doc Comments**: Function documentation becomes tool descriptions
 //! - **Progressive Complexity**: Start simple, add enterprise features as needed

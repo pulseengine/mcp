@@ -9,18 +9,21 @@ This crate provides structured logging specifically designed for MCP servers, wi
 ## What This Provides
 
 **Structured Logging:**
+
 - JSON output with consistent field names
 - Correlation IDs for tracking requests across components
 - Log levels with appropriate filtering
 - Contextual information (tool names, client IPs, etc.)
 
 **Security Features:**
+
 - Automatic credential scrubbing from logs
 - Sensitive parameter filtering
 - Request sanitization before logging
 - Audit trail capabilities
 
 **MCP-Specific Features:**
+
 - Tool execution logging with parameters
 - Protocol message logging (request/response)
 - Transport layer activity tracking
@@ -29,6 +32,7 @@ This crate provides structured logging specifically designed for MCP servers, wi
 ## Real-World Usage
 
 This logging system is actively used in the **Loxone MCP Server** where it:
+
 - Logs all 30+ tool executions with sanitized parameters
 - Tracks authentication attempts and API key usage
 - Provides audit trails for home automation commands
@@ -98,10 +102,10 @@ let correlation_id = CorrelationId::new();
 // All logs within this scope will include the correlation ID
 with_correlation_id(correlation_id, async {
     info!("Processing MCP request");
-    
+
     // Your request handling logic
     handle_tool_call().await?;
-    
+
     info!("Request completed successfully");
 }).await;
 ```
@@ -111,6 +115,7 @@ with_correlation_id(correlation_id, async {
 **Solid foundation with good security practices.** The logging system handles the most important concerns well and integrates cleanly with the rest of the framework.
 
 **What works well:**
+
 - ✅ Structured JSON logging with consistent format
 - ✅ Automatic credential sanitization
 - ✅ Request correlation tracking
@@ -119,6 +124,7 @@ with_correlation_id(correlation_id, async {
 - ✅ File rotation and output management
 
 **Areas for improvement:**
+
 - 📊 Better integration with metrics systems
 - 🔧 More sophisticated log analysis tools
 - 📝 More examples for different deployment scenarios
@@ -359,7 +365,7 @@ match auth_result {
 info!(
     tool = "control_rolladen",
     room = "living_room",
-    action = "down", 
+    action = "down",
     device_count = 3,
     duration_ms = 1200,
     "Rolladen control completed"

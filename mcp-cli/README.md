@@ -30,13 +30,13 @@ use clap::Parser;
 struct MyServerConfig {
     #[clap(short, long, default_value = "8080")]
     port: u16,
-    
+
     #[clap(short, long)]
     database_url: String,
-    
+
     #[mcp(auto_populate)]
     server_info: ServerInfo,
-    
+
     #[mcp(logging(level = "info", format = "json"))]
     logging: LoggingConfig,
 }

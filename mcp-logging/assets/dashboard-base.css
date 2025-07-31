@@ -134,7 +134,7 @@ body {
     .dashboard-grid {
         grid-template-columns: repeat(8, 1fr);
     }
-    
+
     .dashboard-section {
         grid-column: 1 / -1 !important;
     }
@@ -144,18 +144,18 @@ body {
     .dashboard {
         padding: 0.5rem;
     }
-    
+
     .dashboard-header {
         flex-direction: column;
         gap: 1rem;
         text-align: center;
     }
-    
+
     .dashboard-grid {
         grid-template-columns: 1fr;
         gap: 0.5rem;
     }
-    
+
     .dashboard-section {
         grid-column: 1 !important;
         grid-row: auto !important;

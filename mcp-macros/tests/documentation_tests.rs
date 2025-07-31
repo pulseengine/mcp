@@ -207,7 +207,7 @@ fn test_example_documentation() {
         ///
         /// Supported operations:
         /// - `add`: Addition (a + b)
-        /// - `subtract`: Subtraction (a - b)  
+        /// - `subtract`: Subtraction (a - b)
         /// - `multiply`: Multiplication (a * b)
         /// - `divide`: Division (a / b, returns NaN if b is 0)
         /// - `power`: Exponentiation (a^b)

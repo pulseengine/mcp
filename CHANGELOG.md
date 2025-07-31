@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 #### Testing Infrastructure
+
 - **Comprehensive unit test suite** with 400+ tests across all crates
 - **Integration test suite** with 34 tests covering cross-crate interactions
 - **Code coverage tracking** with 80% minimum requirement
@@ -17,18 +18,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Codecov integration** with detailed coverage analysis and PR comments
 
 #### Documentation
+
 - **Code coverage guide** (`docs/COVERAGE.md`) with setup and best practices
 - **Integration test documentation** with usage examples
 - **Coverage script** (`scripts/coverage.sh`) for local development
 - Enhanced README files across all crates
 
 #### CI/CD Enhancements
+
 - **Automated coverage reporting** on every PR and push
 - **Coverage badges** in README
 - **PR status checks** that fail if coverage drops below 80%
 - **Local coverage tooling** for development workflow
 
 #### Test Coverage by Crate
+
 - **mcp-protocol**: 94.72% coverage (67 tests)
 - **mcp-server**: 104 tests covering all server functionality
 - **mcp-transport**: Comprehensive transport layer testing
@@ -40,16 +44,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **integration-tests**: 34 end-to-end integration tests
 
 ### Changed
+
 - Updated build profiles for optimal coverage collection
 - Enhanced `.gitignore` to exclude coverage artifacts
 - Improved error handling consistency across crates
 
 ### Infrastructure
+
 - **Build artifact cleanup** (29.5GB space saved)
 - **Development file cleanup** removing temporary and backup files
 - **Version control hygiene** improvements
 
 ### Quality Improvements
+
 - **80%+ code coverage** across the framework
 - **Comprehensive error path testing**
 - **Concurrent operation testing**
@@ -59,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.4.0] - Previous Release
 
 ### Added
+
 - Initial framework release with core MCP protocol implementation
 - Multiple transport support (stdio, HTTP, WebSocket)
 - Authentication and security middleware

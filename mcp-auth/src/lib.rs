@@ -25,12 +25,12 @@
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     // Quick development setup - minimal security, maximum convenience
 //!     let framework = McpIntegrationHelper::setup_development("my-server".to_string()).await?;
-//!     
+//!
 //!     // Process authenticated MCP requests
 //!     let (processed_request, auth_context) = framework
 //!         .process_request(request, Some(&headers))
 //!         .await?;
-//!     
+//!
 //!     Ok(())
 //! }
 //! ```
@@ -47,12 +47,12 @@
 //!         "prod-server".to_string(),
 //!         Some("admin-key".to_string()),
 //!     ).await?;
-//!     
+//!
 //!     if let Some(key) = admin_key {
 //!         println!("Admin API Key: {}", key.secret);
 //!         // Store this key securely for initial access
 //!     }
-//!     
+//!
 //!     Ok(())
 //! }
 //! ```
@@ -171,10 +171,10 @@
 //!     Ok((processed_request, Some(auth_context))) => {
 //!         // Request is authenticated and validated
 //!         println!("Authenticated user: {:?}", auth_context.user_id);
-//!         
+//!
 //!         // Check specific permissions
 //!         RequestHelper::validate_request_permissions(&auth_context, "tools:use")?;
-//!         
+//!
 //!         // Process the request...
 //!     },
 //!     Ok((_, None)) => {

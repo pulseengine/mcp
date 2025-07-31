@@ -63,7 +63,7 @@ pub struct McpSemanticResult {
     pub initialization: TestScore,
     /// Capability validation
     pub capabilities: TestScore,
-    /// Method compliance validation  
+    /// Method compliance validation
     pub method_compliance: TestScore,
     /// State transition validation
     pub state_transitions: TestScore,

@@ -27,7 +27,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.7.0"
+version = "0.7.1"
 rust-version = "1.88"
 edition = "2024"
 license = "MIT OR Apache-2.0"
@@ -76,7 +76,7 @@ clap = { version = "4.0", features = ["derive", "env"] }
 toml = "0.8"
 url = "2.4"
 
-# HTTP/Web 
+# HTTP/Web
 axum = { version = "0.7", features = ["ws"] }
 tower = { version = "0.4" }
 tower-http = { version = "0.5", features = ["cors", "auth"] }
@@ -156,4 +156,3 @@ pulseengine-mcp-cli-derive = { path = "mcp-cli-derive" }
 pulseengine-mcp-server = { path = "mcp-server" }
 pulseengine-mcp-macros = { path = "mcp-macros" }
 pulseengine-mcp-external-validation = { path = "mcp-external-validation" }
-

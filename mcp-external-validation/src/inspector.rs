@@ -14,7 +14,7 @@ use tokio::process::Command as TokioCommand;
 use tokio::time::timeout;
 use tracing::{debug, info, warn};
 
-/// MCP Inspector client for automated testing  
+/// MCP Inspector client for automated testing
 pub struct InspectorClient {
     config: ValidationConfig,
     inspector_executable: PathBuf,
@@ -71,7 +71,7 @@ struct ServerValidationResults {
     /// Server connection successful
     connected: bool,
 
-    /// Server initialization successful  
+    /// Server initialization successful
     initialized: bool,
 
     /// Server capabilities properly declared

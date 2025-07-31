@@ -9,6 +9,7 @@ This crate provides monitoring and observability features for MCP servers, inclu
 ## What This Provides
 
 **Metrics Collection:**
+
 - Request/response timing and throughput
 - Error rates and types
 - Tool usage statistics
@@ -16,12 +17,14 @@ This crate provides monitoring and observability features for MCP servers, inclu
 - Client connection metrics
 
 **Health Monitoring:**
+
 - Server health checks with detailed status
 - Backend connectivity validation
 - Resource availability checks
 - Performance threshold monitoring
 
 **Observability:**
+
 - Structured logging integration
 - Request tracing with correlation IDs
 - Performance profiling hooks
@@ -30,6 +33,7 @@ This crate provides monitoring and observability features for MCP servers, inclu
 ## Real-World Usage
 
 This monitoring system is actively used in the **Loxone MCP Server** where it:
+
 - Tracks usage of 30+ home automation tools
 - Monitors device response times and errors
 - Provides health checks for HTTP transport endpoints
@@ -135,6 +139,7 @@ tracker.finish_request(request_id, result.is_ok()).await;
 **Useful for basic monitoring with room for advanced features.** The core monitoring functionality works well for understanding server behavior and performance.
 
 **What works well:**
+
 - ✅ Basic health check system
 - ✅ Request timing and error tracking
 - ✅ Tool usage statistics
@@ -142,6 +147,7 @@ tracker.finish_request(request_id, result.is_ok()).await;
 - ✅ Structured logging integration
 
 **Areas for improvement:**
+
 - 📊 More sophisticated metrics aggregation
 - 🔧 Better alerting and notification systems
 - 📝 More examples for different monitoring setups
@@ -177,7 +183,7 @@ impl HealthCheck for DatabaseHealthCheck {
             Err(e) => HealthStatus::Unhealthy(format!("Database unreachable: {}", e)),
         }
     }
-    
+
     fn name(&self) -> &str {
         "database"
     }

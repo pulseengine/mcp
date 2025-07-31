@@ -25,10 +25,10 @@ use pulseengine_mcp_external_validation::ExternalValidator;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let validator = ExternalValidator::new().await?;
-    
+
     // Validate a running MCP server
     let report = validator.validate_compliance("http://localhost:3000").await?;
-    
+
     if report.is_compliant() {
         println!("✅ Server is fully MCP compliant!");
     } else {
@@ -37,7 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("  - {}", issue);
         }
     }
-    
+
     Ok(())
 }
 ```
@@ -58,24 +58,28 @@ mcp-validate --server-url http://localhost:3000 --protocol-version 2025-03-26
 ## Validation Types
 
 ### 1. Protocol Compliance
+
 - MCP specification adherence
 - JSON-RPC 2.0 compliance
 - Message format validation
 - Error handling verification
 
 ### 2. Transport Layer Testing
+
 - HTTP + SSE transport
 - WebSocket transport
 - stdio transport
 - Streamable HTTP transport
 
 ### 3. Authentication Testing
+
 - API key authentication
 - OAuth 2.1 flows
 - RBAC (Role-Based Access Control)
 - Security header validation
 
 ### 4. Interoperability Testing
+
 - Python SDK compatibility
 - Official client compatibility
 - Cross-platform testing
@@ -84,21 +88,27 @@ mcp-validate --server-url http://localhost:3000 --protocol-version 2025-03-26
 ## External Tools Used
 
 ### MCP Validator (Janix-ai)
+
 Official MCP protocol validator that provides:
+
 - HTTP compliance testing (7/7 tests)
 - OAuth 2.1 framework testing (6/6 tests)
 - Protocol features testing (7/7 tests)
 - Multi-protocol support (3/3 versions)
 
 ### MCP Inspector (Anthropic)
+
 Official visual testing tool for MCP servers:
+
 - Interactive debugging interface
 - Transport protocol testing
 - Authentication verification
 - Export compatibility testing
 
 ### JSON-RPC Tools
+
 External JSON-RPC 2.0 validation:
+
 - Schema validation against official specification
 - Message format compliance
 - Error object validation
@@ -159,7 +169,7 @@ proptest! {
         let parsed: McpMessage = serde_json::from_str(&json)?;
         prop_assert_eq!(msg, parsed);
     }
-    
+
     #[test]
     fn test_tool_execution_properties(
         tool_name in r"[a-zA-Z][a-zA-Z0-9_-]*",
@@ -195,10 +205,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-        
+
       - name: Run external validation
         run: |
           cargo test --package pulseengine-mcp-external-validation
@@ -208,6 +218,7 @@ jobs:
 ## Performance
 
 The external validation framework is designed for:
+
 - **Fast feedback**: Basic validation in under 10 seconds
 - **Comprehensive testing**: Full test suite in under 5 minutes
 - **Parallel execution**: Multiple validators run concurrently

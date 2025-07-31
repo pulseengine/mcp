@@ -6,7 +6,7 @@
 //! # Features
 //!
 //! - **Automatic CLI Generation**: Generate command-line interfaces from configuration structs
-//! - **Configuration Management**: Type-safe configuration with environment variable support  
+//! - **Configuration Management**: Type-safe configuration with environment variable support
 //! - **Server Integration**: Seamless integration with the MCP server framework
 //! - **Logging Setup**: Built-in structured logging configuration
 //! - **Builder Patterns**: Fluent APIs for server configuration
@@ -22,14 +22,14 @@
 //! struct MyServerConfig {
 //!     #[clap(short, long, default_value = "8080")]
 //!     port: u16,
-//!     
+//!
 //!     #[clap(short, long)]
 //!     database_url: String,
-//!     
+//!
 //!     #[mcp(auto_populate)]
 //!     #[clap(skip)]
 //!     server_info: Option<ServerInfo>,
-//!     
+//!
 //!     #[mcp(logging)]
 //!     #[clap(skip)]
 //!     logging: Option<DefaultLoggingConfig>,

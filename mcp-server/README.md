@@ -11,6 +11,7 @@ This crate provides the server infrastructure for building Model Context Protoco
 The main idea is simple: you implement the `McpBackend` trait for your domain (databases, APIs, file systems, etc.), and this crate handles all the MCP protocol work.
 
 **Infrastructure handled for you:**
+
 - Protocol compliance and message routing
 - Multiple transport support (stdio, HTTP, WebSocket)
 - Authentication and security middleware integration
@@ -18,6 +19,7 @@ The main idea is simple: you implement the `McpBackend` trait for your domain (d
 - Monitoring and health checks
 
 **You focus on:**
+
 - Your domain logic (what tools/resources you provide)
 - How to execute operations in your system
 - Your specific business rules and validation
@@ -54,13 +56,13 @@ struct MyBackend {
 impl McpBackend for MyBackend {
     type Error = Box<dyn std::error::Error + Send + Sync>;
     type Config = ();
-    
+
     async fn initialize(_config: Self::Config) -> Result<Self, Self::Error> {
         Ok(MyBackend {
             data: HashMap::new(),
         })
     }
-    
+
     fn get_server_info(&self) -> ServerInfo {
         ServerInfo {
             protocol_version: ProtocolVersion::default(),
@@ -75,7 +77,7 @@ impl McpBackend for MyBackend {
             instructions: Some("A simple key-value store server".to_string()),
         }
     }
-    
+
     async fn list_tools(&self, _request: PaginatedRequestParam) -> Result<ListToolsResult, Self::Error> {
         Ok(ListToolsResult {
             tools: vec![
@@ -95,7 +97,7 @@ impl McpBackend for MyBackend {
             next_cursor: String::new(),
         })
     }
-    
+
     async fn call_tool(&self, request: CallToolRequestParam) -> Result<CallToolResult, Self::Error> {
         match request.name.as_str() {
             "store_value" => {
@@ -108,20 +110,20 @@ impl McpBackend for MyBackend {
             _ => Err("Unknown tool".into()),
         }
     }
-    
+
     // Implement other required methods (can return empty/default for unused features)
     async fn list_resources(&self, _: PaginatedRequestParam) -> Result<ListResourcesResult, Self::Error> {
         Ok(ListResourcesResult { resources: vec![], next_cursor: String::new() })
     }
-    
+
     async fn read_resource(&self, _: ReadResourceRequestParam) -> Result<ReadResourceResult, Self::Error> {
         Err("No resources available".into())
     }
-    
+
     async fn list_prompts(&self, _: PaginatedRequestParam) -> Result<ListPromptsResult, Self::Error> {
         Ok(ListPromptsResult { prompts: vec![], next_cursor: String::new() })
     }
-    
+
     async fn get_prompt(&self, _: GetPromptRequestParam) -> Result<GetPromptResult, Self::Error> {
         Err("No prompts available".into())
     }
@@ -130,16 +132,16 @@ impl McpBackend for MyBackend {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let backend = MyBackend::initialize(()).await?;
-    
+
     let config = ServerConfig {
         server_info: backend.get_server_info(),
         transport_config: TransportConfig::Stdio, // or Http { port: 3001 }
         ..Default::default()
     };
-    
+
     let mut server = McpServer::new(backend, config).await?;
     server.run().await?;
-    
+
     Ok(())
 }
 ```
@@ -149,6 +151,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 **Works well for basic to complex use cases.** The Loxone implementation proves this can handle real-world complexity with multiple tools, resources, and concurrent operations.
 
 **What's solid:**
+
 - ✅ Backend trait is stable and well-tested
 - ✅ Transport integration works (stdio, HTTP, WebSocket)
 - ✅ Authentication middleware integrates cleanly
@@ -156,6 +159,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 - ✅ Async/await throughout with good performance
 
 **Areas for improvement:**
+
 - 📝 More examples for different use cases
 - 🧪 Better testing utilities for backend implementations
 - 🔧 Some advanced features could be more polished
@@ -198,6 +202,7 @@ The framework provides hooks for monitoring and observability:
 ## Comparing to the Loxone Implementation
 
 The **Loxone MCP Server** is our main reference implementation. It shows how to:
+
 - Handle 30+ tools with complex business logic
 - Integrate with external systems (HTTP APIs)
 - Manage connection pooling and caching
@@ -211,8 +216,9 @@ If you're building something similar in complexity, the Loxone code is a good re
 This crate is actively used and maintained as part of the Loxone MCP server. Improvements often come from real-world usage patterns we discover.
 
 Most useful contributions:
+
 1. **Better examples** - Show patterns for different domains
-2. **Testing utilities** - Make it easier to test backend implementations  
+2. **Testing utilities** - Make it easier to test backend implementations
 3. **Documentation** - Especially for complex integration scenarios
 4. **Performance improvements** - Based on real usage patterns
 

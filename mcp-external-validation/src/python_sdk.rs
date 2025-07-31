@@ -517,7 +517,7 @@ from typing import Dict, Any
 
 async def test_notifications(server_url: str, config: Dict[str, Any]) -> Dict[str, Any]:
     """Test notification handling with MCP server."""
-    
+
     return {
         "success": True,
         "duration_ms": 50,
@@ -552,7 +552,7 @@ if __name__ == "__main__":
     parser.add_argument("server_url", help="MCP server URL")
     parser.add_argument("--timeout", type=int, default=30)
     args = parser.parse_args()
-    
+
     config = {"timeout": args.timeout}
     result = asyncio.run(test_notifications(args.server_url, config))
     print(json.dumps(result, indent=2))
@@ -572,7 +572,7 @@ from typing import Dict, Any
 
 async def test_prompt_handling(server_url: str, config: Dict[str, Any]) -> Dict[str, Any]:
     """Test prompt handling with MCP server."""
-    
+
     return {
         "success": True,
         "duration_ms": 50,
@@ -607,7 +607,7 @@ if __name__ == "__main__":
     parser.add_argument("server_url", help="MCP server URL")
     parser.add_argument("--timeout", type=int, default=30)
     args = parser.parse_args()
-    
+
     config = {"timeout": args.timeout}
     result = asyncio.run(test_prompt_handling(args.server_url, config))
     print(json.dumps(result, indent=2))
@@ -627,7 +627,7 @@ from typing import Dict, Any
 
 async def test_oauth_auth(server_url: str, config: Dict[str, Any]) -> Dict[str, Any]:
     """Test OAuth authentication with MCP server."""
-    
+
     return {
         "success": False,  # OAuth typically not implemented in basic servers
         "duration_ms": 10,
@@ -666,7 +666,7 @@ if __name__ == "__main__":
     parser.add_argument("server_url", help="MCP server URL")
     parser.add_argument("--timeout", type=int, default=30)
     args = parser.parse_args()
-    
+
     config = {"timeout": args.timeout}
     result = asyncio.run(test_oauth_auth(args.server_url, config))
     print(json.dumps(result, indent=2))

@@ -2633,13 +2633,13 @@ fn generate_html_report(results: &pulseengine_mcp_auth::PerformanceResults) -> S
         <h1>Performance Test Report</h1>
         <p>Generated: {}</p>
     </div>
-    
+
     <div class="section">
         <h2>Test Configuration</h2>
         <div class="metric">Duration: {:.1} seconds</div>
         <div class="metric">Concurrent Users: {}</div>
     </div>
-    
+
     <div class="section">
         <h2>Overall Results</h2>
         <div class="metric">Total Requests: {}</div>
@@ -2647,7 +2647,7 @@ fn generate_html_report(results: &pulseengine_mcp_auth::PerformanceResults) -> S
         <div class="metric">Overall RPS: {:.1}</div>
         <div class="metric">Peak RPS: {:.1}</div>
     </div>
-    
+
     <div class="section">
         <h2>Resource Usage</h2>
         <div class="metric">Peak Memory: {:.1} MB</div>

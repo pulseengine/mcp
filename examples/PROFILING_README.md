@@ -14,7 +14,9 @@ This directory contains comprehensive examples demonstrating the MCP performance
 ## 🔥 Examples Overview
 
 ### 1. **profiling_demo.rs** - Standalone Profiling Demo
+
 A comprehensive demonstration of all profiling features:
+
 - CPU profiling with configurable sampling
 - Memory profiling with allocation tracking
 - Function call timing and statistics
@@ -32,7 +34,9 @@ cargo run --example profiling_demo
 ```
 
 ### 2. **profiled_server_example.rs** - MCP Server with Profiling
+
 A complete MCP server implementation with integrated profiling:
+
 - Real-world backend with CPU/memory/IO intensive operations
 - Automatic profiling during server operation
 - Periodic hotspot detection and reporting
@@ -55,7 +59,9 @@ mcp-cli call fetch_resources --count 20
 ```
 
 ### 3. **flame_graph_viewer.html** - Interactive Flame Graph Viewer
+
 A web-based flame graph visualization tool:
+
 - D3.js-based interactive visualization
 - Zoom and navigation capabilities
 - Multiple color schemes (hot, cold, rainbow)
@@ -176,16 +182,19 @@ let session = profiler.stop_session().await?;
 ## 📈 Interpreting Results
 
 ### Flame Graph Colors
+
 - **Hot** (default): Red → Yellow gradient
-- **Cold**: Blue → Light blue gradient  
+- **Cold**: Blue → Light blue gradient
 - **Rainbow**: Full spectrum for easy differentiation
 
 ### Performance Indicators
+
 - **Wide frames**: Functions consuming significant CPU time
 - **Tall stacks**: Deep call hierarchies (potential optimization)
 - **Repeated patterns**: Loops or recursive calls
 
 ### Hotspot Severity
+
 - **Critical**: >50% CPU or >100MB memory
 - **High**: >25% CPU or >50MB memory
 - **Medium**: >10% CPU or >10MB memory
@@ -195,16 +204,19 @@ let session = profiler.stop_session().await?;
 ## 🛠️ Troubleshooting
 
 ### No Profiling Data
+
 - Ensure `profiling_config.enabled = true`
 - Check individual profiling components are enabled
 - Verify sampling is occurring during workload
 
 ### Missing Flame Graph
+
 - Minimum samples required (check total_samples > 0)
 - Ensure `flame_graph.enabled = true`
 - Check for profiling errors in logs
 
 ### High Overhead
+
 - Reduce sampling frequency
 - Disable memory profiling if not needed
 - Use targeted profiling for specific operations

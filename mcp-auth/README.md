@@ -9,18 +9,21 @@ This crate provides authentication and authorization for MCP servers. It include
 ## What This Provides
 
 **API Key Management:**
+
 - Secure key generation with cryptographic randomness
 - Multiple key types (live, test) with different permissions
 - Key expiration and rotation support
 - Storage with file system permissions (600/700)
 
 **Role-Based Access:**
+
 - Predefined roles: Admin, Operator, Monitor, Device
 - Custom role definitions with specific permissions
 - Tool-level access control
 - IP address whitelisting
 
 **Security Features:**
+
 - Rate limiting with configurable thresholds
 - Failed attempt tracking and cooldown periods
 - Request size limits
@@ -29,6 +32,7 @@ This crate provides authentication and authorization for MCP servers. It include
 ## Real-World Usage
 
 This authentication system is currently used in production by the **Loxone MCP Server** where it:
+
 - Manages API keys for different client types (admin tools, automation systems, monitoring)
 - Enforces role-based access to 30+ home automation tools
 - Provides audit trails for security compliance
@@ -110,6 +114,7 @@ match auth_manager.validate_request(&auth_request).await {
 **Production-ready for basic to intermediate needs.** The core authentication works well and has been tested in real deployment scenarios.
 
 **What's solid:**
+
 - ✅ API key generation and validation
 - ✅ Role-based access control
 - ✅ Rate limiting and security features
@@ -118,6 +123,7 @@ match auth_manager.validate_request(&auth_request).await {
 - ✅ Audit logging and security events
 
 **What could be improved:**
+
 - 🔧 Key rotation could be more automated
 - 📝 More examples for different deployment scenarios
 - 🧪 Testing utilities for auth scenarios

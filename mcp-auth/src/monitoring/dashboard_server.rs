@@ -345,7 +345,7 @@ impl DashboardServer {
             <button class="refresh-btn" onclick="refreshDashboard()">Refresh</button>
             <span id="last-updated"></span>
         </div>
-        
+
         <div class="dashboard-grid">
             <div class="card">
                 <h2>📊 Security Metrics (24h)</h2>
@@ -368,14 +368,14 @@ impl DashboardServer {
                     </div>
                 </div>
             </div>
-            
+
             <div class="card">
                 <h2>🚨 Active Alerts</h2>
                 <div id="alerts-content">
                     <p>No active alerts</p>
                 </div>
             </div>
-            
+
             <div class="card">
                 <h2>📈 System Health</h2>
                 <div id="health-content">
@@ -393,21 +393,21 @@ impl DashboardServer {
                     </div>
                 </div>
             </div>
-            
+
             <div class="card">
                 <h2>📝 Recent Events</h2>
                 <div class="events-list" id="events-content">
                     <p>Loading events...</p>
                 </div>
             </div>
-            
+
             <div class="card">
                 <h2>🌍 Top Source IPs</h2>
                 <div id="top-ips-content">
                     <p>No data available</p>
                 </div>
             </div>
-            
+
             <div class="card">
                 <h2>🔧 Top User Agents</h2>
                 <div id="top-agents-content">
@@ -416,25 +416,25 @@ impl DashboardServer {
             </div>
         </div>
     </div>
-    
+
     <script>
         async function refreshDashboard() {
             try {
                 // This would make actual API calls to the dashboard endpoints
                 // For demo purposes, we'll show static data
-                
+
                 document.getElementById('auth-success').textContent = '1,234';
                 document.getElementById('auth-failures').textContent = '12';
                 document.getElementById('violations').textContent = '3';
                 document.getElementById('active-sessions').textContent = '89';
-                
+
                 document.getElementById('events-memory').textContent = '2,150';
                 document.getElementById('memory-usage').textContent = '15.2';
                 document.getElementById('last-event').textContent = 'Just now';
-                
-                document.getElementById('last-updated').textContent = 
+
+                document.getElementById('last-updated').textContent =
                     'Last updated: ' + new Date().toLocaleTimeString();
-                
+
                 // Update events list
                 const eventsHtml = `
                     <div class="event medium">
@@ -451,7 +451,7 @@ impl DashboardServer {
                     </div>
                 `;
                 document.getElementById('events-content').innerHTML = eventsHtml;
-                
+
                 // Update top IPs
                 const topIpsHtml = `
                     <div class="metric">
@@ -468,15 +468,15 @@ impl DashboardServer {
                     </div>
                 `;
                 document.getElementById('top-ips-content').innerHTML = topIpsHtml;
-                
+
             } catch (error) {
                 console.error('Failed to refresh dashboard:', error);
             }
         }
-        
+
         // Auto-refresh every 30 seconds
         setInterval(refreshDashboard, 30000);
-        
+
         // Initial load
         refreshDashboard();
     </script>

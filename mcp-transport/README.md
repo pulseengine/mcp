@@ -9,6 +9,7 @@ This crate handles the network transport layer for MCP servers. It provides mult
 ## What This Solves
 
 Different MCP clients need different ways to connect:
+
 - **Claude Desktop** uses stdio transport
 - **Web applications** use HTTP
 - **Real-time applications** use WebSocket
@@ -19,6 +20,7 @@ This crate handles all of these so you don't have to worry about transport detai
 ## Real-World Testing
 
 This transport layer has been thoroughly tested with:
+
 - ✅ **MCP Inspector** - Both legacy SSE and modern HTTP streaming
 - ✅ **Claude Desktop** - stdio transport integration
 - ✅ **HTTP clients** - RESTful access from web apps and n8n
@@ -86,6 +88,7 @@ let mut transport = create_transport(config)?;
 **Solid foundation with known limitations.** The core transport functionality works well in production, but there are areas for improvement.
 
 **What works reliably:**
+
 - ✅ HTTP transport with proper MCP Inspector compatibility
 - ✅ stdio transport for Claude Desktop integration
 - ✅ WebSocket transport for real-time applications
@@ -93,6 +96,7 @@ let mut transport = create_transport(config)?;
 - ✅ Session management and CORS handling
 
 **Areas that need work:**
+
 - 📝 Better examples for each transport type
 - 🧪 More comprehensive error handling in edge cases
 - 🔧 WebSocket transport could use more testing

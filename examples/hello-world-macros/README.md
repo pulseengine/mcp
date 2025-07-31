@@ -12,6 +12,7 @@ This example demonstrates the new macro-driven development experience for PulseE
 ## Comparison
 
 ### Before (Original PulseEngine MCP)
+
 ```rust
 // 280+ lines of manual implementation
 pub struct HelloWorldBackend { /* ... */ }
@@ -43,6 +44,7 @@ impl McpBackend for HelloWorldBackend {
 ```
 
 ### After (With Macros)
+
 ```rust
 // 10 lines of actual business logic
 #[mcp_server(name = "Hello World Macros")]

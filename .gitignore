@@ -38,3 +38,4 @@ lcov.info
 lcov-*.info
 coverage-summary.txt
 /target/llvm-cov/.claude/
+node_modules/

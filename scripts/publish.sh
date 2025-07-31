@@ -57,10 +57,10 @@ wait_for_rate_limit() {
 publish_crate() {
     local crate_name=$1
     local crate_dir=$2
-    
+
     echo "${PUBLISH_COUNT}️⃣ Publishing $crate_name..."
     cd $crate_dir
-    
+
     if [ "$DIRECT_MODE" = true ]; then
         cargo publish --no-verify
         echo "   ✅ Published!"
@@ -77,7 +77,7 @@ publish_crate() {
             echo "   ⏭️  Skipped"
         fi
     fi
-    
+
     cd ..
     echo ""
 }

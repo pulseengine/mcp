@@ -22,12 +22,12 @@ struct MyServer {
 
 ### Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `name` | `String` | ✅ | Human-readable server name displayed to clients |
-| `version` | `String` | ❌ | Server version (defaults to crate version) |
-| `description` | `String` | ❌ | Server description (defaults to struct doc comments) |
-| `app_name` | `String` | ❌ | Application identifier for storage isolation |
+| Parameter     | Type     | Required | Description                                          |
+| ------------- | -------- | -------- | ---------------------------------------------------- |
+| `name`        | `String` | ✅       | Human-readable server name displayed to clients      |
+| `version`     | `String` | ❌       | Server version (defaults to crate version)           |
+| `description` | `String` | ❌       | Server description (defaults to struct doc comments) |
+| `app_name`    | `String` | ❌       | Application identifier for storage isolation         |
 
 ### Generated Code
 
@@ -84,22 +84,22 @@ impl MyServer {
 
 ### Supported Parameter Types
 
-| Type Category | Examples | Notes |
-|---------------|----------|-------|
-| **Primitives** | `i32`, `u64`, `f64`, `bool`, `String` | Direct JSON mapping |
-| **Options** | `Option<T>` | Optional parameters |
-| **Collections** | `Vec<T>`, `HashMap<K, V>` | JSON arrays/objects |
-| **Custom Types** | Structs with `#[derive(Deserialize)]` | Complex nested data |
-| **Enums** | `#[derive(Deserialize)]` enums | Tagged or untagged variants |
+| Type Category    | Examples                              | Notes                       |
+| ---------------- | ------------------------------------- | --------------------------- |
+| **Primitives**   | `i32`, `u64`, `f64`, `bool`, `String` | Direct JSON mapping         |
+| **Options**      | `Option<T>`                           | Optional parameters         |
+| **Collections**  | `Vec<T>`, `HashMap<K, V>`             | JSON arrays/objects         |
+| **Custom Types** | Structs with `#[derive(Deserialize)]` | Complex nested data         |
+| **Enums**        | `#[derive(Deserialize)]` enums        | Tagged or untagged variants |
 
 ### Supported Return Types
 
-| Type Category | Examples | Notes |
-|---------------|----------|-------|
-| **Direct** | `String`, `i32`, `CustomStruct` | Serialized directly |
-| **Results** | `Result<T, E>` | Errors converted to MCP errors |
-| **Options** | `Option<T>` | `null` for `None` |
-| **Collections** | `Vec<T>`, `HashMap<K, V>` | JSON arrays/objects |
+| Type Category   | Examples                        | Notes                          |
+| --------------- | ------------------------------- | ------------------------------ |
+| **Direct**      | `String`, `i32`, `CustomStruct` | Serialized directly            |
+| **Results**     | `Result<T, E>`                  | Errors converted to MCP errors |
+| **Options**     | `Option<T>`                     | `null` for `None`              |
+| **Collections** | `Vec<T>`, `HashMap<K, V>`       | JSON arrays/objects            |
 
 ### Error Handling
 
@@ -142,12 +142,12 @@ impl MyServer {
 
 ### Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `uri_template` | `String` | ✅ | URI pattern with `{param}` placeholders |
-| `name` | `String` | ❌ | Resource identifier (defaults to method name) |
-| `description` | `String` | ❌ | Resource description (defaults to doc comments) |
-| `mime_type` | `String` | ❌ | Content MIME type (defaults to auto-detection) |
+| Parameter      | Type     | Required | Description                                     |
+| -------------- | -------- | -------- | ----------------------------------------------- |
+| `uri_template` | `String` | ✅       | URI pattern with `{param}` placeholders         |
+| `name`         | `String` | ❌       | Resource identifier (defaults to method name)   |
+| `description`  | `String` | ❌       | Resource description (defaults to doc comments) |
+| `mime_type`    | `String` | ❌       | Content MIME type (defaults to auto-detection)  |
 
 ### URI Template Syntax
 
@@ -200,11 +200,11 @@ impl MyServer {
 
 ### Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `name` | `String` | ✅ | Prompt identifier for client requests |
-| `description` | `String` | ❌ | Prompt description (defaults to doc comments) |
-| `arguments` | `[String]` | ❌ | Expected argument names for validation |
+| Parameter     | Type       | Required | Description                                   |
+| ------------- | ---------- | -------- | --------------------------------------------- |
+| `name`        | `String`   | ✅       | Prompt identifier for client requests         |
+| `description` | `String`   | ❌       | Prompt description (defaults to doc comments) |
+| `arguments`   | `[String]` | ❌       | Expected argument names for validation        |
 
 ### Return Type
 
@@ -230,7 +230,7 @@ pub enum PromptContent {
 
 ### Examples
 
-```rust
+````rust
 use pulseengine_mcp_protocol::{PromptMessage, Role, PromptContent};
 
 #[mcp_prompt(name = "code_review")]
@@ -258,14 +258,14 @@ impl MyServer {
             "Analyze this data with focus on {}:\n\nAnalysis type: {}\nData: {}\n\nProvide insights and recommendations.",
             focus_text, analysis_type, serde_json::to_string_pretty(&data)?
         );
-        
+
         Ok(PromptMessage {
             role: Role::User,
             content: PromptContent::Text { text: prompt_text },
         })
     }
 }
-```
+````
 
 ## Generated Server API
 
@@ -279,15 +279,15 @@ impl MyServer {
     fn with_defaults() -> Self;
     fn with_config(config: MyServerConfig) -> Self;
     fn new() -> Self;
-    
+
     // Server information
     fn get_server_info(&self) -> ServerInfo;
-    
+
     // Transport methods
     async fn serve_stdio(&self) -> Result<impl McpService, Error>;
     async fn serve_http(&self, port: u16) -> Result<impl McpService, Error>;
     async fn serve_ws(&self, addr: impl ToSocketAddrs) -> Result<impl McpService, Error>;
-    
+
     // Health check
     async fn health_check(&self) -> Result<(), Error>;
 }
@@ -300,15 +300,15 @@ impl McpBackend for MyServer {
     // Tool operations
     async fn list_tools(&self, params: ListToolsParams) -> Result<ListToolsResult, Error>;
     async fn call_tool(&self, params: CallToolParams) -> Result<CallToolResult, Error>;
-    
-    // Resource operations  
+
+    // Resource operations
     async fn list_resources(&self, params: ListResourcesParams) -> Result<ListResourcesResult, Error>;
     async fn read_resource(&self, params: ReadResourceParams) -> Result<ReadResourceResult, Error>;
-    
+
     // Prompt operations
     async fn list_prompts(&self, params: ListPromptsParams) -> Result<ListPromptsResult, Error>;
     async fn get_prompt(&self, params: GetPromptParams) -> Result<GetPromptResult, Error>;
-    
+
     // Logging operations
     async fn set_logging_level(&self, params: SetLoggingLevelParams) -> Result<(), Error>;
 }
@@ -337,7 +337,7 @@ impl Default for MyServerConfig {
 
 impl MyServerConfig {
     pub fn builder() -> MyServerConfigBuilder;
-    
+
     #[cfg(feature = "auth")]
     pub fn get_auth_config() -> AuthConfig;
 }
@@ -350,7 +350,7 @@ The macro system automatically detects and enables MCP capabilities:
 ### Automatic Detection
 
 - **Tools**: Enabled when `#[mcp_tool]` implementations found
-- **Resources**: Enabled when `#[mcp_resource]` implementations found  
+- **Resources**: Enabled when `#[mcp_resource]` implementations found
 - **Prompts**: Enabled when `#[mcp_prompt]` implementations found
 - **Logging**: Always enabled with configurable levels
 
@@ -382,13 +382,13 @@ All tool, resource, and prompt methods can return `Result<T, E>` where `E` imple
 pub enum MyServerError {
     #[error("Resource not found: {resource}")]
     NotFound { resource: String },
-    
+
     #[error("Access denied: {reason}")]
     AccessDenied { reason: String },
-    
+
     #[error("Invalid input: {field}")]
     InvalidInput { field: String },
-    
+
     #[error("Internal error: {source}")]
     Internal { #[from] source: Box<dyn std::error::Error + Send + Sync> },
 }
@@ -396,12 +396,12 @@ pub enum MyServerError {
 
 ### Error Mapping
 
-| Rust Error Kind | MCP Error Code | Description |
-|------------------|----------------|-------------|
-| `InvalidInput` | `-32602` | Invalid parameters |
-| `NotFound` | `-32001` | Resource/method not found |
-| `PermissionDenied` | `-32003` | Access denied |
-| `Other` | `-32000` | Internal error |
+| Rust Error Kind    | MCP Error Code | Description               |
+| ------------------ | -------------- | ------------------------- |
+| `InvalidInput`     | `-32602`       | Invalid parameters        |
+| `NotFound`         | `-32001`       | Resource/method not found |
+| `PermissionDenied` | `-32003`       | Access denied             |
+| `Other`            | `-32000`       | Internal error            |
 
 ## Type System Integration
 
@@ -458,7 +458,7 @@ impl MyServer {
     fn get_auth_manager(&self) -> &AuthManager {
         // App-specific auth manager
     }
-    
+
     fn verify_api_key(&self, key: &str) -> Result<bool, AuthError> {
         // App-specific key validation
     }
@@ -519,7 +519,7 @@ mod benchmarks {
     fn benchmark_tool_call(c: &mut Criterion) {
         let server = MyServer::with_defaults();
         let rt = tokio::runtime::Runtime::new().unwrap();
-        
+
         c.bench_function("tool_call", |b| {
             b.iter(|| {
                 rt.block_on(async {
