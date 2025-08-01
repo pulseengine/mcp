@@ -10,7 +10,6 @@ use pulseengine_mcp_protocol::McpResult;
 #[derive(Clone, Default)]
 struct ToolDiscoveryServer;
 
-#[mcp_tools]
 impl ToolDiscoveryServer {
     /// Simple tool with no parameters
     pub fn simple_tool(&self) -> String {

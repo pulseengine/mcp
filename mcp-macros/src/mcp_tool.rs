@@ -2,7 +2,7 @@
 
 use darling::{FromMeta, ast::NestedMeta};
 use proc_macro2::TokenStream;
-use quote::{ToTokens, format_ident, quote};
+use quote::{format_ident, quote};
 use syn::{ImplItemFn, ItemFn, ItemImpl, ReturnType};
 
 use crate::utils::*;
@@ -112,16 +112,16 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
     for item in &impl_block.items {
         if let syn::ImplItem::Fn(method) = item {
             // Skip private methods and methods starting with underscore
-            if matches!(method.vis, syn::Visibility::Public(_)) 
-                && !method.sig.ident.to_string().starts_with('_') {
-                
+            if matches!(method.vis, syn::Visibility::Public(_))
+                && !method.sig.ident.to_string().starts_with('_')
+            {
                 let fn_name = &method.sig.ident;
                 let tool_name = function_name_to_tool_name(fn_name);
                 let description = extract_doc_comment(&method.attrs);
-                
+
                 // Extract parameter information
                 let (param_struct, param_fields) = extract_parameters(&method.sig)?;
-                
+
                 // Generate input schema
                 let input_schema = if param_fields.is_empty() {
                     quote! { serde_json::json!({ "type": "object", "properties": {} }) }
@@ -153,7 +153,7 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
 
                 // Generate error handling
                 let error_handling = generate_error_handling(&method.sig.output);
-                
+
                 // Generate parameter extraction
                 let param_extraction = if param_fields.is_empty() {
                     quote! {}
