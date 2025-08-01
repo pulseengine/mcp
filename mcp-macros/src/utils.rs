@@ -153,8 +153,17 @@ pub fn generate_error_handling(return_type: &syn::ReturnType) -> TokenStream {
             if let syn::Type::Path(type_path) = &**ty {
                 if let Some(segment) = type_path.path.segments.last() {
                     if segment.ident == "Result" {
-                        // It's already a Result, just return it
-                        return quote! { result };
+                        // It's already a Result, wrap it properly for the dispatch context
+                        return quote! { 
+                            match result {
+                                Ok(value) => Ok(pulseengine_mcp_protocol::CallToolResult {
+                                    content: vec![pulseengine_mcp_protocol::Content::text(format!("{:?}", value))],
+                                    is_error: Some(false),
+                                    structured_content: None,
+                                }),
+                                Err(e) => Err(pulseengine_mcp_protocol::Error::internal_error(e.to_string())),
+                            }
+                        };
                     }
                 }
             }
