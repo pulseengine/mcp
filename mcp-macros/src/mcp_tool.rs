@@ -101,162 +101,110 @@ pub fn mcp_tool_impl(attr: TokenStream, item: TokenStream) -> syn::Result<TokenS
 /// Implementation of #[mcp_tools] macro for impl blocks
 pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<TokenStream> {
     let impl_block = syn::parse2::<ItemImpl>(item)?;
-
-    // Validate that this is being applied to a proper impl block
-    if impl_block
-        .self_ty
-        .as_ref()
-        .to_token_stream()
-        .to_string()
-        .is_empty()
-    {
-        return Err(syn::Error::new_spanned(
-            &impl_block.self_ty,
-            "#[mcp_tools] can only be applied to impl blocks with a valid type",
-        ));
-    }
-
     let struct_name = &impl_block.self_ty;
-    let (impl_generics, _, where_clause) = impl_block.generics.split_for_impl();
+    let (impl_generics, ty_generics, where_clause) = impl_block.generics.split_for_impl();
 
-    // Find all public methods that should become tools
-    let mut tool_methods = Vec::new();
+    // Extract tool functions from the impl block
+    let mut tool_functions = Vec::new();
     let mut tool_definitions = Vec::new();
     let mut tool_dispatch_cases = Vec::new();
-    let mut tool_definition_functions = Vec::new();
 
     for item in &impl_block.items {
         if let syn::ImplItem::Fn(method) = item {
-            // Skip private methods
-            if !matches!(method.vis, syn::Visibility::Public(_)) {
-                continue;
-            }
+            // Skip private methods and methods starting with underscore
+            if matches!(method.vis, syn::Visibility::Public(_)) 
+                && !method.sig.ident.to_string().starts_with('_') {
+                
+                let fn_name = &method.sig.ident;
+                let tool_name = function_name_to_tool_name(fn_name);
+                let description = extract_doc_comment(&method.attrs);
+                
+                // Extract parameter information
+                let (param_struct, param_fields) = extract_parameters(&method.sig)?;
+                
+                // Generate input schema
+                let input_schema = if param_fields.is_empty() {
+                    quote! { serde_json::json!({ "type": "object", "properties": {} }) }
+                } else {
+                    generate_schema_for_type(&param_struct)
+                };
 
-            // Skip methods starting with underscore (internal methods)
-            let method_name = &method.sig.ident;
-            if method_name.to_string().starts_with('_') {
-                continue;
-            }
+                // Handle async functions
+                let (call_expr, _is_async) = if method.sig.asyncness.is_some() {
+                    (quote! { self.#fn_name(#(#param_fields),*).await }, true)
+                } else {
+                    (quote! { self.#fn_name(#(#param_fields),*) }, false)
+                };
 
-            // Skip methods with self as first parameter that aren't &self
-            let has_self_ref = method.sig.inputs.first().is_some_and(
-                |arg| matches!(arg, syn::FnArg::Receiver(receiver) if receiver.reference.is_some()),
-            );
+                let description_expr = match description.as_deref() {
+                    Some(desc) => quote! { Some(#desc.to_string()) },
+                    None => quote! { None },
+                };
 
-            if !has_self_ref {
-                continue;
-            }
-
-            let tool_name = function_name_to_tool_name(method_name);
-            let tool_def_fn_name = format_ident!("{}_tool_definition", method_name);
-
-            // Extract parameter information
-            let (param_struct, param_fields) = extract_parameters(&method.sig)?;
-
-            // Extract description from doc comments
-            let description = extract_doc_comment(&method.attrs);
-            let description_expr = match description.as_deref() {
-                Some(desc) => quote! { Some(#desc.to_string()) },
-                None => quote! { None },
-            };
-
-            // Generate input schema
-            let input_schema = if param_fields.is_empty() {
-                quote! { serde_json::json!({ "type": "object", "properties": {} }) }
-            } else {
-                generate_schema_for_type(&param_struct)
-            };
-
-            // Generate tool definition function
-            tool_definition_functions.push(quote! {
-                impl #impl_generics #struct_name #where_clause {
-                    pub fn #tool_def_fn_name() -> pulseengine_mcp_protocol::Tool {
-                        pulseengine_mcp_protocol::Tool {
-                            name: #tool_name.to_string(),
-                            description: #description_expr,
-                            input_schema: #input_schema,
-                            output_schema: None,
-                        }
+                // Generate tool definition
+                tool_definitions.push(quote! {
+                    pulseengine_mcp_protocol::Tool {
+                        name: #tool_name.to_string(),
+                        description: #description_expr,
+                        input_schema: #input_schema,
+                        output_schema: None,
                     }
-                }
-            });
+                });
 
-            // Generate tool definition call
-            tool_definitions.push(quote! {
-                tools.push(Self::#tool_def_fn_name());
-            });
+                // Generate error handling
+                let error_handling = generate_error_handling(&method.sig.output);
+                
+                // Generate parameter extraction
+                let param_extraction = if param_fields.is_empty() {
+                    quote! {}
+                } else {
+                    quote! {
+                        let args = request.arguments.unwrap_or(serde_json::Value::Object(Default::default()));
+                        let args = args.as_object().ok_or_else(||
+                            pulseengine_mcp_protocol::Error::invalid_params("Arguments must be an object")
+                        )?;
+                    }
+                };
 
-            // Generate dispatch case
-            let param_extraction = if param_fields.is_empty() {
-                quote! {}
-            } else {
-                quote! {
-                    let args = request.arguments.unwrap_or(serde_json::Value::Object(Default::default()));
-                    let args = args.as_object().ok_or_else(||
-                        pulseengine_mcp_protocol::Error::invalid_params("Arguments must be an object")
-                    )?;
-                }
-            };
+                // Generate dispatch case
+                tool_dispatch_cases.push(quote! {
+                    #tool_name => {
+                        #param_extraction
+                        let result = #call_expr;
+                        #error_handling
+                    }
+                });
 
-            // Handle async functions
-            let call_expr = if method.sig.asyncness.is_some() {
-                quote! { self.#method_name(#(#param_fields),*).await }
-            } else {
-                quote! { self.#method_name(#(#param_fields),*) }
-            };
-
-            let error_handling = generate_error_handling(&method.sig.output);
-
-            tool_dispatch_cases.push(quote! {
-                #tool_name => {
-                    #param_extraction
-
-                    let result = #call_expr;
-                    #error_handling
-                }
-            });
-
-            tool_methods.push(method_name.clone());
+                tool_functions.push(fn_name.clone());
+            }
         }
     }
 
-    // Generate trait implementation to override the default behavior
-    let tool_discovery_impl = if !tool_methods.is_empty() {
-        quote! {
-            // Override the default trait implementation with actual tool discovery
-            impl #impl_generics McpToolsDefault for #struct_name #where_clause {
-                fn __mcp_get_discovered_tools(&self) -> Vec<pulseengine_mcp_protocol::Tool> {
-                    let mut tools = Vec::new();
-                    #(#tool_definitions)*
-                    tools
-                }
-
-                fn __mcp_dispatch_discovered_tool(
-                    &self,
-                    request: pulseengine_mcp_protocol::CallToolRequestParam,
-                ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Option<Result<pulseengine_mcp_protocol::CallToolResult, pulseengine_mcp_protocol::Error>>> + Send + '_>> {
-                    Box::pin(async move {
-                        match request.name.as_str() {
-                            #(#tool_dispatch_cases)*
-                            _ => None, // Not an automatically discovered tool
-                        }
-                    })
-                }
-            }
-        }
-    } else {
-        quote! {
-            // No tools found in impl block - use default trait implementation
-        }
-    };
-
+    // Generate the impl block and override the helper methods
     Ok(quote! {
         #impl_block
 
-        // Generate individual tool definition functions
-        #(#tool_definition_functions)*
+        // Marker trait to indicate this type has tools
+        impl #impl_generics McpToolsProvider for #struct_name #ty_generics #where_clause {
+            fn get_tools(&self) -> Vec<pulseengine_mcp_protocol::Tool> {
+                vec![#(#tool_definitions),*]
+            }
 
-        #tool_discovery_impl
+            fn dispatch_tool(
+                &self,
+                request: pulseengine_mcp_protocol::CallToolRequestParam,
+            ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<pulseengine_mcp_protocol::CallToolResult, pulseengine_mcp_protocol::Error>> + Send + '_>> {
+                Box::pin(async move {
+                    match request.name.as_str() {
+                        #(#tool_dispatch_cases)*
+                        _ => Err(pulseengine_mcp_protocol::Error::invalid_params(
+                            format!("Unknown tool: {}", request.name)
+                        ))
+                    }
+                })
+            }
+        }
+
     })
 }
 
@@ -280,7 +228,7 @@ fn extract_parameters(sig: &syn::Signature) -> syn::Result<(syn::Type, Vec<Token
                     param_names.push(param_name.clone());
                     param_types.push(param_type.clone());
 
-                    // Generate parameter extraction code
+                    // Generate parameter extraction code with consistent error handling
                     if is_option_type(param_type) {
                         param_fields.push(quote! {
                             args.get(stringify!(#param_name))
@@ -288,11 +236,13 @@ fn extract_parameters(sig: &syn::Signature) -> syn::Result<(syn::Type, Vec<Token
                         });
                     } else {
                         param_fields.push(quote! {
-                            args.get(stringify!(#param_name))
-                                .and_then(|v| serde_json::from_value(v.clone()).ok())
-                                .ok_or_else(|| pulseengine_mcp_protocol::Error::invalid_params(
+                            match args.get(stringify!(#param_name))
+                                .and_then(|v| serde_json::from_value(v.clone()).ok()) {
+                                Some(value) => value,
+                                None => return Some(Err(pulseengine_mcp_protocol::Error::invalid_params(
                                     format!("Missing required parameter: {}", stringify!(#param_name))
-                                ))?
+                                ))),
+                            }
                         });
                     }
                 }

@@ -24,26 +24,30 @@ fn test_server_unusual_names() {
 /// Test tools with empty or no descriptions
 #[test]
 fn test_tools_description_handling() {
-    #[mcp_server(name = "Description Test Server")]
-    #[derive(Clone, Default)]
-    struct DescriptionTestServer;
+    mod test_tools_description_handling {
+        use super::*;
 
-    #[mcp_tools]
-    impl DescriptionTestServer {
-        /// Tool with detailed documentation
-        ///
-        /// This tool has multiple lines of documentation
-        /// that should be properly handled by the macro.
-        pub fn documented_tool(&self) -> String {
-            "documented".to_string()
-        }
+        #[mcp_server(name = "Description Test Server")]
+        #[derive(Clone, Default)]
+        pub struct DescriptionTestServer;
 
-        pub fn undocumented_tool(&self) -> String {
-            "undocumented".to_string()
+        #[mcp_tools]
+        impl DescriptionTestServer {
+            /// Tool with detailed documentation
+            ///
+            /// This tool has multiple lines of documentation
+            /// that should be properly handled by the macro.
+            pub fn documented_tool(&self) -> String {
+                "documented".to_string()
+            }
+
+            pub fn undocumented_tool(&self) -> String {
+                "undocumented".to_string()
+            }
         }
     }
 
-    let server = DescriptionTestServer::with_defaults();
+    let server = test_tools_description_handling::DescriptionTestServer::with_defaults();
     let info = server.get_server_info();
     assert_eq!(info.server_info.name, "Description Test Server");
 }
@@ -72,45 +76,49 @@ fn test_server_long_description() {
 /// Test tools that return various types
 #[test]
 fn test_tools_various_return_types() {
-    #[mcp_server(name = "Return Types Server")]
-    #[derive(Clone, Default)]
-    struct ReturnTypesServer;
+    mod test_tools_various_return_types {
+        use super::*;
 
-    #[mcp_tools]
-    impl ReturnTypesServer {
-        /// Tool that returns string
-        pub fn string_tool(&self) -> String {
-            "string result".to_string()
-        }
+        #[mcp_server(name = "Return Types Server")]
+        #[derive(Clone, Default)]
+        pub struct ReturnTypesServer;
 
-        /// Tool that returns number
-        pub fn number_tool(&self) -> u32 {
-            42
-        }
-
-        /// Tool that returns boolean
-        pub fn bool_tool(&self) -> bool {
-            true
-        }
-
-        /// Tool that returns result
-        pub fn result_tool(&self, should_error: Option<bool>) -> McpResult<String> {
-            if should_error.unwrap_or(false) {
-                Err(pulseengine_mcp_protocol::Error::validation_error(
-                    "Test error",
-                ))
-            } else {
-                Ok("success".to_string())
+        #[mcp_tools]
+        impl ReturnTypesServer {
+            /// Tool that returns string
+            pub fn string_tool(&self) -> String {
+                "string result".to_string()
             }
-        }
 
-        /// Tool that returns nothing (unit type)
-        pub fn unit_tool(&self) {
-            // Does nothing
+            /// Tool that returns number
+            pub fn number_tool(&self) -> u32 {
+                42
+            }
+
+            /// Tool that returns boolean
+            pub fn bool_tool(&self) -> bool {
+                true
+            }
+
+            /// Tool that returns result
+            pub fn result_tool(&self, should_error: Option<bool>) -> McpResult<String> {
+                if should_error.unwrap_or(false) {
+                    Err(pulseengine_mcp_protocol::Error::validation_error(
+                        "Test error",
+                    ))
+                } else {
+                    Ok("success".to_string())
+                }
+            }
+
+            /// Tool that returns nothing (unit type)
+            pub fn unit_tool(&self) {
+                // Does nothing
+            }
         }
     }
 
-    let server = ReturnTypesServer::with_defaults();
+    let server = test_tools_various_return_types::ReturnTypesServer::with_defaults();
     let info = server.get_server_info();
     assert_eq!(info.server_info.name, "Return Types Server");
 }
@@ -118,56 +126,60 @@ fn test_tools_various_return_types() {
 /// Test tools with various parameter patterns
 #[test]
 fn test_tools_parameter_patterns() {
-    #[mcp_server(name = "Parameter Patterns Server")]
-    #[derive(Clone, Default)]
-    struct ParameterPatternsServer;
+    mod test_tools_parameter_patterns {
+        use super::*;
 
-    #[mcp_tools]
-    impl ParameterPatternsServer {
-        /// Tool with no parameters
-        pub fn no_params(&self) -> String {
-            "no params".to_string()
-        }
+        #[mcp_server(name = "Parameter Patterns Server")]
+        #[derive(Clone, Default)]
+        pub struct ParameterPatternsServer;
 
-        /// Tool with required parameter
-        pub fn required_param(&self, value: String) -> String {
-            format!("required: {}", value)
-        }
+        #[mcp_tools]
+        impl ParameterPatternsServer {
+            /// Tool with no parameters
+            pub fn no_params(&self) -> String {
+                "no params".to_string()
+            }
 
-        /// Tool with optional parameter
-        pub fn optional_param(&self, value: Option<String>) -> String {
-            format!(
-                "optional: {}",
-                value.unwrap_or_else(|| "default".to_string())
-            )
-        }
+            /// Tool with required parameter
+            pub fn required_param(&self, value: String) -> String {
+                format!("required: {}", value)
+            }
 
-        /// Tool with mixed parameters
-        pub fn mixed_params(
-            &self,
-            required: String,
-            optional: Option<u32>,
-            another_opt: Option<bool>,
-        ) -> String {
-            format!(
-                "mixed: {} {} {}",
-                required,
-                optional.unwrap_or(0),
-                another_opt.unwrap_or(false)
-            )
-        }
+            /// Tool with optional parameter
+            pub fn optional_param(&self, value: Option<String>) -> String {
+                format!(
+                    "optional: {}",
+                    value.unwrap_or_else(|| "default".to_string())
+                )
+            }
 
-        /// Tool with complex parameter types
-        pub fn complex_params(
-            &self,
-            numbers: Vec<i32>,
-            mapping: std::collections::HashMap<String, u32>,
-        ) -> String {
-            format!("complex: {} items, {} keys", numbers.len(), mapping.len())
+            /// Tool with mixed parameters
+            pub fn mixed_params(
+                &self,
+                required: String,
+                optional: Option<u32>,
+                another_opt: Option<bool>,
+            ) -> String {
+                format!(
+                    "mixed: {} {} {}",
+                    required,
+                    optional.unwrap_or(0),
+                    another_opt.unwrap_or(false)
+                )
+            }
+
+            /// Tool with complex parameter types
+            pub fn complex_params(
+                &self,
+                numbers: Vec<i32>,
+                mapping: std::collections::HashMap<String, u32>,
+            ) -> String {
+                format!("complex: {} items, {} keys", numbers.len(), mapping.len())
+            }
         }
     }
 
-    let server = ParameterPatternsServer::with_defaults();
+    let server = test_tools_parameter_patterns::ParameterPatternsServer::with_defaults();
     let info = server.get_server_info();
     assert_eq!(info.server_info.name, "Parameter Patterns Server");
 }
@@ -175,19 +187,23 @@ fn test_tools_parameter_patterns() {
 /// Test server with zero-sized type
 #[test]
 fn test_server_zero_sized() {
-    #[mcp_server(name = "Zero Sized Server")]
-    #[derive(Clone, Default)]
-    struct ZeroSizedServer;
+    mod test_server_zero_sized {
+        use super::*;
 
-    #[mcp_tools]
-    impl ZeroSizedServer {
-        /// Zero-sized tool
-        pub fn zero_tool(&self) -> String {
-            "zero".to_string()
+        #[mcp_server(name = "Zero Sized Server")]
+        #[derive(Clone, Default)]
+        pub struct ZeroSizedServer;
+
+        #[mcp_tools]
+        impl ZeroSizedServer {
+            /// Zero-sized tool
+            pub fn zero_tool(&self) -> String {
+                "zero".to_string()
+            }
         }
     }
 
-    let server = ZeroSizedServer::with_defaults();
+    let server = test_server_zero_sized::ZeroSizedServer::with_defaults();
     let info = server.get_server_info();
     assert_eq!(info.server_info.name, "Zero Sized Server");
 
@@ -199,12 +215,15 @@ fn test_server_zero_sized() {
 /// Test deeply nested error handling scenarios
 #[test]
 fn test_nested_error_handling() {
-    #[mcp_server(name = "Nested Errors Server")]
-    #[derive(Clone, Default)]
-    struct NestedErrorsServer;
+    mod test_nested_error_handling {
+        use super::*;
 
-    #[mcp_tools]
-    impl NestedErrorsServer {
+        #[mcp_server(name = "Nested Errors Server")]
+        #[derive(Clone, Default)]
+        pub struct NestedErrorsServer;
+
+        #[mcp_tools]
+        impl NestedErrorsServer {
         /// Tool with comprehensive error handling
         pub fn comprehensive_errors(&self, error_type: Option<String>) -> McpResult<String> {
             match error_type.as_deref().unwrap_or("none") {
@@ -235,8 +254,9 @@ fn test_nested_error_handling() {
             }
         }
     }
+    }
 
-    let server = NestedErrorsServer::with_defaults();
+    let server = test_nested_error_handling::NestedErrorsServer::with_defaults();
     let info = server.get_server_info();
     assert_eq!(info.server_info.name, "Nested Errors Server");
 }
@@ -244,12 +264,15 @@ fn test_nested_error_handling() {
 /// Test tools with large parameter values
 #[test]
 fn test_tools_large_parameters() {
-    #[mcp_server(name = "Large Params Server")]
-    #[derive(Clone, Default)]
-    struct LargeParamsServer;
+    mod test_tools_large_parameters {
+        use super::*;
 
-    #[mcp_tools]
-    impl LargeParamsServer {
+        #[mcp_server(name = "Large Params Server")]
+        #[derive(Clone, Default)]
+        pub struct LargeParamsServer;
+
+        #[mcp_tools]
+        impl LargeParamsServer {
         /// Tool that handles large parameters
         pub fn large_params(
             &self,
@@ -264,8 +287,9 @@ fn test_tools_large_parameters() {
             )
         }
     }
+    }
 
-    let server = LargeParamsServer::with_defaults();
+    let server = test_tools_large_parameters::LargeParamsServer::with_defaults();
     let info = server.get_server_info();
     assert_eq!(info.server_info.name, "Large Params Server");
 }
@@ -273,31 +297,35 @@ fn test_tools_large_parameters() {
 /// Test server with concrete type (avoiding complex generics for now)
 #[test]
 fn test_concrete_complex_server() {
-    #[mcp_server(name = "Complex Server")]
-    #[derive(Clone)]
-    struct ComplexServer {
-        data_string: Arc<String>,
-        data_int: Arc<i32>,
-    }
+    mod test_concrete_complex_server {
+        use super::*;
 
-    impl Default for ComplexServer {
-        fn default() -> Self {
-            Self {
-                data_string: Arc::new("default".to_string()),
-                data_int: Arc::new(42),
+        #[mcp_server(name = "Complex Server")]
+        #[derive(Clone)]
+        pub struct ComplexServer {
+            data_string: Arc<String>,
+            data_int: Arc<i32>,
+        }
+
+        impl Default for ComplexServer {
+            fn default() -> Self {
+                Self {
+                    data_string: Arc::new("default".to_string()),
+                    data_int: Arc::new(42),
+                }
             }
         }
-    }
 
-    #[mcp_tools]
-    impl ComplexServer {
+        #[mcp_tools]
+        impl ComplexServer {
         /// Tool with complex data access
         pub fn complex_tool(&self) -> String {
             format!("String: {}, Int: {:?}", *self.data_string, *self.data_int)
         }
     }
+    }
 
-    let server = ComplexServer::with_defaults();
+    let server = test_concrete_complex_server::ComplexServer::with_defaults();
     let info = server.get_server_info();
     assert_eq!(info.server_info.name, "Complex Server");
     assert_eq!(*server.data_string, "default");
@@ -307,20 +335,24 @@ fn test_concrete_complex_server() {
 /// Test tool with Unicode names and content
 #[test]
 fn test_unicode_handling() {
-    #[mcp_server(name = "Unicode Server")]
-    #[derive(Clone, Default)]
-    struct UnicodeServer;
+    mod test_unicode_handling {
+        use super::*;
 
-    #[mcp_tools]
-    impl UnicodeServer {
+        #[mcp_server(name = "Unicode Server")]
+        #[derive(Clone, Default)]
+        pub struct UnicodeServer;
+
+        #[mcp_tools]
+        impl UnicodeServer {
         /// Unicode tool - 测试 Unicode 处理
         pub fn unicode_tool(&self, message: Option<String>) -> String {
             let message = message.unwrap_or_else(|| "🌟 Default Unicode message 🚀".to_string());
             format!("📝 Received: {} ✅", message)
         }
     }
+    }
 
-    let server = UnicodeServer::with_defaults();
+    let server = test_unicode_handling::UnicodeServer::with_defaults();
     let info = server.get_server_info();
     assert_eq!(info.server_info.name, "Unicode Server");
 }
@@ -328,12 +360,15 @@ fn test_unicode_handling() {
 /// Test async tools with different patterns
 #[test]
 fn test_async_tool_patterns() {
-    #[mcp_server(name = "Async Patterns Server")]
-    #[derive(Clone, Default)]
-    struct AsyncPatternsServer;
+    mod test_async_tool_patterns {
+        use super::*;
 
-    #[mcp_tools]
-    impl AsyncPatternsServer {
+        #[mcp_server(name = "Async Patterns Server")]
+        #[derive(Clone, Default)]
+        pub struct AsyncPatternsServer;
+
+        #[mcp_tools]
+        impl AsyncPatternsServer {
         /// Simple async tool
         pub async fn simple_async(&self) -> String {
             tokio::time::sleep(std::time::Duration::from_millis(1)).await;
@@ -359,8 +394,9 @@ fn test_async_tool_patterns() {
             }
         }
     }
+    }
 
-    let server = AsyncPatternsServer::with_defaults();
+    let server = test_async_tool_patterns::AsyncPatternsServer::with_defaults();
     let info = server.get_server_info();
     assert_eq!(info.server_info.name, "Async Patterns Server");
 }
@@ -368,20 +404,23 @@ fn test_async_tool_patterns() {
 /// Test macro with attribute combinations
 #[test]
 fn test_attribute_combinations() {
-    /// This is a server with documentation
-    #[mcp_server(
-        name = "Attribute Test Server",
-        version = "1.2.3",
-        description = "Test server with attributes"
-    )]
-    #[derive(Clone, Default, Debug)]
-    struct AttributeTestServer {
-        #[allow(dead_code)]
-        data: String,
-    }
+    mod test_attribute_combinations {
+        use super::*;
 
-    #[mcp_tools]
-    impl AttributeTestServer {
+        /// This is a server with documentation
+        #[mcp_server(
+            name = "Attribute Test Server",
+            version = "1.2.3",
+            description = "Test server with attributes"
+        )]
+        #[derive(Clone, Default, Debug)]
+        pub struct AttributeTestServer {
+            #[allow(dead_code)]
+            data: String,
+        }
+
+        #[mcp_tools]
+        impl AttributeTestServer {
         /// Tool with lots of attributes and documentation
         #[allow(clippy::unnecessary_wraps)]
         pub fn attributed_tool(
@@ -390,9 +429,10 @@ fn test_attribute_combinations() {
         ) -> McpResult<String> {
             Ok("attributed".to_string())
         }
+        }
     }
 
-    let server = AttributeTestServer::with_defaults();
+    let server = test_attribute_combinations::AttributeTestServer::with_defaults();
     let info = server.get_server_info();
     assert_eq!(info.server_info.name, "Attribute Test Server");
     assert_eq!(info.server_info.version, "1.2.3");
@@ -401,16 +441,20 @@ fn test_attribute_combinations() {
 /// Test server with empty impl block
 #[test]
 fn test_empty_impl_block() {
-    #[mcp_server(name = "Empty Impl Server")]
-    #[derive(Clone, Default)]
-    struct EmptyImplServer;
+    mod test_empty_impl_block {
+        use super::*;
 
-    #[mcp_tools]
-    impl EmptyImplServer {
-        // No tools defined - should still work
+        #[mcp_server(name = "Empty Impl Server")]
+        #[derive(Clone, Default)]
+        pub struct EmptyImplServer;
+
+        #[mcp_tools]
+        impl EmptyImplServer {
+            // No tools defined - should still work
+        }
     }
 
-    let server = EmptyImplServer::with_defaults();
+    let server = test_empty_impl_block::EmptyImplServer::with_defaults();
     let info = server.get_server_info();
     assert_eq!(info.server_info.name, "Empty Impl Server");
 }
@@ -418,12 +462,15 @@ fn test_empty_impl_block() {
 /// Test server with only private methods
 #[test]
 fn test_only_private_methods() {
-    #[mcp_server(name = "Private Methods Server")]
-    #[derive(Clone, Default)]
-    struct PrivateMethodsServer;
+    mod test_only_private_methods {
+        use super::*;
 
-    #[mcp_tools]
-    impl PrivateMethodsServer {
+        #[mcp_server(name = "Private Methods Server")]
+        #[derive(Clone, Default)]
+        pub struct PrivateMethodsServer;
+
+        #[mcp_tools]
+        impl PrivateMethodsServer {
         /// Private helper method - should be ignored by macro
         fn private_helper(&self) -> String {
             "private".to_string()
@@ -433,9 +480,10 @@ fn test_only_private_methods() {
         fn another_private(&self, _param: String) -> bool {
             true
         }
+        }
     }
 
-    let server = PrivateMethodsServer::with_defaults();
+    let server = test_only_private_methods::PrivateMethodsServer::with_defaults();
     let info = server.get_server_info();
     assert_eq!(info.server_info.name, "Private Methods Server");
 }
