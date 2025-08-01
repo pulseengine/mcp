@@ -346,7 +346,7 @@ fn generate_server_implementation(
             /// Get all available tools
             fn get_tools(&self) -> Vec<pulseengine_mcp_protocol::Tool>;
 
-            /// Dispatch tool calls to appropriate handlers  
+            /// Dispatch tool calls to appropriate handlers
             fn dispatch_tool(
                 &self,
                 request: pulseengine_mcp_protocol::CallToolRequestParam,
