@@ -224,36 +224,36 @@ fn test_nested_error_handling() {
 
         #[mcp_tools]
         impl NestedErrorsServer {
-        /// Tool with comprehensive error handling
-        pub fn comprehensive_errors(&self, error_type: Option<String>) -> McpResult<String> {
-            match error_type.as_deref().unwrap_or("none") {
-                "parse" => Err(pulseengine_mcp_protocol::Error::parse_error("Parse error")),
-                "invalid_request" => Err(pulseengine_mcp_protocol::Error::invalid_request(
-                    "Invalid request",
-                )),
-                "invalid_params" => Err(pulseengine_mcp_protocol::Error::invalid_params(
-                    "Invalid params",
-                )),
-                "internal" => Err(pulseengine_mcp_protocol::Error::internal_error(
-                    "Internal error",
-                )),
-                "unauthorized" => Err(pulseengine_mcp_protocol::Error::unauthorized(
-                    "Unauthorized",
-                )),
-                "forbidden" => Err(pulseengine_mcp_protocol::Error::forbidden("Forbidden")),
-                "not_found" => Err(pulseengine_mcp_protocol::Error::resource_not_found(
-                    "Not found",
-                )),
-                "validation" => Err(pulseengine_mcp_protocol::Error::validation_error(
-                    "Validation error",
-                )),
-                "rate_limit" => Err(pulseengine_mcp_protocol::Error::rate_limit_exceeded(
-                    "Rate limited",
-                )),
-                _ => Ok("No error".to_string()),
+            /// Tool with comprehensive error handling
+            pub fn comprehensive_errors(&self, error_type: Option<String>) -> McpResult<String> {
+                match error_type.as_deref().unwrap_or("none") {
+                    "parse" => Err(pulseengine_mcp_protocol::Error::parse_error("Parse error")),
+                    "invalid_request" => Err(pulseengine_mcp_protocol::Error::invalid_request(
+                        "Invalid request",
+                    )),
+                    "invalid_params" => Err(pulseengine_mcp_protocol::Error::invalid_params(
+                        "Invalid params",
+                    )),
+                    "internal" => Err(pulseengine_mcp_protocol::Error::internal_error(
+                        "Internal error",
+                    )),
+                    "unauthorized" => Err(pulseengine_mcp_protocol::Error::unauthorized(
+                        "Unauthorized",
+                    )),
+                    "forbidden" => Err(pulseengine_mcp_protocol::Error::forbidden("Forbidden")),
+                    "not_found" => Err(pulseengine_mcp_protocol::Error::resource_not_found(
+                        "Not found",
+                    )),
+                    "validation" => Err(pulseengine_mcp_protocol::Error::validation_error(
+                        "Validation error",
+                    )),
+                    "rate_limit" => Err(pulseengine_mcp_protocol::Error::rate_limit_exceeded(
+                        "Rate limited",
+                    )),
+                    _ => Ok("No error".to_string()),
+                }
             }
         }
-    }
     }
 
     let server = test_nested_error_handling::NestedErrorsServer::with_defaults();
@@ -273,20 +273,20 @@ fn test_tools_large_parameters() {
 
         #[mcp_tools]
         impl LargeParamsServer {
-        /// Tool that handles large parameters
-        pub fn large_params(
-            &self,
-            large_string: Option<String>,
-            large_numbers: Option<Vec<i32>>,
-        ) -> String {
-            let string_size = large_string.as_ref().map(|s| s.len()).unwrap_or(0);
-            let numbers_size = large_numbers.as_ref().map(|v| v.len()).unwrap_or(0);
-            format!(
-                "Processed string of size: {}, array of size: {}",
-                string_size, numbers_size
-            )
+            /// Tool that handles large parameters
+            pub fn large_params(
+                &self,
+                large_string: Option<String>,
+                large_numbers: Option<Vec<i32>>,
+            ) -> String {
+                let string_size = large_string.as_ref().map(|s| s.len()).unwrap_or(0);
+                let numbers_size = large_numbers.as_ref().map(|v| v.len()).unwrap_or(0);
+                format!(
+                    "Processed string of size: {}, array of size: {}",
+                    string_size, numbers_size
+                )
+            }
         }
-    }
     }
 
     let server = test_tools_large_parameters::LargeParamsServer::with_defaults();
@@ -318,11 +318,11 @@ fn test_concrete_complex_server() {
 
         #[mcp_tools]
         impl ComplexServer {
-        /// Tool with complex data access
-        pub fn complex_tool(&self) -> String {
-            format!("String: {}, Int: {:?}", *self.data_string, *self.data_int)
+            /// Tool with complex data access
+            pub fn complex_tool(&self) -> String {
+                format!("String: {}, Int: {:?}", *self.data_string, *self.data_int)
+            }
         }
-    }
     }
 
     let server = test_concrete_complex_server::ComplexServer::with_defaults();
@@ -344,12 +344,13 @@ fn test_unicode_handling() {
 
         #[mcp_tools]
         impl UnicodeServer {
-        /// Unicode tool - 测试 Unicode 处理
-        pub fn unicode_tool(&self, message: Option<String>) -> String {
-            let message = message.unwrap_or_else(|| "🌟 Default Unicode message 🚀".to_string());
-            format!("📝 Received: {} ✅", message)
+            /// Unicode tool - 测试 Unicode 处理
+            pub fn unicode_tool(&self, message: Option<String>) -> String {
+                let message =
+                    message.unwrap_or_else(|| "🌟 Default Unicode message 🚀".to_string());
+                format!("📝 Received: {} ✅", message)
+            }
         }
-    }
     }
 
     let server = test_unicode_handling::UnicodeServer::with_defaults();
@@ -369,31 +370,31 @@ fn test_async_tool_patterns() {
 
         #[mcp_tools]
         impl AsyncPatternsServer {
-        /// Simple async tool
-        pub async fn simple_async(&self) -> String {
-            tokio::time::sleep(std::time::Duration::from_millis(1)).await;
-            "simple async".to_string()
-        }
+            /// Simple async tool
+            pub async fn simple_async(&self) -> String {
+                tokio::time::sleep(std::time::Duration::from_millis(1)).await;
+                "simple async".to_string()
+            }
 
-        /// Async tool with parameters
-        pub async fn async_with_params(&self, delay: Option<u64>, message: String) -> String {
-            let delay_ms = delay.unwrap_or(0).min(10);
-            tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
-            format!("async: {} (after {}ms)", message, delay_ms)
-        }
+            /// Async tool with parameters
+            pub async fn async_with_params(&self, delay: Option<u64>, message: String) -> String {
+                let delay_ms = delay.unwrap_or(0).min(10);
+                tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
+                format!("async: {} (after {}ms)", message, delay_ms)
+            }
 
-        /// Async tool that can error
-        pub async fn async_error(&self, should_error: Option<bool>) -> McpResult<String> {
-            tokio::time::sleep(std::time::Duration::from_millis(1)).await;
-            if should_error.unwrap_or(false) {
-                Err(pulseengine_mcp_protocol::Error::validation_error(
-                    "Async error",
-                ))
-            } else {
-                Ok("async success".to_string())
+            /// Async tool that can error
+            pub async fn async_error(&self, should_error: Option<bool>) -> McpResult<String> {
+                tokio::time::sleep(std::time::Duration::from_millis(1)).await;
+                if should_error.unwrap_or(false) {
+                    Err(pulseengine_mcp_protocol::Error::validation_error(
+                        "Async error",
+                    ))
+                } else {
+                    Ok("async success".to_string())
+                }
             }
         }
-    }
     }
 
     let server = test_async_tool_patterns::AsyncPatternsServer::with_defaults();
@@ -421,14 +422,14 @@ fn test_attribute_combinations() {
 
         #[mcp_tools]
         impl AttributeTestServer {
-        /// Tool with lots of attributes and documentation
-        #[allow(clippy::unnecessary_wraps)]
-        pub fn attributed_tool(
-            &self,
-            #[allow(unused_variables)] param: String,
-        ) -> McpResult<String> {
-            Ok("attributed".to_string())
-        }
+            /// Tool with lots of attributes and documentation
+            #[allow(clippy::unnecessary_wraps)]
+            pub fn attributed_tool(
+                &self,
+                #[allow(unused_variables)] param: String,
+            ) -> McpResult<String> {
+                Ok("attributed".to_string())
+            }
         }
     }
 
@@ -471,15 +472,15 @@ fn test_only_private_methods() {
 
         #[mcp_tools]
         impl PrivateMethodsServer {
-        /// Private helper method - should be ignored by macro
-        fn private_helper(&self) -> String {
-            "private".to_string()
-        }
+            /// Private helper method - should be ignored by macro
+            fn private_helper(&self) -> String {
+                "private".to_string()
+            }
 
-        /// Another private method
-        fn another_private(&self, _param: String) -> bool {
-            true
-        }
+            /// Another private method
+            fn another_private(&self, _param: String) -> bool {
+                true
+            }
         }
     }
 
