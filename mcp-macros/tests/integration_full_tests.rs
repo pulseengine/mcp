@@ -17,7 +17,7 @@ mod full_integration {
     pub struct FullIntegrationServer {
         data_store:
             std::sync::Arc<std::sync::RwLock<std::collections::HashMap<String, serde_json::Value>>>,
-        counter: std::sync::Arc<std::sync::atomic::AtomicU64>,
+        _counter: std::sync::Arc<std::sync::atomic::AtomicU64>,
     }
 
     impl Default for FullIntegrationServer {
@@ -35,12 +35,13 @@ mod full_integration {
 
             Self {
                 data_store: std::sync::Arc::new(std::sync::RwLock::new(store)),
-                counter: std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0)),
+                _counter: std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0)),
             }
         }
     }
 
     #[mcp_tools]
+    #[allow(dead_code)]
     impl FullIntegrationServer {
         /// Simple synchronous tool
         pub fn get_server_status(&self) -> String {
@@ -183,7 +184,7 @@ mod tests {
     async fn test_basic_tool_functionality() {
         let server = FullIntegrationServer::with_defaults();
 
-        let info = server.get_server_info();
+        let _info = server.get_server_info();
         let status = "Server is running"; // Simulate server status from the tool, since get_server_info returns ServerInfo
         assert_eq!(status, "Server is running");
 
@@ -195,9 +196,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_data_processing() {
-        let server = FullIntegrationServer::with_defaults();
+        let _server = FullIntegrationServer::with_defaults();
 
-        let valid_input = json!({"key": "value"});
+        let _valid_input = json!({"key": "value"});
         // Skip process_data calls for now
         // let result = server
         //     .process_data(valid_input.clone(), "validate".to_string())
@@ -212,7 +213,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_resource_access() {
-        let server = FullIntegrationServer::with_defaults();
+        let _server = FullIntegrationServer::with_defaults();
 
         // Skip resource test for now due to signature mismatch
         // let config_result = server.read_resource("config".to_string()).await;
@@ -226,7 +227,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_error_handling() {
-        let server = FullIntegrationServer::with_defaults();
+        let _server = FullIntegrationServer::with_defaults();
 
         // Skip risky_operation calls for now
         // let success_result = server.risky_operation("success".to_string()).await;
