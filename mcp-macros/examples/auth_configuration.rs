@@ -17,6 +17,7 @@ mod dev {
     #[mcp_tools]
     impl DevServer {
         /// A simple test tool
+        #[allow(dead_code)]
         pub fn hello(&self, name: Option<String>) -> String {
             format!("Hello, {}!", name.unwrap_or_else(|| "World".to_string()))
         }
@@ -34,6 +35,7 @@ mod test {
     #[mcp_tools]
     impl TestServer {
         /// Another test tool
+        #[allow(dead_code)]
         pub fn ping(&self) -> String {
             "pong".to_string()
         }
@@ -51,8 +53,9 @@ mod prod {
     #[mcp_tools]
     impl ProdServer {
         /// A secure tool that requires authentication
+        #[allow(dead_code)]
         pub fn secure_operation(&self, data: String) -> String {
-            format!("Processed: {}", data)
+            format!("Processed: {data}")
         }
     }
 }
@@ -116,7 +119,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let auth_config = prod::ProdServerConfig::get_auth_config();
         println!("   Auth enabled: {}", auth_config.enabled);
         if let StorageConfig::File { path, .. } = &auth_config.storage {
-            println!("   Storage: File at {:?}", path);
+            println!("   Storage: File at {path:?}");
         }
     }
 
@@ -133,7 +136,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let auth_config = custom::CustomAuthServerConfig::get_auth_config();
         println!("   Auth enabled: {}", auth_config.enabled);
         if let StorageConfig::File { path, .. } = &auth_config.storage {
-            println!("   Storage: File at {:?}", path);
+            println!("   Storage: File at {path:?}");
         }
     }
 
@@ -141,13 +144,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("==============");
     println!("// Memory auth - perfect for development");
     println!("#[mcp_server(name = \"Dev Server\", auth = \"memory\")]");
-    println!("");
+    println!();
     println!("// Disabled auth - for testing or low-security environments");
     println!("#[mcp_server(name = \"Test Server\", auth = \"disabled\")]");
-    println!("");
+    println!();
     println!("// File auth - secure persistence (production)");
     println!("#[mcp_server(name = \"Prod Server\", auth = \"file\", app_name = \"my-app\")]");
-    println!("");
+    println!();
     println!("// Custom auth configuration - full control");
     println!(
         "#[mcp_server(name = \"Custom\", auth = \"pulseengine_mcp_auth::AuthConfig::memory()\")]"

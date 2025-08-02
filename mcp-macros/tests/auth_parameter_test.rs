@@ -5,6 +5,9 @@
 use pulseengine_mcp_macros::mcp_server;
 use pulseengine_mcp_server::McpBackend;
 
+#[cfg(feature = "auth")]
+use pulseengine_mcp_auth::config::StorageConfig;
+
 mod memory_auth {
     use super::*;
 
@@ -53,7 +56,7 @@ fn test_auth_parameter_memory() {
         let auth_config = memory_auth::MemoryAuthServerConfig::get_auth_config();
         assert!(matches!(
             auth_config.storage,
-            pulseengine_mcp_auth::StorageConfig::Memory
+            StorageConfig::Memory
         ));
         assert!(auth_config.enabled);
     }
@@ -85,7 +88,7 @@ fn test_auth_parameter_file() {
         let auth_config = file_auth::FileAuthServerConfig::get_auth_config();
         assert!(matches!(
             auth_config.storage,
-            pulseengine_mcp_auth::StorageConfig::File { .. }
+            StorageConfig::File { .. }
         ));
         assert!(auth_config.enabled);
     }
@@ -103,7 +106,7 @@ fn test_auth_parameter_default() {
         let auth_config = default_auth::DefaultAuthServerConfig::get_auth_config();
         assert!(matches!(
             auth_config.storage,
-            pulseengine_mcp_auth::StorageConfig::File { .. }
+            StorageConfig::File { .. }
         ));
         assert!(auth_config.enabled);
     }
