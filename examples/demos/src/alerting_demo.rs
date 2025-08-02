@@ -10,7 +10,7 @@ use pulseengine_mcp_logging::{
 };
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::time::{Duration, sleep};
+use tokio::time::{sleep, Duration};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

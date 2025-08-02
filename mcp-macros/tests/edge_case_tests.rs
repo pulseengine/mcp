@@ -7,6 +7,7 @@
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use pulseengine_mcp_protocol::McpResult;
+use pulseengine_mcp_server::McpBackend;
 use std::sync::Arc;
 
 /// Test server with unusual characters in name
@@ -303,8 +304,8 @@ fn test_concrete_complex_server() {
         #[mcp_server(name = "Complex Server")]
         #[derive(Clone)]
         pub struct ComplexServer {
-            data_string: Arc<String>,
-            data_int: Arc<i32>,
+            pub data_string: Arc<String>,
+            pub data_int: Arc<i32>,
         }
 
         impl Default for ComplexServer {

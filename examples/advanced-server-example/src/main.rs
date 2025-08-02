@@ -6,8 +6,8 @@
 
 use clap::Parser;
 use pulseengine_mcp_cli::{
-    AuthMiddleware, CorsPolicy, DefaultLoggingConfig, McpConfig, McpConfiguration,
-    RateLimitMiddleware, TransportType, server_builder,
+    server_builder, AuthMiddleware, CorsPolicy, DefaultLoggingConfig, McpConfig, McpConfiguration,
+    RateLimitMiddleware, TransportType,
 };
 use pulseengine_mcp_protocol::ServerInfo;
 use std::time::Duration;

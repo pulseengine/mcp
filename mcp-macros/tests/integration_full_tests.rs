@@ -172,7 +172,7 @@ mod tests {
             Some("A server demonstrating all macro capabilities".to_string())
         );
 
-        //Test that all capabilities are enabled
+        // Test that all capabilities are enabled
         assert!(info.capabilities.tools.is_some());
         assert!(info.capabilities.resources.is_some());
         assert!(info.capabilities.prompts.is_some());
@@ -187,7 +187,7 @@ mod tests {
         let status = "Server is running"; // Simulate server status from the tool, since get_server_info returns ServerInfo
         assert_eq!(status, "Server is running");
 
-        //Skip tool method calls for now due to macro issues
+        // Skip tool method calls for now due to macro issues
         //let count1 = server.increment_counter().await;
         //let count2 = server.increment_counter().await;
         //assert_eq!(count2, count1 + 1);
@@ -198,42 +198,42 @@ mod tests {
         let server = FullIntegrationServer::with_defaults();
 
         let valid_input = json!({"key": "value"});
-        //Skip process_data calls for now
-        //let result = server
-        //    .process_data(valid_input.clone(), "validate".to_string())
-        //    .await;
-        //assert!(result.is_ok());
+        // Skip process_data calls for now
+        // let result = server
+        //     .process_data(valid_input.clone(), "validate".to_string())
+        //     .await;
+        // assert!(result.is_ok());
         //
-        //let count_result = server
-        //    .process_data(json!("test"), "count".to_string())
-        //    .await;
-        //assert!(count_result.is_ok());
+        // let count_result = server
+        //     .process_data(json!("test"), "count".to_string())
+        //     .await;
+        // assert!(count_result.is_ok());
     }
 
     #[tokio::test]
     async fn test_resource_access() {
         let server = FullIntegrationServer::with_defaults();
 
-        //Skip resource test for now due to signature mismatch
-        //let config_result = server.read_resource("config".to_string()).await;
-        //assert!(config_result.is_ok());
-        //assert!(config_result.unwrap().contains("dark"));
+        // Skip resource test for now due to signature mismatch
+        // let config_result = server.read_resource("config".to_string()).await;
+        // assert!(config_result.is_ok());
+        // assert!(config_result.unwrap().contains("dark"));
 
-        //Skip missing resource test for now
-        //let missing_result = server.read_resource("nonexistent".to_string()).await;
-        //assert!(missing_result.is_err());
+        // Skip missing resource test for now
+        // let missing_result = server.read_resource("nonexistent".to_string()).await;
+        // assert!(missing_result.is_err());
     }
 
     #[tokio::test]
     async fn test_error_handling() {
         let server = FullIntegrationServer::with_defaults();
 
-        //Skip risky_operation calls for now
-        //let success_result = server.risky_operation("success".to_string()).await;
-        //assert!(success_result.is_ok());
+        // Skip risky_operation calls for now
+        // let success_result = server.risky_operation("success".to_string()).await;
+        // assert!(success_result.is_ok());
         //
-        //let fail_result = server.risky_operation("fail".to_string()).await;
-        //assert!(fail_result.is_err());
+        // let fail_result = server.risky_operation("fail".to_string()).await;
+        // assert!(fail_result.is_err());
     }
 
     #[test]
@@ -241,7 +241,7 @@ mod tests {
         let server = FullIntegrationServer::with_defaults();
         let cloned = server.clone();
 
-        //Test that server can be cloned and shared across threads
+        // Test that server can be cloned and shared across threads
         let handle = std::thread::spawn(move || {
             let _server = cloned;
             "success"
