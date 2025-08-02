@@ -54,10 +54,7 @@ fn test_auth_parameter_memory() {
     #[cfg(feature = "auth")]
     {
         let auth_config = memory_auth::MemoryAuthServerConfig::get_auth_config();
-        assert!(matches!(
-            auth_config.storage,
-            StorageConfig::Memory
-        ));
+        assert!(matches!(auth_config.storage, StorageConfig::Memory));
         assert!(auth_config.enabled);
     }
 }
@@ -86,10 +83,7 @@ fn test_auth_parameter_file() {
     #[cfg(feature = "auth")]
     {
         let auth_config = file_auth::FileAuthServerConfig::get_auth_config();
-        assert!(matches!(
-            auth_config.storage,
-            StorageConfig::File { .. }
-        ));
+        assert!(matches!(auth_config.storage, StorageConfig::File { .. }));
         assert!(auth_config.enabled);
     }
 }
@@ -104,10 +98,7 @@ fn test_auth_parameter_default() {
     #[cfg(feature = "auth")]
     {
         let auth_config = default_auth::DefaultAuthServerConfig::get_auth_config();
-        assert!(matches!(
-            auth_config.storage,
-            StorageConfig::File { .. }
-        ));
+        assert!(matches!(auth_config.storage, StorageConfig::File { .. }));
         assert!(auth_config.enabled);
     }
 }
