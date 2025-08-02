@@ -3,6 +3,9 @@
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use pulseengine_mcp_server::McpBackend;
 
+#[cfg(feature = "auth")]
+use pulseengine_mcp_auth::config::StorageConfig;
+
 mod dev {
     use super::*;
 
@@ -112,7 +115,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         let auth_config = prod::ProdServerConfig::get_auth_config();
         println!("   Auth enabled: {}", auth_config.enabled);
-        if let pulseengine_mcp_auth::StorageConfig::File { path, .. } = &auth_config.storage {
+        if let StorageConfig::File { path, .. } = &auth_config.storage {
             println!("   Storage: File at {:?}", path);
         }
     }
@@ -129,7 +132,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         let auth_config = custom::CustomAuthServerConfig::get_auth_config();
         println!("   Auth enabled: {}", auth_config.enabled);
-        if let pulseengine_mcp_auth::StorageConfig::File { path, .. } = &auth_config.storage {
+        if let StorageConfig::File { path, .. } = &auth_config.storage {
             println!("   Storage: File at {:?}", path);
         }
     }
