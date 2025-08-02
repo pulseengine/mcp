@@ -2,7 +2,7 @@
 //!
 //! This demonstrates a minimal MCP server using streamable-http transport.
 
-use pulseengine_mcp_auth::{AuthConfig, config::StorageConfig};
+use pulseengine_mcp_auth::{config::StorageConfig, AuthConfig};
 use pulseengine_mcp_protocol::*;
 use pulseengine_mcp_server::{BackendError, McpBackend, McpServer, ServerConfig};
 use pulseengine_mcp_transport::TransportConfig;
