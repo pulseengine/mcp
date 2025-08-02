@@ -50,7 +50,7 @@ mod full_integration {
 
         /// Simple asynchronous tool
         pub async fn increment_counter(&self) -> u64 {
-            self.counter
+            self._counter
                 .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
                 + 1
         }
@@ -73,7 +73,7 @@ mod full_integration {
                     }
                 }
                 "count" => {
-                    let count = self.counter.load(std::sync::atomic::Ordering::SeqCst);
+                    let count = self._counter.load(std::sync::atomic::Ordering::SeqCst);
                     Ok(json!({"count": count, "input": input}))
                 }
                 _ => Ok(json!({"operation": operation, "input": input})),

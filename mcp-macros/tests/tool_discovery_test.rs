@@ -2,7 +2,7 @@
 
 #![allow(dead_code, clippy::uninlined_format_args)]
 
-use pulseengine_mcp_macros::{mcp_server, mcp_tools};
+use pulseengine_mcp_macros::mcp_server;
 use pulseengine_mcp_protocol::McpResult;
 
 /// Test server for tool discovery
