@@ -35,9 +35,13 @@ serde_json = { workspace = true }
 # Optional authentication support
 pulseengine-mcp-auth = { workspace = true, optional = true }
 
+# Optional stdio logging support  
+tracing-subscriber = { workspace = true, optional = true }
+
 [features]
 default = []
 auth = ["dep:pulseengine-mcp-auth"]
+stdio-logging = ["dep:tracing-subscriber"]
 
 [dev-dependencies]
 trybuild = "1.0"

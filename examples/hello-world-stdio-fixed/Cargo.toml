@@ -1,0 +1,19 @@
+[package]
+name = "hello-world-stdio-fixed"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+
+[dependencies]
+pulseengine-mcp-macros = { path = "../../mcp-macros", features = ["stdio-logging"] }
+pulseengine-mcp-protocol = { path = "../../mcp-protocol" }
+pulseengine-mcp-server = { path = "../../mcp-server" }
+pulseengine-mcp-transport = { path = "../../mcp-transport" }
+async-trait = "0.1"
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+tokio = { version = "1.0", features = ["full"] }
+anyhow = "1.0"
+chrono = "0.4"

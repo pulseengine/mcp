@@ -433,12 +433,69 @@ fn generate_server_implementation(
             }
 
             /// Serve using stdio transport (default for MCP clients like Claude Desktop)
+            /// 
+            /// **CRITICAL**: For stdio transport, all logging MUST go to stderr, not stdout.
+            /// Stdout is reserved for JSON-RPC messages only. Logging to stdout will break
+            /// MCP client compatibility (inspector, Claude Desktop, etc.).
+            /// 
+            /// Call `Self::configure_stdio_logging()` before this method to automatically
+            /// configure tracing to use stderr, or manually configure your logging to use stderr.
+            /// 
+            /// # Example
+            /// ```no_run
+            /// # use pulseengine_mcp_macros::mcp_server;
+            /// # #[mcp_server(name = "Example")] #[derive(Default, Clone)] struct ExampleServer;
+            /// # #[tokio::main] async fn main() -> Result<(), Box<dyn std::error::Error>> {
+            /// // Configure logging to stderr (required for stdio transport)
+            /// ExampleServer::configure_stdio_logging();
+            /// 
+            /// let server = ExampleServer::with_defaults().serve_stdio().await?;
+            /// server.run().await?;
+            /// # Ok(()) }
+            /// ```
             pub async fn serve_stdio(self) -> Result<#service_type_name #ty_generics, #error_type_name> {
                 let config = #config_type_name {
                     transport: pulseengine_mcp_transport::TransportConfig::Stdio,
                     ..Default::default()
                 };
                 self.serve_with_config(config).await
+            }
+
+            /// Configure tracing to use stderr for stdio transport compatibility
+            /// 
+            /// Call this before serve_stdio() to ensure logs don't interfere with JSON-RPC protocol.
+            /// This requires tracing-subscriber in your Cargo.toml dependencies.
+            /// 
+            /// # Example
+            /// ```no_run
+            /// # use pulseengine_mcp_macros::mcp_server;
+            /// # #[mcp_server(name = "Example")] #[derive(Default, Clone)] struct ExampleServer;
+            /// # #[tokio::main] async fn main() -> Result<(), Box<dyn std::error::Error>> {
+            /// ExampleServer::configure_stdio_logging();
+            /// let server = ExampleServer::with_defaults().serve_stdio().await?;
+            /// server.run().await?;
+            /// # Ok(()) }
+            /// ```
+            pub fn configure_stdio_logging() {
+                // Note: This requires tracing-subscriber dependency in user's Cargo.toml
+                #[cfg(feature = "stdio-logging")]
+                {
+                    tracing_subscriber::fmt()
+                        .with_writer(std::io::stderr)
+                        .with_env_filter(
+                            tracing_subscriber::EnvFilter::try_from_default_env()
+                                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"))
+                        )
+                        .try_init()
+                        .ok(); // Ignore if already initialized
+                }
+                
+                #[cfg(not(feature = "stdio-logging"))]
+                {
+                    eprintln!("Warning: stdio logging configuration requires 'stdio-logging' feature");
+                    eprintln!("Add to Cargo.toml: pulseengine-mcp-macros = {{ version = \"*\", features = [\"stdio-logging\"] }}");
+                    eprintln!("And: tracing-subscriber = \"0.3\"");
+                }
             }
 
             /// Serve using HTTP transport on specified port
