@@ -1,26 +1,20 @@
 [package]
-name = "hello-world-mcp"
-version = "0.1.1"
+name = "hello-world"
+version = "0.1.0"
 edition = "2021"
-authors = ["Ralf Anton Beier <ralf_beier@me.com>"]
-license = "MIT OR Apache-2.0"
-
-[[bin]]
-name = "hello-world-server"
-path = "src/main.rs"
+description = "Minimal Hello World MCP Server - Easy as Pi!"
 
 [dependencies]
-# MCP Framework crates (workspace versions)
-pulseengine-mcp-protocol = { workspace = true }
-pulseengine-mcp-server = { workspace = true }
-pulseengine-mcp-transport = { workspace = true }
-pulseengine-mcp-auth = { workspace = true }
+# Core MCP Framework (only 4 dependencies!)
+pulseengine-mcp-macros = { path = "../../mcp-macros", features = ["stdio-logging"] }
+pulseengine-mcp-protocol = { path = "../../mcp-protocol" }
+pulseengine-mcp-server = { path = "../../mcp-server" }
+pulseengine-mcp-transport = { path = "../../mcp-transport" }
 
-# Core dependencies
-tokio = { version = "1.0", features = ["full"] }
+# Minimal runtime dependencies
+tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
+anyhow = "1.0"
 async-trait = "0.1"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
 thiserror = "1.0"
 tracing = "0.1"
 tracing-subscriber = "0.3"
