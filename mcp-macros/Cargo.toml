@@ -39,14 +39,16 @@ pulseengine-mcp-auth = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true }
 
 [features]
-default = []
-auth = ["dep:pulseengine-mcp-auth"]
+default = ["stdio-logging"]
 stdio-logging = ["dep:tracing-subscriber"]
+auth = ["dep:pulseengine-mcp-auth"]
 
 [dev-dependencies]
 trybuild = "1.0"
 tokio-test = "0.4"
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "time"] }
+anyhow = "1.0"
+serde_json = "1.0"
 async-trait = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
