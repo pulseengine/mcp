@@ -22,7 +22,7 @@ impl syn::parse::Parse for AttributeArgs {
                         .path
                         .get_ident()
                         .ok_or_else(|| {
-                            syn::Error::new_spanned(&name_value.path, "Expected identifier")
+                            syn::Error::new_spanned(&name_value.path, "Expected identifier (parameter name)")
                         })?
                         .to_string();
                     args.push((key, name_value.value));
@@ -30,7 +30,7 @@ impl syn::parse::Parse for AttributeArgs {
                 _ => {
                     return Err(syn::Error::new_spanned(
                         meta,
-                        "Expected name-value pairs like key = \"value\"",
+                        "Expected name-value pairs like key = \"value\". Example: #[mcp_server(name = \"My Server\")]",
                     ));
                 }
             }
