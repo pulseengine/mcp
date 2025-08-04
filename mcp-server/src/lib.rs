@@ -117,52 +117,10 @@
 //! // MCP_AUTH_API_KEY_OPERATOR_1=operator-key-67890
 //! ```
 //!
-//! ## Memory-Only Authentication
-//!
-//! For temporary deployments where keys don't need persistence:
-//!
-//! ```rust,ignore
-//! use pulseengine_mcp_server::{McpServer, ServerConfig, AuthConfig};
-//! use pulseengine_mcp_auth::{config::StorageConfig, types::{ApiKey, Role}};
-//! use std::collections::HashMap;
-//!
-//! // Create memory-only auth config
-//! let auth_config = AuthConfig::memory();
-//!
-//! let server_config = ServerConfig {
-//!     auth_config: Some(auth_config),
-//!     // ... other config
-//! };
-//!
-//! // Add API keys programmatically during runtime
-//! let api_key = ApiKey {
-//!     id: "temp_key_1".to_string(),
-//!     key: "temporary-secret-key".to_string(),
-//!     role: Role::Admin,
-//!     created_at: chrono::Utc::now(),
-//!     last_used: None,
-//!     permissions: vec![],
-//!     rate_limit: None,
-//!     ip_whitelist: None,
-//!     expires_at: None,
-//!     metadata: HashMap::new(),
-//! };
-//!
-//! // Add to server's auth manager after initialization
-//! server.auth_manager().save_api_key(&api_key).await?;
-//! ```
-//!
-//! ## Disabled Authentication
-//!
-//! For development or trusted environments:
-//!
-//! ```rust,ignore
-//! let auth_config = AuthConfig::disabled();
-//! let server_config = ServerConfig {
-//!     auth_config: Some(auth_config),
-//!     // ... other config
-//! };
-//! ```
+
+pub mod common_backend;
+pub mod builder_trait;
+
 
 pub mod backend;
 pub mod context;
@@ -192,6 +150,8 @@ mod server_tests;
 
 // Re-export core types
 pub use backend::{BackendError, McpBackend};
+pub use common_backend::{CommonMcpError, CommonBackendImpl, HasServerInfo, McpToolsProvider, McpResourcesProvider, McpPromptsProvider};
+pub use builder_trait::{McpServerBuilder, McpService, ServerBuilder};
 pub use context::RequestContext;
 pub use handler::{GenericServerHandler, HandlerError};
 pub use middleware::{Middleware, MiddlewareStack};
