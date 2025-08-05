@@ -1,6 +1,7 @@
 //! Tests for parameter validation and edge cases
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
+use pulseengine_mcp_server::McpServerBuilder;
 
 mod parameter_types {
     use super::*;

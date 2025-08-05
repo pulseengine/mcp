@@ -1,12 +1,12 @@
 //! Advanced features and integration tests
-//! 
+//!
 //! Consolidates advanced functionality from:
 //! - backend_integration_tests.rs
 //! - integration_full_tests.rs
 //! - server_lifecycle_tests.rs
 //! - performance_tests.rs
 
-use pulseengine_mcp_macros::{mcp_server, mcp_tools, mcp_tool, mcp_resource, mcp_prompt};
+use pulseengine_mcp_macros::{mcp_prompt, mcp_resource, mcp_server, mcp_tool, mcp_tools};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -24,14 +24,14 @@ impl AdvancedServer {
         *counter += 1;
         Ok(*counter)
     }
-    
+
     /// Reset counter to zero
     pub async fn reset(&self) -> anyhow::Result<String> {
         let mut counter = self.counter.lock().await;
         *counter = 0;
         Ok("Counter reset".to_string())
     }
-    
+
     /// Complex tool with multiple parameter types
     pub async fn complex_tool(
         &self,
@@ -42,7 +42,7 @@ impl AdvancedServer {
     ) -> anyhow::Result<String> {
         let flag = optional_flag.unwrap_or(false);
         let list_len = optional_list.as_ref().map(|l| l.len()).unwrap_or(0);
-        
+
         Ok(format!(
             "Text: {}, Number: {}, Flag: {}, List length: {}",
             text, number, flag, list_len
@@ -53,26 +53,26 @@ impl AdvancedServer {
 #[tokio::test]
 async fn test_stateful_server() {
     let server = AdvancedServer::default();
-    
+
     // Test increment functionality
     use pulseengine_mcp_protocol::CallToolRequestParam;
     use serde_json::json;
-    
+
     let request = CallToolRequestParam {
         name: "increment".to_string(),
         arguments: Some(json!({})),
     };
-    
+
     if let Some(result) = server.try_call_tool(request.clone()).await {
         assert!(result.is_ok());
     }
-    
+
     // Test reset functionality
     let reset_request = CallToolRequestParam {
         name: "reset".to_string(),
         arguments: Some(json!({})),
     };
-    
+
     if let Some(result) = server.try_call_tool(reset_request).await {
         assert!(result.is_ok());
     }
@@ -81,10 +81,10 @@ async fn test_stateful_server() {
 #[tokio::test]
 async fn test_complex_parameters() {
     let server = AdvancedServer::default();
-    
+
     use pulseengine_mcp_protocol::CallToolRequestParam;
     use serde_json::json;
-    
+
     let request = CallToolRequestParam {
         name: "complex_tool".to_string(),
         arguments: Some(json!({
@@ -94,7 +94,7 @@ async fn test_complex_parameters() {
             "optional_list": ["a", "b", "c"]
         })),
     };
-    
+
     if let Some(result) = server.try_call_tool(request).await {
         assert!(result.is_ok());
         if let Ok(result) = result {
@@ -114,7 +114,7 @@ async fn test_complex_parameters() {
 async fn test_server_info_customization() {
     let server = AdvancedServer::default();
     let info = server.get_server_info();
-    
+
     assert_eq!(info.server_info.name, "Advanced Server");
     assert_eq!(info.server_info.version, "1.0.0");
     assert!(info.capabilities.tools.is_some());
@@ -125,38 +125,48 @@ async fn test_server_info_customization() {
 #[test]
 fn test_multiple_servers_compilation() {
     // Test that multiple servers can be defined without conflicts
-    
+
     #[mcp_server(name = "Server One")]
     #[derive(Default, Clone)]
     struct ServerOne;
-    
+
     #[mcp_server(name = "Server Two")]
     #[derive(Default, Clone)]
     struct ServerTwo;
-    
+
     let _server1 = ServerOne::default();
     let _server2 = ServerTwo::default();
-    
+
     // If this compiles, the test passes
 }
 
-#[test] 
+#[test]
 fn test_performance_compilation_time() {
     // This test ensures macro expansion doesn't become too slow
     // If compilation takes too long, this test will timeout
-    
+
     #[mcp_server(name = "Performance Test Server")]
     #[derive(Default, Clone)]
     struct PerfServer;
-    
+
     #[mcp_tools]
     impl PerfServer {
-        pub async fn tool1(&self) -> anyhow::Result<String> { Ok("1".to_string()) }
-        pub async fn tool2(&self) -> anyhow::Result<String> { Ok("2".to_string()) }
-        pub async fn tool3(&self) -> anyhow::Result<String> { Ok("3".to_string()) }
-        pub async fn tool4(&self) -> anyhow::Result<String> { Ok("4".to_string()) }
-        pub async fn tool5(&self) -> anyhow::Result<String> { Ok("5".to_string()) }
+        pub async fn tool1(&self) -> anyhow::Result<String> {
+            Ok("1".to_string())
+        }
+        pub async fn tool2(&self) -> anyhow::Result<String> {
+            Ok("2".to_string())
+        }
+        pub async fn tool3(&self) -> anyhow::Result<String> {
+            Ok("3".to_string())
+        }
+        pub async fn tool4(&self) -> anyhow::Result<String> {
+            Ok("4".to_string())
+        }
+        pub async fn tool5(&self) -> anyhow::Result<String> {
+            Ok("5".to_string())
+        }
     }
-    
+
     let _server = PerfServer::default();
 }

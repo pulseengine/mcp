@@ -4,6 +4,7 @@
 
 use pulseengine_mcp_macros::mcp_server;
 use pulseengine_mcp_protocol::McpResult;
+use pulseengine_mcp_server::McpServerBuilder;
 
 /// Test server for tool discovery
 #[mcp_server(name = "Tool Discovery Test Server")]

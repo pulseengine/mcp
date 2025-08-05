@@ -96,7 +96,7 @@ fn test_no_auth_by_default() {
 
     // When no auth parameter is specified, no auth config methods should be generated
     // This is compile-time verified - if get_auth_config existed, this would fail to compile
-    
+
     // Test that the server works without auth
     assert!(!info.server_info.name.is_empty());
 }

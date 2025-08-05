@@ -1,6 +1,7 @@
 //! Validation tests that check macros generate correct code without calling private methods
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
+use pulseengine_mcp_server::McpServerBuilder;
 
 #[test]
 fn test_mcp_server_macro_compiles() {
