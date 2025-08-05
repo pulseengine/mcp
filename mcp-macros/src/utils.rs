@@ -22,7 +22,10 @@ impl syn::parse::Parse for AttributeArgs {
                         .path
                         .get_ident()
                         .ok_or_else(|| {
-                            syn::Error::new_spanned(&name_value.path, "Expected identifier (parameter name)")
+                            syn::Error::new_spanned(
+                                &name_value.path,
+                                "Expected identifier (parameter name)",
+                            )
                         })?
                         .to_string();
                     args.push((key, name_value.value));
