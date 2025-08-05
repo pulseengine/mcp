@@ -1,9 +1,10 @@
 //! Minimal Hello World MCP Server - Easy as Pi!
-//! 
+//!
 //! This is the simplest possible MCP server that actually works.
 //! Only 25 lines of code, 10 dependencies, works out of the box.
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
+use pulseengine_mcp_server::McpServerBuilder;
 
 #[mcp_server(name = "Hello World")]
 #[derive(Default, Clone)]
@@ -22,10 +23,10 @@ impl HelloWorld {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Configure logging for STDIO transport
     HelloWorld::configure_stdio_logging();
-    
+
     // Start the server
-    let server = HelloWorld::with_defaults().serve_stdio().await?;
+    let mut server = HelloWorld::with_defaults().serve_stdio().await?;
     server.run().await?;
-    
+
     Ok(())
 }
