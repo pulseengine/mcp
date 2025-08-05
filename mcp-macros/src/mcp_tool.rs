@@ -106,7 +106,10 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
 }
 
 /// Extract parameter information from function signature
-fn extract_parameters(sig: &syn::Signature, tool_name: &str) -> syn::Result<(syn::Type, Vec<TokenStream>)> {
+fn extract_parameters(
+    sig: &syn::Signature,
+    tool_name: &str,
+) -> syn::Result<(syn::Type, Vec<TokenStream>)> {
     let mut param_fields = Vec::new();
     let mut param_types = Vec::new();
     let mut param_names = Vec::new();
@@ -208,10 +211,10 @@ fn generate_tool_implementation(
             let args = request.arguments.unwrap_or(serde_json::Value::Object(Default::default()));
             let args = args.as_object().ok_or_else(||
                 pulseengine_mcp_protocol::Error::invalid_params(
-                    format!("Tool '{}' requires arguments as JSON object, got: {}", 
+                    format!("Tool '{}' requires arguments as JSON object, got: {}",
                         #tool_name, match &args {
                             serde_json::Value::Array(_) => "array",
-                            serde_json::Value::String(_) => "string", 
+                            serde_json::Value::String(_) => "string",
                             serde_json::Value::Number(_) => "number",
                             serde_json::Value::Bool(_) => "boolean",
                             serde_json::Value::Null => "null",
@@ -245,7 +248,7 @@ fn generate_tool_implementation(
                     #tool_call
                 }
                 _ => Err(pulseengine_mcp_protocol::Error::invalid_params(
-                    format!("Unknown tool '{}'. Available tools: [{}]", 
+                    format!("Unknown tool '{}'. Available tools: [{}]",
                         request.name, #tool_name)
                 ))
             }

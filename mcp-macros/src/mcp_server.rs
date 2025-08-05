@@ -128,7 +128,7 @@ fn generate_server_implementation(
             type Error = #error_type_name;
             type Config = #config_type_name;
 
-            async fn initialize(config: Self::Config) -> Result<Self, Self::Error> {
+            async fn initialize(config: Self::Config) -> std::result::Result<Self, Self::Error> {
                 Ok(Self::default())
             }
 
@@ -137,11 +137,11 @@ fn generate_server_implementation(
             }
 
             // Delegate all other methods to the common backend
-            async fn health_check(&self) -> Result<(), Self::Error> {
+            async fn health_check(&self) -> std::result::Result<(), Self::Error> {
                 Ok(())
             }
 
-            async fn list_tools(&self, request: pulseengine_mcp_protocol::PaginatedRequestParam) -> Result<pulseengine_mcp_protocol::ListToolsResult, Self::Error> {
+            async fn list_tools(&self, request: pulseengine_mcp_protocol::PaginatedRequestParam) -> std::result::Result<pulseengine_mcp_protocol::ListToolsResult, Self::Error> {
                 // Check if this implements McpToolsProvider
                 if let Some(tools) = self.try_get_tools() {
                     Ok(pulseengine_mcp_protocol::ListToolsResult { tools, next_cursor: None })
@@ -150,7 +150,7 @@ fn generate_server_implementation(
                 }
             }
 
-            async fn call_tool(&self, request: pulseengine_mcp_protocol::CallToolRequestParam) -> Result<pulseengine_mcp_protocol::CallToolResult, Self::Error> {
+            async fn call_tool(&self, request: pulseengine_mcp_protocol::CallToolRequestParam) -> std::result::Result<pulseengine_mcp_protocol::CallToolResult, Self::Error> {
                 if let Some(result) = self.try_call_tool(request.clone()).await {
                     result.map_err(|e| pulseengine_mcp_server::CommonMcpError::InvalidParams(e.to_string()))
                 } else {
@@ -158,19 +158,19 @@ fn generate_server_implementation(
                 }
             }
 
-            async fn list_resources(&self, _request: pulseengine_mcp_protocol::PaginatedRequestParam) -> Result<pulseengine_mcp_protocol::ListResourcesResult, Self::Error> {
+            async fn list_resources(&self, _request: pulseengine_mcp_protocol::PaginatedRequestParam) -> std::result::Result<pulseengine_mcp_protocol::ListResourcesResult, Self::Error> {
                 Ok(pulseengine_mcp_protocol::ListResourcesResult { resources: vec![], next_cursor: None })
             }
 
-            async fn read_resource(&self, request: pulseengine_mcp_protocol::ReadResourceRequestParam) -> Result<pulseengine_mcp_protocol::ReadResourceResult, Self::Error> {
+            async fn read_resource(&self, request: pulseengine_mcp_protocol::ReadResourceRequestParam) -> std::result::Result<pulseengine_mcp_protocol::ReadResourceResult, Self::Error> {
                 Err(pulseengine_mcp_server::CommonMcpError::InvalidParams(format!("Unknown resource: {}", request.uri)))
             }
 
-            async fn list_prompts(&self, _request: pulseengine_mcp_protocol::PaginatedRequestParam) -> Result<pulseengine_mcp_protocol::ListPromptsResult, Self::Error> {
+            async fn list_prompts(&self, _request: pulseengine_mcp_protocol::PaginatedRequestParam) -> std::result::Result<pulseengine_mcp_protocol::ListPromptsResult, Self::Error> {
                 Ok(pulseengine_mcp_protocol::ListPromptsResult { prompts: vec![], next_cursor: None })
             }
 
-            async fn get_prompt(&self, request: pulseengine_mcp_protocol::GetPromptRequestParam) -> Result<pulseengine_mcp_protocol::GetPromptResult, Self::Error> {
+            async fn get_prompt(&self, request: pulseengine_mcp_protocol::GetPromptRequestParam) -> std::result::Result<pulseengine_mcp_protocol::GetPromptResult, Self::Error> {
                 Err(pulseengine_mcp_server::CommonMcpError::InvalidParams(format!("Unknown prompt: {}", request.name)))
             }
         }
@@ -201,6 +201,21 @@ fn generate_server_implementation(
 
         // Add the auth manager method if auth is configured
         #auth_manager_method
+
+        // Server transport methods
+        impl #impl_generics #struct_name #ty_generics #where_clause {
+            /// Serve using STDIO transport
+            pub async fn serve_stdio(self) -> std::result::Result<pulseengine_mcp_server::McpServer<Self>, #error_type_name> {
+                use pulseengine_mcp_server::{McpServer, ServerConfig};
+
+                let config = ServerConfig::default();
+                let server = McpServer::new(self, config).await.map_err(|e| {
+                    #error_type_name::Internal(format!("Failed to create server: {}", e))
+                })?;
+
+                Ok(server)
+            }
+        }
 
         // Service type alias for convenience
         type #service_type_name #ty_generics = pulseengine_mcp_server::McpService<#struct_name #ty_generics>;
