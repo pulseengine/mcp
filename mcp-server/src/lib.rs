@@ -118,9 +118,8 @@
 //! ```
 //!
 
-pub mod common_backend;
 pub mod builder_trait;
-
+pub mod common_backend;
 
 pub mod backend;
 pub mod context;
@@ -150,8 +149,11 @@ mod server_tests;
 
 // Re-export core types
 pub use backend::{BackendError, McpBackend};
-pub use common_backend::{CommonMcpError, CommonBackendImpl, HasServerInfo, McpToolsProvider, McpResourcesProvider, McpPromptsProvider};
-pub use builder_trait::{McpServerBuilder, McpService, ServerBuilder};
+pub use builder_trait::{McpServerBuilder, McpService};
+pub use common_backend::{
+    CommonBackendImpl, CommonMcpError, HasServerInfo, McpPromptsProvider, McpResourcesProvider,
+    McpToolsProvider,
+};
 pub use context::RequestContext;
 pub use handler::{GenericServerHandler, HandlerError};
 pub use middleware::{Middleware, MiddlewareStack};
