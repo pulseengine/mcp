@@ -1,6 +1,7 @@
 //! Enhanced Hello World MCP Server with Comprehensive Features
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
+use pulseengine_mcp_server::McpServerBuilder;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::{
@@ -27,7 +28,6 @@ struct GreetingRecord {
 /// - Comprehensive statistics and search capabilities
 #[mcp_server(
     name = "Enhanced Hello World Server",
-    app_name = "hello-world-enhanced",
     version = "2.0.0",
     description = "Comprehensive demo of MCP macro capabilities with tools, history, and customization"
 )]
@@ -387,7 +387,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     tracing::info!("🔐 Authentication: Application-specific configuration");
 
     // Create and configure the server with application-specific settings
-    let server = EnhancedHelloWorldServer::with_defaults()
+    let mut server = EnhancedHelloWorldServer::with_defaults()
         .serve_stdio()
         .await?;
 
