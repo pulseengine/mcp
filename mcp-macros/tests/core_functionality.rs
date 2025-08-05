@@ -1,5 +1,5 @@
 //! Core functionality tests for MCP macros
-//! 
+//!
 //! Consolidates basic functionality tests from multiple files:
 //! - simple_tests.rs
 //! - macro_tests.rs
@@ -18,8 +18,12 @@ impl TestServer {
     pub async fn simple_tool(&self) -> anyhow::Result<String> {
         Ok("Hello from tool".to_string())
     }
-    
-    pub async fn tool_with_params(&self, message: String, count: Option<u32>) -> anyhow::Result<String> {
+
+    pub async fn tool_with_params(
+        &self,
+        message: String,
+        count: Option<u32>,
+    ) -> anyhow::Result<String> {
         let count = count.unwrap_or(1);
         Ok(format!("{} (repeated {} times)", message, count))
     }
@@ -44,10 +48,14 @@ async fn test_tool_listing() {
 
 #[tokio::test]
 async fn test_server_with_version_and_description() {
-    #[mcp_server(name = "Versioned Server", version = "2.0.0", description = "A test server")]
+    #[mcp_server(
+        name = "Versioned Server",
+        version = "2.0.0",
+        description = "A test server"
+    )]
     #[derive(Default, Clone)]
     struct VersionedServer;
-    
+
     let server = VersionedServer::default();
     let info = server.get_server_info();
     assert_eq!(info.server_info.name, "Versioned Server");

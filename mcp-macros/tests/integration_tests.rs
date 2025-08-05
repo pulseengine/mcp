@@ -6,6 +6,7 @@
 #![allow(dead_code, clippy::uninlined_format_args)]
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
+use pulseengine_mcp_server::McpServerBuilder;
 use pulseengine_mcp_protocol::McpResult;
 use std::sync::{
     Arc,

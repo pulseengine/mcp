@@ -1,6 +1,7 @@
 //! Tests for async and sync function handling in macros
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
+use pulseengine_mcp_server::McpServerBuilder;
 
 #[test]
 fn test_mixed_async_sync_server() {

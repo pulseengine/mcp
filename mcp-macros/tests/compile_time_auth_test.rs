@@ -1,5 +1,5 @@
 //! Compile-time test to ensure no auth dependencies leak into non-auth builds
-//! 
+//!
 //! This test uses conditional compilation to ensure that auth-related code
 //! is only generated when explicitly requested.
 
@@ -20,16 +20,16 @@ fn test_basic_server_functionality() {
 
 // Test that auth methods don't exist when auth feature is disabled
 #[cfg(not(feature = "auth"))]
-#[test] 
+#[test]
 fn test_no_auth_methods_without_feature() {
     // This test only runs when auth feature is NOT enabled
     let _server = CompileTestServer::with_defaults();
     let _config = CompileTestServerConfig::default();
-    
+
     // The following should cause compilation errors if they exist:
     // CompileTestServerConfig::get_auth_config(); // Should not exist
     // CompileTestServer::create_auth_manager(); // Should not exist
-    
+
     // If this test compiles, it means no auth methods are generated
     // when the auth feature is disabled
 }
@@ -39,11 +39,11 @@ fn test_no_auth_methods_without_feature() {
 fn test_minimal_config_structure() {
     let config = CompileTestServerConfig {
         server_name: "Test".to_string(),
-        server_version: "1.0.0".to_string(), 
+        server_version: "1.0.0".to_string(),
         server_description: Some("Test description".to_string()),
         transport: pulseengine_mcp_transport::TransportConfig::Stdio,
     };
-    
+
     assert_eq!(config.server_name, "Test");
     assert_eq!(config.server_version, "1.0.0");
 }
@@ -61,7 +61,7 @@ fn test_explicit_disabled_auth() {
     let server = DisabledAuthServer::with_defaults();
     let info = server.get_server_info();
     assert_eq!(info.server_info.name, "Disabled Auth Server");
-    
+
     // When explicitly disabled, auth config should exist but be disabled
     let auth_config = DisabledAuthServerConfig::get_auth_config();
     assert!(!auth_config.enabled);
@@ -76,7 +76,7 @@ fn test_disabled_auth_without_feature() {
     let server = DisabledAuthServer::with_defaults();
     let info = server.get_server_info();
     assert_eq!(info.server_info.name, "Disabled Auth Server");
-    
+
     // But auth config methods should not exist
     // DisabledAuthServerConfig::get_auth_config(); // Should not exist
 }

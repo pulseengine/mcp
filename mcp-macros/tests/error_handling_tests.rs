@@ -2,6 +2,7 @@
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use pulseengine_mcp_protocol::{PromptMessage, PromptMessageRole};
+use pulseengine_mcp_server::McpServerBuilder;
 
 mod error_backend {
     use super::*;

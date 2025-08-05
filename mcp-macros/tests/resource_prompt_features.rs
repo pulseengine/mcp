@@ -1,11 +1,11 @@
 //! Resource and prompt feature tests
-//! 
+//!
 //! Consolidates resource and prompt tests from:
 //! - mcp_resource_tests.rs
 //! - mcp_prompt_tests.rs
 //! - documentation_tests.rs
 
-use pulseengine_mcp_macros::{mcp_server, mcp_resource, mcp_prompt};
+use pulseengine_mcp_macros::mcp_server;
 
 #[tokio::test]
 async fn test_resource_functionality() {
@@ -15,7 +15,7 @@ async fn test_resource_functionality() {
 
     // Note: Resource functionality would be tested here if fully implemented
     // For now, test basic server functionality
-    let server = ResourceServer::default();
+    let server = ResourceServer;
     let info = server.get_server_info();
     assert!(info.capabilities.resources.is_some());
 }
@@ -28,7 +28,7 @@ async fn test_prompt_functionality() {
 
     // Note: Prompt functionality would be tested here if fully implemented
     // For now, test basic server functionality
-    let server = PromptServer::default();
+    let server = PromptServer;
     let info = server.get_server_info();
     assert!(info.capabilities.prompts.is_some());
 }
@@ -39,9 +39,9 @@ fn test_server_capabilities() {
     #[derive(Default, Clone)]
     struct CapabilitiesServer;
 
-    let server = CapabilitiesServer::default();
+    let server = CapabilitiesServer;
     let info = server.get_server_info();
-    
+
     // Test that all basic capabilities are present
     assert!(info.capabilities.tools.is_some());
     assert!(info.capabilities.resources.is_some());
@@ -57,9 +57,9 @@ fn test_documentation_extraction() {
     #[derive(Default, Clone)]
     struct DocumentedServer;
 
-    let server = DocumentedServer::default();
+    let server = DocumentedServer;
     let info = server.get_server_info();
-    
+
     // Note: Doc comment extraction would be tested here if implemented
     // For now, just ensure the server compiles and works
     assert_eq!(info.server_info.name, "Documented Server");
