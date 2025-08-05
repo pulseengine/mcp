@@ -4,8 +4,8 @@
 //! and handle various edge cases appropriately.
 
 use pulseengine_mcp_macros::mcp_server;
-use pulseengine_mcp_server::McpServerBuilder;
 use pulseengine_mcp_protocol::{ListToolsResult, PaginatedRequestParam};
+use pulseengine_mcp_server::McpServerBuilder;
 use std::sync::{
     Arc,
     atomic::{AtomicU64, Ordering},
