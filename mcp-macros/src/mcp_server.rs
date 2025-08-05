@@ -152,9 +152,9 @@ fn generate_server_implementation(
 
             async fn call_tool(&self, request: pulseengine_mcp_protocol::CallToolRequestParam) -> std::result::Result<pulseengine_mcp_protocol::CallToolResult, Self::Error> {
                 if let Some(result) = self.try_call_tool(request.clone()).await {
-                    result.map_err(|e| pulseengine_mcp_server::CommonMcpError::InvalidParams(e.to_string()))
+                    result.map_err(|e| #error_type_name::InvalidParams(e.to_string()))
                 } else {
-                    Err(pulseengine_mcp_server::CommonMcpError::InvalidParams(format!("Unknown tool: {}", request.name)))
+                    Err(#error_type_name::InvalidParams(format!("Unknown tool: {}", request.name)))
                 }
             }
 
@@ -163,7 +163,7 @@ fn generate_server_implementation(
             }
 
             async fn read_resource(&self, request: pulseengine_mcp_protocol::ReadResourceRequestParam) -> std::result::Result<pulseengine_mcp_protocol::ReadResourceResult, Self::Error> {
-                Err(pulseengine_mcp_server::CommonMcpError::InvalidParams(format!("Unknown resource: {}", request.uri)))
+                Err(#error_type_name::InvalidParams(format!("Unknown resource: {}", request.uri)))
             }
 
             async fn list_prompts(&self, _request: pulseengine_mcp_protocol::PaginatedRequestParam) -> std::result::Result<pulseengine_mcp_protocol::ListPromptsResult, Self::Error> {
@@ -171,7 +171,7 @@ fn generate_server_implementation(
             }
 
             async fn get_prompt(&self, request: pulseengine_mcp_protocol::GetPromptRequestParam) -> std::result::Result<pulseengine_mcp_protocol::GetPromptResult, Self::Error> {
-                Err(pulseengine_mcp_server::CommonMcpError::InvalidParams(format!("Unknown prompt: {}", request.name)))
+                Err(#error_type_name::InvalidParams(format!("Unknown prompt: {}", request.name)))
             }
         }
 
@@ -191,7 +191,7 @@ fn generate_server_implementation(
             async fn try_call_tool(
                 &self,
                 request: pulseengine_mcp_protocol::CallToolRequestParam,
-            ) -> Option<Result<pulseengine_mcp_protocol::CallToolResult, pulseengine_mcp_protocol::Error>> {
+            ) -> Option<std::result::Result<pulseengine_mcp_protocol::CallToolResult, pulseengine_mcp_protocol::Error>> {
                 None  // Default: no tools unless mcp_tools macro is used
             }
         }

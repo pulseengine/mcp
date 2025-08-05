@@ -16,7 +16,7 @@
 
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{Error, FnArg, ItemFn, PatType, Result, parse2};
+use syn::{Error, FnArg, ItemFn, PatType, parse2};
 
 use crate::utils::{extract_doc_comments, parse_attribute_args};
 
@@ -32,7 +32,7 @@ pub struct McpPromptConfig {
 }
 
 /// Parse macro attributes into McpPromptConfig
-fn parse_prompt_attributes(args: TokenStream) -> Result<McpPromptConfig> {
+fn parse_prompt_attributes(args: TokenStream) -> syn::Result<McpPromptConfig> {
     let mut config = McpPromptConfig::default();
     let parsed_args = parse_attribute_args(args)?;
 
@@ -102,7 +102,7 @@ fn parse_prompt_attributes(args: TokenStream) -> Result<McpPromptConfig> {
 }
 
 /// Generate prompt parameter extraction code
-fn generate_prompt_parameter_extraction(fn_inputs: &[&PatType]) -> Result<TokenStream> {
+fn generate_prompt_parameter_extraction(fn_inputs: &[&PatType]) -> syn::Result<TokenStream> {
     let extractions = fn_inputs.iter().map(|pat_type| {
         let param_ident = &pat_type.pat;
         let param_type = &pat_type.ty;
@@ -123,7 +123,7 @@ fn generate_prompt_parameter_extraction(fn_inputs: &[&PatType]) -> Result<TokenS
 }
 
 /// Generate the prompt implementation
-fn generate_prompt_impl(config: &McpPromptConfig, original_fn: &ItemFn) -> Result<TokenStream> {
+fn generate_prompt_impl(config: &McpPromptConfig, original_fn: &ItemFn) -> syn::Result<TokenStream> {
     let fn_name = &original_fn.sig.ident;
     let fn_name_string = fn_name.to_string();
     let prompt_name = config.name.as_ref().unwrap_or(&fn_name_string);
@@ -181,7 +181,7 @@ fn generate_prompt_impl(config: &McpPromptConfig, original_fn: &ItemFn) -> Resul
             &self,
             name: &str,
             arguments: &std::collections::HashMap<String, serde_json::Value>,
-        ) -> Result<pulseengine_mcp_protocol::GetPromptResult, pulseengine_mcp_protocol::McpError> {
+        ) -> std::result::Result<pulseengine_mcp_protocol::GetPromptResult, pulseengine_mcp_protocol::McpError> {
             // Extract parameters from arguments
             #param_extraction
 
@@ -214,7 +214,7 @@ fn generate_prompt_impl(config: &McpPromptConfig, original_fn: &ItemFn) -> Resul
 }
 
 /// Main implementation function for the mcp_prompt macro
-pub fn mcp_prompt_impl(args: TokenStream, input: TokenStream) -> Result<TokenStream> {
+pub fn mcp_prompt_impl(args: TokenStream, input: TokenStream) -> syn::Result<TokenStream> {
     // Parse the configuration from macro arguments
     let config = parse_prompt_attributes(args)?;
 

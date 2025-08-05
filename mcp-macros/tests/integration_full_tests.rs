@@ -9,7 +9,6 @@ mod full_integration {
     /// A comprehensive server that demonstrates all macro features working together
     #[mcp_server(
         name = "Full Integration Test Server",
-        app_name = "integration-test",
         version = "1.0.0",
         description = "A server demonstrating all macro capabilities"
     )]
@@ -150,7 +149,7 @@ mod full_integration {
 #[cfg(test)]
 mod tests {
     use super::full_integration::*;
-    use pulseengine_mcp_server::McpBackend;
+    use pulseengine_mcp_server::{McpBackend, McpServerBuilder};
     use serde_json::json;
 
     #[test]

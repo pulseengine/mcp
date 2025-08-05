@@ -1,6 +1,7 @@
 //! Tests for type system integration and complex type handling
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
+use pulseengine_mcp_server::McpServerBuilder;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

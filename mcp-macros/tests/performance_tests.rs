@@ -1,6 +1,7 @@
 //! Performance and concurrency tests for macro-generated code
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
+use pulseengine_mcp_server::McpServerBuilder;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::time::{Duration, Instant};

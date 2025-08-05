@@ -6,8 +6,9 @@
 //! - integration_tests.rs
 //! - basic functionality from various other test files
 
-use pulseengine_mcp_macros::{mcp_server, mcp_tool, mcp_tools};
+use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use pulseengine_mcp_protocol::*;
+use pulseengine_mcp_server::McpServerBuilder;
 
 #[mcp_server(name = "Test Server")]
 #[derive(Default, Clone)]

@@ -1,6 +1,7 @@
 //! Tests for server lifecycle management and fluent API
 
 use pulseengine_mcp_macros::mcp_server;
+use pulseengine_mcp_server::McpServerBuilder;
 
 mod lifecycle_server {
     use super::*;
@@ -28,7 +29,6 @@ mod app_specific_lifecycle {
 
     #[mcp_server(
         name = "App Lifecycle Server",
-        app_name = "lifecycle-test-app-server-lifecycle-tests",
         version = "1.2.3",
         description = "Server for testing application-specific lifecycle"
     )]
@@ -52,7 +52,7 @@ mod app_specific_lifecycle {
 mod transport_server {
     use super::*;
 
-    #[mcp_server(name = "Transport Server", transport = "http")]
+    #[mcp_server(name = "Transport Server")]
     #[derive(Default, Clone)]
     pub struct TransportServer;
 }

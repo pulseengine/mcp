@@ -1,6 +1,7 @@
 //! Tests for documentation extraction and formatting
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
+use pulseengine_mcp_server::McpServerBuilder;
 
 #[test]
 fn test_documented_server() {
