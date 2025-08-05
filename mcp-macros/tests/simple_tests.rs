@@ -81,7 +81,7 @@ fn test_error_types_exist() {
     // Test that error types exist and can be constructed
     let error1 = ErrorTestServerError::InvalidParams("test".to_string());
     let error2 = ErrorTestServerError::Internal("test".to_string());
-    
+
     // Verify the errors can be converted to strings
     assert!(error1.to_string().contains("Invalid parameters"));
     assert!(error2.to_string().contains("Internal error"));
