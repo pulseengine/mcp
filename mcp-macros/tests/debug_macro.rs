@@ -1,6 +1,7 @@
 //! Debug test for mcp_tools macro
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
+use pulseengine_mcp_server::McpServerBuilder;
 
 /// Simple test to debug the mcp_tools macro
 #[test]

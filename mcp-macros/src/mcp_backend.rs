@@ -150,7 +150,7 @@ fn generate_backend_implementation(
             type Error = #error_type_name;
             type Config = ();
 
-            async fn initialize(_config: Self::Config) -> Result<Self, Self::Error> {
+            async fn initialize(_config: Self::Config) -> std::result::Result<Self, Self::Error> {
                 // User must provide their own initialization logic
                 Err(#error_type_name::Internal(
                     "initialize method must be implemented manually".to_string()
@@ -169,14 +169,14 @@ fn generate_backend_implementation(
                 }
             }
 
-            async fn health_check(&self) -> Result<(), Self::Error> {
+            async fn health_check(&self) -> std::result::Result<(), Self::Error> {
                 Ok(())
             }
 
             async fn list_tools(
                 &self,
                 _request: pulseengine_mcp_protocol::PaginatedRequestParam,
-            ) -> Result<pulseengine_mcp_protocol::ListToolsResult, Self::Error> {
+            ) -> std::result::Result<pulseengine_mcp_protocol::ListToolsResult, Self::Error> {
                 // Auto-discover tools from impl blocks with #[mcp_tool]
                 let mut tools = Vec::new();
 
@@ -192,7 +192,7 @@ fn generate_backend_implementation(
             async fn call_tool(
                 &self,
                 request: pulseengine_mcp_protocol::CallToolRequestParam,
-            ) -> Result<pulseengine_mcp_protocol::CallToolResult, Self::Error> {
+            ) -> std::result::Result<pulseengine_mcp_protocol::CallToolResult, Self::Error> {
                 // Auto-dispatch to tool implementations
                 Err(#error_type_name::InvalidParameter(
                     format!("Unknown tool: {}", request.name)
@@ -202,7 +202,7 @@ fn generate_backend_implementation(
             async fn list_resources(
                 &self,
                 _request: pulseengine_mcp_protocol::PaginatedRequestParam,
-            ) -> Result<pulseengine_mcp_protocol::ListResourcesResult, Self::Error> {
+            ) -> std::result::Result<pulseengine_mcp_protocol::ListResourcesResult, Self::Error> {
                 // Auto-discover resources from methods marked with #[mcp_resource]
                 let mut resources = Vec::new();
 
@@ -218,7 +218,7 @@ fn generate_backend_implementation(
             async fn read_resource(
                 &self,
                 request: pulseengine_mcp_protocol::ReadResourceRequestParam,
-            ) -> Result<pulseengine_mcp_protocol::ReadResourceResult, Self::Error> {
+            ) -> std::result::Result<pulseengine_mcp_protocol::ReadResourceResult, Self::Error> {
                 // Auto-dispatch to resource implementations
                 // This will be enhanced to automatically route to methods with #[mcp_resource]
                 Err(#error_type_name::InvalidParameter(
@@ -229,7 +229,7 @@ fn generate_backend_implementation(
             async fn list_prompts(
                 &self,
                 _request: pulseengine_mcp_protocol::PaginatedRequestParam,
-            ) -> Result<pulseengine_mcp_protocol::ListPromptsResult, Self::Error> {
+            ) -> std::result::Result<pulseengine_mcp_protocol::ListPromptsResult, Self::Error> {
                 // Auto-discover prompts from methods marked with #[mcp_prompt]
                 let mut prompts = Vec::new();
 
@@ -245,7 +245,7 @@ fn generate_backend_implementation(
             async fn get_prompt(
                 &self,
                 request: pulseengine_mcp_protocol::GetPromptRequestParam,
-            ) -> Result<pulseengine_mcp_protocol::GetPromptResult, Self::Error> {
+            ) -> std::result::Result<pulseengine_mcp_protocol::GetPromptResult, Self::Error> {
                 // Auto-dispatch to prompt implementations
                 // This will be enhanced to automatically route to methods with #[mcp_prompt]
                 Err(#error_type_name::InvalidParameter(

@@ -63,15 +63,14 @@ fn test_mcp_server_config() {
     #[derive(Clone, Default)]
     struct ConfigTestServer;
 
-    let config = ConfigTestServerConfig::default();
-    assert_eq!(config.server_name, "Config Test");
-    assert_eq!(config.server_version, env!("CARGO_PKG_VERSION"));
-
-    // Test that transport config is properly structured
-    match config.transport {
-        pulseengine_mcp_transport::TransportConfig::Stdio => {}
-        _ => panic!("Expected Stdio transport as default"),
-    }
+    // Config is simplified to () in the new version for easier usage
+    let _config = ConfigTestServerConfig::default();
+    
+    // Test that server info contains the correct name
+    let server = ConfigTestServer::with_defaults();
+    let info = server.get_server_info();
+    assert_eq!(info.server_info.name, "Config Test");
+    assert_eq!(info.server_info.version, env!("CARGO_PKG_VERSION"));
 }
 
 /// Test fluent builder API generation
@@ -177,8 +176,10 @@ fn test_version_handling() {
     let server_info = server.get_server_info();
     assert_eq!(server_info.server_info.version, "2.1.0");
 
-    let config = VersionTestServerConfig::default();
-    assert_eq!(config.server_version, "2.1.0");
+    let _config = VersionTestServerConfig::default();
+    
+    // Verify version is set correctly in server info
+    assert_eq!(server_info.server_info.version, "2.1.0");
 }
 
 /// Test zero-sized structs

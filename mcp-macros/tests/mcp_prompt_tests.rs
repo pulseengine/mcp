@@ -72,7 +72,7 @@ mod tests {
     use super::*;
     use basic_prompt::*;
     use complex_prompt::*;
-    use pulseengine_mcp_server::McpBackend;
+    use pulseengine_mcp_server::{McpBackend, McpServerBuilder};
     use sync_prompt::*;
 
     #[test]

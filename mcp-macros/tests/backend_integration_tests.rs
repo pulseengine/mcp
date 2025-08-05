@@ -1,7 +1,7 @@
 //! Tests for mcp_backend macro integration and functionality
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
-use pulseengine_mcp_server::McpBackend;
+use pulseengine_mcp_server::{McpBackend, McpServerBuilder};
 
 mod simple_backend {
     use super::*;

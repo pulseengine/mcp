@@ -1,6 +1,7 @@
 //! Tests for macro attribute parsing and validation
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
+use pulseengine_mcp_server::McpServerBuilder;
 
 mod minimal_server {
     use super::*;
@@ -23,10 +24,8 @@ mod full_server {
 
     #[mcp_server(
         name = "Full Server",
-        app_name = "test-app-macro-attribute-tests",
         version = "1.0.0",
-        description = "A server with all attributes",
-        transport = "http"
+        description = "A server with all attributes"
     )]
     #[derive(Default, Clone)]
     pub struct FullServer;

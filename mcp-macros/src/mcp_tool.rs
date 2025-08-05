@@ -240,7 +240,7 @@ fn generate_tool_implementation(
         pub async fn #call_tool_fn_name(
             &self,
             request: pulseengine_mcp_protocol::CallToolRequestParam,
-        ) -> Result<pulseengine_mcp_protocol::CallToolResult, pulseengine_mcp_protocol::Error> {
+        ) -> std::result::Result<pulseengine_mcp_protocol::CallToolResult, pulseengine_mcp_protocol::Error> {
             match request.name.as_str() {
                 #tool_name => {
                     #param_extraction

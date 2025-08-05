@@ -16,7 +16,7 @@
 
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{Error, FnArg, ItemFn, PatType, Result, parse2};
+use syn::{Error, FnArg, ItemFn, PatType, parse2};
 
 use crate::utils::{extract_doc_comments, parse_attribute_args};
 
@@ -34,7 +34,7 @@ pub struct McpResourceConfig {
 }
 
 /// Parse macro attributes into McpResourceConfig
-fn parse_resource_attributes(args: TokenStream) -> Result<McpResourceConfig> {
+fn parse_resource_attributes(args: TokenStream) -> syn::Result<McpResourceConfig> {
     let mut config = McpResourceConfig::default();
     let parsed_args = parse_attribute_args(args)?;
 
@@ -140,7 +140,7 @@ fn extract_uri_parameters(uri_template: &str) -> Vec<String> {
 fn generate_parameter_extraction(
     uri_params: &[String],
     fn_inputs: &[&PatType],
-) -> Result<TokenStream> {
+) -> syn::Result<TokenStream> {
     if uri_params.len() != fn_inputs.len() {
         return Err(Error::new(
             Span::call_site(),
@@ -177,7 +177,7 @@ fn generate_parameter_extraction(
 }
 
 /// Generate the resource implementation
-fn generate_resource_impl(config: &McpResourceConfig, original_fn: &ItemFn) -> Result<TokenStream> {
+fn generate_resource_impl(config: &McpResourceConfig, original_fn: &ItemFn) -> syn::Result<TokenStream> {
     let fn_name = &original_fn.sig.ident;
     let fn_name_string = fn_name.to_string();
     let resource_name = config.name.as_ref().unwrap_or(&fn_name_string);
@@ -228,7 +228,7 @@ fn generate_resource_impl(config: &McpResourceConfig, original_fn: &ItemFn) -> R
             &self,
             uri: &str,
             uri_params: &std::collections::HashMap<String, String>,
-        ) -> Result<pulseengine_mcp_protocol::ResourceContents, pulseengine_mcp_protocol::McpError> {
+        ) -> std::result::Result<pulseengine_mcp_protocol::ResourceContents, pulseengine_mcp_protocol::McpError> {
             // Extract parameters from URI
             #param_extraction
 
@@ -269,7 +269,7 @@ fn generate_resource_impl(config: &McpResourceConfig, original_fn: &ItemFn) -> R
 }
 
 /// Main implementation function for the mcp_resource macro
-pub fn mcp_resource_impl(args: TokenStream, input: TokenStream) -> Result<TokenStream> {
+pub fn mcp_resource_impl(args: TokenStream, input: TokenStream) -> syn::Result<TokenStream> {
     // Parse the configuration from macro arguments
     let config = parse_resource_attributes(args)?;
 
