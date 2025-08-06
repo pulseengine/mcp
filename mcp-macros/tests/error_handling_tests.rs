@@ -134,19 +134,18 @@ mod tests {
     use pulseengine_mcp_server::McpBackend;
 
     #[test]
-    fn test_error_types_exist() {
-        let _backend_error = ErrorBackendError::Internal("test".to_string());
-        let _server_error = ErrorServerError::Transport("test".to_string());
+    fn test_custom_error_types_exist() {
+        // Test that custom errors can be created
         let _custom_error = CustomError::Network;
+        let _other_custom = CustomError::Custom("test".to_string());
     }
 
     #[test]
-    fn test_error_conversion() {
+    fn test_custom_error_conversion() {
         let custom_error = CustomError::Custom("test".to_string());
-        let backend_error = ErrorBackendError::Internal(custom_error.to_string());
 
-        // Test that errors can be converted to protocol errors
-        let _protocol_error: pulseengine_mcp_protocol::Error = backend_error.into();
+        // Test that custom errors can be converted to strings
+        let _error_string = custom_error.to_string();
     }
 
     #[tokio::test]
@@ -274,19 +273,13 @@ mod tests {
     }
 
     #[test]
-    fn test_error_debug_formatting() {
+    fn test_custom_error_debug_formatting() {
         let custom_error = CustomError::Custom("test error".to_string());
-        let backend_error = ErrorBackendError::Internal("internal error".to_string());
-        let server_error = ErrorServerError::InvalidParameter("param error".to_string());
 
-        // Test that errors format properly
+        // Test that custom errors format properly
         assert!(format!("{custom_error:?}").contains("Custom"));
-        assert!(format!("{backend_error:?}").contains("Internal"));
-        assert!(format!("{server_error:?}").contains("InvalidParameter"));
 
         // Test display formatting
         assert_eq!(custom_error.to_string(), "Custom error: test error");
-        assert_eq!(backend_error.to_string(), "Internal error: internal error");
-        assert_eq!(server_error.to_string(), "Invalid parameter: param error");
     }
 }

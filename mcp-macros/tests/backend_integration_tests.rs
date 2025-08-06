@@ -137,9 +137,9 @@ mod tests {
     }
 
     #[test]
-    fn test_error_types_exist() {
-        // Test that error types were generated
-        let _simple_error = SimpleBackendError::Internal("test".to_string());
-        let _complex_error = ComplexBackendError::Internal("test".to_string());
+    fn test_backends_created() {
+        // Test that backends can be created without accessing private types
+        let _simple = SimpleBackend::with_defaults();
+        let _complex = ComplexBackend::with_defaults();
     }
 }

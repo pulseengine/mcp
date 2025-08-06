@@ -43,7 +43,7 @@ async fn test_tool_discovery() {
             discovered_tool
                 .description
                 .as_ref()
-                .map_or(false, |d| d.contains("Simple tool"))
+                .map_or(false, |d: &String| d.contains("Simple tool"))
         );
     }
 }
