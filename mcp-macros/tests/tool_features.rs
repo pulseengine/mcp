@@ -5,7 +5,7 @@
 //! - tool_discovery_test.rs
 //! - async_sync_tests.rs
 
-use pulseengine_mcp_macros::{mcp_server, mcp_tool, mcp_tools};
+use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use serde_json::json;
 
 #[tokio::test]
@@ -39,12 +39,7 @@ async fn test_tool_discovery() {
 
         // Check that tools have descriptions from doc comments
         let discovered_tool = tools.iter().find(|t| t.name == "discovered_tool").unwrap();
-        assert!(
-            discovered_tool
-                .description
-                .as_ref()
-                .map_or(false, |d: &String| d.contains("Simple tool"))
-        );
+        assert!(discovered_tool.description.contains("Simple tool"));
     }
 }
 
