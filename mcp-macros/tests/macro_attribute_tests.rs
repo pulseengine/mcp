@@ -193,26 +193,23 @@ mod tests {
     }
 
     #[test]
-    fn test_config_types_exist() {
-        let _minimal_config = MinimalServerConfig::default();
-        let _full_config = FullServerConfig::default();
-        let _doc_config = DocumentedServerConfig::default();
+    fn test_simplified_framework_usage() {
+        // In the simplified framework, configuration is handled internally
+        // and we don't need to access config types directly
+        let minimal = MinimalServer::with_defaults();
+        let full = FullServer::with_defaults();
+        let documented = DocumentedServer::with_defaults();
 
-        // Test that configs have the right values
-        let full_config = FullServerConfig::default();
-        assert_eq!(full_config.server_name, "Full Server");
-        assert_eq!(full_config.server_version, "1.0.0");
-        assert_eq!(
-            full_config.server_description,
-            Some("A server with all attributes".to_string())
-        );
-    }
+        // Test that servers can be created successfully
+        let minimal_info = minimal.get_server_info();
+        let full_info = full.get_server_info();
+        let doc_info = documented.get_server_info();
 
-    #[test]
-    fn test_error_types_exist() {
-        let _minimal_error = MinimalServerError::Internal("test".to_string());
-        let _full_error = FullServerError::Transport("test".to_string());
-        let _doc_error = DocumentedServerError::InvalidParameter("test".to_string());
+        // Verify expected server information
+        assert_eq!(minimal_info.server_info.name, "Minimal Server");
+        assert_eq!(full_info.server_info.name, "Full Server");
+        assert_eq!(doc_info.server_info.name, "Documented Server");
+        assert_eq!(full_info.server_info.version, "1.0.0");
     }
 
     #[tokio::test]
