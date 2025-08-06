@@ -44,11 +44,13 @@ fn test_type_system_compatibility() {
     #[mcp_server(name = "Generic Server")]
     #[derive(Default, Clone)]
     struct GenericServer<T: Clone + Default + Send + Sync + 'static> {
+        #[allow(dead_code)]
         data: T,
     }
 
     #[mcp_tools]
     impl<T: Clone + Default + Send + Sync + 'static> GenericServer<T> {
+        #[allow(dead_code)]
         pub async fn get_data(&self) -> anyhow::Result<String> {
             Ok("Generic data".to_string())
         }
@@ -69,6 +71,7 @@ fn test_security_compilation() {
 
     #[mcp_tools]
     impl SecureServer {
+        #[allow(dead_code)]
         pub async fn safe_operation(&self, input: String) -> anyhow::Result<String> {
             // Ensure input is properly handled
             let sanitized = input.chars().filter(|c| c.is_alphanumeric()).collect();
@@ -76,7 +79,7 @@ fn test_security_compilation() {
         }
     }
 
-    let server = SecureServer::default();
+    let server = SecureServer;
     let _info = server.get_server_info();
 }
 
@@ -102,8 +105,8 @@ fn test_macro_attribute_parsing() {
     struct AttrTest4;
 
     // If these compile, attribute parsing works correctly
-    let _s1 = AttrTest1::default();
-    let _s2 = AttrTest2::default();
-    let _s3 = AttrTest3::default();
-    let _s4 = AttrTest4::default();
+    let _s1 = AttrTest1;
+    let _s2 = AttrTest2;
+    let _s3 = AttrTest3;
+    let _s4 = AttrTest4;
 }

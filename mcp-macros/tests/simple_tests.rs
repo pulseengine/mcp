@@ -26,7 +26,7 @@ fn test_minimal_config() {
 
     // Test that basic structure is generated
     let _server = MinimalServer::with_defaults();
-    let _config = MinimalServerConfig::default();
+    MinimalServerConfig::default();
 }
 
 /// Test with description
@@ -96,8 +96,7 @@ fn test_config_types_exist() {
 
     // Test that config types exist - this is a compilation test
     // If the code compiles, it means the config type was generated correctly
-    let config = ConfigTestServerConfig::default();
-    let _ = config; // Explicitly ignore the value
+    ConfigTestServerConfig::default();
 }
 
 /// Test that service types are generated

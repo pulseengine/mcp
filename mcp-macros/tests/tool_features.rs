@@ -5,6 +5,8 @@
 //! - tool_discovery_test.rs
 //! - async_sync_tests.rs
 
+#![allow(dead_code)]
+
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use serde_json::json;
 
@@ -23,7 +25,7 @@ async fn test_tool_discovery() {
 
         /// Tool with parameters
         pub async fn parametrized_tool(&self, param: String) -> anyhow::Result<String> {
-            Ok(format!("Param: {}", param))
+            Ok(format!("Param: {param}"))
         }
     }
 
