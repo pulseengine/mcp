@@ -23,7 +23,9 @@
       "Bash(find:*)",
       "Bash(cargo:*)",
       "WebFetch(domain:doc.rust-lang.org)",
-      "WebFetch(domain:forge.rust-lang.org)"
+      "WebFetch(domain:forge.rust-lang.org)",
+      "Bash(gh api:*)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": []
   }

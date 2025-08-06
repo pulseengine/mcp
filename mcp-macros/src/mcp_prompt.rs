@@ -123,7 +123,10 @@ fn generate_prompt_parameter_extraction(fn_inputs: &[&PatType]) -> syn::Result<T
 }
 
 /// Generate the prompt implementation
-fn generate_prompt_impl(config: &McpPromptConfig, original_fn: &ItemFn) -> syn::Result<TokenStream> {
+fn generate_prompt_impl(
+    config: &McpPromptConfig,
+    original_fn: &ItemFn,
+) -> syn::Result<TokenStream> {
     let fn_name = &original_fn.sig.ident;
     let fn_name_string = fn_name.to_string();
     let prompt_name = config.name.as_ref().unwrap_or(&fn_name_string);
