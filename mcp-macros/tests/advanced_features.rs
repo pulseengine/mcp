@@ -6,7 +6,7 @@
 //! - server_lifecycle_tests.rs
 //! - performance_tests.rs
 
-use pulseengine_mcp_macros::{mcp_prompt, mcp_resource, mcp_server, mcp_tool, mcp_tools};
+use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -99,7 +99,7 @@ async fn test_complex_parameters() {
         assert!(result.is_ok());
         if let Ok(result) = result {
             if let Some(content) = result.content.first() {
-                if let pulseengine_mcp_protocol::PromptMessageContent::Text { text } = content {
+                if let pulseengine_mcp_protocol::Content::Text { text } = content {
                     assert!(text.contains("Text: Hello"));
                     assert!(text.contains("Number: 42"));
                     assert!(text.contains("Flag: true"));
