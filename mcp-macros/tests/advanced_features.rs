@@ -13,12 +13,14 @@ use tokio::sync::Mutex;
 #[mcp_server(name = "Advanced Server", version = "1.0.0")]
 #[derive(Default, Clone)]
 struct AdvancedServer {
+    #[allow(dead_code)]
     counter: Arc<Mutex<u32>>,
 }
 
 #[mcp_tools]
 impl AdvancedServer {
     /// Increment counter and return current value
+    #[allow(dead_code)]
     pub async fn increment(&self) -> anyhow::Result<u32> {
         let mut counter = self.counter.lock().await;
         *counter += 1;
@@ -26,6 +28,7 @@ impl AdvancedServer {
     }
 
     /// Reset counter to zero
+    #[allow(dead_code)]
     pub async fn reset(&self) -> anyhow::Result<String> {
         let mut counter = self.counter.lock().await;
         *counter = 0;
@@ -33,6 +36,7 @@ impl AdvancedServer {
     }
 
     /// Complex tool with multiple parameter types
+    #[allow(dead_code)]
     pub async fn complex_tool(
         &self,
         text: String,
@@ -44,8 +48,7 @@ impl AdvancedServer {
         let list_len = optional_list.as_ref().map(|l| l.len()).unwrap_or(0);
 
         Ok(format!(
-            "Text: {}, Number: {}, Flag: {}, List length: {}",
-            text, number, flag, list_len
+            "Text: {text}, Number: {number}, Flag: {flag}, List length: {list_len}"
         ))
     }
 }
@@ -98,13 +101,11 @@ async fn test_complex_parameters() {
     if let Some(result) = server.try_call_tool(request).await {
         assert!(result.is_ok());
         if let Ok(result) = result {
-            if let Some(content) = result.content.first() {
-                if let pulseengine_mcp_protocol::Content::Text { text } = content {
-                    assert!(text.contains("Text: Hello"));
-                    assert!(text.contains("Number: 42"));
-                    assert!(text.contains("Flag: true"));
-                    assert!(text.contains("List length: 3"));
-                }
+            if let Some(pulseengine_mcp_protocol::Content::Text { text }) = result.content.first() {
+                assert!(text.contains("Text: Hello"));
+                assert!(text.contains("Number: 42"));
+                assert!(text.contains("Flag: true"));
+                assert!(text.contains("List length: 3"));
             }
         }
     }
@@ -134,8 +135,8 @@ fn test_multiple_servers_compilation() {
     #[derive(Default, Clone)]
     struct ServerTwo;
 
-    let _server1 = ServerOne::default();
-    let _server2 = ServerTwo::default();
+    let _server1 = ServerOne;
+    let _server2 = ServerTwo;
 
     // If this compiles, the test passes
 }
@@ -151,22 +152,27 @@ fn test_performance_compilation_time() {
 
     #[mcp_tools]
     impl PerfServer {
+        #[allow(dead_code)]
         pub async fn tool1(&self) -> anyhow::Result<String> {
             Ok("1".to_string())
         }
+        #[allow(dead_code)]
         pub async fn tool2(&self) -> anyhow::Result<String> {
             Ok("2".to_string())
         }
+        #[allow(dead_code)]
         pub async fn tool3(&self) -> anyhow::Result<String> {
             Ok("3".to_string())
         }
+        #[allow(dead_code)]
         pub async fn tool4(&self) -> anyhow::Result<String> {
             Ok("4".to_string())
         }
+        #[allow(dead_code)]
         pub async fn tool5(&self) -> anyhow::Result<String> {
             Ok("5".to_string())
         }
     }
 
-    let _server = PerfServer::default();
+    let _server = PerfServer;
 }

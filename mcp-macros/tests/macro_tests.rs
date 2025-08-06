@@ -64,7 +64,7 @@ fn test_mcp_server_config() {
     struct ConfigTestServer;
 
     // Config is simplified to () in the new version for easier usage
-    let _config = ConfigTestServerConfig::default();
+    ConfigTestServerConfig::default();
 
     // Test that server info contains the correct name
     let server = ConfigTestServer::with_defaults();
@@ -176,7 +176,7 @@ fn test_version_handling() {
     let server_info = server.get_server_info();
     assert_eq!(server_info.server_info.version, "2.1.0");
 
-    let _config = VersionTestServerConfig::default();
+    VersionTestServerConfig::default();
 
     // Verify version is set correctly in server info
     assert_eq!(server_info.server_info.version, "2.1.0");

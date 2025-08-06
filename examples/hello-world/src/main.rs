@@ -15,7 +15,7 @@ impl HelloWorld {
     /// Say hello to someone
     pub async fn say_hello(&self, name: Option<String>) -> anyhow::Result<String> {
         let name = name.unwrap_or_else(|| "World".to_string());
-        Ok(format!("Hello, {}!", name))
+        Ok(format!("Hello, {name}!"))
     }
 }
 
