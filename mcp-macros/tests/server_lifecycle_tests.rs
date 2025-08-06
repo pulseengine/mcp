@@ -83,26 +83,11 @@ mod tests {
     }
 
     #[test]
-    fn test_config_types_generated() {
-        let _lifecycle_config = LifecycleServerConfig::default();
-        let _app_config = AppLifecycleServerConfig::default();
-        let _transport_config = TransportServerConfig::default();
-    }
-
-    #[test]
-    fn test_error_types_generated() {
-        let _lifecycle_error = LifecycleServerError::Internal("test".to_string());
-        let _app_error = AppLifecycleServerError::Transport("test".to_string());
-        let _transport_error = TransportServerError::InvalidParameter("test".to_string());
-    }
-
-    #[test]
-    fn test_service_types_generated() {
-        // These types should exist but can't be easily instantiated in tests
-        // due to async requirements. We just test they compile.
-        let _lifecycle_type: Option<LifecycleServerService> = None;
-        let _app_type: Option<AppLifecycleServerService> = None;
-        let _transport_type: Option<TransportServerService> = None;
+    fn test_servers_can_be_created() {
+        // Test that servers can be created using the simplified framework
+        let _lifecycle = LifecycleServer::with_defaults();
+        let _app = AppLifecycleServer::with_defaults();
+        let _transport = TransportServer::with_defaults();
     }
 
     #[test]
@@ -203,34 +188,39 @@ mod tests {
     }
 
     #[test]
-    fn test_config_defaults() {
-        let config = LifecycleServerConfig::default();
-        let app_config = AppLifecycleServerConfig::default();
+    fn test_server_info_defaults() {
+        // Test that server info contains expected values from the simplified framework
+        let lifecycle = LifecycleServer::with_defaults();
+        let app = AppLifecycleServer::with_defaults();
 
-        assert_eq!(config.server_name, "Lifecycle Test Server");
-        assert_eq!(app_config.server_name, "App Lifecycle Server");
-        assert_eq!(app_config.server_version, "1.2.3");
+        let lifecycle_info = lifecycle.get_server_info();
+        let app_info = app.get_server_info();
+
+        assert_eq!(lifecycle_info.server_info.name, "Lifecycle Test Server");
+        assert_eq!(app_info.server_info.name, "App Lifecycle Server");
+        assert_eq!(app_info.server_info.version, "1.2.3");
         assert_eq!(
-            app_config.server_description,
+            app_info.instructions,
             Some("Server for testing application-specific lifecycle".to_string())
         );
     }
 
     #[test]
     #[cfg(feature = "auth")]
-    fn test_auth_config_methods() {
-        // Test that auth config methods exist when auth feature is enabled
-        let _lifecycle_auth = LifecycleServerConfig::get_auth_config();
-        let _app_auth = AppLifecycleServerConfig::get_auth_config();
-        let _transport_auth = TransportServerConfig::get_auth_config();
+    fn test_simplified_auth_usage() {
+        // In the simplified framework, auth is handled internally
+        let _lifecycle = LifecycleServer::with_defaults();
+        let _app = AppLifecycleServer::with_defaults();
+        let _transport = TransportServer::with_defaults();
+        
+        // These should compile without needing to access config types directly
     }
 
     #[tokio::test]
     #[cfg(feature = "auth")]
-    async fn test_auth_manager_creation() {
-        // These will fail in test environment but should compile
-        let _lifecycle_result = LifecycleServer::create_auth_manager().await;
-        let _app_result = AppLifecycleServer::create_auth_manager().await;
-        let _transport_result = TransportServer::create_auth_manager().await;
+    async fn test_server_creation_with_auth() {
+        // Test server creation works with auth feature enabled
+        let lifecycle = LifecycleServer::with_defaults();
+        let _info = lifecycle.get_server_info();
     }
 }
