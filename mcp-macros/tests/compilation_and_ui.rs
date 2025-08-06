@@ -43,7 +43,7 @@ fn test_type_system_compatibility() {
     // Test that macro works with different generic constraints
     #[mcp_server(name = "Generic Server")]
     #[derive(Default, Clone)]
-    struct GenericServer<T: Clone + Default> {
+    struct GenericServer<T: Clone + Default + Send + Sync + 'static> {
         data: T,
     }
 

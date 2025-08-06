@@ -99,11 +99,11 @@ async fn test_complex_parameters() {
         assert!(result.is_ok());
         if let Ok(result) = result {
             if let Some(content) = result.content.first() {
-                if let pulseengine_mcp_protocol::TextOrImageContent::Text(text_content) = content {
-                    assert!(text_content.text.contains("Text: Hello"));
-                    assert!(text_content.text.contains("Number: 42"));
-                    assert!(text_content.text.contains("Flag: true"));
-                    assert!(text_content.text.contains("List length: 3"));
+                if let pulseengine_mcp_protocol::PromptMessageContent::Text { text } = content {
+                    assert!(text.contains("Text: Hello"));
+                    assert!(text.contains("Number: 42"));
+                    assert!(text.contains("Flag: true"));
+                    assert!(text.contains("List length: 3"));
                 }
             }
         }
