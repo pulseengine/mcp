@@ -6,9 +6,9 @@
 #![allow(dead_code, clippy::uninlined_format_args, clippy::module_inception)]
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
-use pulseengine_mcp_server::McpServerBuilder;
 use pulseengine_mcp_protocol::McpResult;
 use pulseengine_mcp_server::McpBackend;
+use pulseengine_mcp_server::McpServerBuilder;
 use std::sync::Arc;
 
 /// Test server with unusual characters in name

@@ -177,7 +177,10 @@ fn generate_parameter_extraction(
 }
 
 /// Generate the resource implementation
-fn generate_resource_impl(config: &McpResourceConfig, original_fn: &ItemFn) -> syn::Result<TokenStream> {
+fn generate_resource_impl(
+    config: &McpResourceConfig,
+    original_fn: &ItemFn,
+) -> syn::Result<TokenStream> {
     let fn_name = &original_fn.sig.ident;
     let fn_name_string = fn_name.to_string();
     let resource_name = config.name.as_ref().unwrap_or(&fn_name_string);
