@@ -212,7 +212,7 @@ mod tests {
         let _lifecycle = LifecycleServer::with_defaults();
         let _app = AppLifecycleServer::with_defaults();
         let _transport = TransportServer::with_defaults();
-        
+
         // These should compile without needing to access config types directly
     }
 
