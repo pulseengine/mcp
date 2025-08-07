@@ -6,6 +6,10 @@
 //! - async_sync_tests.rs
 
 #![allow(dead_code)]
+#![allow(clippy::all)]
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+#![allow(non_snake_case)]
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use serde_json::json;
@@ -56,7 +60,7 @@ async fn test_async_tools() {
         pub async fn async_tool(&self, delay_ms: Option<u64>) -> anyhow::Result<String> {
             let delay = delay_ms.unwrap_or(10);
             tokio::time::sleep(tokio::time::Duration::from_millis(delay)).await;
-            Ok(format!("Completed after {}ms", delay))
+            Ok(format!("Completed after {delay}ms"))
         }
 
         pub async fn async_tool_with_result(&self) -> anyhow::Result<i32> {
@@ -66,7 +70,7 @@ async fn test_async_tools() {
         }
     }
 
-    let server = AsyncToolsServer::default();
+    let server = AsyncToolsServer;
 
     use pulseengine_mcp_protocol::CallToolRequestParam;
 
@@ -100,27 +104,28 @@ async fn test_tool_parameter_types() {
     #[mcp_tools]
     impl ParameterTypesServer {
         pub async fn string_param(&self, text: String) -> anyhow::Result<String> {
-            Ok(format!("Got string: {}", text))
+            Ok(format!("Got string: {text}"))
         }
 
         pub async fn number_param(&self, num: i32) -> anyhow::Result<String> {
-            Ok(format!("Got number: {}", num))
+            Ok(format!("Got number: {num}"))
         }
 
         pub async fn bool_param(&self, flag: bool) -> anyhow::Result<String> {
-            Ok(format!("Got bool: {}", flag))
+            Ok(format!("Got bool: {flag}"))
         }
 
         pub async fn optional_param(&self, opt: Option<String>) -> anyhow::Result<String> {
-            Ok(format!("Got optional: {:?}", opt))
+            Ok(format!("Got optional: {opt:?}"))
         }
 
         pub async fn vec_param(&self, items: Vec<String>) -> anyhow::Result<String> {
-            Ok(format!("Got {} items", items.len()))
+            let len = items.len();
+            Ok(format!("Got {len} items"))
         }
     }
 
-    let server = ParameterTypesServer::default();
+    let server = ParameterTypesServer;
 
     use pulseengine_mcp_protocol::CallToolRequestParam;
 
@@ -196,7 +201,7 @@ fn test_tool_naming_conventions() {
         }
     }
 
-    let server = NamingServer::default();
+    let server = NamingServer;
 
     // Test that tool names are preserved as-is
     if let Some(tools) = server.try_get_tools() {
