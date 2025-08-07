@@ -1,6 +1,7 @@
 //! Basic mcp_tools macro usage that should compile successfully
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
+use pulseengine_mcp_server::McpServerBuilder;
 
 #[mcp_server(name = "Test Tool Server")]
 #[derive(Clone, Default)]
