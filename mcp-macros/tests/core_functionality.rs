@@ -6,8 +6,12 @@
 //! - integration_tests.rs
 //! - basic functionality from various other test files
 
+#![allow(clippy::all)]
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+#![allow(dead_code)]
+
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
-use pulseengine_mcp_protocol::*;
 use pulseengine_mcp_server::McpServerBuilder;
 
 #[mcp_server(name = "Test Server")]
@@ -16,30 +20,32 @@ struct TestServer;
 
 #[mcp_tools]
 impl TestServer {
+    #[allow(dead_code)]
     pub async fn simple_tool(&self) -> anyhow::Result<String> {
         Ok("Hello from tool".to_string())
     }
 
+    #[allow(dead_code)]
     pub async fn tool_with_params(
         &self,
         message: String,
         count: Option<u32>,
     ) -> anyhow::Result<String> {
         let count = count.unwrap_or(1);
-        Ok(format!("{} (repeated {} times)", message, count))
+        Ok(format!("{message} (repeated {count} times)"))
     }
 }
 
 #[tokio::test]
 async fn test_basic_server_generation() {
-    let server = TestServer::default();
+    let server = TestServer;
     let server_info = server.get_server_info();
     assert_eq!(server_info.server_info.name, "Test Server");
 }
 
 #[tokio::test]
 async fn test_tool_listing() {
-    let server = TestServer::default();
+    let server = TestServer;
     if let Some(tools) = server.try_get_tools() {
         assert!(!tools.is_empty());
         assert!(tools.iter().any(|t| t.name == "simple_tool"));
@@ -57,7 +63,7 @@ async fn test_server_with_version_and_description() {
     #[derive(Default, Clone)]
     struct VersionedServer;
 
-    let server = VersionedServer::default();
+    let server = VersionedServer;
     let info = server.get_server_info();
     assert_eq!(info.server_info.name, "Versioned Server");
     assert_eq!(info.server_info.version, "2.0.0");
@@ -66,7 +72,7 @@ async fn test_server_with_version_and_description() {
 
 #[tokio::test]
 async fn test_builder_pattern() {
-    let builder = TestServer::with_defaults();
+    let _builder = TestServer::with_defaults();
     // Test that builder pattern works without panicking
     // Note: Full test would require transport setup
 }

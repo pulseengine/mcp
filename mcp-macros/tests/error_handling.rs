@@ -6,6 +6,11 @@
 //! - macro_validation_tests.rs
 //! - edge_case_tests.rs
 
+#![allow(clippy::all)]
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+#![allow(dead_code)]
+
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 
 #[test]
@@ -76,7 +81,7 @@ async fn test_invalid_tool_name() {
     use pulseengine_mcp_protocol::CallToolRequestParam;
     use serde_json::json;
 
-    let server = InvalidToolServer::default();
+    let server = InvalidToolServer;
     let request = CallToolRequestParam {
         name: "nonexistent_tool".to_string(),
         arguments: Some(json!({})),
