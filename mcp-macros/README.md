@@ -13,7 +13,7 @@ pulseengine-mcp-macros = "0.7.1"
 
 # Required dependencies for generated code
 pulseengine-mcp-protocol = "0.7.1"
-pulseengine-mcp-server = "0.7.1"  
+pulseengine-mcp-server = "0.7.1"
 pulseengine-mcp-transport = "0.7.1"
 async-trait = "0.1"
 thiserror = "1.0"
@@ -45,7 +45,7 @@ impl HelloServer {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // CRITICAL for STDIO: Configure logging to stderr
     HelloServer::configure_stdio_logging();
-    
+
     let server = HelloServer::with_defaults().serve_stdio().await?;
     server.run().await?;
     Ok(())
@@ -107,9 +107,10 @@ pub struct MyServer;
 ```
 
 **Generated methods:**
+
 - `MyServer::with_defaults()` - Create instance
 - `MyServer::serve_stdio()` - Start STDIO transport
-- `MyServer::serve_http(port)` - Start HTTP transport  
+- `MyServer::serve_http(port)` - Start HTTP transport
 - `MyServer::configure_stdio_logging()` - Fix STDIO logging
 
 ### `#[mcp_tools]`
@@ -164,7 +165,7 @@ let server = MyServer::with_defaults().serve_websocket(8080).await?;
 // Memory-based (development)
 #[mcp_server(name = "Dev Server", auth = "memory")]
 
-// File-based (production)  
+// File-based (production)
 #[mcp_server(name = "Prod Server", auth = "file", app_name = "my-app")]
 
 // Explicitly disabled (same as default)
@@ -186,6 +187,7 @@ MyServer::configure_stdio_logging();
 ```
 
 Failure to do this will break MCP client compatibility with errors like:
+
 ```
 Error from MCP server: SyntaxError: Unexpected token '2025-0"... is not valid JSON
 ```

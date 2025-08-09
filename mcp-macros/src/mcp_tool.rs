@@ -100,9 +100,47 @@ pub fn mcp_tool_impl(attr: TokenStream, item: TokenStream) -> syn::Result<TokenS
 
 /// Implementation of #[mcp_tools] macro for impl blocks
 pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<TokenStream> {
-    // For now, just return the input unchanged (passthrough)
-    // This allows CI to pass while we work on the full implementation
-    Ok(item)
+    let impl_block = syn::parse2::<syn::ItemImpl>(item)?;
+
+    // For now, add basic tool discovery methods but keep it simple
+    // This is a stepping stone toward full tool discovery
+
+    // Extract struct name from impl block
+    let struct_name = match &*impl_block.self_ty {
+        syn::Type::Path(type_path) => {
+            type_path.path.segments.last().unwrap().ident.clone()
+        }
+        _ => {
+            return Err(syn::Error::new_spanned(
+                &impl_block.self_ty,
+                "#[mcp_tools] can only be applied to impl blocks for named structs",
+            ));
+        }
+    };
+
+    // Extract generics if any
+    let (impl_generics, ty_generics, where_clause) = impl_block.generics.split_for_impl();
+
+    // Create enhanced impl block with original methods plus basic discovery placeholders
+    let enhanced_impl = quote! {
+        #impl_block
+
+        impl #impl_generics #struct_name #ty_generics #where_clause {
+            /// Get list of automatically discovered tools (basic implementation)
+            pub fn __get_mcp_tools(&self) -> Vec<pulseengine_mcp_protocol::Tool> {
+                // Basic implementation - return empty vec for now
+                // This can be enhanced in future iterations
+                vec![]
+            }
+
+            /// Dispatch to automatically discovered tools (basic implementation)
+            pub async fn __dispatch_mcp_tool(&self, name: &str, _arguments: Option<serde_json::Value>) -> anyhow::Result<serde_json::Value> {
+                Err(anyhow::anyhow!("Tool discovery not yet fully implemented for tool: {}", name))
+            }
+        }
+    };
+
+    Ok(enhanced_impl)
 }
 
 /// Extract parameter information from function signature
@@ -140,7 +178,7 @@ fn extract_parameters(
                                 .and_then(|v| serde_json::from_value(v.clone()).ok()) {
                                 Some(value) => value,
                                 None => return Err(pulseengine_mcp_protocol::Error::invalid_params(
-                                    format!("Missing required parameter '{}' for tool '{}'. Expected type: {}", 
+                                    format!("Missing required parameter '{}' for tool '{}'. Expected type: {}",
                                         stringify!(#param_name), #tool_name, stringify!(#param_type))
                                 )),
                             }
@@ -179,6 +217,7 @@ struct ToolImplementationParams<'a> {
     is_async: bool,
     param_fields: &'a [TokenStream],
 }
+
 
 /// Generate the tool implementation function
 #[allow(clippy::too_many_arguments)]

@@ -17,6 +17,8 @@ pub struct McpServerAttribute {
     pub version: Option<String>,
     /// Server description (defaults to doc comments)
     pub description: Option<String>,
+    /// Authentication mode: "memory", "file", "disabled", or omit for no auth
+    pub auth: Option<String>,
 }
 
 /// Implementation of #[mcp_server] macro
@@ -41,11 +43,15 @@ pub fn mcp_server_impl(attr: TokenStream, item: TokenStream) -> syn::Result<Toke
     let server_name = &attribute.name;
     let server_version = attribute
         .version
+        .as_ref()
+        .cloned()
         .map(|v| quote! { #v.to_string() })
         .unwrap_or_else(get_package_version);
 
     let server_description = attribute
         .description
+        .as_ref()
+        .cloned()
         .or(doc_comment)
         .map(|desc| quote! { Some(#desc.to_string()) })
         .unwrap_or_else(|| quote! { None });
@@ -56,6 +62,7 @@ pub fn mcp_server_impl(attr: TokenStream, item: TokenStream) -> syn::Result<Toke
         server_name,
         &server_version,
         &server_description,
+        &attribute,
     )?;
 
     Ok(quote! {
@@ -75,14 +82,51 @@ fn generate_server_implementation(
     server_name: &str,
     server_version: &TokenStream,
     server_description: &TokenStream,
+    attribute: &McpServerAttribute,
 ) -> syn::Result<TokenStream> {
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
     let config_type_name = quote::format_ident!("{}Config", struct_name);
     let error_type_name = quote::format_ident!("{}Error", struct_name);
     let service_type_name = quote::format_ident!("{}Service", struct_name);
 
-    // Simplified - no complex auth logic
-    let auth_manager_method = quote! {};
+    // Generate auth-related code based on auth parameter
+    let auth_config = match attribute.auth.as_deref() {
+        None => {
+            // Default: no authentication (memory storage, disabled)
+            quote! {
+                // Default behavior: disable authentication with memory storage (no filesystem access)
+                let mut auth_config = pulseengine_mcp_server::auth::AuthConfig::memory();
+                auth_config.enabled = false;
+                config.auth_config = auth_config;
+            }
+        }
+        Some("disabled") => {
+            // Explicitly disabled authentication (memory storage, disabled)
+            quote! {
+                let mut auth_config = pulseengine_mcp_server::auth::AuthConfig::memory();
+                auth_config.enabled = false;
+                config.auth_config = auth_config;
+            }
+        }
+        Some("memory") => {
+            // Memory-only authentication (for development/testing)
+            quote! {
+                config.auth_config = pulseengine_mcp_server::auth::AuthConfig::memory();
+            }
+        }
+        Some("file") => {
+            // File-based authentication (for production)
+            quote! {
+                config.auth_config = pulseengine_mcp_server::auth::AuthConfig::default();
+            }
+        }
+        Some(other) => {
+            return Err(syn::Error::new(
+                proc_macro2::Span::call_site(),
+                format!("Invalid auth parameter: '{other}'. Valid options are: 'memory', 'file', 'disabled', or omit for no auth")
+            ));
+        }
+    };
 
     Ok(quote! {
         // Simplified config type alias
@@ -199,8 +243,7 @@ fn generate_server_implementation(
         // Implement the builder trait to provide common functionality
         impl #impl_generics pulseengine_mcp_server::McpServerBuilder for #struct_name #ty_generics #where_clause {}
 
-        // Add the auth manager method if auth is configured
-        #auth_manager_method
+        // Auth configuration is handled in serve_stdio method
 
         // Server transport methods
         impl #impl_generics #struct_name #ty_generics #where_clause {
@@ -208,7 +251,14 @@ fn generate_server_implementation(
             pub async fn serve_stdio(self) -> std::result::Result<pulseengine_mcp_server::McpServer<Self>, #error_type_name> {
                 use pulseengine_mcp_server::{McpServer, ServerConfig};
 
-                let config = ServerConfig::default();
+                let mut config = ServerConfig::default();
+
+                // Set the server info to use the macro-generated values
+                config.server_info = <Self as pulseengine_mcp_server::HasServerInfo>::server_info();
+
+                // Set auth configuration based on macro parameter
+                #auth_config
+
                 let server = McpServer::new(self, config).await.map_err(|e| {
                     #error_type_name::Internal(format!("Failed to create server: {}", e))
                 })?;
