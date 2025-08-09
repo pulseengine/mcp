@@ -123,7 +123,9 @@ fn generate_server_implementation(
         Some(other) => {
             return Err(syn::Error::new(
                 proc_macro2::Span::call_site(),
-                format!("Invalid auth parameter: '{other}'. Valid options are: 'memory', 'file', 'disabled', or omit for no auth")
+                format!(
+                    "Invalid auth parameter: '{other}'. Valid options are: 'memory', 'file', 'disabled', or omit for no auth"
+                ),
             ));
         }
     };

@@ -107,9 +107,7 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
 
     // Extract struct name from impl block
     let struct_name = match &*impl_block.self_ty {
-        syn::Type::Path(type_path) => {
-            type_path.path.segments.last().unwrap().ident.clone()
-        }
+        syn::Type::Path(type_path) => type_path.path.segments.last().unwrap().ident.clone(),
         _ => {
             return Err(syn::Error::new_spanned(
                 &impl_block.self_ty,
@@ -217,7 +215,6 @@ struct ToolImplementationParams<'a> {
     is_async: bool,
     param_fields: &'a [TokenStream],
 }
-
 
 /// Generate the tool implementation function
 #[allow(clippy::too_many_arguments)]
