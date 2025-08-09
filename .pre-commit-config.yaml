@@ -29,7 +29,7 @@ repos:
       - id: rustfmt
         name: Rust Format
         description: Format Rust files with rustfmt
-        entry: rustfmt --edition 2024 --check
+        entry: rustfmt --edition 2024
         language: system
         files: '\.rs$'
 
@@ -89,6 +89,33 @@ repos:
         name: Rust Clippy
         description: Run clippy on all Rust code via Bazel
         entry: bazel build //:clippy
+        language: system
+        files: '\.rs$'
+        pass_filenames: false
+      
+      # Rust formatting check (same as CI)
+      - id: rust-format-check
+        name: Rust Format Check
+        description: Check Rust formatting (same as CI validation)
+        entry: cargo fmt -- --check
+        language: system
+        files: '\.rs$'
+        pass_filenames: false
+        
+      # Cargo clippy check (same as CI)
+      - id: cargo-clippy-check
+        name: Cargo Clippy Check
+        description: Run clippy with warnings as errors (same as CI)
+        entry: cargo clippy --workspace --all-targets --all-features -- -D warnings
+        language: system
+        files: '\.rs$'
+        pass_filenames: false
+        
+      # Cargo test check (quick subset of CI tests)
+      - id: cargo-test-check
+        name: Cargo Test Check
+        description: Run quick tests to catch major issues before CI
+        entry: cargo test --workspace --lib
         language: system
         files: '\.rs$'
         pass_filenames: false
