@@ -73,5 +73,10 @@ async fn test_tool_discovery_methods_exist() {
     // Test dispatch method exists
     let result = server.__dispatch_mcp_tool("unknown_tool", None).await;
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("Tool discovery not yet fully implemented"));
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("Tool discovery not yet fully implemented")
+    );
 }
