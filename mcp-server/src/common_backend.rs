@@ -182,7 +182,7 @@ pub trait McpToolsProvider {
     > + Send;
 }
 
-/// Helper trait for servers with resources  
+/// Helper trait for servers with resources
 pub trait McpResourcesProvider {
     fn get_available_resources(&self) -> Vec<Resource>;
     fn read_resource_impl(

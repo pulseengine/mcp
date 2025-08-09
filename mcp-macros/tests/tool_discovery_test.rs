@@ -2,7 +2,7 @@
 
 #![allow(dead_code, clippy::uninlined_format_args)]
 
-use pulseengine_mcp_macros::mcp_server;
+use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use pulseengine_mcp_protocol::McpResult;
 use pulseengine_mcp_server::McpServerBuilder;
 
@@ -11,6 +11,7 @@ use pulseengine_mcp_server::McpServerBuilder;
 #[derive(Clone, Default)]
 struct ToolDiscoveryServer;
 
+#[mcp_tools]
 impl ToolDiscoveryServer {
     /// Simple tool with no parameters
     pub fn simple_tool(&self) -> String {
@@ -58,4 +59,19 @@ fn test_tool_discovery_basic() {
 
     // This test will pass even with the current passthrough implementation
     // but will validate tool discovery once activated
+}
+
+#[tokio::test]
+async fn test_tool_discovery_methods_exist() {
+    let server = ToolDiscoveryServer::with_defaults();
+
+    // Test that the discovery methods exist and work
+    let tools = server.__get_mcp_tools();
+    // For now, should return empty vec (basic implementation)
+    assert_eq!(tools.len(), 0);
+
+    // Test dispatch method exists
+    let result = server.__dispatch_mcp_tool("unknown_tool", None).await;
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("Tool discovery not yet fully implemented"));
 }

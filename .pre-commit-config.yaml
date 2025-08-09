@@ -10,7 +10,7 @@ repos:
         files: '\.(bzl|bazel|BUILD)$'
         pass_filenames: false
 
-  # Python formatting and linting 
+  # Python formatting and linting
   - repo: https://github.com/psf/black
     rev: 25.1.0
     hooks:
@@ -62,7 +62,7 @@ repos:
       - id: check-merge-conflict
       - id: check-case-conflict
       - id: check-added-large-files
-        args: ['--maxkb=1000']
+        args: ["--maxkb=1000"]
       - id: detect-private-key
 
   # Conventional commits validation
@@ -116,4 +116,3 @@ ci:
 
   autoupdate_commit_msg: |
     chore: update pre-commit hooks
-

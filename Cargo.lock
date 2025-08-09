@@ -1154,6 +1154,7 @@ dependencies = [
  "pulseengine-mcp-protocol",
  "pulseengine-mcp-server",
  "pulseengine-mcp-transport",
+ "serde_json",
  "thiserror 1.0.69",
  "tokio",
  "tracing",
