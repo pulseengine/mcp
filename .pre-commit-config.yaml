@@ -10,7 +10,7 @@ repos:
         files: '\.(bzl|bazel|BUILD)$'
         pass_filenames: false
 
-  # Python formatting and linting 
+  # Python formatting and linting
   - repo: https://github.com/psf/black
     rev: 25.1.0
     hooks:
@@ -29,7 +29,7 @@ repos:
       - id: rustfmt
         name: Rust Format
         description: Format Rust files with rustfmt
-        entry: rustfmt --edition 2024 --check
+        entry: rustfmt --edition 2024
         language: system
         files: '\.rs$'
 
@@ -62,7 +62,7 @@ repos:
       - id: check-merge-conflict
       - id: check-case-conflict
       - id: check-added-large-files
-        args: ['--maxkb=1000']
+        args: ["--maxkb=1000"]
       - id: detect-private-key
 
   # Conventional commits validation
@@ -92,6 +92,33 @@ repos:
         language: system
         files: '\.rs$'
         pass_filenames: false
+      
+      # Rust formatting check (same as CI)
+      - id: rust-format-check
+        name: Rust Format Check
+        description: Check Rust formatting (same as CI validation)
+        entry: cargo fmt -- --check
+        language: system
+        files: '\.rs$'
+        pass_filenames: false
+        
+      # Cargo clippy check (same as CI)
+      - id: cargo-clippy-check
+        name: Cargo Clippy Check
+        description: Run clippy with warnings as errors (same as CI)
+        entry: cargo clippy --workspace --all-targets --all-features -- -D warnings
+        language: system
+        files: '\.rs$'
+        pass_filenames: false
+        
+      # Cargo test check (quick subset of CI tests)
+      - id: cargo-test-check
+        name: Cargo Test Check
+        description: Run quick tests to catch major issues before CI
+        entry: cargo test --workspace --lib
+        language: system
+        files: '\.rs$'
+        pass_filenames: false
 
       # WIT file validation
       - id: wit-validation
@@ -116,4 +143,3 @@ ci:
 
   autoupdate_commit_msg: |
     chore: update pre-commit hooks
-

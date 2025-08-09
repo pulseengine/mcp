@@ -1,7 +1,7 @@
 //! Error handling and validation tests
 //!
 //! Consolidates error handling tests from:
-//! - error_handling_tests.rs  
+//! - error_handling_tests.rs
 //! - parameter_validation_tests.rs
 //! - macro_validation_tests.rs
 //! - edge_case_tests.rs

@@ -51,6 +51,7 @@ impl HelloWorld {
 ## Dependencies
 
 Only 6 total dependencies:
+
 - 4 core MCP framework packages
 - `tokio` for async runtime
 - `anyhow` for error handling

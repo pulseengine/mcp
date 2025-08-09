@@ -2,7 +2,7 @@
 //!
 //! Consolidates authentication-related tests from:
 //! - auth_isolation_test.rs
-//! - auth_parameter_test.rs  
+//! - auth_parameter_test.rs
 //! - compile_time_auth_test.rs
 //! - no_auth_test.rs
 
@@ -97,4 +97,45 @@ fn test_no_auth_dependencies_by_default() {
 
     // This should work without any auth setup
     let _result = server.try_call_tool(request);
+}
+
+#[tokio::test]
+async fn test_auth_parameter_disabled() {
+    // Test explicit auth = "disabled"
+    #[mcp_server(name = "Disabled Auth Server", auth = "disabled")]
+    #[derive(Default, Clone)]
+    struct DisabledAuthServer;
+
+    let server = DisabledAuthServer.serve_stdio().await.unwrap();
+    let info = server.get_server_info();
+    assert_eq!(info.server_info.name, "Disabled Auth Server");
+}
+
+#[tokio::test]
+async fn test_auth_parameter_memory() {
+    // Test auth = "memory" for development
+    #[mcp_server(name = "Memory Auth Server", auth = "memory")]
+    #[derive(Default, Clone)]
+    struct MemoryAuthServer;
+
+    let server = MemoryAuthServer.serve_stdio().await.unwrap();
+    let info = server.get_server_info();
+    assert_eq!(info.server_info.name, "Memory Auth Server");
+}
+
+#[tokio::test]
+async fn test_auth_parameter_file() {
+    // Test auth = "file" for production
+    #[mcp_server(name = "File Auth Server", auth = "file")]
+    #[derive(Default, Clone)]
+    struct FileAuthServer;
+
+    // File auth will fail to initialize without proper setup, but we can test
+    // that the macro generates the correct server info at compile time
+    let server_instance = FileAuthServer;
+    let info = server_instance.get_server_info();
+    assert_eq!(info.server_info.name, "File Auth Server");
+
+    // Testing serve_stdio() will fail due to missing auth setup, which is expected
+    // In a real application, proper auth setup would be done before calling serve_stdio()
 }
