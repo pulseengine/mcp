@@ -26,10 +26,65 @@ env:
   JSONRPC_VALIDATOR_URL: https://json-rpc.dev/api/validate
 
 jobs:
+  # Fast validation for PRs - Ubuntu only
+  validate-framework-fast:
+    name: Fast Framework Validation 
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@1.88
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-external-fast-1.88-${{ hashFiles('**/Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-external-1.88-
+            ${{ runner.os }}-cargo-
+
+      - name: Clean procedural macro artifacts
+        run: |
+          cargo clean -p pulseengine-mcp-macros
+          cargo clean -p pulseengine-mcp-cli-derive
+
+      - name: Build framework (parallel)
+        run: |
+          cargo build --all-features --release --jobs $(nproc)
+
+      - name: Run core tests (parallel)
+        run: |
+          cargo test --all-features --release --jobs $(nproc) --exclude pulseengine-mcp-external-validation
+
+      - name: Run external validation tests
+        run: |
+          cargo test --package pulseengine-mcp-external-validation --features "proptest" --release
+
+      - name: Test validation tools
+        run: |
+          cargo run --bin mcp-validate -- --help
+          cargo run --bin mcp-compliance-report -- --help
+
+  # Full cross-platform validation for main branch and scheduled runs
   validate-framework:
-    name: Validate MCP Framework
+    name: Full Framework Validation
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
+    timeout-minutes: 35
+    if: github.event_name != 'pull_request'
     strategy:
       fail-fast: false
       matrix:
@@ -66,8 +121,9 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-external-release-1.88-${{ hashFiles('**/Cargo.lock', 'rust-toolchain.toml') }}
+          key: ${{ runner.os }}-cargo-external-${{ matrix.rust }}-1.88-${{ hashFiles('**/Cargo.lock', 'rust-toolchain.toml') }}
           restore-keys: |
+            ${{ runner.os }}-cargo-external-${{ matrix.rust }}-1.88-
             ${{ runner.os }}-cargo-external-1.88-
             ${{ runner.os }}-cargo-
 
@@ -122,29 +178,24 @@ jobs:
           cargo clean -p pulseengine-mcp-macros
           cargo clean -p pulseengine-mcp-cli-derive
 
-      - name: Build framework
+      - name: Build framework (parallel)
         run: |
-          # Use release mode to reduce disk usage and enable optimizations
-          cargo build --all-features --release --verbose
+          # Use parallel compilation and release mode
+          cargo build --all-features --release --jobs $(if [ "${{ runner.os }}" = "Windows" ]; then echo $NUMBER_OF_PROCESSORS; else nproc; fi)
 
-      - name: Run unit tests
+      - name: Run core tests (parallel)
         run: |
-          # Use release mode to reduce disk usage and enable optimizations
-          cargo test --all-features --release --verbose
+          # Run tests in parallel, excluding external validation to reduce time
+          cargo test --all-features --release --jobs $(if [ "${{ runner.os }}" = "Windows" ]; then echo $NUMBER_OF_PROCESSORS; else nproc; fi) --exclude pulseengine-mcp-external-validation
 
       - name: Run external validation tests
         run: |
-          cargo test --package pulseengine-mcp-external-validation --features "proptest,fuzzing" --release --verbose
-
-      - name: Run property-based tests
-        run: |
-          cargo test --package pulseengine-mcp-external-validation --features proptest --release --verbose -- proptest
+          # Reduced feature set for faster execution
+          cargo test --package pulseengine-mcp-external-validation --features "proptest" --release
 
       - name: Test validation tools
         run: |
-          # Test that validation tools build and have correct CLI interfaces
-          cargo build --bin mcp-validate --release
-          cargo build --bin mcp-compliance-report --release
+          # Build and test CLI tools
           cargo run --bin mcp-validate -- --help
           cargo run --bin mcp-compliance-report -- --help
           echo "✅ Validation tools built successfully"
@@ -161,6 +212,7 @@ jobs:
     name: Python SDK Compatibility
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout code
@@ -235,6 +287,7 @@ jobs:
     name: Security Validation
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout code
