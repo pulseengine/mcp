@@ -76,6 +76,7 @@ pub async fn create_storage_backend(
 pub struct FileStorage {
     path: PathBuf,
     encryption_key: [u8; 32],
+    #[allow(dead_code)]
     file_permissions: u32,
     #[allow(dead_code)]
     dir_permissions: u32,
@@ -171,6 +172,7 @@ impl FileStorage {
     }
 
     /// Validate that the filesystem is secure (not network/shared)
+    #[allow(unused_variables)]
     async fn validate_filesystem_security(path: &PathBuf) -> Result<(), StorageError> {
         #[cfg(unix)]
         {
@@ -217,6 +219,7 @@ impl FileStorage {
     }
 
     /// Verify directory security and ownership
+    #[allow(unused_variables)]
     async fn verify_directory_security(
         dir: &std::path::Path,
         expected_perms: u32,
@@ -254,6 +257,7 @@ impl FileStorage {
     }
 
     /// Verify file ownership
+    #[allow(unused_variables)]
     async fn verify_file_ownership(file: &std::path::Path) -> Result<(), StorageError> {
         #[cfg(unix)]
         {
