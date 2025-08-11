@@ -29,7 +29,8 @@
       "Bash(gh repo view:*)",
       "mcp__puppeteer__puppeteer_navigate",
       "mcp__puppeteer__puppeteer_screenshot",
-      "mcp__puppeteer__puppeteer_click"
+      "mcp__puppeteer__puppeteer_click",
+      "Bash(cp:*)"
     ],
     "deny": []
   }

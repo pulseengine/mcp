@@ -126,15 +126,16 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
             if matches!(method.vis, syn::Visibility::Public(_)) {
                 let tool_name = method.sig.ident.to_string();
                 let method_name = &method.sig.ident;
-                
+
                 // Extract documentation from method
                 let doc_comment = extract_doc_comment(&method.attrs);
-                let description = doc_comment.unwrap_or_else(|| format!("Generated tool for {}", tool_name));
+                let description =
+                    doc_comment.unwrap_or_else(|| format!("Generated tool for {}", tool_name));
 
                 // Generate JSON schema for parameters
                 let schema = quote! { serde_json::json!({ "type": "object", "properties": {} }) };
-                
-                // Create tool definition 
+
+                // Create tool definition
                 tool_definitions.push(quote! {
                     pulseengine_mcp_protocol::Tool {
                         name: #tool_name.to_string(),
@@ -146,9 +147,10 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
 
                 // Generate dispatch case
                 let is_async = method.sig.asyncness.is_some();
-                let method_call = generate_method_call_with_params(&method.sig, method_name, is_async)?;
+                let method_call =
+                    generate_method_call_with_params(&method.sig, method_name, is_async)?;
                 let error_handling = generate_error_handling(&method.sig.output);
-                
+
                 tool_dispatch_cases.push(quote! {
                     #tool_name => {
                         let empty_map = serde_json::Map::new();
@@ -157,7 +159,7 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
                         let args = args.as_object().ok_or_else(|| {
                             pulseengine_mcp_protocol::Error::invalid_params("Arguments must be an object".to_string())
                         })?;
-                        
+
                         // Call method and handle result based on return type
                         let result = #method_call;
                         #error_handling
@@ -363,14 +365,14 @@ fn generate_parameter_schema(sig: &syn::Signature) -> syn::Result<TokenStream> {
                     let param_name = &pat_ident.ident;
                     let param_type = &*pat_type.ty;
                     let param_name_str = param_name.to_string();
-                    
+
                     // Generate schema based on type
                     let schema = generate_type_schema(param_type)?;
-                    
+
                     properties.push(quote! {
                         (#param_name_str, #schema)
                     });
-                    
+
                     // Check if parameter is required (not Option<T>)
                     if !is_option_type(param_type) {
                         required.push(param_name_str);
@@ -384,21 +386,21 @@ fn generate_parameter_schema(sig: &syn::Signature) -> syn::Result<TokenStream> {
         {
             let mut schema = serde_json::Map::new();
             schema.insert("type".to_string(), serde_json::Value::String("object".to_string()));
-            
+
             let mut properties = serde_json::Map::new();
             #(
                 let (name, prop_schema) = #properties;
                 properties.insert(name.to_string(), prop_schema);
             )*
             schema.insert("properties".to_string(), serde_json::Value::Object(properties));
-            
+
             if !vec![#(#required),*].is_empty() {
                 schema.insert(
-                    "required".to_string(), 
+                    "required".to_string(),
                     serde_json::Value::Array(vec![#(serde_json::Value::String(#required.to_string())),*])
                 );
             }
-            
+
             serde_json::Value::Object(schema)
         }
     })
@@ -409,16 +411,17 @@ fn generate_type_schema(ty: &syn::Type) -> syn::Result<TokenStream> {
     match ty {
         syn::Type::Path(type_path) => {
             let path = &type_path.path;
-            
+
             // Handle common types
             if let Some(segment) = path.segments.last() {
                 let type_name = segment.ident.to_string();
-                
+
                 match type_name.as_str() {
                     "String" | "str" => Ok(quote! {
                         serde_json::json!({ "type": "string" })
                     }),
-                    "i8" | "i16" | "i32" | "i64" | "u8" | "u16" | "u32" | "u64" | "isize" | "usize" => Ok(quote! {
+                    "i8" | "i16" | "i32" | "i64" | "u8" | "u16" | "u32" | "u64" | "isize"
+                    | "usize" => Ok(quote! {
                         serde_json::json!({ "type": "integer" })
                     }),
                     "f32" | "f64" => Ok(quote! {
@@ -430,7 +433,8 @@ fn generate_type_schema(ty: &syn::Type) -> syn::Result<TokenStream> {
                     "Vec" => {
                         // Handle Vec<T>
                         if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
-                            if let Some(syn::GenericArgument::Type(inner_type)) = args.args.first() {
+                            if let Some(syn::GenericArgument::Type(inner_type)) = args.args.first()
+                            {
                                 let inner_schema = generate_type_schema(inner_type)?;
                                 return Ok(quote! {
                                     serde_json::json!({
@@ -443,18 +447,19 @@ fn generate_type_schema(ty: &syn::Type) -> syn::Result<TokenStream> {
                         Ok(quote! {
                             serde_json::json!({ "type": "array" })
                         })
-                    },
+                    }
                     "Option" => {
                         // Handle Option<T>
                         if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
-                            if let Some(syn::GenericArgument::Type(inner_type)) = args.args.first() {
+                            if let Some(syn::GenericArgument::Type(inner_type)) = args.args.first()
+                            {
                                 return generate_type_schema(inner_type);
                             }
                         }
                         Ok(quote! {
                             serde_json::json!({ "type": "string" })
                         })
-                    },
+                    }
                     _ => {
                         // Default to object for custom types
                         Ok(quote! {
@@ -478,7 +483,11 @@ fn generate_type_schema(ty: &syn::Type) -> syn::Result<TokenStream> {
 }
 
 /// Generate parameter extraction and method call for tools
-fn generate_method_call_with_params(sig: &syn::Signature, method_name: &syn::Ident, is_async: bool) -> syn::Result<TokenStream> {
+fn generate_method_call_with_params(
+    sig: &syn::Signature,
+    method_name: &syn::Ident,
+    is_async: bool,
+) -> syn::Result<TokenStream> {
     let mut param_declarations = Vec::new();
     let mut param_names = Vec::new();
 
@@ -489,9 +498,9 @@ fn generate_method_call_with_params(sig: &syn::Signature, method_name: &syn::Ide
                 if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
                     let param_name = &pat_ident.ident;
                     let param_type = &*pat_type.ty;
-                    
+
                     param_names.push(param_name);
-                    
+
                     // Generate parameter extraction based on whether it's optional
                     if is_option_type(param_type) {
                         param_declarations.push(quote! {
