@@ -28,11 +28,11 @@ env:
 jobs:
   # Fast validation for PRs - Ubuntu only
   validate-framework-fast:
-    name: Fast Framework Validation 
+    name: Fast Framework Validation
     runs-on: ubuntu-latest
     timeout-minutes: 25
     if: github.event_name == 'pull_request'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
