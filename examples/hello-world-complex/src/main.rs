@@ -271,7 +271,7 @@ impl EnhancedHelloWorldServer {
     ///
     /// # Returns
     /// Array of matching greeting records with full details
-    pub fn search_greetings(&self, query: String, limit: Option<u32>) -> Vec<serde_json::Value> {
+    pub fn search_greetings(&self, query: String, limit: Option<u32>) -> anyhow::Result<Vec<serde_json::Value>> {
         let history = self.greeting_history.read().unwrap();
         let limit = limit.unwrap_or(10) as usize;
         let query_lower = query.to_lowercase();
@@ -310,7 +310,7 @@ impl EnhancedHelloWorldServer {
             "Searched greeting history with advanced filtering"
         );
 
-        results
+        Ok(results)
     }
 
     /// Get current server status and performance metrics

@@ -1,0 +1,12 @@
+{
+  "servers": {
+    "test-tools": {
+      "command": "./target/debug/test-tools-server",
+      "args": []
+    },
+    "hello-world": {
+      "command": "./target/debug/hello-world", 
+      "args": []
+    }
+  }
+}

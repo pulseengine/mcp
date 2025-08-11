@@ -25,7 +25,11 @@
       "WebFetch(domain:doc.rust-lang.org)",
       "WebFetch(domain:forge.rust-lang.org)",
       "Bash(gh api:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(gh repo view:*)",
+      "mcp__puppeteer__puppeteer_navigate",
+      "mcp__puppeteer__puppeteer_screenshot",
+      "mcp__puppeteer__puppeteer_click"
     ],
     "deny": []
   }
