@@ -102,9 +102,6 @@ pub fn mcp_tool_impl(attr: TokenStream, item: TokenStream) -> syn::Result<TokenS
 pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<TokenStream> {
     let impl_block = syn::parse2::<syn::ItemImpl>(item)?;
 
-    // For now, add basic tool discovery methods but keep it simple
-    // This is a stepping stone toward full tool discovery
-
     // Extract struct name from impl block
     let struct_name = match &*impl_block.self_ty {
         syn::Type::Path(type_path) => type_path.path.segments.last().unwrap().ident.clone(),
@@ -119,23 +116,84 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
     // Extract generics if any
     let (impl_generics, ty_generics, where_clause) = impl_block.generics.split_for_impl();
 
-    // Create enhanced impl block with original methods plus basic discovery placeholders
+    // Collect public methods that should become tools
+    let mut tool_definitions = Vec::new();
+    let mut tool_dispatch_cases = Vec::new();
+
+    for item in &impl_block.items {
+        if let syn::ImplItem::Fn(method) = item {
+            // Only process public methods
+            if matches!(method.vis, syn::Visibility::Public(_)) {
+                let tool_name = method.sig.ident.to_string();
+                let method_name = &method.sig.ident;
+                
+                // Extract documentation from method
+                let doc_comment = extract_doc_comment(&method.attrs);
+                let description = doc_comment.unwrap_or_else(|| format!("Generated tool for {}", tool_name));
+
+                // Generate JSON schema for parameters
+                let schema = quote! { serde_json::json!({ "type": "object", "properties": {} }) };
+                
+                // Create tool definition 
+                tool_definitions.push(quote! {
+                    pulseengine_mcp_protocol::Tool {
+                        name: #tool_name.to_string(),
+                        description: #description.to_string(),
+                        input_schema: #schema,
+                        output_schema: None,
+                    }
+                });
+
+                // Generate dispatch case
+                let is_async = method.sig.asyncness.is_some();
+                let method_call = generate_method_call_with_params(&method.sig, method_name, is_async)?;
+                let error_handling = generate_error_handling(&method.sig.output);
+                
+                tool_dispatch_cases.push(quote! {
+                    #tool_name => {
+                        let empty_map = serde_json::Map::new();
+                        let empty_value = serde_json::Value::Object(empty_map);
+                        let args = request.arguments.as_ref().unwrap_or(&empty_value);
+                        let args = args.as_object().ok_or_else(|| {
+                            pulseengine_mcp_protocol::Error::invalid_params("Arguments must be an object".to_string())
+                        })?;
+                        
+                        // Call method and handle result based on return type
+                        let result = #method_call;
+                        #error_handling
+                    }
+                });
+            }
+        }
+    }
+
+    // Generate the enhanced impl block that uses a trait-based approach to avoid method conflicts
     let enhanced_impl = quote! {
         #impl_block
 
-        impl #impl_generics #struct_name #ty_generics #where_clause {
-            /// Get list of automatically discovered tools (basic implementation)
-            pub fn __get_mcp_tools(&self) -> Vec<pulseengine_mcp_protocol::Tool> {
-                // Basic implementation - return empty vec for now
-                // This can be enhanced in future iterations
-                vec![]
+        // Implement a tools provider trait
+        impl #impl_generics pulseengine_mcp_server::McpToolsProvider for #struct_name #ty_generics #where_clause {
+            fn get_available_tools(&self) -> Vec<pulseengine_mcp_protocol::Tool> {
+                vec![
+                    #(#tool_definitions),*
+                ]
             }
 
-            /// Dispatch to automatically discovered tools (basic implementation)
-            pub async fn __dispatch_mcp_tool(&self, name: &str, _arguments: Option<serde_json::Value>) -> anyhow::Result<serde_json::Value> {
-                Err(anyhow::anyhow!("Tool discovery not yet fully implemented for tool: {}", name))
+            fn call_tool_impl(
+                &self,
+                request: pulseengine_mcp_protocol::CallToolRequestParam,
+            ) -> impl std::future::Future<Output = std::result::Result<pulseengine_mcp_protocol::CallToolResult, pulseengine_mcp_protocol::Error>> + Send {
+                async move {
+                    match request.name.as_str() {
+                        #(#tool_dispatch_cases)*
+                        _ => Err(pulseengine_mcp_protocol::Error::invalid_params(
+                            format!("Unknown tool: {}", request.name)
+                        ))
+                    }
+                }
             }
         }
+
     };
 
     Ok(enhanced_impl)
@@ -290,6 +348,199 @@ fn generate_tool_implementation(
             }
         }
     })
+}
+
+/// Generate JSON schema for method parameters
+fn generate_parameter_schema(sig: &syn::Signature) -> syn::Result<TokenStream> {
+    let mut properties = Vec::new();
+    let mut required = Vec::new();
+
+    for input in &sig.inputs {
+        match input {
+            syn::FnArg::Receiver(_) => continue, // Skip self
+            syn::FnArg::Typed(pat_type) => {
+                if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
+                    let param_name = &pat_ident.ident;
+                    let param_type = &*pat_type.ty;
+                    let param_name_str = param_name.to_string();
+                    
+                    // Generate schema based on type
+                    let schema = generate_type_schema(param_type)?;
+                    
+                    properties.push(quote! {
+                        (#param_name_str, #schema)
+                    });
+                    
+                    // Check if parameter is required (not Option<T>)
+                    if !is_option_type(param_type) {
+                        required.push(param_name_str);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(quote! {
+        {
+            let mut schema = serde_json::Map::new();
+            schema.insert("type".to_string(), serde_json::Value::String("object".to_string()));
+            
+            let mut properties = serde_json::Map::new();
+            #(
+                let (name, prop_schema) = #properties;
+                properties.insert(name.to_string(), prop_schema);
+            )*
+            schema.insert("properties".to_string(), serde_json::Value::Object(properties));
+            
+            if !vec![#(#required),*].is_empty() {
+                schema.insert(
+                    "required".to_string(), 
+                    serde_json::Value::Array(vec![#(serde_json::Value::String(#required.to_string())),*])
+                );
+            }
+            
+            serde_json::Value::Object(schema)
+        }
+    })
+}
+
+/// Generate type-specific JSON schema
+fn generate_type_schema(ty: &syn::Type) -> syn::Result<TokenStream> {
+    match ty {
+        syn::Type::Path(type_path) => {
+            let path = &type_path.path;
+            
+            // Handle common types
+            if let Some(segment) = path.segments.last() {
+                let type_name = segment.ident.to_string();
+                
+                match type_name.as_str() {
+                    "String" | "str" => Ok(quote! {
+                        serde_json::json!({ "type": "string" })
+                    }),
+                    "i8" | "i16" | "i32" | "i64" | "u8" | "u16" | "u32" | "u64" | "isize" | "usize" => Ok(quote! {
+                        serde_json::json!({ "type": "integer" })
+                    }),
+                    "f32" | "f64" => Ok(quote! {
+                        serde_json::json!({ "type": "number" })
+                    }),
+                    "bool" => Ok(quote! {
+                        serde_json::json!({ "type": "boolean" })
+                    }),
+                    "Vec" => {
+                        // Handle Vec<T>
+                        if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
+                            if let Some(syn::GenericArgument::Type(inner_type)) = args.args.first() {
+                                let inner_schema = generate_type_schema(inner_type)?;
+                                return Ok(quote! {
+                                    serde_json::json!({
+                                        "type": "array",
+                                        "items": #inner_schema
+                                    })
+                                });
+                            }
+                        }
+                        Ok(quote! {
+                            serde_json::json!({ "type": "array" })
+                        })
+                    },
+                    "Option" => {
+                        // Handle Option<T>
+                        if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
+                            if let Some(syn::GenericArgument::Type(inner_type)) = args.args.first() {
+                                return generate_type_schema(inner_type);
+                            }
+                        }
+                        Ok(quote! {
+                            serde_json::json!({ "type": "string" })
+                        })
+                    },
+                    _ => {
+                        // Default to object for custom types
+                        Ok(quote! {
+                            serde_json::json!({ "type": "object" })
+                        })
+                    }
+                }
+            } else {
+                Ok(quote! {
+                    serde_json::json!({ "type": "object" })
+                })
+            }
+        }
+        _ => {
+            // Default for complex types
+            Ok(quote! {
+                serde_json::json!({ "type": "object" })
+            })
+        }
+    }
+}
+
+/// Generate parameter extraction and method call for tools
+fn generate_method_call_with_params(sig: &syn::Signature, method_name: &syn::Ident, is_async: bool) -> syn::Result<TokenStream> {
+    let mut param_declarations = Vec::new();
+    let mut param_names = Vec::new();
+
+    for input in &sig.inputs {
+        match input {
+            syn::FnArg::Receiver(_) => continue, // Skip self
+            syn::FnArg::Typed(pat_type) => {
+                if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
+                    let param_name = &pat_ident.ident;
+                    let param_type = &*pat_type.ty;
+                    
+                    param_names.push(param_name);
+                    
+                    // Generate parameter extraction based on whether it's optional
+                    if is_option_type(param_type) {
+                        param_declarations.push(quote! {
+                            let #param_name = args.get(stringify!(#param_name))
+                                .and_then(|v| serde_json::from_value(v.clone()).ok());
+                        });
+                    } else {
+                        param_declarations.push(quote! {
+                            let #param_name = args.get(stringify!(#param_name))
+                                .and_then(|v| serde_json::from_value(v.clone()).ok())
+                                .ok_or_else(|| pulseengine_mcp_protocol::Error::invalid_params(
+                                    format!("Missing required parameter '{}'", stringify!(#param_name))
+                                ))?;
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    if param_declarations.is_empty() {
+        // No parameters - call method directly
+        if is_async {
+            Ok(quote! {
+                self.#method_name().await
+            })
+        } else {
+            Ok(quote! {
+                self.#method_name()
+            })
+        }
+    } else {
+        // Has parameters - extract them and call method
+        if is_async {
+            Ok(quote! {
+                {
+                    #(#param_declarations)*
+                    self.#method_name(#(#param_names),*).await
+                }
+            })
+        } else {
+            Ok(quote! {
+                {
+                    #(#param_declarations)*
+                    self.#method_name(#(#param_names),*)
+                }
+            })
+        }
+    }
 }
 
 /// Enhance function with tool metadata

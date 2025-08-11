@@ -188,19 +188,33 @@ fn generate_server_implementation(
             }
 
             async fn list_tools(&self, request: pulseengine_mcp_protocol::PaginatedRequestParam) -> std::result::Result<pulseengine_mcp_protocol::ListToolsResult, Self::Error> {
-                // Check if this implements McpToolsProvider
-                if let Some(tools) = self.try_get_tools() {
-                    Ok(pulseengine_mcp_protocol::ListToolsResult { tools, next_cursor: None })
-                } else {
-                    Ok(pulseengine_mcp_protocol::ListToolsResult { tools: vec![], next_cursor: None })
-                }
+                // Try to use McpToolsProvider trait if implemented
+                let tools = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    <Self as pulseengine_mcp_server::McpToolsProvider>::get_available_tools(self)
+                })) {
+                    Ok(tools) => tools,
+                    Err(_) => vec![], // Trait not implemented, no tools
+                };
+                Ok(pulseengine_mcp_protocol::ListToolsResult { tools, next_cursor: None })
             }
 
             async fn call_tool(&self, request: pulseengine_mcp_protocol::CallToolRequestParam) -> std::result::Result<pulseengine_mcp_protocol::CallToolResult, Self::Error> {
-                if let Some(result) = self.try_call_tool(request.clone()).await {
-                    result.map_err(|e| #error_type_name::InvalidParams(e.to_string()))
-                } else {
-                    Err(#error_type_name::InvalidParams(format!("Unknown tool: {}", request.name)))
+                // Try to use McpToolsProvider trait if implemented
+                match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    // This is a sync check, we'll handle async in the actual call
+                    <Self as pulseengine_mcp_server::McpToolsProvider>::get_available_tools(self)
+                })) {
+                    Ok(_) => {
+                        // Trait is implemented, call the tool
+                        match <Self as pulseengine_mcp_server::McpToolsProvider>::call_tool_impl(self, request.clone()).await {
+                            Ok(result) => Ok(result),
+                            Err(e) => Err(#error_type_name::InvalidParams(e.to_string())),
+                        }
+                    }
+                    Err(_) => {
+                        // Trait not implemented
+                        Err(#error_type_name::InvalidParams(format!("Unknown tool: {}", request.name)))
+                    }
                 }
             }
 
@@ -224,21 +238,31 @@ fn generate_server_implementation(
         // The McpToolsProvider trait is defined by the mcp_tools macro when needed
         // We don't define it here to avoid conflicts when multiple servers exist
 
-        // Helper methods for tool integration
+        // Helper methods for tool integration - only generate if not already provided
         impl #impl_generics #struct_name #ty_generics #where_clause {
             /// Try to get tools if this type implements McpToolsProvider
             #[allow(unused_variables)]
-            fn try_get_tools(&self) -> Option<Vec<pulseengine_mcp_protocol::Tool>> {
-                None  // Default: no tools unless mcp_tools macro is used
+            #[allow(dead_code)]
+            fn try_get_tools_default(&self) -> Option<Vec<pulseengine_mcp_protocol::Tool>> {
+                // Check if we implement McpToolsProvider trait
+                if let Ok(_) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    <Self as pulseengine_mcp_server::McpToolsProvider>::get_available_tools(self)
+                })) {
+                    Some(<Self as pulseengine_mcp_server::McpToolsProvider>::get_available_tools(self))
+                } else {
+                    None  // No tools available
+                }
             }
 
             /// Try to call a tool if this type implements McpToolsProvider
             #[allow(unused_variables)]
-            async fn try_call_tool(
+            #[allow(dead_code)]
+            async fn try_call_tool_default(
                 &self,
                 request: pulseengine_mcp_protocol::CallToolRequestParam,
             ) -> Option<std::result::Result<pulseengine_mcp_protocol::CallToolResult, pulseengine_mcp_protocol::Error>> {
-                None  // Default: no tools unless mcp_tools macro is used
+                // For now, return None - this will be handled by the trait implementation
+                None
             }
         }
 

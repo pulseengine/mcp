@@ -1,0 +1,14 @@
+[package]
+name = "test-tools-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+pulseengine-mcp-macros = { path = "../../mcp-macros" }
+pulseengine-mcp-server = { path = "../../mcp-server" }
+pulseengine-mcp-protocol = { path = "../../mcp-protocol" }
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+async-trait = "0.1"
