@@ -6,7 +6,7 @@
 //! All API keys are stored in memory and are lost when the server restarts.
 //! This is ideal for development, testing, or containerized deployments.
 
-use pulseengine_mcp_auth::{AuthenticationManager, config::AuthConfig, models::Role};
+use pulseengine_mcp_auth::{config::AuthConfig, models::Role, AuthenticationManager};
 use pulseengine_mcp_protocol::*;
 use pulseengine_mcp_server::{BackendError, McpBackend, McpServer, ServerConfig};
 use pulseengine_mcp_transport::TransportConfig;
