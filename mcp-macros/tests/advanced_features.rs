@@ -66,9 +66,8 @@ async fn test_stateful_server() {
         arguments: Some(json!({})),
     };
 
-    if let Some(result) = server.try_call_tool(request.clone()).await {
-        assert!(result.is_ok());
-    }
+    let result = server.call_tool(request.clone()).await;
+    assert!(result.is_ok());
 
     // Test reset functionality
     let reset_request = CallToolRequestParam {
@@ -76,9 +75,8 @@ async fn test_stateful_server() {
         arguments: Some(json!({})),
     };
 
-    if let Some(result) = server.try_call_tool(reset_request).await {
-        assert!(result.is_ok());
-    }
+    let result = server.call_tool(reset_request).await;
+    assert!(result.is_ok());
 }
 
 #[tokio::test]
@@ -98,15 +96,14 @@ async fn test_complex_parameters() {
         })),
     };
 
-    if let Some(result) = server.try_call_tool(request).await {
-        assert!(result.is_ok());
-        if let Ok(result) = result {
-            if let Some(pulseengine_mcp_protocol::Content::Text { text }) = result.content.first() {
-                assert!(text.contains("Text: Hello"));
-                assert!(text.contains("Number: 42"));
-                assert!(text.contains("Flag: true"));
-                assert!(text.contains("List length: 3"));
-            }
+    let result = server.call_tool(request).await;
+    assert!(result.is_ok());
+    if let Ok(result) = result {
+        if let Some(pulseengine_mcp_protocol::Content::Text { text }) = result.content.first() {
+            assert!(text.contains("Text: Hello"));
+            assert!(text.contains("Number: 42"));
+            assert!(text.contains("Flag: true"));
+            assert!(text.contains("List length: 3"));
         }
     }
 }
@@ -131,9 +128,15 @@ fn test_multiple_servers_compilation() {
     #[derive(Default, Clone)]
     struct ServerOne;
 
+    #[mcp_tools]
+    impl ServerOne {}
+
     #[mcp_server(name = "Server Two")]
     #[derive(Default, Clone)]
     struct ServerTwo;
+
+    #[mcp_tools]
+    impl ServerTwo {}
 
     let _server1 = ServerOne;
     let _server2 = ServerTwo;

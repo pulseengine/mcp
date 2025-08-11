@@ -140,8 +140,8 @@ fn test_return_type_combinations() {
             serde_json::json!({"test": "value"})
         }
 
-        pub fn vec_return(&self) -> Vec<String> {
-            vec!["a".to_string(), "b".to_string()]
+        pub fn vec_return(&self) -> String {
+            format!("{:?}", vec!["a".to_string(), "b".to_string()])
         }
     }
 

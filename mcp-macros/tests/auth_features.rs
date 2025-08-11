@@ -36,9 +36,8 @@ async fn test_server_without_auth() {
         arguments: Some(json!({})),
     };
 
-    if let Some(result) = server.try_call_tool(request).await {
-        assert!(result.is_ok());
-    }
+    let result = server.call_tool(request).await;
+    assert!(result.is_ok());
 }
 
 #[test]
@@ -47,6 +46,9 @@ fn test_auth_isolation() {
     #[mcp_server(name = "Isolated Server")]
     #[derive(Default, Clone)]
     struct IsolatedServer;
+
+    #[mcp_tools]
+    impl IsolatedServer {}
 
     let server = IsolatedServer;
 
@@ -69,8 +71,8 @@ fn test_auth_feature_availability() {
     let _server = AuthFeatureServer;
 }
 
-#[test]
-fn test_no_auth_dependencies_by_default() {
+#[tokio::test]
+async fn test_no_auth_dependencies_by_default() {
     // Test that servers don't pull in auth dependencies unless needed
     #[mcp_server(name = "Default Server")]
     #[derive(Default, Clone)]
@@ -96,7 +98,8 @@ fn test_no_auth_dependencies_by_default() {
     };
 
     // This should work without any auth setup
-    let _result = server.try_call_tool(request);
+    let _result = server.call_tool(request).await;
+    assert!(_result.is_ok());
 }
 
 #[tokio::test]
@@ -105,6 +108,9 @@ async fn test_auth_parameter_disabled() {
     #[mcp_server(name = "Disabled Auth Server", auth = "disabled")]
     #[derive(Default, Clone)]
     struct DisabledAuthServer;
+
+    #[mcp_tools]
+    impl DisabledAuthServer {}
 
     let server = DisabledAuthServer.serve_stdio().await.unwrap();
     let info = server.get_server_info();
@@ -118,6 +124,9 @@ async fn test_auth_parameter_memory() {
     #[derive(Default, Clone)]
     struct MemoryAuthServer;
 
+    #[mcp_tools]
+    impl MemoryAuthServer {}
+
     let server = MemoryAuthServer.serve_stdio().await.unwrap();
     let info = server.get_server_info();
     assert_eq!(info.server_info.name, "Memory Auth Server");
@@ -129,6 +138,9 @@ async fn test_auth_parameter_file() {
     #[mcp_server(name = "File Auth Server", auth = "file")]
     #[derive(Default, Clone)]
     struct FileAuthServer;
+
+    #[mcp_tools]
+    impl FileAuthServer {}
 
     // File auth will fail to initialize without proper setup, but we can test
     // that the macro generates the correct server info at compile time
