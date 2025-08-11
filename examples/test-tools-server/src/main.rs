@@ -9,7 +9,7 @@ struct TestToolsServer;
 impl TestToolsServer {
     /// Simple greeting tool that says hello
     pub fn hello(&self, name: String) -> String {
-        format!("Hello, {}!", name)
+        format!("Hello, {name}!")
     }
 
     /// Get the current status of the server
@@ -25,7 +25,7 @@ impl TestToolsServer {
     /// Echo back a message with optional prefix
     pub fn echo(&self, message: String, prefix: Option<String>) -> String {
         match prefix {
-            Some(p) => format!("{}: {}", p, message),
+            Some(p) => format!("{p}: {message}"),
             None => message,
         }
     }
@@ -33,7 +33,7 @@ impl TestToolsServer {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let server = TestToolsServer::default();
+    let server = TestToolsServer;
 
     // Create the MCP server
     let mut mcp_server = server.serve_stdio().await?;
