@@ -56,6 +56,12 @@ mod custom_types {
         pub offset: u32,
     }
 
+    impl<T> std::fmt::Display for PaginatedResponse<T> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "PaginatedResponse(total: {}, limit: {}, offset: {})", self.total, self.limit, self.offset)
+        }
+    }
+
     #[derive(Debug, thiserror::Error)]
     pub enum UserError {
         #[error("User not found: {id}")]
