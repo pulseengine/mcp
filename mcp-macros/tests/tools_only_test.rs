@@ -9,7 +9,7 @@ struct SimpleToolServer;
 impl SimpleToolServer {
     /// A simple hello world tool
     pub fn hello(&self, name: String) -> String {
-        format!("Hello, {}!", name)
+        format!("Hello, {name}!")
     }
 
     /// A tool with no parameters
@@ -20,7 +20,7 @@ impl SimpleToolServer {
 
 #[test]
 fn test_tools_macro_compilation() {
-    let server = SimpleToolServer::default();
+    let server = SimpleToolServer;
 
     // Just test that it compiles - we can't test functionality yet
     // since we don't have the full server integration
