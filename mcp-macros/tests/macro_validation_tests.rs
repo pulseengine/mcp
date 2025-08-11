@@ -9,6 +9,9 @@ fn test_mcp_server_macro_compiles() {
     #[derive(Clone, Default)]
     struct TestServer;
 
+    #[mcp_tools]
+    impl TestServer {}
+
     let _server = TestServer::with_defaults();
 }
 
@@ -82,6 +85,9 @@ fn test_server_configuration_types() {
     #[mcp_server(name = "Config Test", version = "1.0.0", description = "Test server")]
     #[derive(Clone, Default)]
     struct ConfigServer;
+
+    #[mcp_tools]
+    impl ConfigServer {}
 
     let server = ConfigServer::with_defaults();
     let info = server.get_server_info();

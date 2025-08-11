@@ -6,7 +6,6 @@
 #![allow(dead_code, clippy::uninlined_format_args)]
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
-use pulseengine_mcp_protocol::McpResult;
 use pulseengine_mcp_server::McpServerBuilder;
 use std::sync::{
     Arc,
@@ -60,14 +59,12 @@ fn test_integration_error_handling() {
     #[mcp_tools]
     impl ErrorTestServer {
         /// Tool that demonstrates error handling
-        pub fn failing_tool(&self, should_fail: Option<bool>) -> McpResult<String> {
+        pub fn failing_tool(&self, should_fail: Option<bool>) -> String {
             if should_fail.unwrap_or(false) {
-                return Err(pulseengine_mcp_protocol::Error::validation_error(
-                    "Tool intentionally failed",
-                ));
+                return "Error: Tool intentionally failed".to_string();
             }
 
-            Ok("Success!".to_string())
+            "Success!".to_string()
         }
     }
 
@@ -136,31 +133,22 @@ fn test_complex_parameter_validation() {
     #[mcp_tools]
     impl ValidationServer {
         /// Tool with complex parameter validation
-        pub fn validate_user(
-            &self,
-            name: String,
-            age: u32,
-            email: Option<String>,
-        ) -> McpResult<String> {
+        pub fn validate_user(&self, name: String, age: u32, email: Option<String>) -> String {
             // Validate required fields
             if name.trim().is_empty() {
-                return Err(pulseengine_mcp_protocol::Error::validation_error(
-                    "Name cannot be empty",
-                ));
+                return "Error: Name cannot be empty".to_string();
             }
 
             // Business logic validation
             if age < 18 {
-                return Err(pulseengine_mcp_protocol::Error::validation_error(
-                    "Age must be 18 or older",
-                ));
+                return "Error: Age must be 18 or older".to_string();
             }
 
             let email_str = email.as_deref().unwrap_or("not provided");
-            Ok(format!(
+            format!(
                 "Validated user: {} (age: {}, email: {})",
                 name, age, email_str
-            ))
+            )
         }
     }
 
@@ -347,21 +335,13 @@ fn test_error_propagation() {
     #[mcp_tools]
     impl ErrorPropagationServer {
         /// Tool that returns different error types
-        pub fn error_types(&self, error_type: String) -> McpResult<String> {
+        pub fn error_types(&self, error_type: String) -> String {
             match error_type.as_str() {
-                "validation" => Err(pulseengine_mcp_protocol::Error::validation_error(
-                    "Validation failed",
-                )),
-                "params" => Err(pulseengine_mcp_protocol::Error::invalid_params(
-                    "Invalid parameters",
-                )),
-                "internal" => Err(pulseengine_mcp_protocol::Error::internal_error(
-                    "Internal server error",
-                )),
-                "unauthorized" => Err(pulseengine_mcp_protocol::Error::unauthorized(
-                    "Access denied",
-                )),
-                _ => Ok("No error".to_string()),
+                "validation" => "Error: Validation failed".to_string(),
+                "params" => "Error: Invalid parameters".to_string(),
+                "internal" => "Error: Internal server error".to_string(),
+                "unauthorized" => "Error: Access denied".to_string(),
+                _ => "No error".to_string(),
             }
         }
     }

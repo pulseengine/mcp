@@ -23,20 +23,20 @@ async fn test_tool_discovery() {
     #[mcp_tools]
     impl ToolDiscoveryServer {
         /// Simple tool for testing
-        pub async fn discovered_tool(&self) -> anyhow::Result<String> {
-            Ok("Tool discovered".to_string())
+        pub async fn discovered_tool(&self) -> String {
+            "Tool discovered".to_string()
         }
 
         /// Tool with parameters
-        pub async fn parametrized_tool(&self, param: String) -> anyhow::Result<String> {
-            Ok(format!("Param: {param}"))
+        pub async fn parametrized_tool(&self, param: String) -> String {
+            format!("Param: {param}")
         }
     }
 
     let server = ToolDiscoveryServer::default();
 
     // Test that tools are discoverable
-    if let Some(tools) = server.try_get_tools() {
+    if let Some(tools) = server.try_get_tools_default() {
         assert_eq!(tools.len(), 2);
 
         let tool_names: Vec<&str> = tools.iter().map(|t| t.name.as_str()).collect();
@@ -57,16 +57,16 @@ async fn test_async_tools() {
 
     #[mcp_tools]
     impl AsyncToolsServer {
-        pub async fn async_tool(&self, delay_ms: Option<u64>) -> anyhow::Result<String> {
+        pub async fn async_tool(&self, delay_ms: Option<u64>) -> String {
             let delay = delay_ms.unwrap_or(10);
             tokio::time::sleep(tokio::time::Duration::from_millis(delay)).await;
-            Ok(format!("Completed after {delay}ms"))
+            format!("Completed after {delay}ms")
         }
 
-        pub async fn async_tool_with_result(&self) -> anyhow::Result<i32> {
+        pub async fn async_tool_with_result(&self) -> String {
             // Simulate some async work
             tokio::task::yield_now().await;
-            Ok(42)
+            "42".to_string()
         }
     }
 
@@ -80,9 +80,8 @@ async fn test_async_tools() {
         arguments: Some(json!({ "delay_ms": 5 })),
     };
 
-    if let Some(result) = server.try_call_tool(request).await {
-        assert!(result.is_ok());
-    }
+    let result = server.call_tool(request).await;
+    assert!(result.is_ok());
 
     // Test async tool with different return type
     let request2 = CallToolRequestParam {
@@ -90,9 +89,8 @@ async fn test_async_tools() {
         arguments: Some(json!({})),
     };
 
-    if let Some(result) = server.try_call_tool(request2).await {
-        assert!(result.is_ok());
-    }
+    let result = server.call_tool(request2).await;
+    assert!(result.is_ok());
 }
 
 #[tokio::test]
@@ -103,25 +101,25 @@ async fn test_tool_parameter_types() {
 
     #[mcp_tools]
     impl ParameterTypesServer {
-        pub async fn string_param(&self, text: String) -> anyhow::Result<String> {
-            Ok(format!("Got string: {text}"))
+        pub async fn string_param(&self, text: String) -> String {
+            format!("Got string: {text}")
         }
 
-        pub async fn number_param(&self, num: i32) -> anyhow::Result<String> {
-            Ok(format!("Got number: {num}"))
+        pub async fn number_param(&self, num: i32) -> String {
+            format!("Got number: {num}")
         }
 
-        pub async fn bool_param(&self, flag: bool) -> anyhow::Result<String> {
-            Ok(format!("Got bool: {flag}"))
+        pub async fn bool_param(&self, flag: bool) -> String {
+            format!("Got bool: {flag}")
         }
 
-        pub async fn optional_param(&self, opt: Option<String>) -> anyhow::Result<String> {
-            Ok(format!("Got optional: {opt:?}"))
+        pub async fn optional_param(&self, opt: Option<String>) -> String {
+            format!("Got optional: {opt:?}")
         }
 
-        pub async fn vec_param(&self, items: Vec<String>) -> anyhow::Result<String> {
+        pub async fn vec_param(&self, items: Vec<String>) -> String {
             let len = items.len();
-            Ok(format!("Got {len} items"))
+            format!("Got {len} items")
         }
     }
 
@@ -134,54 +132,48 @@ async fn test_tool_parameter_types() {
         name: "string_param".to_string(),
         arguments: Some(json!({ "text": "hello" })),
     };
-    if let Some(result) = server.try_call_tool(request).await {
-        assert!(result.is_ok());
-    }
+    let result = server.call_tool(request).await;
+    assert!(result.is_ok());
 
     // Test number parameter
     let request = CallToolRequestParam {
         name: "number_param".to_string(),
         arguments: Some(json!({ "num": 42 })),
     };
-    if let Some(result) = server.try_call_tool(request).await {
-        assert!(result.is_ok());
-    }
+    let result = server.call_tool(request).await;
+    assert!(result.is_ok());
 
     // Test boolean parameter
     let request = CallToolRequestParam {
         name: "bool_param".to_string(),
         arguments: Some(json!({ "flag": true })),
     };
-    if let Some(result) = server.try_call_tool(request).await {
-        assert!(result.is_ok());
-    }
+    let result = server.call_tool(request).await;
+    assert!(result.is_ok());
 
     // Test optional parameter (with value)
     let request = CallToolRequestParam {
         name: "optional_param".to_string(),
         arguments: Some(json!({ "opt": "present" })),
     };
-    if let Some(result) = server.try_call_tool(request).await {
-        assert!(result.is_ok());
-    }
+    let result = server.call_tool(request).await;
+    assert!(result.is_ok());
 
     // Test optional parameter (without value)
     let request = CallToolRequestParam {
         name: "optional_param".to_string(),
         arguments: Some(json!({})),
     };
-    if let Some(result) = server.try_call_tool(request).await {
-        assert!(result.is_ok());
-    }
+    let result = server.call_tool(request).await;
+    assert!(result.is_ok());
 
     // Test vector parameter
     let request = CallToolRequestParam {
         name: "vec_param".to_string(),
         arguments: Some(json!({ "items": ["a", "b", "c"] })),
     };
-    if let Some(result) = server.try_call_tool(request).await {
-        assert!(result.is_ok());
-    }
+    let result = server.call_tool(request).await;
+    assert!(result.is_ok());
 }
 
 #[test]
@@ -192,19 +184,19 @@ fn test_tool_naming_conventions() {
 
     #[mcp_tools]
     impl NamingServer {
-        pub async fn snake_case_tool(&self) -> anyhow::Result<String> {
-            Ok("snake_case".to_string())
+        pub async fn snake_case_tool(&self) -> String {
+            "snake_case".to_string()
         }
 
-        pub async fn camelCaseTool(&self) -> anyhow::Result<String> {
-            Ok("camelCase".to_string())
+        pub async fn camelCaseTool(&self) -> String {
+            "camelCase".to_string()
         }
     }
 
     let server = NamingServer;
 
     // Test that tool names are preserved as-is
-    if let Some(tools) = server.try_get_tools() {
+    if let Some(tools) = server.try_get_tools_default() {
         let tool_names: Vec<&str> = tools.iter().map(|t| t.name.as_str()).collect();
         assert!(tool_names.contains(&"snake_case_tool"));
         assert!(tool_names.contains(&"camelCaseTool"));

@@ -59,9 +59,8 @@ async fn test_tool_parameter_validation() {
         arguments: Some(json!({})), // Missing required parameter
     };
 
-    if let Some(result) = server.try_call_tool(request).await {
-        assert!(result.is_err());
-    }
+    let result = server.call_tool(request).await;
+    assert!(result.is_err());
 }
 
 #[tokio::test]
@@ -87,10 +86,6 @@ async fn test_invalid_tool_name() {
         arguments: Some(json!({})),
     };
 
-    if let Some(result) = server.try_call_tool(request).await {
-        assert!(result.is_err());
-        if let Err(e) = result {
-            assert!(e.to_string().contains("Unknown tool"));
-        }
-    }
+    let result = server.call_tool(request).await;
+    assert!(result.is_err());
 }

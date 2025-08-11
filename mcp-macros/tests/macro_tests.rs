@@ -3,7 +3,7 @@
 //! These tests verify that the procedural macros generate correct code
 //! and handle various edge cases appropriately.
 
-use pulseengine_mcp_macros::mcp_server;
+use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use pulseengine_mcp_protocol::{ListToolsResult, PaginatedRequestParam};
 use pulseengine_mcp_server::McpServerBuilder;
 use std::sync::{
@@ -19,6 +19,9 @@ fn test_mcp_server_basic() {
     struct TestServer {
         counter: Arc<AtomicU64>,
     }
+
+    #[mcp_tools]
+    impl TestServer {}
 
     // Test that the macro generates the expected types and methods
     let server = TestServer::with_defaults();
@@ -36,6 +39,9 @@ fn test_mcp_server_minimal() {
     #[derive(Clone, Default)]
     struct MinimalServer;
 
+    #[mcp_tools]
+    impl MinimalServer {}
+
     let server = MinimalServer::with_defaults();
     let server_info = server.get_server_info();
     assert_eq!(server_info.server_info.name, "Minimal");
@@ -50,6 +56,9 @@ fn test_mcp_server_with_docs() {
     #[derive(Clone, Default)]
     struct DocumentedServer;
 
+    #[mcp_tools]
+    impl DocumentedServer {}
+
     let server = DocumentedServer::with_defaults();
     let server_info = server.get_server_info();
     assert_eq!(server_info.server_info.name, "Documented Server");
@@ -62,6 +71,9 @@ fn test_mcp_server_config() {
     #[mcp_server(name = "Config Test")]
     #[derive(Clone, Default)]
     struct ConfigTestServer;
+
+    #[mcp_tools]
+    impl ConfigTestServer {}
 
     // Config is simplified to () in the new version for easier usage
     ConfigTestServerConfig::default();
@@ -79,6 +91,9 @@ fn test_mcp_server_builder_api() {
     #[mcp_server(name = "Builder Test")]
     #[derive(Clone, Default)]
     struct BuilderTestServer;
+
+    #[mcp_tools]
+    impl BuilderTestServer {}
 
     // Test that builder methods exist (compilation test)
     let server = BuilderTestServer::with_defaults();
@@ -101,6 +116,9 @@ fn test_mcp_server_complex_struct() {
         name: String,
         config: Option<String>,
     }
+
+    #[mcp_tools]
+    impl ComplexServer {}
 
     impl Default for ComplexServer {
         fn default() -> Self {
@@ -125,6 +143,9 @@ fn test_mcp_backend_implementation() {
     #[derive(Clone, Default)]
     struct BackendTestServer;
 
+    #[mcp_tools]
+    impl BackendTestServer {}
+
     let server = BackendTestServer::with_defaults();
 
     // Test health check
@@ -146,6 +167,9 @@ fn test_server_capabilities() {
     #[mcp_server(name = "Capabilities Test")]
     #[derive(Clone, Default)]
     struct CapabilitiesTestServer;
+
+    #[mcp_tools]
+    impl CapabilitiesTestServer {}
 
     let server = CapabilitiesTestServer::with_defaults();
     let server_info = server.get_server_info();
@@ -172,6 +196,9 @@ fn test_version_handling() {
     #[derive(Clone, Default)]
     struct VersionTestServer;
 
+    #[mcp_tools]
+    impl VersionTestServer {}
+
     let server = VersionTestServer::with_defaults();
     let server_info = server.get_server_info();
     assert_eq!(server_info.server_info.version, "2.1.0");
@@ -189,6 +216,9 @@ fn test_zero_sized_struct() {
     #[derive(Clone, Default)]
     struct ZeroSized;
 
+    #[mcp_tools]
+    impl ZeroSized {}
+
     let server = ZeroSized::with_defaults();
     let info = server.get_server_info();
     assert_eq!(info.server_info.name, "Zero Sized");
@@ -204,6 +234,9 @@ fn test_description_config() {
     #[derive(Clone, Default)]
     struct DescribedServer;
 
+    #[mcp_tools]
+    impl DescribedServer {}
+
     let server = DescribedServer::with_defaults();
     let info = server.get_server_info();
     assert_eq!(info.server_info.name, "Described Server");
@@ -217,6 +250,9 @@ fn test_unit_struct_pattern() {
     #[derive(Clone, Default)]
     struct UnitStruct;
 
+    #[mcp_tools]
+    impl UnitStruct {}
+
     let unit = UnitStruct::with_defaults();
     assert_eq!(unit.get_server_info().server_info.name, "Unit Struct");
 }
@@ -227,6 +263,9 @@ fn test_tuple_struct_pattern() {
     #[mcp_server(name = "Tuple Struct")]
     #[derive(Clone)]
     struct TupleStruct(String);
+
+    #[mcp_tools]
+    impl TupleStruct {}
 
     impl Default for TupleStruct {
         fn default() -> Self {
@@ -246,6 +285,9 @@ fn test_basic_error_handling() {
     #[derive(Clone, Default)]
     struct ErrorTestServer;
 
+    #[mcp_tools]
+    impl ErrorTestServer {}
+
     // Test that the server compiles and can be created
     let server = ErrorTestServer::with_defaults();
     let info = server.get_server_info();
@@ -258,6 +300,9 @@ fn test_builder_pattern_methods() {
     #[mcp_server(name = "Builder Pattern Test")]
     #[derive(Clone, Default)]
     struct BuilderPatternTestServer;
+
+    #[mcp_tools]
+    impl BuilderPatternTestServer {}
 
     let server = BuilderPatternTestServer::with_defaults();
 

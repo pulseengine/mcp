@@ -32,6 +32,9 @@ fn test_without_macro() {
     #[derive(Clone, Default)]
     struct NoMacroServer;
 
+    #[mcp_tools]
+    impl NoMacroServer {}
+
     let server = NoMacroServer::with_defaults();
     let info = server.get_server_info();
     assert_eq!(info.server_info.name, "No Macro Server");

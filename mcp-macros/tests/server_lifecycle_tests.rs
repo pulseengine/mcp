@@ -1,6 +1,6 @@
 //! Tests for server lifecycle management and fluent API
 
-use pulseengine_mcp_macros::mcp_server;
+use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use pulseengine_mcp_server::McpServerBuilder;
 
 mod lifecycle_server {
@@ -11,6 +11,9 @@ mod lifecycle_server {
     pub struct LifecycleServer {
         initialized: bool,
     }
+
+    #[mcp_tools]
+    impl LifecycleServer {}
 
     impl LifecycleServer {
         #[allow(dead_code)]
@@ -37,6 +40,9 @@ mod app_specific_lifecycle {
         app_data: std::collections::HashMap<String, String>,
     }
 
+    #[mcp_tools]
+    impl AppLifecycleServer {}
+
     impl AppLifecycleServer {
         pub fn with_data(mut self, key: String, value: String) -> Self {
             self.app_data.insert(key, value);
@@ -55,6 +61,9 @@ mod transport_server {
     #[mcp_server(name = "Transport Server")]
     #[derive(Default, Clone)]
     pub struct TransportServer;
+
+    #[mcp_tools]
+    impl TransportServer {}
 }
 
 #[cfg(test)]

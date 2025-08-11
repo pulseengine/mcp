@@ -6,7 +6,6 @@
 #![allow(dead_code, clippy::uninlined_format_args, non_snake_case)]
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
-use pulseengine_mcp_protocol::McpResult;
 use pulseengine_mcp_server::McpServerBuilder;
 
 /// Test basic mcp_tools macro functionality
@@ -49,27 +48,23 @@ fn test_mcp_tools_with_params() {
     #[mcp_tools]
     impl CalculatorServer {
         /// Performs basic arithmetic operations
-        pub fn calculate(&self, operation: String, a: f64, b: f64) -> McpResult<String> {
+        pub fn calculate(&self, operation: String, a: f64, b: f64) -> String {
             let result = match operation.as_str() {
                 "add" => a + b,
                 "subtract" => a - b,
                 "multiply" => a * b,
                 "divide" => {
                     if b == 0.0 {
-                        return Err(pulseengine_mcp_protocol::Error::validation_error(
-                            "Division by zero",
-                        ));
+                        return "Error: Division by zero".to_string();
                     }
                     a / b
                 }
                 _ => {
-                    return Err(pulseengine_mcp_protocol::Error::invalid_params(
-                        "Unknown operation",
-                    ));
+                    return "Error: Unknown operation".to_string();
                 }
             };
 
-            Ok(format!("{} {} {} = {}", a, operation, b, result))
+            format!("{} {} {} = {}", a, operation, b, result)
         }
     }
 
@@ -89,13 +84,11 @@ fn test_mcp_tools_error_handling() {
     #[mcp_tools]
     impl ErrorTestServer {
         /// Tool that can produce errors based on input
-        pub fn test_error(&self, should_error: Option<bool>) -> McpResult<String> {
+        pub fn test_error(&self, should_error: Option<bool>) -> String {
             if should_error.unwrap_or(false) {
-                return Err(pulseengine_mcp_protocol::Error::validation_error(
-                    "Intentional error",
-                ));
+                return "Error: Intentional error".to_string();
             }
-            Ok("Success!".to_string())
+            "Success!".to_string()
         }
     }
 
