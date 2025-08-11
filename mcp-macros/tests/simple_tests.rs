@@ -3,7 +3,7 @@
 //! These tests verify that the macros expand without compilation errors
 //! and generate the expected structure.
 
-use pulseengine_mcp_macros::mcp_server;
+use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use pulseengine_mcp_server::McpServerBuilder;
 
 /// Test that the macro expands without errors
@@ -12,6 +12,9 @@ fn test_mcp_server_compiles() {
     #[mcp_server(name = "Test Server")]
     #[derive(Clone, Default)]
     struct TestServer;
+
+    #[mcp_tools]
+    impl TestServer {}
 
     // If this compiles, the macro worked
     let _server = TestServer::with_defaults();
@@ -23,6 +26,9 @@ fn test_minimal_config() {
     #[mcp_server(name = "Minimal")]
     #[derive(Clone, Default)]
     struct MinimalServer;
+
+    #[mcp_tools]
+    impl MinimalServer {}
 
     // Test that basic structure is generated
     let _server = MinimalServer::with_defaults();
@@ -36,6 +42,9 @@ fn test_with_description() {
     #[derive(Clone, Default)]
     struct DescribedServer;
 
+    #[mcp_tools]
+    impl DescribedServer {}
+
     let _server = DescribedServer::with_defaults();
 }
 
@@ -45,6 +54,9 @@ fn test_with_version() {
     #[mcp_server(name = "Versioned", version = "1.2.3")]
     #[derive(Clone, Default)]
     struct VersionedServer;
+
+    #[mcp_tools]
+    impl VersionedServer {}
 
     let _server = VersionedServer::with_defaults();
 }
@@ -58,6 +70,9 @@ fn test_complex_struct() {
         _field1: String,
         _field2: Option<i32>,
     }
+
+    #[mcp_tools]
+    impl ComplexServer {}
 
     impl Default for ComplexServer {
         fn default() -> Self {
@@ -78,6 +93,9 @@ fn test_error_types_exist() {
     #[derive(Clone, Default)]
     struct ErrorTestServer;
 
+    #[mcp_tools]
+    impl ErrorTestServer {}
+
     // Test that error types exist and can be constructed
     let error1 = ErrorTestServerError::InvalidParams("test".to_string());
     let error2 = ErrorTestServerError::Internal("test".to_string());
@@ -94,6 +112,9 @@ fn test_config_types_exist() {
     #[derive(Clone, Default)]
     struct ConfigTestServer;
 
+    #[mcp_tools]
+    impl ConfigTestServer {}
+
     // Test that config types exist - this is a compilation test
     // If the code compiles, it means the config type was generated correctly
     ConfigTestServerConfig::default();
@@ -105,6 +126,9 @@ fn test_service_types_exist() {
     #[mcp_server(name = "Service Test")]
     #[derive(Clone, Default)]
     struct ServiceTestServer;
+
+    #[mcp_tools]
+    impl ServiceTestServer {}
 
     // Test that service type exists (compilation test)
     // If the code compiles, it means the service type was generated correctly

@@ -85,24 +85,36 @@ fn test_security_compilation() {
 
 #[test]
 fn test_macro_attribute_parsing() {
-    use pulseengine_mcp_macros::mcp_server;
+    use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 
     // Test various attribute combinations
     #[mcp_server(name = "Attr Test")]
     #[derive(Default, Clone)]
     struct AttrTest1;
 
+    #[mcp_tools]
+    impl AttrTest1 {}
+
     #[mcp_server(name = "Attr Test 2", version = "1.0.0")]
     #[derive(Default, Clone)]
     struct AttrTest2;
+
+    #[mcp_tools]
+    impl AttrTest2 {}
 
     #[mcp_server(name = "Attr Test 3", description = "Test description")]
     #[derive(Default, Clone)]
     struct AttrTest3;
 
+    #[mcp_tools]
+    impl AttrTest3 {}
+
     #[mcp_server(name = "Attr Test 4", version = "2.0.0", description = "Full test")]
     #[derive(Default, Clone)]
     struct AttrTest4;
+
+    #[mcp_tools]
+    impl AttrTest4 {}
 
     // If these compile, attribute parsing works correctly
     let _s1 = AttrTest1;

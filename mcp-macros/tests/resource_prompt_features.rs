@@ -5,13 +5,16 @@
 //! - mcp_prompt_tests.rs
 //! - documentation_tests.rs
 
-use pulseengine_mcp_macros::mcp_server;
+use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 
 #[tokio::test]
 async fn test_resource_functionality() {
     #[mcp_server(name = "Resource Server")]
     #[derive(Default, Clone)]
     struct ResourceServer;
+
+    #[mcp_tools]
+    impl ResourceServer {}
 
     // Note: Resource functionality would be tested here if fully implemented
     // For now, test basic server functionality
@@ -26,6 +29,9 @@ async fn test_prompt_functionality() {
     #[derive(Default, Clone)]
     struct PromptServer;
 
+    #[mcp_tools]
+    impl PromptServer {}
+
     // Note: Prompt functionality would be tested here if fully implemented
     // For now, test basic server functionality
     let server = PromptServer;
@@ -38,6 +44,9 @@ fn test_server_capabilities() {
     #[mcp_server(name = "Capabilities Server")]
     #[derive(Default, Clone)]
     struct CapabilitiesServer;
+
+    #[mcp_tools]
+    impl CapabilitiesServer {}
 
     let server = CapabilitiesServer;
     let info = server.get_server_info();
@@ -56,6 +65,9 @@ fn test_documentation_extraction() {
     #[mcp_server(name = "Documented Server")]
     #[derive(Default, Clone)]
     struct DocumentedServer;
+
+    #[mcp_tools]
+    impl DocumentedServer {}
 
     let server = DocumentedServer;
     let info = server.get_server_info();

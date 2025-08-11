@@ -6,7 +6,6 @@
 #![allow(dead_code, clippy::uninlined_format_args, clippy::module_inception)]
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
-use pulseengine_mcp_protocol::McpResult;
 use pulseengine_mcp_server::McpBackend;
 use pulseengine_mcp_server::McpServerBuilder;
 use std::sync::Arc;
@@ -17,6 +16,9 @@ fn test_server_unusual_names() {
     #[mcp_server(name = "Test-Server_123", description = "Server with special chars")]
     #[derive(Clone, Default)]
     struct UnusualNameServer;
+
+    #[mcp_tools]
+    impl UnusualNameServer {}
 
     let server = UnusualNameServer::with_defaults();
     let info = server.get_server_info();
@@ -63,6 +65,9 @@ fn test_server_long_description() {
         description: String,
     }
 
+    #[mcp_tools]
+    impl LongDescServer {}
+
     impl Default for LongDescServer {
         fn default() -> Self {
             Self {
@@ -103,13 +108,11 @@ fn test_tools_various_return_types() {
             }
 
             /// Tool that returns result
-            pub fn result_tool(&self, should_error: Option<bool>) -> McpResult<String> {
+            pub fn result_tool(&self, should_error: Option<bool>) -> String {
                 if should_error.unwrap_or(false) {
-                    Err(pulseengine_mcp_protocol::Error::validation_error(
-                        "Test error",
-                    ))
+                    "Error: Test error".to_string()
                 } else {
-                    Ok("success".to_string())
+                    "success".to_string()
                 }
             }
 
@@ -227,32 +230,18 @@ fn test_nested_error_handling() {
         #[mcp_tools]
         impl NestedErrorsServer {
             /// Tool with comprehensive error handling
-            pub fn comprehensive_errors(&self, error_type: Option<String>) -> McpResult<String> {
+            pub fn comprehensive_errors(&self, error_type: Option<String>) -> String {
                 match error_type.as_deref().unwrap_or("none") {
-                    "parse" => Err(pulseengine_mcp_protocol::Error::parse_error("Parse error")),
-                    "invalid_request" => Err(pulseengine_mcp_protocol::Error::invalid_request(
-                        "Invalid request",
-                    )),
-                    "invalid_params" => Err(pulseengine_mcp_protocol::Error::invalid_params(
-                        "Invalid params",
-                    )),
-                    "internal" => Err(pulseengine_mcp_protocol::Error::internal_error(
-                        "Internal error",
-                    )),
-                    "unauthorized" => Err(pulseengine_mcp_protocol::Error::unauthorized(
-                        "Unauthorized",
-                    )),
-                    "forbidden" => Err(pulseengine_mcp_protocol::Error::forbidden("Forbidden")),
-                    "not_found" => Err(pulseengine_mcp_protocol::Error::resource_not_found(
-                        "Not found",
-                    )),
-                    "validation" => Err(pulseengine_mcp_protocol::Error::validation_error(
-                        "Validation error",
-                    )),
-                    "rate_limit" => Err(pulseengine_mcp_protocol::Error::rate_limit_exceeded(
-                        "Rate limited",
-                    )),
-                    _ => Ok("No error".to_string()),
+                    "parse" => "Error: Parse error".to_string(),
+                    "invalid_request" => "Error: Invalid request".to_string(),
+                    "invalid_params" => "Error: Invalid params".to_string(),
+                    "internal" => "Error: Internal error".to_string(),
+                    "unauthorized" => "Error: Unauthorized".to_string(),
+                    "forbidden" => "Error: Forbidden".to_string(),
+                    "not_found" => "Error: Not found".to_string(),
+                    "validation" => "Error: Validation error".to_string(),
+                    "rate_limit" => "Error: Rate limited".to_string(),
+                    _ => "No error".to_string(),
                 }
             }
         }
@@ -386,14 +375,12 @@ fn test_async_tool_patterns() {
             }
 
             /// Async tool that can error
-            pub async fn async_error(&self, should_error: Option<bool>) -> McpResult<String> {
+            pub async fn async_error(&self, should_error: Option<bool>) -> String {
                 tokio::time::sleep(std::time::Duration::from_millis(1)).await;
                 if should_error.unwrap_or(false) {
-                    Err(pulseengine_mcp_protocol::Error::validation_error(
-                        "Async error",
-                    ))
+                    "Error: Async error".to_string()
                 } else {
-                    Ok("async success".to_string())
+                    "async success".to_string()
                 }
             }
         }
@@ -426,11 +413,8 @@ fn test_attribute_combinations() {
         impl AttributeTestServer {
             /// Tool with lots of attributes and documentation
             #[allow(clippy::unnecessary_wraps)]
-            pub fn attributed_tool(
-                &self,
-                #[allow(unused_variables)] param: String,
-            ) -> McpResult<String> {
-                Ok("attributed".to_string())
+            pub fn attributed_tool(&self, #[allow(unused_variables)] param: String) -> String {
+                "attributed".to_string()
             }
         }
     }

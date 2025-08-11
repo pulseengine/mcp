@@ -68,6 +68,9 @@ fn test_auth_feature_availability() {
     #[derive(Default, Clone)]
     struct AuthFeatureServer;
 
+    #[mcp_tools]
+    impl AuthFeatureServer {}
+
     let _server = AuthFeatureServer;
 }
 
