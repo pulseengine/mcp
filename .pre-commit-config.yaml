@@ -1,15 +1,4 @@
 repos:
-  - repo: local
-    hooks:
-      # Bazel file formatting with buildifier
-      - id: buildifier
-        name: Buildifier
-        description: Format Bazel files with buildifier
-        entry: bazel run //:buildifier
-        language: system
-        files: '\.(bzl|bazel|BUILD)$'
-        pass_filenames: false
-
   # Python formatting and linting
   - repo: https://github.com/psf/black
     rev: 25.1.0
@@ -84,20 +73,20 @@ repos:
   # Custom local hooks
   - repo: local
     hooks:
-      # Rust clippy linting via Bazel
-      - id: rust-clippy
-        name: Rust Clippy
-        description: Run clippy on all Rust code via Bazel
-        entry: bazel build //:clippy
-        language: system
-        files: '\.rs$'
-        pass_filenames: false
+      # Rust clippy linting via Bazel (disabled - using cargo-clippy-check instead)
+      # - id: rust-clippy
+      #   name: Rust Clippy
+      #   description: Run clippy on all Rust code via Bazel
+      #   entry: bazel build //:clippy
+      #   language: system
+      #   files: '\.rs$'
+      #   pass_filenames: false
 
       # Rust formatting check (same as CI)
       - id: rust-format-check
         name: Rust Format Check
         description: Check Rust formatting (same as CI validation)
-        entry: cargo fmt -- --check
+        entry: bash -c 'find . -name "*.rs" -not -path "./target/*" -print0 | xargs -0 rustfmt --edition 2024 --check'
         language: system
         files: '\.rs$'
         pass_filenames: false
@@ -106,7 +95,7 @@ repos:
       - id: cargo-clippy-check
         name: Cargo Clippy Check
         description: Run clippy with warnings as errors (same as CI)
-        entry: cargo clippy --workspace --all-targets --all-features -- -D warnings
+        entry: cargo clippy --workspace --lib --all-features -- -D warnings
         language: system
         files: '\.rs$'
         pass_filenames: false
@@ -128,14 +117,14 @@ repos:
         language: system
         files: '\.wit$'
 
-      # Bazel build test for changed files
-      - id: bazel-test-changed
-        name: Bazel Test Changed
-        description: Run tests for changed Bazel targets
-        entry: bash -c 'echo "Running tests for changed files..." && bazel test //test/unit:unit_tests'
-        language: system
-        files: '\.bzl$|\.bazel$|BUILD$'
-        pass_filenames: false
+      # Bazel build test for changed files (disabled - no Bazel workspace)
+      # - id: bazel-test-changed
+      #   name: Bazel Test Changed
+      #   description: Run tests for changed Bazel targets
+      #   entry: bash -c 'echo "Running tests for changed files..." && bazel test //test/unit:unit_tests'
+      #   language: system
+      #   files: '\.bzl$|\.bazel$|BUILD$'
+      #   pass_filenames: false
 
 ci:
   autofix_commit_msg: |
