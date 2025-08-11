@@ -11,7 +11,7 @@ impl TestToolsServer {
     pub fn hello(&self, name: String) -> String {
         format!("Hello, {}!", name)
     }
-    
+
     /// Get the current status of the server
     pub fn status(&self) -> String {
         "Server is running".to_string()
@@ -34,12 +34,12 @@ impl TestToolsServer {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let server = TestToolsServer::default();
-    
+
     // Create the MCP server
     let mut mcp_server = server.serve_stdio().await?;
-    
+
     // Run the server
     mcp_server.run().await?;
-    
+
     Ok(())
 }

@@ -11,7 +11,7 @@ impl SimpleToolServer {
     pub fn hello(&self, name: String) -> String {
         format!("Hello, {}!", name)
     }
-    
+
     /// A tool with no parameters
     pub fn status(&self) -> String {
         "OK".to_string()
@@ -21,7 +21,7 @@ impl SimpleToolServer {
 #[test]
 fn test_tools_macro_compilation() {
     let server = SimpleToolServer::default();
-    
+
     // Just test that it compiles - we can't test functionality yet
     // since we don't have the full server integration
     let _server = server;
