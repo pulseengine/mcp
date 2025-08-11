@@ -46,7 +46,7 @@ async fn test_basic_server_generation() {
 #[tokio::test]
 async fn test_tool_listing() {
     let server = TestServer;
-    if let Some(tools) = server.try_get_tools() {
+    if let Some(tools) = server.try_get_tools_default() {
         assert!(!tools.is_empty());
         assert!(tools.iter().any(|t| t.name == "simple_tool"));
         assert!(tools.iter().any(|t| t.name == "tool_with_params"));
@@ -62,6 +62,9 @@ async fn test_server_with_version_and_description() {
     )]
     #[derive(Default, Clone)]
     struct VersionedServer;
+
+    #[mcp_tools]
+    impl VersionedServer {}
 
     let server = VersionedServer;
     let info = server.get_server_info();
