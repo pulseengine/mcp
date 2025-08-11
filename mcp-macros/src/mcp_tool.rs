@@ -130,7 +130,7 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
                 // Extract documentation from method
                 let doc_comment = extract_doc_comment(&method.attrs);
                 let description =
-                    doc_comment.unwrap_or_else(|| format!("Generated tool for {}", tool_name));
+                    doc_comment.unwrap_or_else(|| format!("Generated tool for {tool_name}"));
 
                 // Generate JSON schema for parameters
                 let schema = quote! { serde_json::json!({ "type": "object", "properties": {} }) };
@@ -353,6 +353,7 @@ fn generate_tool_implementation(
 }
 
 /// Generate JSON schema for method parameters
+#[allow(dead_code)]
 fn generate_parameter_schema(sig: &syn::Signature) -> syn::Result<TokenStream> {
     let mut properties = Vec::new();
     let mut required = Vec::new();
@@ -407,6 +408,7 @@ fn generate_parameter_schema(sig: &syn::Signature) -> syn::Result<TokenStream> {
 }
 
 /// Generate type-specific JSON schema
+#[allow(dead_code)]
 fn generate_type_schema(ty: &syn::Type) -> syn::Result<TokenStream> {
     match ty {
         syn::Type::Path(type_path) => {
