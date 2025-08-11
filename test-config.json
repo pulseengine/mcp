@@ -5,7 +5,7 @@
       "args": []
     },
     "hello-world": {
-      "command": "./target/debug/hello-world", 
+      "command": "./target/debug/hello-world",
       "args": []
     }
   }

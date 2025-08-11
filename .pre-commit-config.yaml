@@ -92,7 +92,7 @@ repos:
         language: system
         files: '\.rs$'
         pass_filenames: false
-      
+
       # Rust formatting check (same as CI)
       - id: rust-format-check
         name: Rust Format Check
@@ -101,7 +101,7 @@ repos:
         language: system
         files: '\.rs$'
         pass_filenames: false
-        
+
       # Cargo clippy check (same as CI)
       - id: cargo-clippy-check
         name: Cargo Clippy Check
@@ -110,7 +110,7 @@ repos:
         language: system
         files: '\.rs$'
         pass_filenames: false
-        
+
       # Cargo test check (quick subset of CI tests)
       - id: cargo-test-check
         name: Cargo Test Check
