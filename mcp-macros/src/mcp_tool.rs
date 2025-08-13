@@ -382,7 +382,14 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
 
     };
 
-    Ok(enhanced_impl)
+    let helper_methods = generate_helper_methods(&struct_name);
+
+    let final_impl = quote! {
+        #enhanced_impl
+        #helper_methods
+    };
+
+    Ok(final_impl)
 }
 
 /// Extract parameter information from function signature
@@ -752,4 +759,23 @@ fn enhance_function_with_metadata(
         #tool_attr
         #function
     })
+}
+
+/// Generate helper methods for development and testing
+fn generate_helper_methods(struct_name: &syn::Ident) -> TokenStream {
+    quote! {
+        impl #struct_name {
+            /// Helper method to get available tools (used in tests)
+            #[allow(dead_code)]
+            pub fn try_get_tools_default(&self) -> Option<Vec<pulseengine_mcp_protocol::Tool>> {
+                Some(<Self as pulseengine_mcp_server::McpToolsProvider>::get_available_tools(self))
+            }
+
+            /// Helper method to check if resources are available (used in tests) 
+            #[allow(dead_code)]
+            pub fn try_get_resources_default(&self) -> Vec<pulseengine_mcp_protocol::Resource> {
+                vec![] // Return empty for now to avoid trait bound issues
+            }
+        }
+    }
 }

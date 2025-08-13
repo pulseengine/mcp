@@ -216,7 +216,7 @@ pub fn mcp_server(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///
 /// - [MCP Resources Specification](https://modelcontextprotocol.io/specification/)
 /// - [Building with LLMs Tutorial](https://modelcontextprotocol.io/tutorials/building-mcp-with-llms)
-
+#[allow(clippy::empty_line_after_doc_comments, clippy::doc_lazy_continuation)]
 /// Automatically generates MCP prompt definitions from Rust functions.
 ///
 /// This macro transforms regular Rust functions into MCP prompts with automatic
