@@ -382,7 +382,7 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
 
     };
 
-    let helper_methods = generate_helper_methods(&struct_name);
+    let helper_methods = generate_helper_methods(&struct_name, &impl_generics, &ty_generics, &where_clause);
 
     let final_impl = quote! {
         #enhanced_impl
@@ -762,9 +762,14 @@ fn enhance_function_with_metadata(
 }
 
 /// Generate helper methods for development and testing
-fn generate_helper_methods(struct_name: &syn::Ident) -> TokenStream {
+fn generate_helper_methods(
+    struct_name: &syn::Ident,
+    impl_generics: &syn::ImplGenerics,
+    ty_generics: &syn::TypeGenerics,
+    where_clause: &Option<&syn::WhereClause>
+) -> TokenStream {
     quote! {
-        impl #struct_name {
+        impl #impl_generics #struct_name #ty_generics #where_clause {
             /// Helper method to get available tools (used in tests)
             #[allow(dead_code)]
             pub fn try_get_tools_default(&self) -> Option<Vec<pulseengine_mcp_protocol::Tool>> {
