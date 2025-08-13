@@ -216,12 +216,6 @@ pub fn mcp_server(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///
 /// - [MCP Resources Specification](https://modelcontextprotocol.io/specification/)
 /// - [Building with LLMs Tutorial](https://modelcontextprotocol.io/tutorials/building-mcp-with-llms)
-#[proc_macro_attribute]
-pub fn mcp_resource(attr: TokenStream, item: TokenStream) -> TokenStream {
-    mcp_resource::mcp_resource_impl(attr.into(), item.into())
-        .unwrap_or_else(|err| err.to_compile_error())
-        .into()
-}
 
 /// Automatically generates MCP prompt definitions from Rust functions.
 ///
@@ -308,6 +302,50 @@ pub fn mcp_prompt(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn mcp_tools(attr: TokenStream, item: TokenStream) -> TokenStream {
     mcp_tool::mcp_tools_impl(attr.into(), item.into())
+        .unwrap_or_else(|err| err.to_compile_error())
+        .into()
+}
+
+/// Generates MCP resource implementations from Rust functions.
+///
+/// Resources in MCP represent data that clients can read, such as files,
+/// database records, or computed values. This macro transforms regular Rust
+/// functions into MCP resources with automatic URI parsing and content handling.
+///
+/// # Basic Usage
+///
+/// ```rust,ignore
+/// use pulseengine_mcp_macros::mcp_resource;
+///
+/// impl MyServer {
+///     #[mcp_resource(
+///         uri_template = "file://{path}",
+///         name = "file_reader",
+///         description = "Read file contents",
+///         mime_type = "text/plain"
+///     )]
+///     async fn read_file(&self, path: String) -> Result<String, std::io::Error> {
+///         std::fs::read_to_string(&path)
+///     }
+/// }
+/// ```
+///
+/// # Parameters
+///
+/// - `uri_template`: URI template with parameters (e.g., "db://{table}/{id}")
+/// - `name`: Resource name (defaults to function name)
+/// - `description`: Resource description (defaults to doc comments)
+/// - `mime_type`: MIME type of resource content (defaults to "text/plain")
+///
+/// # Features
+///
+/// - **URI Templates**: Extract parameters from URIs automatically
+/// - **Type Safety**: Parameters parsed and validated at runtime
+/// - **Async Support**: Both sync and async functions supported
+/// - **Content Negotiation**: Automatic JSON serialization when possible
+#[proc_macro_attribute]
+pub fn mcp_resource(attr: TokenStream, item: TokenStream) -> TokenStream {
+    mcp_resource::mcp_resource_impl(attr.into(), item.into())
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }

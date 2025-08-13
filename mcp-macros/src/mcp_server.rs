@@ -219,10 +219,12 @@ fn generate_server_implementation(
             }
 
             async fn list_resources(&self, _request: pulseengine_mcp_protocol::PaginatedRequestParam) -> std::result::Result<pulseengine_mcp_protocol::ListResourcesResult, Self::Error> {
+                // Default implementation - no resources
                 Ok(pulseengine_mcp_protocol::ListResourcesResult { resources: vec![], next_cursor: None })
             }
 
             async fn read_resource(&self, request: pulseengine_mcp_protocol::ReadResourceRequestParam) -> std::result::Result<pulseengine_mcp_protocol::ReadResourceResult, Self::Error> {
+                // Default implementation - no resources
                 Err(#error_type_name::InvalidParams(format!("Unknown resource: {}", request.uri)))
             }
 
@@ -238,33 +240,7 @@ fn generate_server_implementation(
         // The McpToolsProvider trait is defined by the mcp_tools macro when needed
         // We don't define it here to avoid conflicts when multiple servers exist
 
-        // Helper methods for tool integration - only generate if not already provided
-        impl #impl_generics #struct_name #ty_generics #where_clause {
-            /// Try to get tools if this type implements McpToolsProvider
-            #[allow(unused_variables)]
-            #[allow(dead_code)]
-            fn try_get_tools_default(&self) -> Option<Vec<pulseengine_mcp_protocol::Tool>> {
-                // Check if we implement McpToolsProvider trait
-                if let Ok(_) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                    <Self as pulseengine_mcp_server::McpToolsProvider>::get_available_tools(self)
-                })) {
-                    Some(<Self as pulseengine_mcp_server::McpToolsProvider>::get_available_tools(self))
-                } else {
-                    None  // No tools available
-                }
-            }
-
-            /// Try to call a tool if this type implements McpToolsProvider
-            #[allow(unused_variables)]
-            #[allow(dead_code)]
-            async fn try_call_tool_default(
-                &self,
-                request: pulseengine_mcp_protocol::CallToolRequestParam,
-            ) -> Option<std::result::Result<pulseengine_mcp_protocol::CallToolResult, pulseengine_mcp_protocol::Error>> {
-                // For now, return None - this will be handled by the trait implementation
-                None
-            }
-        }
+        // No longer need helper methods - using direct trait delegation pattern consistently
 
         // Implement the builder trait to provide common functionality
         impl #impl_generics pulseengine_mcp_server::McpServerBuilder for #struct_name #ty_generics #where_clause {}

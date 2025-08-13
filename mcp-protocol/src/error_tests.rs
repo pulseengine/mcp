@@ -66,7 +66,7 @@ mod tests {
         for (code, expected_value) in codes {
             let error = Error::new(code, "test");
             let serialized = serde_json::to_string(&error).unwrap();
-            assert!(serialized.contains(&format!("\"code\":\"{expected_value}\"")));
+            assert!(serialized.contains(&format!("\"code\":{}", expected_value)));
         }
     }
 

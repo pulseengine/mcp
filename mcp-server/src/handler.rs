@@ -201,7 +201,11 @@ impl<B: McpBackend> GenericServerHandler<B> {
 
     #[instrument(skip(self, request), fields(mcp.method = "tools/list"))]
     async fn handle_list_tools(&self, request: Request) -> std::result::Result<Response, Error> {
-        let params: PaginatedRequestParam = serde_json::from_value(request.params)?;
+        let params: PaginatedRequestParam = if request.params.is_null() {
+            PaginatedRequestParam { cursor: None }
+        } else {
+            serde_json::from_value(request.params)?
+        };
 
         let result = self
             .backend
@@ -269,7 +273,11 @@ impl<B: McpBackend> GenericServerHandler<B> {
         &self,
         request: Request,
     ) -> std::result::Result<Response, Error> {
-        let params: PaginatedRequestParam = serde_json::from_value(request.params)?;
+        let params: PaginatedRequestParam = if request.params.is_null() {
+            PaginatedRequestParam { cursor: None }
+        } else {
+            serde_json::from_value(request.params)?
+        };
 
         let result = self
             .backend
@@ -306,7 +314,11 @@ impl<B: McpBackend> GenericServerHandler<B> {
         &self,
         request: Request,
     ) -> std::result::Result<Response, Error> {
-        let params: PaginatedRequestParam = serde_json::from_value(request.params)?;
+        let params: PaginatedRequestParam = if request.params.is_null() {
+            PaginatedRequestParam { cursor: None }
+        } else {
+            serde_json::from_value(request.params)?
+        };
 
         let result = self
             .backend
@@ -323,7 +335,11 @@ impl<B: McpBackend> GenericServerHandler<B> {
     }
 
     async fn handle_list_prompts(&self, request: Request) -> std::result::Result<Response, Error> {
-        let params: PaginatedRequestParam = serde_json::from_value(request.params)?;
+        let params: PaginatedRequestParam = if request.params.is_null() {
+            PaginatedRequestParam { cursor: None }
+        } else {
+            serde_json::from_value(request.params)?
+        };
 
         let result = self
             .backend

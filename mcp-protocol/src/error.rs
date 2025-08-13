@@ -126,33 +126,57 @@ impl Error {
 }
 
 /// MCP error codes following JSON-RPC 2.0 specification
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(i32)]
 pub enum ErrorCode {
     // Standard JSON-RPC 2.0 errors
-    #[serde(rename = "-32700")]
     ParseError = -32700,
-    #[serde(rename = "-32600")]
     InvalidRequest = -32600,
-    #[serde(rename = "-32601")]
     MethodNotFound = -32601,
-    #[serde(rename = "-32602")]
     InvalidParams = -32602,
-    #[serde(rename = "-32603")]
     InternalError = -32603,
 
     // MCP-specific errors
-    #[serde(rename = "-32000")]
     Unauthorized = -32000,
-    #[serde(rename = "-32001")]
     Forbidden = -32001,
-    #[serde(rename = "-32002")]
     ResourceNotFound = -32002,
-    #[serde(rename = "-32003")]
     ToolNotFound = -32003,
-    #[serde(rename = "-32004")]
     ValidationError = -32004,
-    #[serde(rename = "-32005")]
     RateLimitExceeded = -32005,
+}
+
+impl Serialize for ErrorCode {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_i32(*self as i32)
+    }
+}
+
+impl<'de> Deserialize<'de> for ErrorCode {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let code = i32::deserialize(deserializer)?;
+        match code {
+            -32700 => Ok(ErrorCode::ParseError),
+            -32600 => Ok(ErrorCode::InvalidRequest),
+            -32601 => Ok(ErrorCode::MethodNotFound),
+            -32602 => Ok(ErrorCode::InvalidParams),
+            -32603 => Ok(ErrorCode::InternalError),
+            -32000 => Ok(ErrorCode::Unauthorized),
+            -32001 => Ok(ErrorCode::Forbidden),
+            -32002 => Ok(ErrorCode::ResourceNotFound),
+            -32003 => Ok(ErrorCode::ToolNotFound),
+            -32004 => Ok(ErrorCode::ValidationError),
+            -32005 => Ok(ErrorCode::RateLimitExceeded),
+            _ => Err(serde::de::Error::custom(format!(
+                "Unknown error code: {code}"
+            ))),
+        }
+    }
 }
 
 impl fmt::Display for ErrorCode {
