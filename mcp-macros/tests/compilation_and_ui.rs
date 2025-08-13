@@ -36,7 +36,6 @@ fn test_ui_compilation_successes() {
     t.pass("tests/ui/mcp_tool_basic.rs");
 }
 
-#[ignore]
 #[test]
 fn test_type_system_compatibility() {
     use pulseengine_mcp_macros::{mcp_server, mcp_tools};
