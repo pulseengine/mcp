@@ -161,13 +161,13 @@ fn generate_parameter_extraction(
 
             quote! {
                 let #param_ident: #param_type = uri_params.get(#param_name)
-                    .ok_or_else(|| pulseengine_mcp_protocol::McpError::InvalidParams {
-                        message: format!("Missing parameter: {}", #param_name),
-                    })?
+                    .ok_or_else(|| pulseengine_mcp_protocol::Error::invalid_params(
+                        format!("Missing parameter: {}", #param_name)
+                    ))?
                     .parse()
-                    .map_err(|e| pulseengine_mcp_protocol::McpError::InvalidParams {
-                        message: format!("Invalid parameter {}: {}", #param_name, e),
-                    })?;
+                    .map_err(|e| pulseengine_mcp_protocol::Error::invalid_params(
+                        format!("Invalid parameter {}: {}", #param_name, e)
+                    ))?;
             }
         });
 
@@ -222,6 +222,10 @@ fn generate_resource_impl(
         Span::call_site(),
     );
 
+    // Generate unique resource info function name
+    let resource_info_name =
+        syn::Ident::new(&format!("__mcp_resource_info_{fn_name}"), Span::call_site());
+
     Ok(quote! {
         // Original function (unchanged)
         #original_fn
@@ -231,7 +235,7 @@ fn generate_resource_impl(
             &self,
             uri: &str,
             uri_params: &std::collections::HashMap<String, String>,
-        ) -> std::result::Result<pulseengine_mcp_protocol::ResourceContents, pulseengine_mcp_protocol::McpError> {
+        ) -> std::result::Result<pulseengine_mcp_protocol::ResourceContents, pulseengine_mcp_protocol::Error> {
             // Extract parameters from URI
             #param_extraction
 
@@ -241,10 +245,10 @@ fn generate_resource_impl(
             // Convert result to ResourceContents
             match result {
                 Ok(content) => {
-                    let content_str = match serde_json::to_string(&content) {
-                        Ok(json) => json,
-                        Err(_) => content.to_string(), // Fallback to Display/Debug
-                    };
+                    let content_str = serde_json::to_string(&content)
+                        .map_err(|e| pulseengine_mcp_protocol::Error::internal_error(
+                            format!("Failed to serialize resource content: {}", e)
+                        ))?;
 
                     Ok(pulseengine_mcp_protocol::ResourceContents {
                         uri: uri.to_string(),
@@ -253,19 +257,21 @@ fn generate_resource_impl(
                         blob: None,
                     })
                 }
-                Err(e) => Err(pulseengine_mcp_protocol::McpError::InternalError {
-                    message: format!("Resource error: {}", e),
-                }),
+                Err(e) => Err(pulseengine_mcp_protocol::Error::internal_error(
+                    format!("Resource error: {}", e)
+                )),
             }
         }
 
         // Resource metadata for capability registration
-        pub fn __mcp_resource_info() -> pulseengine_mcp_protocol::Resource {
+        pub fn #resource_info_name() -> pulseengine_mcp_protocol::Resource {
             pulseengine_mcp_protocol::Resource {
                 uri: #uri_template.to_string(),
-                name: Some(#resource_name.to_string()),
+                name: #resource_name.to_string(),
                 description: Some(#description.to_string()),
                 mime_type: Some(#mime_type.to_string()),
+                annotations: None,
+                raw: None,
             }
         }
     })
