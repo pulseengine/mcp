@@ -771,7 +771,7 @@ fn generate_helper_methods(struct_name: &syn::Ident) -> TokenStream {
                 Some(<Self as pulseengine_mcp_server::McpToolsProvider>::get_available_tools(self))
             }
 
-            /// Helper method to check if resources are available (used in tests) 
+            /// Helper method to check if resources are available (used in tests)
             #[allow(dead_code)]
             pub fn try_get_resources_default(&self) -> Vec<pulseengine_mcp_protocol::Resource> {
                 vec![] // Return empty for now to avoid trait bound issues
