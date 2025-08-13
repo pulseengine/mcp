@@ -382,7 +382,8 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
 
     };
 
-    let helper_methods = generate_helper_methods(&struct_name, &impl_generics, &ty_generics, &where_clause);
+    let helper_methods =
+        generate_helper_methods(&struct_name, &impl_generics, &ty_generics, &where_clause);
 
     let final_impl = quote! {
         #enhanced_impl
@@ -766,7 +767,7 @@ fn generate_helper_methods(
     struct_name: &syn::Ident,
     impl_generics: &syn::ImplGenerics,
     ty_generics: &syn::TypeGenerics,
-    where_clause: &Option<&syn::WhereClause>
+    where_clause: &Option<&syn::WhereClause>,
 ) -> TokenStream {
     quote! {
         impl #impl_generics #struct_name #ty_generics #where_clause {
