@@ -11,8 +11,11 @@ use crate::utils::*;
 #[derive(Clone)]
 struct ResourceInfo {
     method_name: syn::Ident,
+    #[allow(dead_code)]
     resource_name: String,
+    #[allow(dead_code)]
     description: String,
+    #[allow(dead_code)]
     uri_template: String,
     path_pattern: String,
     param_names: Vec<String>,
@@ -31,7 +34,7 @@ fn parse_uri_template(uri_template: &str) -> (String, Vec<String>) {
         // treat everything after :// as the path since there's no host part
         // Add leading slash to make it a proper matchit path
         return (
-            format!("/{}", after_scheme),
+            format!("/{after_scheme}"),
             extract_uri_parameters(after_scheme),
         );
     } else {
@@ -41,7 +44,7 @@ fn parse_uri_template(uri_template: &str) -> (String, Vec<String>) {
         } else {
             // Add leading slash
             return (
-                format!("/{}", uri_template),
+                format!("/{uri_template}"),
                 extract_uri_parameters(uri_template),
             );
         }
@@ -58,7 +61,7 @@ fn extract_uri_parameters(path: &str) -> Vec<String> {
     while let Some(ch) = chars.next() {
         if ch == '{' {
             let mut param_name = String::new();
-            while let Some(ch) = chars.next() {
+            for ch in chars.by_ref() {
                 if ch == '}' {
                     break;
                 }
