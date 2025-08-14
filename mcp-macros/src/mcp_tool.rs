@@ -26,21 +26,27 @@ fn parse_uri_template(uri_template: &str) -> (String, Vec<String>) {
     // Convert "timedate://current-time/{timezone}" to "/current-time/{timezone}"
     let path = if let Some(scheme_end) = uri_template.find("://") {
         let after_scheme = &uri_template[scheme_end + 3..];
-        
+
         // For custom URI schemes like "timedate://current-time/{timezone}",
         // treat everything after :// as the path since there's no host part
         // Add leading slash to make it a proper matchit path
-        return (format!("/{}", after_scheme), extract_uri_parameters(after_scheme));
+        return (
+            format!("/{}", after_scheme),
+            extract_uri_parameters(after_scheme),
+        );
     } else {
         // No scheme, assume it's already a path
         if uri_template.starts_with('/') {
             uri_template
         } else {
             // Add leading slash
-            return (format!("/{}", uri_template), extract_uri_parameters(uri_template));
+            return (
+                format!("/{}", uri_template),
+                extract_uri_parameters(uri_template),
+            );
         }
     };
-    
+
     (path.to_string(), extract_uri_parameters(path))
 }
 
@@ -48,7 +54,7 @@ fn parse_uri_template(uri_template: &str) -> (String, Vec<String>) {
 fn extract_uri_parameters(path: &str) -> Vec<String> {
     let mut params = Vec::new();
     let mut chars = path.chars().peekable();
-    
+
     while let Some(ch) = chars.next() {
         if ch == '{' {
             let mut param_name = String::new();
@@ -63,7 +69,7 @@ fn extract_uri_parameters(path: &str) -> Vec<String> {
             }
         }
     }
-    
+
     params
 }
 
@@ -229,11 +235,16 @@ fn generate_matchit_resource_impl(
         .map(|(i, info)| {
             let variant_name = format_ident!("Resource{}", i);
             let method_name = &info.method_name;
-            let await_token = if info.is_async { quote!(.await) } else { quote!() };
-            
+            let await_token = if info.is_async {
+                quote!(.await)
+            } else {
+                quote!()
+            };
+
             if info.has_params {
                 // Generate parameter extraction for parameterized resources
-                let param_extractions: Vec<_> = info.param_names
+                let param_extractions: Vec<_> = info
+                    .param_names
                     .iter()
                     .enumerate()
                     .map(|(param_idx, param_name)| {
@@ -248,8 +259,9 @@ fn generate_matchit_resource_impl(
                         }
                     })
                     .collect();
-                
-                let method_call_params: Vec<_> = info.method_param_names
+
+                let method_call_params: Vec<_> = info
+                    .method_param_names
                     .iter()
                     .map(|param| quote! { #param })
                     .collect();
@@ -422,7 +434,7 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
     let mut tool_definitions = Vec::new();
     let mut tool_dispatch_cases = Vec::new();
     let mut resource_definitions = Vec::new();
-    
+
     // Collect resource information for matchit router generation
     let mut resource_infos = Vec::new();
 
@@ -454,7 +466,7 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
                     // Parse URI template to get matchit path pattern
                     let (path_pattern, template_param_names) = parse_uri_template(&uri_template);
 
-                    // Extract method parameter names 
+                    // Extract method parameter names
                     let mut method_param_names = Vec::new();
                     for input in &method.sig.inputs {
                         match input {
@@ -478,7 +490,7 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
                         is_async: method.sig.asyncness.is_some(),
                         has_params: method.sig.inputs.len() > 1,
                     };
-                    
+
                     resource_infos.push(resource_info);
 
                     // Create resource definition for list_resources
@@ -492,7 +504,6 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
                             raw: None,
                         }
                     });
-
                 } else {
                     // Handle as tool (existing logic)
                     let tool_name = method.sig.ident.to_string();
