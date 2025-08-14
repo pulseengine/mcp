@@ -218,14 +218,18 @@ fn generate_server_implementation(
                 }
             }
 
-            async fn list_resources(&self, _request: pulseengine_mcp_protocol::PaginatedRequestParam) -> std::result::Result<pulseengine_mcp_protocol::ListResourcesResult, Self::Error> {
-                // Default implementation - no resources
-                Ok(pulseengine_mcp_protocol::ListResourcesResult { resources: vec![], next_cursor: None })
+            async fn list_resources(&self, request: pulseengine_mcp_protocol::PaginatedRequestParam) -> std::result::Result<pulseengine_mcp_protocol::ListResourcesResult, Self::Error> {
+                // Use helper method that safely checks for trait implementation
+                let resources = self.try_get_resources_default();
+                Ok(pulseengine_mcp_protocol::ListResourcesResult { resources, next_cursor: request.cursor })
             }
 
             async fn read_resource(&self, request: pulseengine_mcp_protocol::ReadResourceRequestParam) -> std::result::Result<pulseengine_mcp_protocol::ReadResourceResult, Self::Error> {
-                // Default implementation - no resources
-                Err(#error_type_name::InvalidParams(format!("Unknown resource: {}", request.uri)))
+                // Use helper method that calls resource implementation
+                match self.try_read_resource_default(request.clone()).await {
+                    Ok(result) => Ok(result),
+                    Err(e) => Err(#error_type_name::InvalidParams(e.to_string()))
+                }
             }
 
             async fn list_prompts(&self, _request: pulseengine_mcp_protocol::PaginatedRequestParam) -> std::result::Result<pulseengine_mcp_protocol::ListPromptsResult, Self::Error> {
