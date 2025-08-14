@@ -318,7 +318,7 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
         }
     }
 
-    // Generate resource provider implementation if there are resources
+    // Always generate resource provider implementation (like tools)
     let resource_provider_impl = if !resource_definitions.is_empty() {
         quote! {
             impl #impl_generics pulseengine_mcp_server::McpResourcesProvider for #struct_name #ty_generics #where_clause {
@@ -345,7 +345,25 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
             }
         }
     } else {
-        quote! {}
+        // Generate empty implementation when no resources are defined
+        quote! {
+            impl #impl_generics pulseengine_mcp_server::McpResourcesProvider for #struct_name #ty_generics #where_clause {
+                fn get_available_resources(&self) -> Vec<pulseengine_mcp_protocol::Resource> {
+                    vec![]
+                }
+
+                fn read_resource_impl(
+                    &self,
+                    request: pulseengine_mcp_protocol::ReadResourceRequestParam,
+                ) -> impl std::future::Future<Output = std::result::Result<pulseengine_mcp_protocol::ReadResourceResult, pulseengine_mcp_protocol::Error>> + Send {
+                    async move {
+                        Err(pulseengine_mcp_protocol::Error::invalid_params(
+                            format!("Unknown resource: {}", request.uri)
+                        ))
+                    }
+                }
+            }
+        }
     };
 
     // Resource backend override temporarily disabled to avoid trait conflicts
@@ -780,7 +798,13 @@ fn generate_helper_methods(
             /// Helper method to check if resources are available (used in tests)
             #[allow(dead_code)]
             pub fn try_get_resources_default(&self) -> Vec<pulseengine_mcp_protocol::Resource> {
-                vec![] // Return empty for now to avoid trait bound issues
+                <Self as pulseengine_mcp_server::McpResourcesProvider>::get_available_resources(self)
+            }
+
+            /// Helper method to read resources (used by mcp_server macro)
+            #[allow(dead_code)]
+            pub async fn try_read_resource_default(&self, request: pulseengine_mcp_protocol::ReadResourceRequestParam) -> std::result::Result<pulseengine_mcp_protocol::ReadResourceResult, pulseengine_mcp_protocol::Error> {
+                <Self as pulseengine_mcp_server::McpResourcesProvider>::read_resource_impl(self, request).await
             }
         }
     }

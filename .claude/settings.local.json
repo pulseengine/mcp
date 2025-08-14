@@ -36,7 +36,8 @@
       "mcp__puppeteer__puppeteer_evaluate",
       "WebFetch(domain:lib.rs)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(npx @modelcontextprotocol/inspector:*)"
+      "Bash(npx @modelcontextprotocol/inspector:*)",
+      "Bash(./target/release/timedate-mcp-server:*)"
     ],
     "deny": []
   }
