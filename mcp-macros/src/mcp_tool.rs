@@ -7,6 +7,66 @@ use syn::{ImplItemFn, ItemFn, ReturnType};
 
 use crate::utils::*;
 
+/// Information about a resource method for code generation
+#[derive(Clone)]
+struct ResourceInfo {
+    method_name: syn::Ident,
+    resource_name: String,
+    description: String,
+    uri_template: String,
+    path_pattern: String,
+    param_names: Vec<String>,
+    method_param_names: Vec<syn::Ident>,
+    is_async: bool,
+    has_params: bool,
+}
+
+/// Helper to parse URI template and extract path pattern for matchit
+fn parse_uri_template(uri_template: &str) -> (String, Vec<String>) {
+    // Convert "timedate://current-time/{timezone}" to "/current-time/{timezone}"
+    let path = if let Some(scheme_end) = uri_template.find("://") {
+        let after_scheme = &uri_template[scheme_end + 3..];
+        
+        // For custom URI schemes like "timedate://current-time/{timezone}",
+        // treat everything after :// as the path since there's no host part
+        // Add leading slash to make it a proper matchit path
+        return (format!("/{}", after_scheme), extract_uri_parameters(after_scheme));
+    } else {
+        // No scheme, assume it's already a path
+        if uri_template.starts_with('/') {
+            uri_template
+        } else {
+            // Add leading slash
+            return (format!("/{}", uri_template), extract_uri_parameters(uri_template));
+        }
+    };
+    
+    (path.to_string(), extract_uri_parameters(path))
+}
+
+/// Extract parameter names from URI template path
+fn extract_uri_parameters(path: &str) -> Vec<String> {
+    let mut params = Vec::new();
+    let mut chars = path.chars().peekable();
+    
+    while let Some(ch) = chars.next() {
+        if ch == '{' {
+            let mut param_name = String::new();
+            while let Some(ch) = chars.next() {
+                if ch == '}' {
+                    break;
+                }
+                param_name.push(ch);
+            }
+            if !param_name.is_empty() {
+                params.push(param_name);
+            }
+        }
+    }
+    
+    params
+}
+
 /// Attribute parameters for #[mcp_tool]
 #[derive(FromMeta, Default, Debug)]
 #[darling(default)]
@@ -98,6 +158,217 @@ pub fn mcp_tool_impl(attr: TokenStream, item: TokenStream) -> syn::Result<TokenS
     })
 }
 
+/// Generate matchit-based resource provider implementation
+fn generate_matchit_resource_impl(
+    resource_definitions: &[TokenStream],
+    resource_infos: &[ResourceInfo],
+    impl_generics: &syn::ImplGenerics,
+    ty_generics: &syn::TypeGenerics,
+    where_clause: &Option<&syn::WhereClause>,
+    struct_name: &syn::Ident,
+) -> TokenStream {
+    if resource_infos.is_empty() {
+        // Generate empty implementation when no resources are defined
+        return quote! {
+            impl #impl_generics pulseengine_mcp_server::McpResourcesProvider for #struct_name #ty_generics #where_clause {
+                fn get_available_resources(&self) -> Vec<pulseengine_mcp_protocol::Resource> {
+                    vec![]
+                }
+
+                fn read_resource_impl(
+                    &self,
+                    request: pulseengine_mcp_protocol::ReadResourceRequestParam,
+                ) -> impl std::future::Future<Output = std::result::Result<pulseengine_mcp_protocol::ReadResourceResult, pulseengine_mcp_protocol::Error>> + Send {
+                    async move {
+                        Err(pulseengine_mcp_protocol::Error::invalid_params(
+                            format!("Unknown resource: {}", request.uri)
+                        ))
+                    }
+                }
+            }
+        };
+    }
+
+    // Generate resource handler enum
+    let resource_handler_variants: Vec<_> = resource_infos
+        .iter()
+        .enumerate()
+        .map(|(i, _info)| {
+            let variant_name = format_ident!("Resource{}", i);
+            quote! { #variant_name }
+        })
+        .collect();
+
+    let resource_handler_enum = quote! {
+        #[derive(Clone, Copy)]
+        enum ResourceHandler {
+            #(#resource_handler_variants),*
+        }
+    };
+
+    // Generate router setup code
+    let router_inserts: Vec<_> = resource_infos
+        .iter()
+        .enumerate()
+        .map(|(i, info)| {
+            let variant_name = format_ident!("Resource{}", i);
+            let path_pattern = &info.path_pattern;
+            quote! {
+                router.insert(#path_pattern, ResourceHandler::#variant_name)
+                    .map_err(|e| pulseengine_mcp_protocol::Error::internal_error(
+                        format!("Failed to insert route {}: {}", #path_pattern, e)
+                    ))?;
+            }
+        })
+        .collect();
+
+    // Generate match arms for resource dispatch
+    let resource_match_arms: Vec<_> = resource_infos
+        .iter()
+        .enumerate()
+        .map(|(i, info)| {
+            let variant_name = format_ident!("Resource{}", i);
+            let method_name = &info.method_name;
+            let await_token = if info.is_async { quote!(.await) } else { quote!() };
+            
+            if info.has_params {
+                // Generate parameter extraction for parameterized resources
+                let param_extractions: Vec<_> = info.param_names
+                    .iter()
+                    .enumerate()
+                    .map(|(param_idx, param_name)| {
+                        if let Some(method_param) = info.method_param_names.get(param_idx) {
+                            quote! {
+                                let #method_param = matched.params.get(#param_name)
+                                    .unwrap_or("default")
+                                    .to_string();
+                            }
+                        } else {
+                            quote! {}
+                        }
+                    })
+                    .collect();
+                
+                let method_call_params: Vec<_> = info.method_param_names
+                    .iter()
+                    .map(|param| quote! { #param })
+                    .collect();
+
+                quote! {
+                    ResourceHandler::#variant_name => {
+                        #(#param_extractions)*
+                        let result = self.#method_name(#(#method_call_params),*)#await_token;
+                        match result {
+                            Ok(content) => {
+                                let content_str = serde_json::to_string(&content)
+                                    .map_err(|e| pulseengine_mcp_protocol::Error::internal_error(
+                                        format!("Failed to serialize resource content: {}", e)
+                                    ))?;
+                                Ok(pulseengine_mcp_protocol::ReadResourceResult {
+                                    contents: vec![pulseengine_mcp_protocol::ResourceContents {
+                                        uri: uri.to_string(),
+                                        mime_type: Some("application/json".to_string()),
+                                        text: Some(content_str),
+                                        blob: None,
+                                    }]
+                                })
+                            }
+                            Err(e) => Err(pulseengine_mcp_protocol::Error::internal_error(
+                                format!("Resource error: {}", e)
+                            ))
+                        }
+                    }
+                }
+            } else {
+                // No parameters - simple resource call
+                quote! {
+                    ResourceHandler::#variant_name => {
+                        let result = self.#method_name()#await_token;
+                        match result {
+                            Ok(content) => {
+                                let content_str = serde_json::to_string(&content)
+                                    .map_err(|e| pulseengine_mcp_protocol::Error::internal_error(
+                                        format!("Failed to serialize resource content: {}", e)
+                                    ))?;
+                                Ok(pulseengine_mcp_protocol::ReadResourceResult {
+                                    contents: vec![pulseengine_mcp_protocol::ResourceContents {
+                                        uri: uri.to_string(),
+                                        mime_type: Some("application/json".to_string()),
+                                        text: Some(content_str),
+                                        blob: None,
+                                    }]
+                                })
+                            }
+                            Err(e) => Err(pulseengine_mcp_protocol::Error::internal_error(
+                                format!("Resource error: {}", e)
+                            ))
+                        }
+                    }
+                }
+            }
+        })
+        .collect();
+
+    // Generate the complete implementation
+    quote! {
+        impl #impl_generics pulseengine_mcp_server::McpResourcesProvider for #struct_name #ty_generics #where_clause {
+            fn get_available_resources(&self) -> Vec<pulseengine_mcp_protocol::Resource> {
+                vec![
+                    #(#resource_definitions),*
+                ]
+            }
+
+            fn read_resource_impl(
+                &self,
+                request: pulseengine_mcp_protocol::ReadResourceRequestParam,
+            ) -> impl std::future::Future<Output = std::result::Result<pulseengine_mcp_protocol::ReadResourceResult, pulseengine_mcp_protocol::Error>> + Send {
+                async move {
+                    // Helper to extract path from URI
+                    fn extract_path_from_uri(uri: &str) -> String {
+                        if let Some(pos) = uri.find("://") {
+                            // For custom URI schemes like "timedate://current-time/{timezone}",
+                            // treat everything after :// as the path
+                            format!("/{}", &uri[pos + 3..])
+                        } else {
+                            if uri.starts_with('/') {
+                                uri.to_string()
+                            } else {
+                                format!("/{}", uri)
+                            }
+                        }
+                    }
+
+                    // Resource handler enum (local to this function)
+                    #resource_handler_enum
+
+                    // Build router
+                    let mut build_router = || -> Result<matchit::Router<ResourceHandler>, pulseengine_mcp_protocol::Error> {
+                        let mut router = matchit::Router::new();
+                        #(#router_inserts)*
+                        Ok(router)
+                    };
+
+                    let router = build_router()?;
+                    let uri = &request.uri;
+                    let path = extract_path_from_uri(uri);
+
+                    // Match URI against router
+                    match router.at(&path) {
+                        Ok(matched) => {
+                            match matched.value {
+                                #(#resource_match_arms)*
+                            }
+                        }
+                        Err(_) => Err(pulseengine_mcp_protocol::Error::invalid_params(
+                            format!("Unknown resource: {}", uri)
+                        ))
+                    }
+                }
+            }
+        }
+    }
+}
+
 /// Extract URI template from mcp_resource attribute
 fn extract_uri_template_from_attr(attrs: &[syn::Attribute]) -> Option<String> {
     for attr in attrs {
@@ -151,7 +422,9 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
     let mut tool_definitions = Vec::new();
     let mut tool_dispatch_cases = Vec::new();
     let mut resource_definitions = Vec::new();
-    let mut resource_dispatch_cases = Vec::new();
+    
+    // Collect resource information for matchit router generation
+    let mut resource_infos = Vec::new();
 
     for item in &impl_block.items {
         if let syn::ImplItem::Fn(method) = item {
@@ -178,7 +451,37 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
                     let uri_template = extract_uri_template_from_attr(&method.attrs)
                         .unwrap_or_else(|| format!("resource://{resource_name}"));
 
-                    // Create resource definition
+                    // Parse URI template to get matchit path pattern
+                    let (path_pattern, template_param_names) = parse_uri_template(&uri_template);
+
+                    // Extract method parameter names 
+                    let mut method_param_names = Vec::new();
+                    for input in &method.sig.inputs {
+                        match input {
+                            syn::FnArg::Receiver(_) => continue,
+                            syn::FnArg::Typed(pat_type) => {
+                                if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
+                                    method_param_names.push(pat_ident.ident.clone());
+                                }
+                            }
+                        }
+                    }
+
+                    let resource_info = ResourceInfo {
+                        method_name: method_name.clone(),
+                        resource_name: resource_name.clone(),
+                        description: description.clone(),
+                        uri_template: uri_template.clone(),
+                        path_pattern,
+                        param_names: template_param_names,
+                        method_param_names,
+                        is_async: method.sig.asyncness.is_some(),
+                        has_params: method.sig.inputs.len() > 1,
+                    };
+                    
+                    resource_infos.push(resource_info);
+
+                    // Create resource definition for list_resources
                     resource_definitions.push(quote! {
                         pulseengine_mcp_protocol::Resource {
                             uri: #uri_template.to_string(),
@@ -190,86 +493,6 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
                         }
                     });
 
-                    // Generate resource dispatch case for read_resource_impl
-                    let is_async = method.sig.asyncness.is_some();
-                    let await_token = if is_async { quote!(.await) } else { quote!() };
-
-                    // Check if method has parameters (beyond &self)
-                    let has_params = method.sig.inputs.len() > 1;
-
-                    if has_params {
-                        // Extract parameter names for URI template parameter extraction
-                        let mut param_names = Vec::new();
-                        for input in &method.sig.inputs {
-                            match input {
-                                syn::FnArg::Receiver(_) => continue,
-                                syn::FnArg::Typed(pat_type) => {
-                                    if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
-                                        param_names.push(&pat_ident.ident);
-                                    }
-                                }
-                            }
-                        }
-
-                        // For now, use hardcoded parameter values - this is a limitation
-                        // TODO: Implement proper URI template parameter extraction
-                        let param_values = match param_names.len() {
-                            1 => quote! { "default".to_string() },
-                            2 => quote! { "default".to_string(), "value".to_string() },
-                            _ => quote! { "default".to_string() },
-                        };
-
-                        resource_dispatch_cases.push(quote! {
-                            #uri_template => {
-                                let result = self.#method_name(#param_values)#await_token;
-                                match result {
-                                    Ok(content) => {
-                                        let content_str = serde_json::to_string(&content)
-                                            .map_err(|e| pulseengine_mcp_protocol::Error::internal_error(
-                                                format!("Failed to serialize resource content: {}", e)
-                                            ))?;
-                                        Ok(pulseengine_mcp_protocol::ReadResourceResult {
-                                            contents: vec![pulseengine_mcp_protocol::ResourceContents {
-                                                uri: uri.to_string(),
-                                                mime_type: Some("application/json".to_string()),
-                                                text: Some(content_str),
-                                                blob: None,
-                                            }]
-                                        })
-                                    }
-                                    Err(e) => Err(pulseengine_mcp_protocol::Error::internal_error(
-                                        format!("Resource error: {}", e)
-                                    ))
-                                }
-                            }
-                        });
-                    } else {
-                        // No parameters - simple resource call
-                        resource_dispatch_cases.push(quote! {
-                            #uri_template => {
-                                let result = self.#method_name()#await_token;
-                                match result {
-                                    Ok(content) => {
-                                        let content_str = serde_json::to_string(&content)
-                                            .map_err(|e| pulseengine_mcp_protocol::Error::internal_error(
-                                                format!("Failed to serialize resource content: {}", e)
-                                            ))?;
-                                        Ok(pulseengine_mcp_protocol::ReadResourceResult {
-                                            contents: vec![pulseengine_mcp_protocol::ResourceContents {
-                                                uri: uri.to_string(),
-                                                mime_type: Some("application/json".to_string()),
-                                                text: Some(content_str),
-                                                blob: None,
-                                            }]
-                                        })
-                                    }
-                                    Err(e) => Err(pulseengine_mcp_protocol::Error::internal_error(
-                                        format!("Resource error: {}", e)
-                                    ))
-                                }
-                            }
-                        });
-                    }
                 } else {
                     // Handle as tool (existing logic)
                     let tool_name = method.sig.ident.to_string();
@@ -318,53 +541,15 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
         }
     }
 
-    // Always generate resource provider implementation (like tools)
-    let resource_provider_impl = if !resource_definitions.is_empty() {
-        quote! {
-            impl #impl_generics pulseengine_mcp_server::McpResourcesProvider for #struct_name #ty_generics #where_clause {
-                fn get_available_resources(&self) -> Vec<pulseengine_mcp_protocol::Resource> {
-                    vec![
-                        #(#resource_definitions),*
-                    ]
-                }
-
-                fn read_resource_impl(
-                    &self,
-                    request: pulseengine_mcp_protocol::ReadResourceRequestParam,
-                ) -> impl std::future::Future<Output = std::result::Result<pulseengine_mcp_protocol::ReadResourceResult, pulseengine_mcp_protocol::Error>> + Send {
-                    async move {
-                        let uri = &request.uri;
-                        match uri.as_str() {
-                            #(#resource_dispatch_cases)*
-                            _ => Err(pulseengine_mcp_protocol::Error::invalid_params(
-                                format!("Unknown resource: {}", uri)
-                            ))
-                        }
-                    }
-                }
-            }
-        }
-    } else {
-        // Generate empty implementation when no resources are defined
-        quote! {
-            impl #impl_generics pulseengine_mcp_server::McpResourcesProvider for #struct_name #ty_generics #where_clause {
-                fn get_available_resources(&self) -> Vec<pulseengine_mcp_protocol::Resource> {
-                    vec![]
-                }
-
-                fn read_resource_impl(
-                    &self,
-                    request: pulseengine_mcp_protocol::ReadResourceRequestParam,
-                ) -> impl std::future::Future<Output = std::result::Result<pulseengine_mcp_protocol::ReadResourceResult, pulseengine_mcp_protocol::Error>> + Send {
-                    async move {
-                        Err(pulseengine_mcp_protocol::Error::invalid_params(
-                            format!("Unknown resource: {}", request.uri)
-                        ))
-                    }
-                }
-            }
-        }
-    };
+    // Generate matchit-based resource provider implementation
+    let resource_provider_impl = generate_matchit_resource_impl(
+        &resource_definitions,
+        &resource_infos,
+        &impl_generics,
+        &ty_generics,
+        &where_clause,
+        &struct_name,
+    );
 
     // Resource backend override temporarily disabled to avoid trait conflicts
 
