@@ -46,17 +46,16 @@ jobs:
           if [ -n "${{ github.event.inputs.test_servers }}" ]; then
             IFS=',' read -ra SERVERS <<< "${{ github.event.inputs.test_servers }}"
           else
+            # Use localhost examples only until proper test servers are available
             SERVERS=(
-              "https://demo.mcp-server.dev"
-              "https://example-mcp.herokuapp.com"
-              "https://mcp-reference.azurewebsites.net"
+              "http://localhost:3000"
             )
           fi
 
           # Create results directory
           mkdir -p validation-results
 
-          # Test each server
+          # Test each server (skip if unreachable)
           for server in "${SERVERS[@]}"; do
             server=$(echo "$server" | xargs)  # Trim whitespace
             echo "Testing $server..."
@@ -64,9 +63,15 @@ jobs:
             # Generate safe filename
             filename=$(echo "$server" | sed 's/[^a-zA-Z0-9]/_/g')
 
-            # Run validation (output JSON format)
-            ./target/release/mcp-validate --server-url "$server" \
-              --output json > "validation-results/${filename}.json" || true
+            # Check if server is reachable first
+            if [[ "$server" == http://localhost:* ]]; then
+              echo "Skipping localhost validation (no server running in CI)"
+              echo '{"server_url":"'$server'","status":"skipped","message":"localhost not available in CI"}' > "validation-results/${filename}.json"
+            else
+              # Run validation (output JSON format)
+              ./target/release/mcp-validate --server-url "$server" \
+                --output json > "validation-results/${filename}.json" || echo '{"server_url":"'$server'","status":"failed","message":"validation failed"}' > "validation-results/${filename}.json"
+            fi
           done
 
       - name: Generate summary report
