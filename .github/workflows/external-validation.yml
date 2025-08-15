@@ -200,6 +200,35 @@ jobs:
           cargo run --bin mcp-compliance-report -- --help
           echo "✅ Validation tools built successfully"
 
+      - name: Build timedate-mcp-server for stdio testing
+        run: |
+          # Check if timedate-mcp-server exists in external workspace
+          if [ -d "../timedate-mcp" ]; then
+            echo "Building timedate-mcp-server from external workspace"
+            cd ../timedate-mcp
+            cargo build --release
+            cd -
+            # Copy binary to expected location for tests
+            mkdir -p ./target/release
+            cp ../timedate-mcp/target/release/timedate-mcp-server ./target/release/
+          else
+            echo "timedate-mcp workspace not found - stdio integration tests will be skipped"
+          fi
+        continue-on-error: true
+
+      - name: Run stdio integration tests
+        run: |
+          # Only run if we have the timedate-mcp-server binary
+          if [ -f "./target/release/timedate-mcp-server" ]; then
+            echo "Running stdio integration tests with timedate-mcp-server"
+            cargo test --package pulseengine-mcp-external-validation stdio_integration --release -- --nocapture
+          else
+            echo "Skipping stdio integration tests - timedate-mcp-server not available"
+          fi
+        continue-on-error: true
+        env:
+          RUST_LOG: info
+
     # TODO: Re-enable server validation once we have a proper HTTP test server
     # - name: Run full compliance validation
     #   run: |
@@ -207,6 +236,86 @@ jobs:
     #     cargo run --bin mcp-validate -- --server-url "$SERVER_URL" --all
     #   env:
     #     RUST_LOG: debug
+
+  stdio-integration-tests:
+    name: Stdio + Inspector Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@1.88
+
+      - name: Setup Node.js for MCP Inspector
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-stdio-1.88-${{ hashFiles('**/Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-stdio-1.88-
+            ${{ runner.os }}-cargo-
+
+      - name: Build framework
+        run: |
+          cargo build --all-features --release
+
+      - name: Check out timedate-mcp-server
+        uses: actions/checkout@v4
+        with:
+          repository: "pulseengine/timedate-mcp"
+          path: "timedate-mcp"
+          ref: "main"
+        continue-on-error: true
+
+      - name: Build timedate-mcp-server
+        run: |
+          if [ -d "timedate-mcp" ]; then
+            echo "Building timedate-mcp-server"
+            cd timedate-mcp
+            cargo build --release
+            cd ..
+            # Copy binary to expected location
+            mkdir -p ./target/release
+            cp timedate-mcp/target/release/timedate-mcp-server ./target/release/
+            echo "✅ timedate-mcp-server built successfully"
+          else
+            echo "❌ timedate-mcp repository not available"
+            exit 1
+          fi
+
+      - name: Install MCP Inspector
+        run: |
+          npm install -g @modelcontextprotocol/inspector
+          echo "✅ MCP Inspector installed"
+
+      - name: Run stdio integration tests
+        run: |
+          echo "🧪 Running comprehensive stdio integration tests"
+          cargo test --package pulseengine-mcp-external-validation stdio_integration --release -- --nocapture --test-threads=1
+        env:
+          RUST_LOG: info
+          CI: true
+
+      - name: Run stdio stress tests
+        run: |
+          echo "💪 Running stdio stress and performance tests"
+          cargo test --package pulseengine-mcp-external-validation stdio_stress --release -- --nocapture --test-threads=1
+        env:
+          RUST_LOG: info
+          CI: true
+        continue-on-error: true
 
   python-sdk-compatibility:
     name: Python SDK Compatibility
@@ -271,16 +380,19 @@ jobs:
 
       - name: Run validation against reference implementations
         run: |
-          # Test against known good MCP servers
-          SERVERS=(
-            "https://mcp-test-server.example.com"
-            "https://reference.mcp-server.org"
-          )
+          # Test against known good MCP servers (currently no public servers available)
+          echo "No public MCP reference servers available yet"
+          echo "Skipping external server validation"
 
-          for server in "${SERVERS[@]}"; do
-            echo "Testing $server..."
-            cargo run --bin mcp-validate -- --server-url "$server" --quick || true
-          done
+          # TODO: Add real server URLs when available:
+          # SERVERS=(
+          #   "https://mcp-test-server.example.com"
+          #   "https://reference.mcp-server.org"
+          # )
+          # for server in "${SERVERS[@]}"; do
+          #   echo "Testing $server..."
+          #   cargo run --bin mcp-validate -- --server-url "$server" --quick || true
+          # done
         continue-on-error: true
 
   security-validation:

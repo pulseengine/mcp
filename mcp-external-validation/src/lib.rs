@@ -73,6 +73,15 @@ pub mod report;
 pub mod security;
 pub mod validator;
 
+// Test helper modules
+pub mod test_helpers;
+
+// Integration test modules
+pub mod stdio_integration_tests;
+
+// Stress and performance test modules
+pub mod stdio_stress_tests;
+
 #[cfg(feature = "proptest")]
 pub mod proptest;
 

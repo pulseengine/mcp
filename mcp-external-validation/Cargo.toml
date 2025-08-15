@@ -90,6 +90,10 @@ required-features = []
 name = "mcp-compliance-report"
 required-features = []
 
+[[bin]]
+name = "stdio-test-runner"
+required-features = []
+
 [[example]]
 name = "fuzzing_demo"
 required-features = ["fuzzing"]
