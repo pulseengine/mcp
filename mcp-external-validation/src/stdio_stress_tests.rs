@@ -5,7 +5,7 @@
 
 use crate::{
     ValidationError, ValidationResult,
-    stdio_integration_tests::{StdioTestConfig, StdioTestFixture},
+    stdio_integration_tests::{StdioTestConfig, StdioTestFixture, check_or_skip},
 };
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
@@ -93,7 +93,9 @@ impl PerformanceMetrics {
 #[tokio::test]
 async fn test_stdio_rapid_sequential_connections() -> ValidationResult<()> {
     let fixture = StdioTestFixture::new().await?;
-    fixture.check_environment().await?;
+    if !check_or_skip(&fixture, "stdio_rapid_sequential_connections").await? {
+        return Ok(());
+    }
 
     info!("🚀 Testing rapid sequential stdio connections");
 
@@ -162,7 +164,9 @@ async fn test_stdio_rapid_sequential_connections() -> ValidationResult<()> {
 #[tokio::test]
 async fn test_stdio_server_restart_resilience() -> ValidationResult<()> {
     let fixture = StdioTestFixture::new().await?;
-    fixture.check_environment().await?;
+    if !check_or_skip(&fixture, "stdio_server_restart_resilience").await? {
+        return Ok(());
+    }
 
     info!("♻️  Testing stdio server restart resilience");
 
@@ -222,7 +226,9 @@ async fn test_stdio_server_restart_resilience() -> ValidationResult<()> {
 #[tokio::test]
 async fn test_stdio_server_startup_performance() -> ValidationResult<()> {
     let fixture = StdioTestFixture::new().await?;
-    fixture.check_environment().await?;
+    if !check_or_skip(&fixture, "stdio_server_startup_performance").await? {
+        return Ok(());
+    }
 
     info!("⏱️  Benchmarking stdio server startup performance");
 
@@ -287,7 +293,9 @@ async fn test_stdio_server_startup_performance() -> ValidationResult<()> {
 #[tokio::test]
 async fn test_stdio_connection_performance_under_load() -> ValidationResult<()> {
     let fixture = StdioTestFixture::new().await?;
-    fixture.check_environment().await?;
+    if !check_or_skip(&fixture, "stdio_connection_performance_under_load").await? {
+        return Ok(());
+    }
 
     info!("📈 Testing stdio connection performance under load");
 
@@ -359,7 +367,9 @@ async fn test_stdio_connection_performance_under_load() -> ValidationResult<()> 
 #[tokio::test]
 async fn test_stdio_endurance() -> ValidationResult<()> {
     let fixture = StdioTestFixture::new().await?;
-    fixture.check_environment().await?;
+    if !check_or_skip(&fixture, "stdio_endurance").await? {
+        return Ok(());
+    }
 
     info!("🏃 Starting stdio endurance test");
 
@@ -446,7 +456,9 @@ async fn test_stdio_endurance() -> ValidationResult<()> {
 #[tokio::test]
 async fn test_stdio_parameterized_resource_stress() -> ValidationResult<()> {
     let fixture = StdioTestFixture::new().await?;
-    fixture.check_environment().await?;
+    if !check_or_skip(&fixture, "stdio_parameterized_resource_stress").await? {
+        return Ok(());
+    }
 
     info!("🎯 Testing parameterized resource access under stress");
 
