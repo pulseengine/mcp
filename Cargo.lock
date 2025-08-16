@@ -3912,6 +3912,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1dccffe3ce07af9386bfd29e80c0ab1a8205a2fc34e4bcd40364df902cfa8f3f"
 
 [[package]]
+name = "ultra-simple"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "pulseengine-mcp-macros",
+ "pulseengine-mcp-protocol",
+ "pulseengine-mcp-server",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "unarray"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"

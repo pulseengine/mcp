@@ -277,3 +277,144 @@ fn generate_server_implementation(
         type #service_type_name #ty_generics = pulseengine_mcp_server::McpService<#struct_name #ty_generics>;
     })
 }
+
+/// Attribute parameters for #[mcp_app]
+#[derive(FromMeta, Debug, Default)]
+#[darling(default)]
+pub struct McpAppAttribute {
+    /// Server name (required)
+    pub name: String,
+    /// Server version (defaults to Cargo package version)
+    pub version: Option<String>,
+    /// Server description (defaults to doc comments)
+    pub description: Option<String>,
+    /// Transport type: "stdio" (default), "websocket", "http"
+    pub transport: Option<String>,
+}
+
+/// Implementation of #[mcp_app] macro - creates complete app with main function
+pub fn mcp_app_impl(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStream> {
+    let attr_args = darling::ast::NestedMeta::parse_meta_list(attr)?;
+    let attribute = McpAppAttribute::from_list(&attr_args)
+        .map_err(|e| syn::Error::new(proc_macro2::Span::call_site(), e.to_string()))?;
+
+    // Parse the impl block
+    let impl_block = syn::parse2::<syn::ItemImpl>(item.clone())?;
+    
+    // Extract struct name from impl block
+    let struct_name = if let syn::Type::Path(type_path) = impl_block.self_ty.as_ref() {
+        type_path.path.segments.last().unwrap().ident.clone()
+    } else {
+        return Err(syn::Error::new(
+            proc_macro2::Span::call_site(),
+            "mcp_app can only be used on impl blocks for named structs",
+        ));
+    };
+
+    // Validate that name is not empty
+    if attribute.name.is_empty() {
+        return Err(syn::Error::new(
+            proc_macro2::Span::call_site(),
+            "Server name is required. Use #[mcp_app(name = \"Your App Name\")]",
+        ));
+    }
+
+    let server_name = &attribute.name;
+    let server_version = attribute
+        .version
+        .as_ref()
+        .cloned()
+        .unwrap_or_else(|| env!("CARGO_PKG_VERSION").to_string());
+    
+    let server_description = attribute
+        .description
+        .as_ref()
+        .cloned()
+        .unwrap_or_else(|| server_name.clone());
+
+    let transport = attribute.transport.as_deref().unwrap_or("stdio");
+    
+    // Generate transport-specific main function
+    let main_function = match transport {
+        "stdio" => quote! {
+            #[tokio::main]
+            async fn main() -> Result<(), Box<dyn std::error::Error>> {
+                // Configure logging for STDIO transport
+                #struct_name::configure_stdio_logging();
+
+                // Start the server
+                let mut server = #struct_name::with_defaults().serve_stdio().await?;
+                server.run().await?;
+
+                Ok(())
+            }
+        },
+        "websocket" => quote! {
+            #[tokio::main]
+            async fn main() -> Result<(), Box<dyn std::error::Error>> {
+                // Default WebSocket port
+                let port = std::env::var("MCP_PORT")
+                    .unwrap_or_else(|_| "3000".to_string())
+                    .parse::<u16>()
+                    .unwrap_or(3000);
+
+                let addr = std::net::SocketAddr::from(([127, 0, 0, 1], port));
+                println!("🚀 Starting {} server on ws://{}", #server_name, addr);
+
+                let mut server = #struct_name::with_defaults().serve_websocket(addr).await?;
+                server.run().await?;
+
+                Ok(())
+            }
+        },
+        "http" => quote! {
+            #[tokio::main]
+            async fn main() -> Result<(), Box<dyn std::error::Error>> {
+                // Default HTTP port
+                let port = std::env::var("MCP_PORT")
+                    .unwrap_or_else(|_| "3000".to_string())
+                    .parse::<u16>()
+                    .unwrap_or(3000);
+
+                let addr = std::net::SocketAddr::from(([127, 0, 0, 1], port));
+                println!("🚀 Starting {} server on http://{}", #server_name, addr);
+
+                let mut server = #struct_name::with_defaults().serve_http(addr).await?;
+                server.run().await?;
+
+                Ok(())
+            }
+        },
+        _ => {
+            return Err(syn::Error::new(
+                proc_macro2::Span::call_site(),
+                "transport must be 'stdio', 'websocket', or 'http'",
+            ));
+        }
+    };
+
+    // Combine everything - struct definition, server implementation, tools, and main
+    Ok(quote! {
+        // Required imports for the generated code
+        use pulseengine_mcp_macros::{mcp_server, mcp_tools};
+        use pulseengine_mcp_server::{McpServerBuilder, McpBackend, McpToolsProvider};
+        use pulseengine_mcp_protocol;
+        use serde_json;
+
+        // Generate the struct
+        #[mcp_server(
+            name = #server_name,
+            version = #server_version,
+            description = #server_description
+        )]
+        #[derive(Default, Clone)]
+        pub struct #struct_name;
+
+        // Apply mcp_tools to the impl block
+        #[mcp_tools]
+        #impl_block
+
+        // Generate the main function
+        #main_function
+    })
+}

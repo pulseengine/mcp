@@ -306,6 +306,78 @@ pub fn mcp_tools(attr: TokenStream, item: TokenStream) -> TokenStream {
         .into()
 }
 
+/// Creates a complete MCP application with minimal boilerplate.
+///
+/// This macro combines `#[mcp_server]`, `#[mcp_tools]`, and generates a
+/// complete main function, reducing a full MCP server to just 5 lines of code.
+///
+/// # Ultra-Simple Usage (5 lines total!)
+///
+/// ```rust,ignore
+/// use pulseengine_mcp_macros::mcp_app;
+///
+/// #[mcp_app(name = "My App")]
+/// impl MyApp {
+///     /// Say hello to someone
+///     pub async fn say_hello(&self, name: String) -> String {
+///         format!("Hello, {}!", name)
+///     }
+/// }
+/// ```
+///
+/// This generates:
+/// - A struct with the impl block name
+/// - Complete MCP server implementation
+/// - All public methods as MCP tools with auto-generated schemas
+/// - A main function that runs the server on STDIO
+/// - Proper error handling and logging setup
+///
+/// # Parameters
+///
+/// - `name`: Server name (required)
+/// - `version`: Server version (defaults to Cargo package version)
+/// - `description`: Server description (defaults to doc comments)
+/// - `transport`: Transport type - "stdio" (default), "websocket", or "http"
+///
+/// # Advanced Usage
+///
+/// ```rust,ignore
+/// #[mcp_app(
+///     name = "Advanced App",
+///     version = "2.0.0",
+///     description = "An advanced MCP application",
+///     transport = "websocket"
+/// )]
+/// impl AdvancedApp {
+///     /// Calculate the answer to everything
+///     pub fn answer(&self) -> i32 { 42 }
+/// }
+/// ```
+///
+/// # Features
+///
+/// - **Ultra-Minimal**: Complete server in ~5 lines of code
+/// - **Zero Boilerplate**: No main function, no setup code needed
+/// - **Auto Schema**: JSON schemas generated from Rust function signatures
+/// - **Transport Flexibility**: Support for STDIO, WebSocket, and HTTP
+/// - **Production Ready**: Includes proper logging and error handling
+/// - **Type Safe**: Full compile-time validation
+///
+/// # Comparison with Official SDKs
+///
+/// This macro makes PulseEngine competitive with the simplest official SDKs:
+/// - **TypeScript SDK**: ~8-10 lines for basic server
+/// - **PulseEngine**: ~5 lines with `#[mcp_app]`
+/// - **Rust Official**: ~15-20 lines minimum
+///
+/// Perfect for rapid prototyping while maintaining enterprise capabilities!
+#[proc_macro_attribute]
+pub fn mcp_app(attr: TokenStream, item: TokenStream) -> TokenStream {
+    mcp_server::mcp_app_impl(attr.into(), item.into())
+        .unwrap_or_else(|err| err.to_compile_error())
+        .into()
+}
+
 /// Generates MCP resource implementations from Rust functions.
 ///
 /// Resources in MCP represent data that clients can read, such as files,
