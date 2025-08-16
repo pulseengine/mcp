@@ -22,6 +22,7 @@ members = [
     "examples/advanced-server-example",
     "examples/profiling-demo",
     "examples/demos",
+    "examples/ultra-simple",
 ]
 
 resolver = "2"

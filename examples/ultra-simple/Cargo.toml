@@ -1,0 +1,17 @@
+[package]
+name = "ultra-simple"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "ultra-simple"
+path = "src/main.rs"
+
+[dependencies]
+pulseengine-mcp-macros = { path = "../../mcp-macros" }
+pulseengine-mcp-server = { path = "../../mcp-server" }
+pulseengine-mcp-protocol = { path = "../../mcp-protocol" }
+async-trait = "0.1"
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+anyhow = "1.0"
