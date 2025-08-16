@@ -122,10 +122,7 @@ pub struct ServerTestHarness {
 impl ServerTestHarness {
     /// Create a new server test harness
     pub fn new(config: ServerConfig) -> Self {
-        let test_id = format!(
-            "test_{}",
-            &Uuid::new_v4().to_string().replace('-', "")[..8]
-        );
+        let test_id = format!("test_{}", &Uuid::new_v4().to_string().replace('-', "")[..8]);
 
         Self {
             config,
