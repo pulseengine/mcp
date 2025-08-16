@@ -54,10 +54,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         _ => Level::INFO,
     };
 
-    fmt()
-        .with_max_level(log_level)
-        .with_target(false)
-        .init();
+    fmt().with_max_level(log_level).with_target(false).init();
 
     info!("🚀 Starting Stdio Integration Test Runner v0.10.0");
 
