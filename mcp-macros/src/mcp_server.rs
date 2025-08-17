@@ -300,7 +300,7 @@ pub fn mcp_app_impl(attr: TokenStream, item: TokenStream) -> syn::Result<TokenSt
 
     // Parse the impl block
     let impl_block = syn::parse2::<syn::ItemImpl>(item.clone())?;
-    
+
     // Extract struct name from impl block
     let struct_name = if let syn::Type::Path(type_path) = impl_block.self_ty.as_ref() {
         type_path.path.segments.last().unwrap().ident.clone()
@@ -325,7 +325,7 @@ pub fn mcp_app_impl(attr: TokenStream, item: TokenStream) -> syn::Result<TokenSt
         .as_ref()
         .cloned()
         .unwrap_or_else(|| env!("CARGO_PKG_VERSION").to_string());
-    
+
     let server_description = attribute
         .description
         .as_ref()
@@ -333,7 +333,7 @@ pub fn mcp_app_impl(attr: TokenStream, item: TokenStream) -> syn::Result<TokenSt
         .unwrap_or_else(|| server_name.clone());
 
     let transport = attribute.transport.as_deref().unwrap_or("stdio");
-    
+
     // Generate transport-specific main function
     let main_function = match transport {
         "stdio" => quote! {

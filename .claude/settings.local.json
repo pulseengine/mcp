@@ -37,7 +37,8 @@
       "WebFetch(domain:lib.rs)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(npx @modelcontextprotocol/inspector:*)",
-      "Bash(./target/release/timedate-mcp-server:*)"
+      "Bash(./target/release/timedate-mcp-server:*)",
+      "Bash(gh issue list:*)"
     ],
     "deny": []
   }

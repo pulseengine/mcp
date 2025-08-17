@@ -770,17 +770,17 @@ fn generate_input_schema_for_method(sig: &syn::Signature) -> syn::Result<TokenSt
         if let syn::FnArg::Typed(pat_type) = input {
             if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
                 let param_name = pat_ident.ident.to_string();
-                
+
                 // Determine if parameter is optional (Option<T>)
                 let (is_optional, _inner_type) = extract_option_inner_type(&pat_type.ty);
-                
+
                 if !is_optional {
                     required.push(param_name.clone());
                 }
-                
+
                 // Generate schema based on type
                 let type_schema = generate_type_schema(&pat_type.ty)?;
-                
+
                 properties.push((param_name, type_schema));
             }
         }
@@ -789,10 +789,13 @@ fn generate_input_schema_for_method(sig: &syn::Signature) -> syn::Result<TokenSt
     let properties_map = if properties.is_empty() {
         quote! { serde_json::Map::new() }
     } else {
-        let prop_insertions: Vec<_> = properties.into_iter().map(|(name, schema)| {
-            quote! { props.insert(#name.to_string(), #schema); }
-        }).collect();
-        
+        let prop_insertions: Vec<_> = properties
+            .into_iter()
+            .map(|(name, schema)| {
+                quote! { props.insert(#name.to_string(), #schema); }
+            })
+            .collect();
+
         quote! {
             {
                 let mut props = serde_json::Map::new();
@@ -839,25 +842,39 @@ fn extract_option_inner_type(ty: &syn::Type) -> (bool, &syn::Type) {
 /// Generate JSON schema for a specific Rust type
 fn generate_type_schema(ty: &syn::Type) -> syn::Result<TokenStream> {
     let (_, actual_type) = extract_option_inner_type(ty);
-    
+
     // Handle common types
     if let syn::Type::Path(type_path) = actual_type {
         if type_path.path.segments.len() == 1 {
             let segment = &type_path.path.segments[0];
             let type_name = segment.ident.to_string();
-            
+
             match type_name.as_str() {
-                "String" | "str" => return Ok(quote! { serde_json::Value::Object(serde_json::Map::from_iter([("type".to_string(), serde_json::Value::String("string".to_string()))])) }),
+                "String" | "str" => {
+                    return Ok(
+                        quote! { serde_json::Value::Object(serde_json::Map::from_iter([("type".to_string(), serde_json::Value::String("string".to_string()))])) },
+                    );
+                }
                 "i32" | "i64" | "i8" | "i16" | "isize" | "u32" | "u64" | "u8" | "u16" | "usize" => {
-                    return Ok(quote! { serde_json::Value::Object(serde_json::Map::from_iter([("type".to_string(), serde_json::Value::String("integer".to_string()))])) })
-                },
-                "f32" | "f64" => return Ok(quote! { serde_json::Value::Object(serde_json::Map::from_iter([("type".to_string(), serde_json::Value::String("number".to_string()))])) }),
-                "bool" => return Ok(quote! { serde_json::Value::Object(serde_json::Map::from_iter([("type".to_string(), serde_json::Value::String("boolean".to_string()))])) }),
+                    return Ok(
+                        quote! { serde_json::Value::Object(serde_json::Map::from_iter([("type".to_string(), serde_json::Value::String("integer".to_string()))])) },
+                    );
+                }
+                "f32" | "f64" => {
+                    return Ok(
+                        quote! { serde_json::Value::Object(serde_json::Map::from_iter([("type".to_string(), serde_json::Value::String("number".to_string()))])) },
+                    );
+                }
+                "bool" => {
+                    return Ok(
+                        quote! { serde_json::Value::Object(serde_json::Map::from_iter([("type".to_string(), serde_json::Value::String("boolean".to_string()))])) },
+                    );
+                }
                 _ => {}
             }
         }
     }
-    
+
     // Default to allowing any type for complex types
     Ok(quote! { serde_json::Value::Object(serde_json::Map::new()) })
 }
