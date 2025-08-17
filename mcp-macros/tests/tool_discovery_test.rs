@@ -82,43 +82,49 @@ async fn test_tool_discovery_methods_exist() {
     }
 }
 
-#[tokio::test] 
+#[tokio::test]
 async fn test_enhanced_schema_generation() {
     let server = ToolDiscoveryServer::with_defaults();
 
     if let Some(tools) = server.try_get_tools_default() {
         // Find the echo_tool which has a String parameter
         let echo_tool = tools.iter().find(|t| t.name == "echo_tool").unwrap();
-        
+
         // Should have an input schema now (not empty object)
         let schema = &echo_tool.input_schema;
-        
+
         // Schema should be an object type
         assert_eq!(schema.get("type").unwrap().as_str().unwrap(), "object");
-        
+
         // Should have properties
         let properties = schema.get("properties").unwrap().as_object().unwrap();
         assert!(properties.contains_key("message"));
-        
+
         // The message parameter should be typed as string
         let message_schema = properties.get("message").unwrap().as_object().unwrap();
-        assert_eq!(message_schema.get("type").unwrap().as_str().unwrap(), "string");
-        
+        assert_eq!(
+            message_schema.get("type").unwrap().as_str().unwrap(),
+            "string"
+        );
+
         // Should have required field listing message as required
         let required = schema.get("required").unwrap().as_array().unwrap();
         assert!(required.iter().any(|v| v.as_str().unwrap() == "message"));
-        
+
         println!("✅ Enhanced schema generation verified!");
-        println!("   Echo tool schema: {}", serde_json::to_string_pretty(schema).unwrap());
-        
+        println!(
+            "   Echo tool schema: {}",
+            serde_json::to_string_pretty(schema).unwrap()
+        );
+
         // Find the greet_tool which has an optional parameter
         let greet_tool = tools.iter().find(|t| t.name == "greet_tool").unwrap();
         let greet_schema = &greet_tool.input_schema;
         let greet_required = greet_schema.get("required").unwrap().as_array().unwrap();
-        
+
         // The optional parameter should NOT be in required array
         assert!(!greet_required.iter().any(|v| v.as_str().unwrap() == "name"));
-        
+
         println!("✅ Optional parameter handling verified!");
         println!("   Greet tool required fields: {:?}", greet_required);
     }
