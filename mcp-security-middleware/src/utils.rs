@@ -1,8 +1,8 @@
 //! Utility functions for security operations
 
 use crate::error::{SecurityError, SecurityResult};
-use base64::{engine::general_purpose, Engine as _};
-use rand::{distributions::Alphanumeric, Rng};
+use base64::{Engine as _, engine::general_purpose};
+use rand::{Rng, distributions::Alphanumeric};
 use sha2::{Digest, Sha256};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -39,7 +39,7 @@ impl SecureRandom {
 }
 
 /// Generate a secure API key
-/// 
+///
 /// API keys are prefixed with "mcp_" and contain 32 bytes of random data
 /// encoded in base64-url format for URL safety.
 ///
@@ -102,7 +102,9 @@ pub fn current_timestamp() -> u64 {
 /// Validate that a string looks like a valid API key
 pub fn validate_api_key_format(key: &str) -> SecurityResult<()> {
     if !key.starts_with("mcp_") {
-        return Err(SecurityError::invalid_token("API key must start with 'mcp_'"));
+        return Err(SecurityError::invalid_token(
+            "API key must start with 'mcp_'",
+        ));
     }
 
     if key.len() < 20 {
@@ -117,7 +119,9 @@ pub fn validate_api_key_format(key: &str) -> SecurityResult<()> {
     let key_part = &key[4..]; // Skip "mcp_" prefix
     for c in key_part.chars() {
         if !c.is_alphanumeric() && c != '-' && c != '_' {
-            return Err(SecurityError::invalid_token("Invalid characters in API key"));
+            return Err(SecurityError::invalid_token(
+                "Invalid characters in API key",
+            ));
         }
     }
 
@@ -156,14 +160,14 @@ mod tests {
     fn test_generate_api_key() {
         let key1 = generate_api_key();
         let key2 = generate_api_key();
-        
+
         // Keys should be different
         assert_ne!(key1, key2);
-        
+
         // Both should start with prefix
         assert!(key1.starts_with("mcp_"));
         assert!(key2.starts_with("mcp_"));
-        
+
         // Should have reasonable length
         assert!(key1.len() > 20);
         assert!(key2.len() > 20);
@@ -173,10 +177,10 @@ mod tests {
     fn test_generate_jwt_secret() {
         let secret1 = generate_jwt_secret();
         let secret2 = generate_jwt_secret();
-        
+
         // Secrets should be different
         assert_ne!(secret1, secret2);
-        
+
         // Should have sufficient length for security
         assert!(secret1.len() >= 64);
         assert!(secret2.len() >= 64);
@@ -186,10 +190,10 @@ mod tests {
     fn test_hash_and_verify_api_key() {
         let api_key = generate_api_key();
         let hash = hash_api_key(&api_key);
-        
+
         // Verification should succeed
         assert!(verify_api_key(&api_key, &hash));
-        
+
         // Wrong key should fail
         let wrong_key = generate_api_key();
         assert!(!verify_api_key(&wrong_key, &hash));
@@ -200,7 +204,7 @@ mod tests {
         // Valid key should pass
         let valid_key = generate_api_key();
         assert!(validate_api_key_format(&valid_key).is_ok());
-        
+
         // Invalid keys should fail
         assert!(validate_api_key_format("invalid").is_err());
         assert!(validate_api_key_format("api_too_short").is_err());
@@ -219,7 +223,7 @@ mod tests {
     fn test_session_id_generation() {
         let id1 = generate_session_id();
         let id2 = generate_session_id();
-        
+
         assert_ne!(id1, id2);
         assert!(id1.starts_with("sess_"));
         assert!(id2.starts_with("sess_"));
@@ -229,7 +233,7 @@ mod tests {
     fn test_request_id_generation() {
         let id1 = generate_request_id();
         let id2 = generate_request_id();
-        
+
         assert_ne!(id1, id2);
         assert!(id1.starts_with("req_"));
         assert!(id2.starts_with("req_"));
@@ -240,7 +244,7 @@ mod tests {
         let ts1 = current_timestamp();
         std::thread::sleep(std::time::Duration::from_millis(1));
         let ts2 = current_timestamp();
-        
+
         assert!(ts2 >= ts1);
     }
 
@@ -248,14 +252,14 @@ mod tests {
     fn test_secure_random() {
         let bytes1 = SecureRandom::bytes(32);
         let bytes2 = SecureRandom::bytes(32);
-        
+
         assert_eq!(bytes1.len(), 32);
         assert_eq!(bytes2.len(), 32);
         assert_ne!(bytes1, bytes2);
-        
+
         let string1 = SecureRandom::string(20);
         let string2 = SecureRandom::string(20);
-        
+
         assert_eq!(string1.len(), 20);
         assert_eq!(string2.len(), 20);
         assert_ne!(string1, string2);

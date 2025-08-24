@@ -13,22 +13,22 @@ use std::path::PathBuf;
 pub struct SecurityConfig {
     /// Security profile
     pub profile: SecurityProfile,
-    
+
     /// Security settings
     pub settings: SecuritySettings,
-    
+
     /// API key for simple authentication
     pub api_key: Option<String>,
-    
+
     /// JWT secret for token validation
     pub jwt_secret: Option<String>,
-    
+
     /// JWT issuer
     pub jwt_issuer: String,
-    
+
     /// JWT audience
     pub jwt_audience: String,
-    
+
     /// Configuration file path (if loaded from file)
     pub config_file_path: Option<PathBuf>,
 }
@@ -52,13 +52,13 @@ impl SecurityConfig {
         let profile = SecurityProfile::Development;
         let settings = SecuritySettings::for_profile(&profile);
         let mut config = Self::new(profile, settings);
-        
+
         // Auto-generate keys for development
         if config.settings.auto_generate_keys {
             config.api_key = Some(generate_api_key());
             config.jwt_secret = Some(generate_jwt_secret());
         }
-        
+
         config
     }
 
@@ -67,13 +67,13 @@ impl SecurityConfig {
         let profile = SecurityProfile::Staging;
         let settings = SecuritySettings::for_profile(&profile);
         let mut config = Self::new(profile, settings);
-        
+
         // Auto-generate keys for staging
         if config.settings.auto_generate_keys {
             config.api_key = Some(generate_api_key());
             config.jwt_secret = Some(generate_jwt_secret());
         }
-        
+
         config
     }
 
@@ -101,7 +101,7 @@ impl SecurityConfig {
 
         // Override with environment variables
         config.load_from_env()?;
-        
+
         Ok(config)
     }
 
@@ -115,7 +115,7 @@ impl SecurityConfig {
                     tracing::info!("Auto-generated API key for MCP server");
                 } else {
                     return Err(SecurityError::config(
-                        "Auto-generation disabled for this security profile"
+                        "Auto-generation disabled for this security profile",
                     ));
                 }
             } else {
@@ -131,7 +131,7 @@ impl SecurityConfig {
                     tracing::info!("Auto-generated JWT secret for MCP server");
                 } else {
                     return Err(SecurityError::config(
-                        "Auto-generation disabled for this security profile"
+                        "Auto-generation disabled for this security profile",
                     ));
                 }
             } else {
@@ -151,19 +151,21 @@ impl SecurityConfig {
 
         // HTTPS requirement
         if let Ok(require_https) = env::var("MCP_REQUIRE_HTTPS") {
-            self.settings.require_https = require_https.parse()
-                .unwrap_or(self.settings.require_https);
+            self.settings.require_https =
+                require_https.parse().unwrap_or(self.settings.require_https);
         }
 
         // Authentication requirement
         if let Ok(require_auth) = env::var("MCP_REQUIRE_AUTH") {
-            self.settings.require_authentication = require_auth.parse()
+            self.settings.require_authentication = require_auth
+                .parse()
                 .unwrap_or(self.settings.require_authentication);
         }
 
         // Audit logging
         if let Ok(audit_log) = env::var("MCP_ENABLE_AUDIT_LOG") {
-            self.settings.enable_audit_logging = audit_log.parse()
+            self.settings.enable_audit_logging = audit_log
+                .parse()
                 .unwrap_or(self.settings.enable_audit_logging);
         }
 
@@ -211,7 +213,7 @@ impl SecurityConfig {
                 return Err(SecurityError::config(
                     "Authentication is required but no API key or JWT secret provided. \
                      Set MCP_API_KEY or MCP_JWT_SECRET environment variables, \
-                     or use MCP_API_KEY=auto-generate for development."
+                     or use MCP_API_KEY=auto-generate for development.",
                 ));
             }
         }
@@ -220,14 +222,14 @@ impl SecurityConfig {
         if let Some(ref secret) = self.jwt_secret {
             if secret.len() < 32 {
                 return Err(SecurityError::config(
-                    "JWT secret must be at least 32 characters long for security"
+                    "JWT secret must be at least 32 characters long for security",
                 ));
             }
-            
+
             if self.jwt_issuer.is_empty() {
                 return Err(SecurityError::config("JWT issuer cannot be empty"));
             }
-            
+
             if self.jwt_audience.is_empty() {
                 return Err(SecurityError::config("JWT audience cannot be empty"));
             }
@@ -269,16 +271,16 @@ impl SecurityConfig {
     /// Create security middleware from this configuration
     pub async fn create_middleware(&self) -> SecurityResult<crate::middleware::SecurityMiddleware> {
         self.validate()?;
-        
+
         let api_key_validator = self.create_api_key_validator()?;
         let token_validator = self.create_token_validator()?;
-        
+
         let middleware = crate::middleware::SecurityMiddleware::new(
             self.clone(),
             api_key_validator,
             token_validator,
         );
-        
+
         Ok(middleware)
     }
 
@@ -343,13 +345,69 @@ impl std::fmt::Display for ConfigSummary {
         writeln!(f, "MCP Security Configuration Summary:")?;
         writeln!(f, "  Profile: {}", self.profile)?;
         writeln!(f, "  Security Level: {}", self.security_level)?;
-        writeln!(f, "  Authentication: {}", if self.authentication_enabled { "✓ Enabled" } else { "✗ Disabled" })?;
-        writeln!(f, "  HTTPS Required: {}", if self.https_required { "✓ Yes" } else { "✗ No" })?;
-        writeln!(f, "  Rate Limiting: {}", if self.rate_limiting_enabled { "✓ Enabled" } else { "✗ Disabled" })?;
-        writeln!(f, "  CORS: {}", if self.cors_enabled { "✓ Enabled" } else { "✗ Disabled" })?;
-        writeln!(f, "  Audit Logging: {}", if self.audit_logging_enabled { "✓ Enabled" } else { "✗ Disabled" })?;
-        writeln!(f, "  API Key: {}", if self.has_api_key { "✓ Configured" } else { "✗ Not set" })?;
-        writeln!(f, "  JWT Secret: {}", if self.has_jwt_secret { "✓ Configured" } else { "✗ Not set" })?;
+        writeln!(
+            f,
+            "  Authentication: {}",
+            if self.authentication_enabled {
+                "✓ Enabled"
+            } else {
+                "✗ Disabled"
+            }
+        )?;
+        writeln!(
+            f,
+            "  HTTPS Required: {}",
+            if self.https_required {
+                "✓ Yes"
+            } else {
+                "✗ No"
+            }
+        )?;
+        writeln!(
+            f,
+            "  Rate Limiting: {}",
+            if self.rate_limiting_enabled {
+                "✓ Enabled"
+            } else {
+                "✗ Disabled"
+            }
+        )?;
+        writeln!(
+            f,
+            "  CORS: {}",
+            if self.cors_enabled {
+                "✓ Enabled"
+            } else {
+                "✗ Disabled"
+            }
+        )?;
+        writeln!(
+            f,
+            "  Audit Logging: {}",
+            if self.audit_logging_enabled {
+                "✓ Enabled"
+            } else {
+                "✗ Disabled"
+            }
+        )?;
+        writeln!(
+            f,
+            "  API Key: {}",
+            if self.has_api_key {
+                "✓ Configured"
+            } else {
+                "✗ Not set"
+            }
+        )?;
+        writeln!(
+            f,
+            "  JWT Secret: {}",
+            if self.has_jwt_secret {
+                "✓ Configured"
+            } else {
+                "✗ Not set"
+            }
+        )?;
         write!(f, "  JWT Expiry: {} minutes", self.jwt_expiry_minutes)
     }
 }
@@ -418,13 +476,16 @@ mod tests {
         unsafe {
             env::set_var("MCP_SECURITY_PROFILE", "development");
             env::set_var("MCP_API_KEY", "test-key-123");
-            env::set_var("MCP_JWT_SECRET", "test-secret-very-long-secret-key-for-testing");
+            env::set_var(
+                "MCP_JWT_SECRET",
+                "test-secret-very-long-secret-key-for-testing",
+            );
         }
-        
+
         let config = SecurityConfig::from_env().unwrap();
         assert_eq!(config.profile, SecurityProfile::Development);
         assert_eq!(config.api_key.as_ref().unwrap(), "test-key-123");
-        
+
         // Clean up
         unsafe {
             env::remove_var("MCP_SECURITY_PROFILE");
@@ -450,7 +511,7 @@ mod tests {
     fn test_config_summary() {
         let config = SecurityConfig::development();
         let summary = config.summary();
-        
+
         assert_eq!(summary.profile, SecurityProfile::Development);
         assert!(!summary.authentication_enabled);
         assert!(summary.has_api_key);

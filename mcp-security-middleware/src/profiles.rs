@@ -10,13 +10,13 @@ use std::time::Duration;
 pub enum SecurityProfile {
     /// Development profile - permissive settings for local development
     Development,
-    
+
     /// Staging profile - balanced security for testing environments
     Staging,
-    
+
     /// Production profile - strict security for production deployments
     Production,
-    
+
     /// Custom profile - user-defined security settings
     Custom,
 }
@@ -29,7 +29,10 @@ impl SecurityProfile {
             "staging" | "stage" => Ok(Self::Staging),
             "production" | "prod" => Ok(Self::Production),
             "custom" => Ok(Self::Custom),
-            _ => Err(SecurityError::config(format!("Invalid security profile: {}", s))),
+            _ => Err(SecurityError::config(format!(
+                "Invalid security profile: {}",
+                s
+            ))),
         }
     }
 
@@ -63,10 +66,10 @@ impl std::fmt::Display for SecurityProfile {
 pub struct RateLimitConfig {
     /// Maximum requests per window
     pub max_requests: u32,
-    
+
     /// Time window duration
     pub window_duration: Duration,
-    
+
     /// Whether rate limiting is enabled
     pub enabled: bool,
 }
@@ -105,16 +108,16 @@ impl RateLimitConfig {
 pub struct CorsConfig {
     /// Allowed origins
     pub allowed_origins: Vec<String>,
-    
+
     /// Allow credentials
     pub allow_credentials: bool,
-    
+
     /// Allowed methods
     pub allowed_methods: Vec<String>,
-    
+
     /// Allowed headers
     pub allowed_headers: Vec<String>,
-    
+
     /// Whether CORS is enabled
     pub enabled: bool,
 }
@@ -149,11 +152,7 @@ impl CorsConfig {
                 "http://127.0.0.1:8080".to_string(),
             ],
             allow_credentials: true,
-            allowed_methods: vec![
-                "GET".to_string(),
-                "POST".to_string(),
-                "OPTIONS".to_string(),
-            ],
+            allowed_methods: vec!["GET".to_string(), "POST".to_string(), "OPTIONS".to_string()],
             allowed_headers: vec![
                 "authorization".to_string(),
                 "content-type".to_string(),
@@ -168,15 +167,8 @@ impl CorsConfig {
         Self {
             allowed_origins: Vec::new(), // Must be explicitly configured
             allow_credentials: true,
-            allowed_methods: vec![
-                "GET".to_string(),
-                "POST".to_string(),
-                "OPTIONS".to_string(),
-            ],
-            allowed_headers: vec![
-                "authorization".to_string(),
-                "content-type".to_string(),
-            ],
+            allowed_methods: vec!["GET".to_string(), "POST".to_string(), "OPTIONS".to_string()],
+            allowed_headers: vec!["authorization".to_string(), "content-type".to_string()],
             enabled: true,
         }
     }
@@ -192,7 +184,7 @@ impl DevelopmentProfile {
             require_authentication: false, // Optional for dev
             require_https: false,
             enable_audit_logging: true, // Good for debugging
-            jwt_expiry_seconds: 86400, // 24 hours - long for dev convenience
+            jwt_expiry_seconds: 86400,  // 24 hours - long for dev convenience
             rate_limit: RateLimitConfig::permissive(),
             cors: CorsConfig::permissive(),
             auto_generate_keys: true,
@@ -290,25 +282,25 @@ impl ProductionProfile {
 pub struct SecuritySettings {
     /// Whether authentication is required
     pub require_authentication: bool,
-    
+
     /// Whether HTTPS is required
     pub require_https: bool,
-    
+
     /// Whether audit logging is enabled
     pub enable_audit_logging: bool,
-    
+
     /// JWT token expiry in seconds
     pub jwt_expiry_seconds: u64,
-    
+
     /// Rate limiting configuration
     pub rate_limit: RateLimitConfig,
-    
+
     /// CORS configuration
     pub cors: CorsConfig,
-    
+
     /// Whether to auto-generate keys if not provided
     pub auto_generate_keys: bool,
-    
+
     /// Whether to validate JWT token audience
     pub validate_token_audience: bool,
 }
@@ -335,18 +327,22 @@ impl SecuritySettings {
         if self.require_https && self.cors.allowed_origins.contains(&"*".to_string()) {
             if self.cors.allow_credentials {
                 return Err(SecurityError::config(
-                    "Cannot use wildcard origins with credentials over HTTPS"
+                    "Cannot use wildcard origins with credentials over HTTPS",
                 ));
             }
         }
 
-        if self.jwt_expiry_seconds > 86400 * 7 { // More than 1 week
-            tracing::warn!("JWT expiry is longer than 1 week, consider shorter expiry for security");
+        if self.jwt_expiry_seconds > 86400 * 7 {
+            // More than 1 week
+            tracing::warn!(
+                "JWT expiry is longer than 1 week, consider shorter expiry for security"
+            );
         }
 
-        if self.jwt_expiry_seconds < 60 { // Less than 1 minute
+        if self.jwt_expiry_seconds < 60 {
+            // Less than 1 minute
             return Err(SecurityError::config(
-                "JWT expiry cannot be less than 1 minute"
+                "JWT expiry cannot be less than 1 minute",
             ));
         }
 
@@ -389,11 +385,23 @@ mod tests {
 
     #[test]
     fn test_security_profile_parsing() {
-        assert_eq!(SecurityProfile::from_str("development").unwrap(), SecurityProfile::Development);
-        assert_eq!(SecurityProfile::from_str("dev").unwrap(), SecurityProfile::Development);
-        assert_eq!(SecurityProfile::from_str("staging").unwrap(), SecurityProfile::Staging);
-        assert_eq!(SecurityProfile::from_str("production").unwrap(), SecurityProfile::Production);
-        
+        assert_eq!(
+            SecurityProfile::from_str("development").unwrap(),
+            SecurityProfile::Development
+        );
+        assert_eq!(
+            SecurityProfile::from_str("dev").unwrap(),
+            SecurityProfile::Development
+        );
+        assert_eq!(
+            SecurityProfile::from_str("staging").unwrap(),
+            SecurityProfile::Staging
+        );
+        assert_eq!(
+            SecurityProfile::from_str("production").unwrap(),
+            SecurityProfile::Production
+        );
+
         assert!(SecurityProfile::from_str("invalid").is_err());
     }
 
@@ -455,7 +463,11 @@ mod tests {
 
         let localhost = CorsConfig::localhost_only();
         assert!(localhost.allow_credentials);
-        assert!(localhost.allowed_origins.contains(&"http://localhost:3000".to_string()));
+        assert!(
+            localhost
+                .allowed_origins
+                .contains(&"http://localhost:3000".to_string())
+        );
 
         let strict = CorsConfig::strict();
         assert!(strict.allowed_origins.is_empty());
@@ -474,7 +486,7 @@ mod tests {
 
         settings.jwt_expiry_seconds = 3600; // Valid again
         assert!(settings.validate().is_ok());
-        
+
         // Test CORS validation with credentials + wildcard
         settings.cors.allowed_origins = vec!["*".to_string()];
         settings.cors.allow_credentials = true;

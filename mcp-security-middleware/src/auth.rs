@@ -3,7 +3,7 @@
 use crate::error::{SecurityError, SecurityResult};
 use crate::utils::{current_timestamp, secure_compare, validate_api_key_format};
 use chrono::{DateTime, Utc};
-use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -13,22 +13,22 @@ use uuid::Uuid;
 pub struct AuthContext {
     /// Unique user identifier
     pub user_id: String,
-    
+
     /// User's roles or permissions
     pub roles: Vec<String>,
-    
+
     /// API key used for authentication (if applicable)
     pub api_key: Option<String>,
-    
+
     /// JWT token claims (if JWT was used)
     pub jwt_claims: Option<JwtClaims>,
-    
+
     /// Timestamp when authentication occurred
     pub authenticated_at: DateTime<Utc>,
-    
+
     /// Request ID for tracing
     pub request_id: String,
-    
+
     /// Additional metadata
     pub metadata: HashMap<String, String>,
 }
@@ -110,28 +110,28 @@ impl AuthContext {
 pub struct JwtClaims {
     /// Subject (user ID)
     pub sub: String,
-    
+
     /// Expiration time
     pub exp: u64,
-    
+
     /// Issued at time
     pub iat: u64,
-    
+
     /// Not before time
     pub nbf: Option<u64>,
-    
+
     /// JWT ID
     pub jti: String,
-    
+
     /// Issuer
     pub iss: String,
-    
+
     /// Audience
     pub aud: String,
-    
+
     /// Custom roles
     pub roles: Option<Vec<String>>,
-    
+
     /// Custom metadata
     pub metadata: Option<HashMap<String, serde_json::Value>>,
 }
@@ -140,7 +140,7 @@ impl JwtClaims {
     /// Create new JWT claims
     pub fn new(user_id: String, issuer: String, audience: String, expires_in_seconds: u64) -> Self {
         let now = current_timestamp();
-        
+
         Self {
             sub: user_id,
             exp: now + expires_in_seconds,
@@ -170,16 +170,16 @@ impl JwtClaims {
 pub struct TokenValidator {
     /// JWT decoding key
     decoding_key: DecodingKey,
-    
+
     /// JWT validation parameters
     validation: Validation,
-    
+
     /// Expected issuer
     expected_issuer: String,
-    
+
     /// Expected audience
     expected_audience: String,
-    
+
     /// Secret for encoding (stored for token creation)
     secret: String,
 }
@@ -196,19 +196,15 @@ impl std::fmt::Debug for TokenValidator {
 
 impl TokenValidator {
     /// Create a new token validator
-    pub fn new(
-        secret: &str,
-        issuer: String,
-        audience: String,
-    ) -> Self {
+    pub fn new(secret: &str, issuer: String, audience: String) -> Self {
         let decoding_key = DecodingKey::from_secret(secret.as_bytes());
-        
+
         let mut validation = Validation::new(Algorithm::HS256);
         validation.set_issuer(&[&issuer]);
         validation.set_audience(&[&audience]);
         validation.validate_exp = true;
         validation.validate_nbf = true;
-        
+
         Self {
             decoding_key,
             validation,
@@ -220,11 +216,7 @@ impl TokenValidator {
 
     /// Validate a JWT token and return the claims
     pub fn validate_token(&self, token: &str) -> SecurityResult<JwtClaims> {
-        let token_data = decode::<JwtClaims>(
-            token,
-            &self.decoding_key,
-            &self.validation,
-        )?;
+        let token_data = decode::<JwtClaims>(token, &self.decoding_key, &self.validation)?;
 
         let claims = token_data.claims;
 
@@ -249,9 +241,8 @@ impl TokenValidator {
         let encoding_key = EncodingKey::from_secret(self.secret.as_bytes());
 
         let header = Header::new(Algorithm::HS256);
-        
-        encode(&header, claims, &encoding_key)
-            .map_err(SecurityError::from)
+
+        encode(&header, claims, &encoding_key).map_err(SecurityError::from)
     }
 }
 
@@ -273,33 +264,33 @@ impl ApiKeyValidator {
     /// Add an API key (stores the hash)
     pub fn add_api_key(&mut self, api_key: &str, user_id: String) -> SecurityResult<()> {
         validate_api_key_format(api_key)?;
-        
+
         let hash = crate::utils::hash_api_key(api_key);
         self.api_keys.insert(hash, user_id);
-        
+
         Ok(())
     }
 
     /// Validate an API key and return the user ID
     pub fn validate_api_key(&self, api_key: &str) -> SecurityResult<String> {
         validate_api_key_format(api_key)?;
-        
+
         let hash = crate::utils::hash_api_key(api_key);
-        
+
         // Use secure comparison to prevent timing attacks
         for (stored_hash, user_id) in &self.api_keys {
             if secure_compare(&hash, stored_hash) {
                 return Ok(user_id.clone());
             }
         }
-        
+
         Err(SecurityError::InvalidApiKey)
     }
 
     /// Remove an API key
     pub fn remove_api_key(&mut self, api_key: &str) -> SecurityResult<bool> {
         validate_api_key_format(api_key)?;
-        
+
         let hash = crate::utils::hash_api_key(api_key);
         Ok(self.api_keys.remove(&hash).is_some())
     }
@@ -349,7 +340,8 @@ mod tests {
             "test-issuer".to_string(),
             "test-audience".to_string(),
             3600,
-        ).with_roles(vec!["admin".to_string()]);
+        )
+        .with_roles(vec!["admin".to_string()]);
 
         assert_eq!(claims.sub, "user123");
         assert_eq!(claims.iss, "test-issuer");
@@ -362,19 +354,21 @@ mod tests {
     fn test_api_key_validator() {
         let mut validator = ApiKeyValidator::new();
         let api_key = crate::utils::generate_api_key();
-        
+
         // Add API key
-        validator.add_api_key(&api_key, "user123".to_string()).unwrap();
+        validator
+            .add_api_key(&api_key, "user123".to_string())
+            .unwrap();
         assert_eq!(validator.len(), 1);
-        
+
         // Validate API key
         let user_id = validator.validate_api_key(&api_key).unwrap();
         assert_eq!(user_id, "user123");
-        
+
         // Invalid API key should fail
         let invalid_key = crate::utils::generate_api_key();
         assert!(validator.validate_api_key(&invalid_key).is_err());
-        
+
         // Remove API key
         assert!(validator.remove_api_key(&api_key).unwrap());
         assert_eq!(validator.len(), 0);
@@ -399,7 +393,7 @@ mod tests {
         // Create and validate token
         let token = validator.create_token(&claims).unwrap();
         let validated_claims = validator.validate_token(&token).unwrap();
-        
+
         assert_eq!(validated_claims.sub, "user123");
         assert_eq!(validated_claims.iss, "test-issuer");
         assert_eq!(validated_claims.aud, "test-audience");

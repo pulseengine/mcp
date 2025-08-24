@@ -38,17 +38,20 @@ pub struct HelloWorldAuth;
 #[mcp_tools]
 impl HelloWorldAuth {
     /// Say hello to someone (with authentication)
-    /// 
+    ///
     /// This tool demonstrates how authentication context can be used in tools.
     /// In development mode, authentication is optional but logged when present.
     pub async fn say_hello(&self, name: Option<String>) -> anyhow::Result<String> {
         let name = name.unwrap_or_else(|| "Authenticated World".to_string());
-        
+
         // In a real implementation, you could access the auth context here
         // let auth = request_context.auth_context();
-        
+
         info!("Hello tool called with name: {}", name);
-        Ok(format!("Hello, {}! 🔐 (Secured with MCP Security Middleware)", name))
+        Ok(format!(
+            "Hello, {}! 🔐 (Secured with MCP Security Middleware)",
+            name
+        ))
     }
 
     /// Get authentication status
@@ -57,7 +60,7 @@ impl HelloWorldAuth {
     pub async fn auth_status(&self) -> anyhow::Result<String> {
         // In development mode, this will work without authentication
         // In production mode, it would require valid credentials
-        
+
         info!("Auth status requested");
         Ok("Authentication: Development mode - optional auth enabled".to_string())
     }
@@ -84,7 +87,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create development security configuration
     // This enables authentication but with permissive settings for development
     let security_config = SecurityConfig::development();
-    
+
     // Log the configuration for demonstration
     let summary = security_config.summary();
     info!("Security configuration:\n{}", summary);
@@ -95,7 +98,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Log the generated API key for testing
     if let Some(ref api_key) = security_config.api_key {
         info!("🔑 Generated API key for development: {}", api_key);
-        info!("💡 Test with: curl -H 'Authorization: ApiKey {}' http://localhost:8080/", api_key);
+        info!(
+            "💡 Test with: curl -H 'Authorization: ApiKey {}' http://localhost:8080/",
+            api_key
+        );
     }
 
     // Create the MCP server with security middleware
@@ -106,13 +112,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("🚀 Server would start here with security middleware integrated");
     info!("📡 Available endpoints:");
     info!("  - GET  /health (health check)");
-    info!("  - POST /mcp/initialize (MCP initialization)"); 
+    info!("  - POST /mcp/initialize (MCP initialization)");
     info!("  - POST /mcp/tools/list (list available tools)");
     info!("  - POST /mcp/tools/call (call a tool)");
-    
+
     info!("🔒 Security Features:");
     info!("  - Development profile: Authentication optional but logged");
-    info!("  - Auto-generated API key: {}", security_config.api_key.as_ref().unwrap_or(&"None".to_string()));
+    info!(
+        "  - Auto-generated API key: {}",
+        security_config
+            .api_key
+            .as_ref()
+            .unwrap_or(&"None".to_string())
+    );
     info!("  - Rate limiting: Disabled (development mode)");
     info!("  - CORS: Permissive (development mode)");
     info!("  - Audit logging: Enabled");
@@ -139,7 +151,7 @@ async fn demonstrate_security_features(_middleware: &SecurityMiddleware) -> anyh
 
     // This would normally be handled by the middleware in the HTTP server
     info!("✅ Request would be processed through security middleware");
-    info!("✅ Rate limiting would be checked (disabled in development)");  
+    info!("✅ Rate limiting would be checked (disabled in development)");
     info!("✅ Authentication would be verified (optional in development)");
     info!("✅ Security headers would be added to response");
     info!("✅ Request would be logged for audit trail");
