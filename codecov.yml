@@ -54,6 +54,7 @@ flags:
       - "mcp-transport/**"
       - "mcp-auth/**"
       - "mcp-security/**"
+      - "mcp-security-middleware/**"
       - "mcp-monitoring/**"
       - "mcp-logging/**"
       - "mcp-cli/**"
