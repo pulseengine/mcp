@@ -53,7 +53,7 @@ impl SecureRandom {
 /// ```
 pub fn generate_api_key() -> String {
     let random_part = SecureRandom::base64_url_string(32);
-    format!("mcp_{}", random_part)
+    format!("mcp_{random_part}")
 }
 
 /// Generate a secure JWT secret

@@ -49,8 +49,7 @@ impl HelloWorldAuth {
 
         info!("Hello tool called with name: {}", name);
         Ok(format!(
-            "Hello, {}! 🔐 (Secured with MCP Security Middleware)",
-            name
+            "Hello, {name}! 🔐 (Secured with MCP Security Middleware)"
         ))
     }
 
@@ -105,7 +104,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Create the MCP server with security middleware
-    let _server_backend = HelloWorldAuth::default();
+    let _server_backend = HelloWorldAuth;
 
     // Note: This is a simplified example. In the actual implementation,
     // you would integrate the security middleware with the MCP server's HTTP transport
