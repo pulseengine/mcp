@@ -147,11 +147,10 @@ impl SecurityMiddleware {
         };
 
         // HTTPS enforcement
-        if self.config.settings.require_https
-            && !is_https_request(&request) {
-                warn!("HTTPS required but request {} is not secure", request_id);
-                return Err(StatusCode::FORBIDDEN);
-            }
+        if self.config.settings.require_https && !is_https_request(&request) {
+            warn!("HTTPS required but request {} is not secure", request_id);
+            return Err(StatusCode::FORBIDDEN);
+        }
 
         // Add auth context to request extensions if available
         let mut request = request;

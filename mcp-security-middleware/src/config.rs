@@ -209,13 +209,15 @@ impl SecurityConfig {
 
         // Check required keys for authentication
         if self.settings.require_authentication
-            && self.api_key.is_none() && self.jwt_secret.is_none() {
-                return Err(SecurityError::config(
-                    "Authentication is required but no API key or JWT secret provided. \
+            && self.api_key.is_none()
+            && self.jwt_secret.is_none()
+        {
+            return Err(SecurityError::config(
+                "Authentication is required but no API key or JWT secret provided. \
                      Set MCP_API_KEY or MCP_JWT_SECRET environment variables, \
                      or use MCP_API_KEY=auto-generate for development.",
-                ));
-            }
+            ));
+        }
 
         // Validate JWT configuration if JWT secret is provided
         if let Some(ref secret) = self.jwt_secret {

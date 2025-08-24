@@ -323,12 +323,14 @@ impl SecuritySettings {
             return Ok(()); // This will be validated elsewhere
         }
 
-        if self.require_https && self.cors.allowed_origins.contains(&"*".to_string())
-            && self.cors.allow_credentials {
-                return Err(SecurityError::config(
-                    "Cannot use wildcard origins with credentials over HTTPS",
-                ));
-            }
+        if self.require_https
+            && self.cors.allowed_origins.contains(&"*".to_string())
+            && self.cors.allow_credentials
+        {
+            return Err(SecurityError::config(
+                "Cannot use wildcard origins with credentials over HTTPS",
+            ));
+        }
 
         if self.jwt_expiry_seconds > 86400 * 7 {
             // More than 1 week
