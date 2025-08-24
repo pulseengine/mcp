@@ -30,8 +30,7 @@ impl SecurityProfile {
             "production" | "prod" => Ok(Self::Production),
             "custom" => Ok(Self::Custom),
             _ => Err(SecurityError::config(format!(
-                "Invalid security profile: {}",
-                s
+                "Invalid security profile: {s}"
             ))),
         }
     }
@@ -324,13 +323,12 @@ impl SecuritySettings {
             return Ok(()); // This will be validated elsewhere
         }
 
-        if self.require_https && self.cors.allowed_origins.contains(&"*".to_string()) {
-            if self.cors.allow_credentials {
+        if self.require_https && self.cors.allowed_origins.contains(&"*".to_string())
+            && self.cors.allow_credentials {
                 return Err(SecurityError::config(
                     "Cannot use wildcard origins with credentials over HTTPS",
                 ));
             }
-        }
 
         if self.jwt_expiry_seconds > 86400 * 7 {
             // More than 1 week

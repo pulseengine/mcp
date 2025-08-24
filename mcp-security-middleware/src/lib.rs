@@ -161,6 +161,6 @@ mod tests {
 
     #[test]
     fn test_version_is_set() {
-        assert!(!VERSION.is_empty());
+        assert!(!VERSION.is_empty(), "VERSION should be set to a non-empty string");
     }
 }
