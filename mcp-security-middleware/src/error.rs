@@ -124,13 +124,19 @@ impl SecurityError {
 impl From<jsonwebtoken::errors::Error> for SecurityError {
     fn from(err: jsonwebtoken::errors::Error) -> Self {
         use jsonwebtoken::errors::ErrorKind;
-        
+
         match err.kind() {
             ErrorKind::ExpiredSignature => SecurityError::TokenExpired,
             ErrorKind::InvalidToken => SecurityError::InvalidToken("Invalid JWT token".to_string()),
-            ErrorKind::InvalidSignature => SecurityError::InvalidToken("Invalid JWT signature".to_string()),
-            ErrorKind::InvalidAudience => SecurityError::InvalidToken("Invalid JWT audience".to_string()),
-            ErrorKind::InvalidIssuer => SecurityError::InvalidToken("Invalid JWT issuer".to_string()),
+            ErrorKind::InvalidSignature => {
+                SecurityError::InvalidToken("Invalid JWT signature".to_string())
+            }
+            ErrorKind::InvalidAudience => {
+                SecurityError::InvalidToken("Invalid JWT audience".to_string())
+            }
+            ErrorKind::InvalidIssuer => {
+                SecurityError::InvalidToken("Invalid JWT issuer".to_string())
+            }
             _ => SecurityError::JwtValidation(err.to_string()),
         }
     }

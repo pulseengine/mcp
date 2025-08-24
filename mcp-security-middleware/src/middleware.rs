@@ -13,7 +13,7 @@ use axum::{
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use tracing::{info, warn, debug};
+use tracing::{debug, info, warn};
 
 /// Main security middleware
 #[derive(Debug, Clone)]
@@ -73,8 +73,8 @@ impl SecurityMiddleware {
             if let Some(token) = extract_bearer_token(headers) {
                 match validator.validate_token(&token) {
                     Ok(claims) => {
-                        let auth_context = AuthContext::new(claims.sub.clone())
-                            .with_jwt_claims(claims);
+                        let auth_context =
+                            AuthContext::new(claims.sub.clone()).with_jwt_claims(claims);
                         return Ok(Some(auth_context));
                     }
                     Err(e) => {
@@ -110,7 +110,10 @@ impl SecurityMiddleware {
         // Extract client identifier for rate limiting
         let client_id = extract_client_id(&request);
 
-        debug!("Processing request {} from client {}", request_id, client_id);
+        debug!(
+            "Processing request {} from client {}",
+            request_id, client_id
+        );
 
         // Check rate limiting
         if let Err(e) = self.check_rate_limit(&client_id) {
@@ -123,7 +126,10 @@ impl SecurityMiddleware {
             Ok(auth_context) => auth_context,
             Err(SecurityError::MissingAuth) => {
                 if self.config.settings.require_authentication {
-                    warn!("Authentication required but not provided for request {}", request_id);
+                    warn!(
+                        "Authentication required but not provided for request {}",
+                        request_id
+                    );
                     return Err(StatusCode::UNAUTHORIZED);
                 } else {
                     None
@@ -159,7 +165,9 @@ impl SecurityMiddleware {
         }
 
         // Add request ID to extensions
-        request.extensions_mut().insert(RequestId(request_id.clone()));
+        request
+            .extensions_mut()
+            .insert(RequestId(request_id.clone()));
 
         // Process the request
         let mut response = next.run(request).await;
@@ -170,7 +178,8 @@ impl SecurityMiddleware {
         // Add request ID to response headers
         response.headers_mut().insert(
             "x-request-id",
-            HeaderValue::from_str(&request_id).unwrap_or_else(|_| HeaderValue::from_static("invalid")),
+            HeaderValue::from_str(&request_id)
+                .unwrap_or_else(|_| HeaderValue::from_static("invalid")),
         );
 
         // Audit logging
@@ -238,7 +247,7 @@ fn extract_bearer_token(headers: &HeaderMap) -> Option<String> {
 fn extract_client_id(request: &Request) -> String {
     // Try to get client IP from headers (proxy headers)
     let headers = request.headers();
-    
+
     if let Some(forwarded_for) = headers.get("x-forwarded-for") {
         if let Ok(ip_str) = forwarded_for.to_str() {
             if let Some(first_ip) = ip_str.split(',').next() {
@@ -267,7 +276,7 @@ fn is_https_request(request: &Request) -> bool {
 
     // Check forwarded protocol headers (common in proxy setups)
     let headers = request.headers();
-    
+
     if let Some(forwarded_proto) = headers.get("x-forwarded-proto") {
         if let Ok(proto_str) = forwarded_proto.to_str() {
             return proto_str.to_lowercase() == "https";
@@ -303,10 +312,7 @@ fn add_security_headers(response: &mut Response, config: &SecurityConfig) {
     );
 
     // X-Frame-Options
-    headers.insert(
-        "x-frame-options",
-        HeaderValue::from_static("DENY"),
-    );
+    headers.insert("x-frame-options", HeaderValue::from_static("DENY"));
 
     // X-Content-Type-Options
     headers.insert(
@@ -366,10 +372,13 @@ impl RateLimiter {
             self.cleanup_old_entries(now);
         }
 
-        let client_limit = self.clients.entry(client_id.to_string()).or_insert(ClientRateLimit {
-            requests: 0,
-            window_start: now,
-        });
+        let client_limit = self
+            .clients
+            .entry(client_id.to_string())
+            .or_insert(ClientRateLimit {
+                requests: 0,
+                window_start: now,
+            });
 
         // Check if we're in a new window
         if now.duration_since(client_limit.window_start) >= self.window_duration {
@@ -419,7 +428,12 @@ impl RateLimiter {
 /// ```
 pub async fn mcp_auth_middleware(
     middleware: SecurityMiddleware,
-) -> impl Fn(Request, Next) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, StatusCode>> + Send>> + Clone {
+) -> impl Fn(
+    Request,
+    Next,
+)
+    -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, StatusCode>> + Send>>
++ Clone {
     move |req, next| {
         let middleware = middleware.clone();
         Box::pin(async move { middleware.process(req, next).await })
@@ -429,7 +443,12 @@ pub async fn mcp_auth_middleware(
 /// Rate limiting middleware function
 pub async fn mcp_rate_limit_middleware(
     config: SecurityConfig,
-) -> impl Fn(Request, Next) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, StatusCode>> + Send>> + Clone {
+) -> impl Fn(
+    Request,
+    Next,
+)
+    -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, StatusCode>> + Send>>
++ Clone {
     let rate_limiter = Arc::new(Mutex::new(RateLimiter::new(
         config.settings.rate_limit.max_requests,
         config.settings.rate_limit.window_duration,
@@ -439,14 +458,14 @@ pub async fn mcp_rate_limit_middleware(
         let rate_limiter = rate_limiter.clone();
         Box::pin(async move {
             let client_id = extract_client_id(&req);
-            
+
             {
                 let mut limiter = rate_limiter.lock().unwrap();
                 if !limiter.allow_request(&client_id) {
                     return Err(StatusCode::TOO_MANY_REQUESTS);
                 }
             }
-            
+
             let result = next.run(req).await;
             Ok(result)
         })
@@ -457,11 +476,11 @@ pub async fn mcp_rate_limit_middleware(
 mod tests {
     use super::*;
     use axum::{
+        Router,
         body::Body,
         http::{Method, Request},
         middleware::from_fn,
         routing::get,
-        Router,
     };
     use tower::{ServiceExt, util::ServiceExt as _};
 
@@ -495,13 +514,22 @@ mod tests {
     fn test_extract_api_key() {
         // Test Authorization: ApiKey format
         let mut headers = HeaderMap::new();
-        headers.insert("authorization", HeaderValue::from_static("ApiKey mcp_test_key"));
+        headers.insert(
+            "authorization",
+            HeaderValue::from_static("ApiKey mcp_test_key"),
+        );
         assert_eq!(extract_api_key(&headers), Some("mcp_test_key".to_string()));
 
         // Test Authorization: Bearer format (for API keys) - clear previous header first
         let mut headers = HeaderMap::new();
-        headers.insert("authorization", HeaderValue::from_static("Bearer mcp_bearer_key"));
-        assert_eq!(extract_api_key(&headers), Some("mcp_bearer_key".to_string()));
+        headers.insert(
+            "authorization",
+            HeaderValue::from_static("Bearer mcp_bearer_key"),
+        );
+        assert_eq!(
+            extract_api_key(&headers),
+            Some("mcp_bearer_key".to_string())
+        );
 
         // Test X-API-Key header - clear previous headers first
         let mut headers = HeaderMap::new();
@@ -512,13 +540,19 @@ mod tests {
     #[test]
     fn test_extract_bearer_token() {
         let mut headers = HeaderMap::new();
-        
+
         // Test JWT Bearer token (not starting with mcp_)
-        headers.insert("authorization", HeaderValue::from_static("Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9"));
+        headers.insert(
+            "authorization",
+            HeaderValue::from_static("Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9"),
+        );
         assert!(extract_bearer_token(&headers).is_some());
 
         // Test API key in Bearer (should be None for JWT extraction)
-        headers.insert("authorization", HeaderValue::from_static("Bearer mcp_not_a_jwt"));
+        headers.insert(
+            "authorization",
+            HeaderValue::from_static("Bearer mcp_not_a_jwt"),
+        );
         assert_eq!(extract_bearer_token(&headers), None);
     }
 
@@ -528,10 +562,10 @@ mod tests {
 
         // First request should be allowed
         assert!(limiter.allow_request("client1"));
-        
+
         // Second request should be allowed
         assert!(limiter.allow_request("client1"));
-        
+
         // Third request should be denied
         assert!(!limiter.allow_request("client1"));
 

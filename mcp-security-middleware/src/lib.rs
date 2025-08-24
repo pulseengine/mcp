@@ -64,35 +64,35 @@
 //! ```bash
 //! # Security profile
 //! MCP_SECURITY_PROFILE=production
-//! 
+//!
 //! # Auto-generated if not provided
 //! MCP_API_KEY=auto-generate
 //! MCP_JWT_SECRET=auto-generate
-//! 
+//!
 //! # CORS and networking
 //! MCP_CORS_ORIGIN=localhost
 //! MCP_RATE_LIMIT=100/min
-//! 
+//!
 //! # Security features
 //! MCP_ENABLE_AUDIT_LOG=true
 //! MCP_REQUIRE_HTTPS=true
 //! ```
 
+pub mod auth;
 pub mod config;
+pub mod error;
 pub mod middleware;
 pub mod profiles;
-pub mod auth;
-pub mod error;
 pub mod utils;
 
 // Re-export main types for convenience
+pub use auth::{ApiKeyValidator, AuthContext, TokenValidator};
 pub use config::SecurityConfig;
-pub use profiles::SecurityProfile;
-pub use middleware::{mcp_auth_middleware, mcp_rate_limit_middleware, SecurityMiddleware};
-pub use profiles::{DevelopmentProfile, StagingProfile, ProductionProfile};
-pub use auth::{AuthContext, TokenValidator, ApiKeyValidator};
 pub use error::{SecurityError, SecurityResult};
-pub use utils::{generate_api_key, generate_jwt_secret, SecureRandom};
+pub use middleware::{SecurityMiddleware, mcp_auth_middleware, mcp_rate_limit_middleware};
+pub use profiles::SecurityProfile;
+pub use profiles::{DevelopmentProfile, ProductionProfile, StagingProfile};
+pub use utils::{SecureRandom, generate_api_key, generate_jwt_secret};
 
 /// Version information for the security middleware
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
