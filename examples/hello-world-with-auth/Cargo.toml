@@ -1,0 +1,31 @@
+[package]
+name = "hello-world-with-auth"
+version = "0.10.0"
+rust-version = "1.88"
+edition = "2024"
+publish = false
+
+[dependencies]
+# Core async runtime
+tokio = { workspace = true }
+async-trait = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+
+# Serialization (required by mcp_tools macro)
+serde_json = { workspace = true }
+
+# HTTP server
+axum = { workspace = true }
+tower = { workspace = true }
+
+# Framework dependencies
+pulseengine-mcp-macros = { workspace = true }
+pulseengine-mcp-server = { workspace = true }
+pulseengine-mcp-security-middleware = { workspace = true }
+pulseengine-mcp-protocol = { workspace = true }

@@ -4,6 +4,7 @@ members = [
     "mcp-logging",
     "mcp-auth",
     "mcp-security",
+    "mcp-security-middleware",
     "mcp-monitoring",
     "mcp-transport",
     "mcp-cli",
@@ -13,6 +14,7 @@ members = [
     "mcp-external-validation",
     "integration-tests",
     "examples/hello-world",
+    "examples/hello-world-with-auth",
     "examples/hello-world-complex",
     "examples/memory-only-auth",
     "examples/error-harmonization-demo",
@@ -72,6 +74,10 @@ rand = "0.8"
 # Keyring
 keyring = { version = "3.5" }
 
+# JWT support
+jsonwebtoken = "9.2"
+once_cell = "1.19"
+
 # CLI dependencies
 clap = { version = "4.0", features = ["derive", "env"] }
 toml = "0.8"
@@ -106,6 +112,7 @@ pulseengine-mcp-protocol = { version = "0.10.0", path = "mcp-protocol" }
 pulseengine-mcp-logging = { version = "0.10.0", path = "mcp-logging" }
 pulseengine-mcp-auth = { version = "0.10.0", path = "mcp-auth" }
 pulseengine-mcp-security = { version = "0.10.0", path = "mcp-security" }
+pulseengine-mcp-security-middleware = { version = "0.10.0", path = "mcp-security-middleware" }
 pulseengine-mcp-monitoring = { version = "0.10.0", path = "mcp-monitoring" }
 pulseengine-mcp-transport = { version = "0.10.0", path = "mcp-transport" }
 pulseengine-mcp-cli = { version = "0.10.0", path = "mcp-cli" }
@@ -150,6 +157,7 @@ pulseengine-mcp-protocol = { path = "mcp-protocol" }
 pulseengine-mcp-logging = { path = "mcp-logging" }
 pulseengine-mcp-auth = { path = "mcp-auth" }
 pulseengine-mcp-security = { path = "mcp-security" }
+pulseengine-mcp-security-middleware = { path = "mcp-security-middleware" }
 pulseengine-mcp-monitoring = { path = "mcp-monitoring" }
 pulseengine-mcp-transport = { path = "mcp-transport" }
 pulseengine-mcp-cli = { path = "mcp-cli" }
