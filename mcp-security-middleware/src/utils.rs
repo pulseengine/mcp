@@ -264,4 +264,92 @@ mod tests {
         assert_eq!(string2.len(), 20);
         assert_ne!(string1, string2);
     }
+
+    #[test]
+    fn test_secure_random_edge_cases() {
+        // Test zero-length
+        let bytes = SecureRandom::bytes(0);
+        assert_eq!(bytes.len(), 0);
+        
+        let string = SecureRandom::string(0);
+        assert_eq!(string.len(), 0);
+        
+        // Test single byte/char
+        let bytes = SecureRandom::bytes(1);
+        assert_eq!(bytes.len(), 1);
+        
+        let string = SecureRandom::string(1);
+        assert_eq!(string.len(), 1);
+    }
+
+    #[test]
+    fn test_validate_api_key_format_edge_cases() {
+        // Test boundaries
+        assert!(validate_api_key_format("").is_err());
+        assert!(validate_api_key_format("a").is_err()); // Too short
+        assert!(validate_api_key_format("ab").is_err()); // Too short  
+        
+        // Test without proper prefix
+        assert!(validate_api_key_format("abc12345678901234567890").is_err());
+        
+        // Test with proper prefix but too short
+        assert!(validate_api_key_format("mcp_abc").is_err());
+        
+        // Test exactly minimum length with prefix
+        assert!(validate_api_key_format("mcp_1234567890123456").is_ok());
+        
+        // Test with different character types
+        assert!(validate_api_key_format("mcp_123456789012345678").is_ok());
+        assert!(validate_api_key_format("mcp_ABCDEFGHIJ1234567890").is_ok());
+        assert!(validate_api_key_format("mcp_abcdefghij1234567890").is_ok());
+        assert!(validate_api_key_format("mcp_a1B2c3D4e1234567890").is_ok());
+        
+        // Test whitespace
+        assert!(validate_api_key_format("mcp_abc def1234567890").is_err());
+        assert!(validate_api_key_format(" mcp_abcdef1234567890").is_err());
+        assert!(validate_api_key_format("mcp_abcdef1234567890 ").is_err());
+    }
+
+    #[test]
+    fn test_hash_and_verify_consistency() {
+        let api_key = "test_key_12345";
+        let hash1 = hash_api_key(api_key);
+        let hash2 = hash_api_key(api_key);
+        
+        // Hashes should be the same (deterministic)
+        assert_eq!(hash1, hash2);
+        
+        // Both should verify correctly
+        assert!(verify_api_key(api_key, &hash1));
+        assert!(verify_api_key(api_key, &hash2));
+        
+        // Wrong key should not verify
+        assert!(!verify_api_key("wrong_key", &hash1));
+        assert!(!verify_api_key("wrong_key", &hash2));
+    }
+
+    #[test]
+    fn test_secure_compare_edge_cases() {
+        // Test empty strings
+        assert!(secure_compare("", ""));
+        assert!(!secure_compare("", "a"));
+        assert!(!secure_compare("a", ""));
+        
+        // Test same content
+        assert!(secure_compare("hello", "hello"));
+        
+        // Test different lengths
+        assert!(!secure_compare("short", "longer_string"));
+        assert!(!secure_compare("longer_string", "short"));
+    }
+
+    #[test]
+    fn test_timestamp_consistency() {
+        let time1 = current_timestamp();
+        let time2 = current_timestamp();
+        
+        // Should be very close in time
+        assert!(time2 >= time1);
+        assert!(time2 - time1 < 1000); // Less than 1 second difference
+    }
 }
