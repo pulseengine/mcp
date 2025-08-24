@@ -596,4 +596,93 @@ mod tests {
             .unwrap();
         assert!(is_https_request(&request));
     }
+
+    #[test]
+    fn test_rate_limiter_edge_cases() {
+        let mut limiter = RateLimiter::new(1, Duration::from_millis(100));
+        
+        // Test with empty client identifier
+        assert!(limiter.allow_request(""));
+        assert!(!limiter.allow_request(""));
+        
+        // Test that limit resets after window
+        std::thread::sleep(Duration::from_millis(150));
+        assert!(limiter.allow_request("client1"));
+    }
+
+    #[test]
+    fn test_extract_bearer_token_edge_cases() {
+        use axum::http::{HeaderMap, HeaderValue};
+
+        let mut headers = HeaderMap::new();
+        
+        // Test case-insensitive header names
+        headers.insert("Authorization", HeaderValue::from_static("Bearer token123"));
+        assert_eq!(extract_bearer_token(&headers), Some("token123".to_string()));
+        
+        // Test with spaces after Bearer - actual behavior preserves spaces
+        headers.clear();
+        headers.insert("authorization", HeaderValue::from_static("Bearer    token456"));
+        assert_eq!(extract_bearer_token(&headers), Some("   token456".to_string()));
+        
+        // Test with non-UTF8 header value (should return None)
+        headers.clear();
+        let invalid_utf8 = HeaderValue::from_bytes(b"Bearer \xff\xfe token").unwrap();
+        headers.insert("authorization", invalid_utf8);
+        assert_eq!(extract_bearer_token(&headers), None);
+    }
+
+    #[test]  
+    fn test_extract_api_key_edge_cases() {
+        use axum::http::{HeaderMap, HeaderValue};
+
+        let mut headers = HeaderMap::new();
+        
+        // Test empty API key - function returns the empty string
+        headers.insert("x-api-key", HeaderValue::from_static(""));
+        assert_eq!(extract_api_key(&headers), Some("".to_string()));
+        
+        // Test whitespace-only API key - function returns the whitespace
+        headers.clear();
+        headers.insert("x-api-key", HeaderValue::from_static("   "));
+        assert_eq!(extract_api_key(&headers), Some("   ".to_string()));
+        
+        // Test valid mcp_ API key via Bearer
+        headers.clear();
+        headers.insert("authorization", HeaderValue::from_static("Bearer mcp_test12345678901234567890"));
+        assert_eq!(extract_api_key(&headers), Some("mcp_test12345678901234567890".to_string()));
+    }
+
+    #[test]
+    fn test_is_https_request_edge_cases() {
+        // Test HTTP URI (should fail)
+        let request = Request::builder()
+            .uri("http://example.com/test")
+            .body(Body::empty())
+            .unwrap();
+        assert!(!is_https_request(&request));
+
+        // Test with X-Forwarded-Proto: http
+        let request = Request::builder()
+            .uri("/test")
+            .header("x-forwarded-proto", "http")
+            .body(Body::empty())
+            .unwrap();
+        assert!(!is_https_request(&request));
+
+        // Test with 127.0.0.1 (localhost variant)
+        let request = Request::builder()
+            .uri("/test")
+            .header("host", "127.0.0.1:3000")
+            .body(Body::empty())
+            .unwrap();
+        assert!(is_https_request(&request));
+
+        // Test with no host header and HTTP URI
+        let request = Request::builder()
+            .uri("/test")
+            .body(Body::empty())
+            .unwrap();
+        assert!(!is_https_request(&request));
+    }
 }
