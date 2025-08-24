@@ -22,6 +22,7 @@ COPY mcp-protocol ./mcp-protocol/
 COPY mcp-logging ./mcp-logging/
 COPY mcp-auth ./mcp-auth/
 COPY mcp-security ./mcp-security/
+COPY mcp-security-middleware ./mcp-security-middleware/
 COPY mcp-monitoring ./mcp-monitoring/
 COPY mcp-transport ./mcp-transport/
 COPY mcp-cli ./mcp-cli/
