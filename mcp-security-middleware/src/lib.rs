@@ -27,9 +27,12 @@
 //!     let security = SecurityConfig::development();
 //!     let middleware = security.create_middleware().await?;
 //!     
-//!     let app = Router::new()
+//!     let app: Router = Router::new()
 //!         .route("/", get(|| async { "Hello, secure world!" }))
-//!         .layer(from_fn(middleware));
+//!         .layer(from_fn(move |req, next| {
+//!             let middleware = middleware.clone();
+//!             async move { middleware.process(req, next).await }
+//!         }));
 //!         
 //!     // Server setup...
 //!     Ok(())
@@ -51,6 +54,7 @@
 //!
 //! ### Production Profile
 //! ```rust
+//! use pulseengine_mcp_security_middleware::SecurityConfig;
 //! let config = SecurityConfig::production();
 //! // - Strict security settings
 //! // - JWT authentication with secure secrets

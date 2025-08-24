@@ -23,6 +23,7 @@ pub enum SecurityProfile {
 
 impl SecurityProfile {
     /// Parse security profile from string
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> SecurityResult<Self> {
         match s.to_lowercase().as_str() {
             "development" | "dev" => Ok(Self::Development),
