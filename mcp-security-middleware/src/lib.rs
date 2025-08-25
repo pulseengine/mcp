@@ -228,4 +228,95 @@ mod tests {
         let _staging_profile = SecurityProfile::Staging;
         let _prod_profile = SecurityProfile::Production;
     }
+
+    #[test]
+    fn test_error_constructors() {
+        use crate::error::SecurityError;
+
+        let config_err = SecurityError::config("test config error");
+        assert!(config_err.to_string().contains("test config error"));
+
+        let auth_err = SecurityError::auth("test auth error");
+        assert!(auth_err.to_string().contains("test auth error"));
+
+        let authz_err = SecurityError::authz("test authz error");
+        assert!(authz_err.to_string().contains("test authz error"));
+
+        let token_err = SecurityError::invalid_token("test token error");
+        assert!(token_err.to_string().contains("test token error"));
+
+        let jwt_err = SecurityError::jwt("test jwt error");
+        assert!(jwt_err.to_string().contains("test jwt error"));
+
+        let random_err = SecurityError::random("test random error");
+        assert!(random_err.to_string().contains("test random error"));
+
+        let crypto_err = SecurityError::crypto("test crypto error");
+        assert!(crypto_err.to_string().contains("test crypto error"));
+
+        let http_err = SecurityError::http("test http error");
+        assert!(http_err.to_string().contains("test http error"));
+
+        let internal_err = SecurityError::internal("test internal error");
+        assert!(internal_err.to_string().contains("test internal error"));
+    }
+
+    #[test]
+    fn test_security_config_methods() {
+        use crate::config::SecurityConfig;
+        use crate::profiles::SecurityProfile;
+
+        // Test all config creation methods
+        let dev_config = SecurityConfig::development();
+        assert_eq!(dev_config.profile, SecurityProfile::Development);
+
+        let staging_config = SecurityConfig::staging();
+        assert_eq!(staging_config.profile, SecurityProfile::Staging);
+
+        let prod_config = SecurityConfig::production();
+        assert_eq!(prod_config.profile, SecurityProfile::Production);
+
+        // Test builder methods
+        let config = SecurityConfig::development()
+            .with_api_key("test_key")
+            .with_jwt_secret("test_secret")
+            .with_jwt_issuer("test_issuer")
+            .with_jwt_audience("test_audience");
+
+        assert_eq!(config.api_key.as_ref().unwrap(), "test_key");
+        assert_eq!(config.jwt_secret.as_ref().unwrap(), "test_secret");
+        assert_eq!(config.jwt_issuer, "test_issuer");
+        assert_eq!(config.jwt_audience, "test_audience");
+    }
+
+    #[test]
+    fn test_additional_utility_functions() {
+        use crate::utils::{generate_session_id, generate_request_id, SecureRandom};
+
+        // Test session ID generation
+        let session1 = generate_session_id();
+        let session2 = generate_session_id();
+        assert_ne!(session1, session2);
+        assert!(session1.len() > 10);
+
+        // Test request ID generation 
+        let request1 = generate_request_id();
+        let request2 = generate_request_id();
+        assert_ne!(request1, request2);
+        assert!(request1.len() > 10);
+
+        // Test base64 string generation
+        let b64_str1 = SecureRandom::base64_string(32);
+        let b64_str2 = SecureRandom::base64_string(32);
+        assert_ne!(b64_str1, b64_str2);
+        assert!(b64_str1.len() > 40); // Base64 encoded 32 bytes
+
+        // Test base64 URL-safe string generation
+        let b64_url_str1 = SecureRandom::base64_url_string(32);
+        let b64_url_str2 = SecureRandom::base64_url_string(32);
+        assert_ne!(b64_url_str1, b64_url_str2);
+        assert!(b64_url_str1.len() > 40);
+        assert!(!b64_url_str1.contains('+'));
+        assert!(!b64_url_str1.contains('/'));
+    }
 }

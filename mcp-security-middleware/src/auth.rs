@@ -398,4 +398,86 @@ mod tests {
         assert_eq!(validated_claims.iss, "test-issuer");
         assert_eq!(validated_claims.aud, "test-audience");
     }
+
+    #[test]
+    fn test_auth_context_additional_methods() {
+        // Test with_roles method
+        let context = AuthContext::new("user123".to_string())
+            .with_roles(vec!["admin".to_string(), "user".to_string()]);
+        
+        assert!(context.has_role("admin"));
+        assert!(context.has_role("user"));
+        assert!(!context.has_role("guest"));
+        
+        // Test has_any_role
+        assert!(context.has_any_role(["admin", "guest"]));
+        assert!(context.has_any_role(["user", "guest"]));
+        assert!(!context.has_any_role(["guest", "moderator"]));
+
+        // Test with_metadata
+        let context = AuthContext::new("user123".to_string())
+            .with_metadata("department", "engineering")
+            .with_metadata("level", "senior");
+
+        assert_eq!(context.metadata.get("department").unwrap(), "engineering");
+        assert_eq!(context.metadata.get("level").unwrap(), "senior");
+    }
+
+    #[test]
+    fn test_jwt_claims_expiration() {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        
+        // Test valid claim (far in future)
+        let claims = JwtClaims::new(
+            "user123".to_string(),
+            "test_issuer".to_string(),
+            "test_audience".to_string(),
+            3600, // 1 hour from now
+        );
+        assert!(!claims.is_expired());
+
+        // Test expired claim by modifying exp to past
+        let mut expired_claims = claims;
+        expired_claims.exp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs() - 3600; // 1 hour ago
+        assert!(expired_claims.is_expired());
+    }
+
+    #[test] 
+    fn test_token_validator_edge_cases() {
+        use crate::utils::generate_jwt_secret;
+        
+        let secret = generate_jwt_secret();
+        let validator = TokenValidator::new(
+            &secret,
+            "test_issuer".to_string(),
+            "test_audience".to_string(),
+        );
+
+        // Test invalid token format
+        assert!(validator.validate_token("invalid.token").is_err());
+        assert!(validator.validate_token("").is_err());
+        assert!(validator.validate_token("not_a_jwt").is_err());
+
+        // Test with valid claims first
+        let valid_claims = JwtClaims::new(
+            "user123".to_string(),
+            "test_issuer".to_string(),
+            "test_audience".to_string(),
+            3600, // 1 hour from now
+        );
+        
+        let token = validator.create_token(&valid_claims).unwrap();
+        assert!(validator.validate_token(&token).is_ok());
+
+        // Test token with wrong issuer
+        let wrong_issuer = TokenValidator::new(
+            &secret,
+            "wrong_issuer".to_string(),
+            "test_audience".to_string(),
+        );
+        assert!(wrong_issuer.validate_token(&token).is_err());
+    }
 }
