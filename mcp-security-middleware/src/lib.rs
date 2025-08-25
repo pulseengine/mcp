@@ -291,7 +291,7 @@ mod tests {
 
     #[test]
     fn test_additional_utility_functions() {
-        use crate::utils::{generate_session_id, generate_request_id, SecureRandom};
+        use crate::utils::{SecureRandom, generate_request_id, generate_session_id};
 
         // Test session ID generation
         let session1 = generate_session_id();
@@ -299,7 +299,7 @@ mod tests {
         assert_ne!(session1, session2);
         assert!(session1.len() > 10);
 
-        // Test request ID generation 
+        // Test request ID generation
         let request1 = generate_request_id();
         let request2 = generate_request_id();
         assert_ne!(request1, request2);
