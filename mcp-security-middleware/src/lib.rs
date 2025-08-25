@@ -208,8 +208,12 @@ mod tests {
 
     #[test]
     fn test_version_constant() {
-        assert!(!VERSION.is_empty());
+        // VERSION is a compile-time constant, test that it has expected format
         assert!(VERSION.contains('.'), "Version should contain dots");
+        assert!(
+            VERSION.chars().any(char::is_numeric),
+            "Version should contain numbers"
+        );
     }
 
     #[test]
