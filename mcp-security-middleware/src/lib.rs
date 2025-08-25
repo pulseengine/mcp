@@ -175,26 +175,34 @@ mod tests {
     #[test]
     fn test_env_security_with_invalid_profile() {
         use std::env;
-        
+
         // Set invalid profile
-        unsafe { env::set_var("MCP_SECURITY_PROFILE", "invalid"); }
-        
+        unsafe {
+            env::set_var("MCP_SECURITY_PROFILE", "invalid");
+        }
+
         let result = env_security();
         assert!(result.is_err(), "Should fail with invalid profile");
-        
+
         // Clean up
-        unsafe { env::remove_var("MCP_SECURITY_PROFILE"); }
+        unsafe {
+            env::remove_var("MCP_SECURITY_PROFILE");
+        }
     }
 
     #[test]
     fn test_env_security_with_valid_profiles() {
         use std::env;
-        
+
         for profile in &["development", "staging", "production"] {
-            unsafe { env::set_var("MCP_SECURITY_PROFILE", profile); }
+            unsafe {
+                env::set_var("MCP_SECURITY_PROFILE", profile);
+            }
             let result = env_security();
             assert!(result.is_ok(), "Should succeed with profile {profile}");
-            unsafe { env::remove_var("MCP_SECURITY_PROFILE"); }
+            unsafe {
+                env::remove_var("MCP_SECURITY_PROFILE");
+            }
         }
     }
 
@@ -209,8 +217,8 @@ mod tests {
         // Test that all main exports are accessible
         let _config = dev_security();
         let _prod_config = prod_security();
-        
-        // Test that we can create configs from different profiles  
+
+        // Test that we can create configs from different profiles
         use crate::profiles::SecurityProfile;
         let _dev_profile = SecurityProfile::Development;
         let _staging_profile = SecurityProfile::Staging;
