@@ -404,11 +404,11 @@ mod tests {
         // Test with_roles method
         let context = AuthContext::new("user123".to_string())
             .with_roles(vec!["admin".to_string(), "user".to_string()]);
-        
+
         assert!(context.has_role("admin"));
         assert!(context.has_role("user"));
         assert!(!context.has_role("guest"));
-        
+
         // Test has_any_role
         assert!(context.has_any_role(["admin", "guest"]));
         assert!(context.has_any_role(["user", "guest"]));
@@ -426,7 +426,7 @@ mod tests {
     #[test]
     fn test_jwt_claims_expiration() {
         use std::time::{SystemTime, UNIX_EPOCH};
-        
+
         // Test valid claim (far in future)
         let claims = JwtClaims::new(
             "user123".to_string(),
@@ -441,14 +441,15 @@ mod tests {
         expired_claims.exp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
-            .as_secs() - 3600; // 1 hour ago
+            .as_secs()
+            - 3600; // 1 hour ago
         assert!(expired_claims.is_expired());
     }
 
-    #[test] 
+    #[test]
     fn test_token_validator_edge_cases() {
         use crate::utils::generate_jwt_secret;
-        
+
         let secret = generate_jwt_secret();
         let validator = TokenValidator::new(
             &secret,
@@ -468,7 +469,7 @@ mod tests {
             "test_audience".to_string(),
             3600, // 1 hour from now
         );
-        
+
         let token = validator.create_token(&valid_claims).unwrap();
         assert!(validator.validate_token(&token).is_ok());
 
