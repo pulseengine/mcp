@@ -786,12 +786,14 @@ fn generate_input_schema_for_method(sig: &syn::Signature) -> syn::Result<TokenSt
             })
         }
         1 => {
-            // Single parameter - assume it's a JsonSchema struct
+            // Single parameter - try to generate schema using JsonSchema trait
             let param_type = &params[0].ty;
             Ok(quote! {
                 {
+                    use ::schemars::JsonSchema;
                     // Use the JsonSchema trait to get the schema
-                    let schema = <#param_type>::json_schema(&mut ::schemars::SchemaGenerator::default());
+                    let mut schema_gen = ::schemars::SchemaGenerator::default();
+                    let schema = <#param_type as ::schemars::JsonSchema>::json_schema(&mut schema_gen);
                     ::serde_json::to_value(&schema).unwrap_or_else(|_|
                         ::serde_json::json!({"type": "object", "properties": {}})
                     )
