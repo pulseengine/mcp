@@ -140,12 +140,19 @@ async fn test_enhanced_schema_generation() {
         // Find the greet_tool which has an optional parameter
         let greet_tool = tools.iter().find(|t| t.name == "greet_tool").unwrap();
         let greet_schema = &greet_tool.input_schema;
-        let greet_required = greet_schema.get("required").unwrap().as_array().unwrap();
 
-        // The optional parameter should NOT be in required array
-        assert!(!greet_required.iter().any(|v| v.as_str().unwrap() == "name"));
+        // Check if there's a required array, and if so, ensure "name" is not in it
+        if let Some(greet_required) = greet_schema.get("required").and_then(|r| r.as_array()) {
+            // The optional parameter should NOT be in required array
+            assert!(!greet_required.iter().any(|v| v.as_str().unwrap() == "name"));
+        }
+        // If there's no required array, that's fine - all parameters are optional
 
         println!("✅ Optional parameter handling verified!");
-        println!("   Greet tool required fields: {:?}", greet_required);
+        if let Some(required) = greet_schema.get("required") {
+            println!("   Greet tool required fields: {:?}", required);
+        } else {
+            println!("   Greet tool required fields: None (all optional)");
+        }
     }
 }
