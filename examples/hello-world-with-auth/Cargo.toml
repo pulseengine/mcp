@@ -18,7 +18,9 @@ tracing-subscriber = { workspace = true }
 anyhow = { workspace = true }
 
 # Serialization (required by mcp_tools macro)
+serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+schemars = { workspace = true, features = ["derive"] }
 
 # HTTP server
 axum = { workspace = true }

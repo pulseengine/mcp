@@ -29,7 +29,15 @@
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use pulseengine_mcp_security_middleware::*;
+use serde::{Deserialize, Serialize};
+use schemars::JsonSchema;
 use tracing::{info, warn};
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct SayHelloParams {
+    /// The name to greet (optional)
+    pub name: Option<String>,
+}
 
 #[mcp_server(name = "Hello World with Auth")]
 #[derive(Default, Clone)]
@@ -41,8 +49,8 @@ impl HelloWorldAuth {
     ///
     /// This tool demonstrates how authentication context can be used in tools.
     /// In development mode, authentication is optional but logged when present.
-    pub async fn say_hello(&self, name: Option<String>) -> anyhow::Result<String> {
-        let name = name.unwrap_or_else(|| "Authenticated World".to_string());
+    pub async fn say_hello(&self, params: SayHelloParams) -> anyhow::Result<String> {
+        let name = params.name.unwrap_or_else(|| "Authenticated World".to_string());
 
         // In a real implementation, you could access the auth context here
         // let auth = request_context.auth_context();

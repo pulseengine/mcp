@@ -5,6 +5,14 @@
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use pulseengine_mcp_server::McpServerBuilder;
+use serde::{Deserialize, Serialize};
+use schemars::JsonSchema;
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct SayHelloParams {
+    /// The name to greet (optional)
+    pub name: Option<String>,
+}
 
 #[mcp_server(name = "Hello World")]
 #[derive(Default, Clone)]
@@ -13,8 +21,8 @@ pub struct HelloWorld;
 #[mcp_tools]
 impl HelloWorld {
     /// Say hello to someone
-    pub async fn say_hello(&self, name: Option<String>) -> anyhow::Result<String> {
-        let name = name.unwrap_or_else(|| "World".to_string());
+    pub async fn say_hello(&self, params: SayHelloParams) -> anyhow::Result<String> {
+        let name = params.name.unwrap_or_else(|| "World".to_string());
         Ok(format!("Hello, {name}!"))
     }
 }
