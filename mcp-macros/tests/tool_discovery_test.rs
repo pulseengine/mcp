@@ -4,6 +4,26 @@
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use pulseengine_mcp_server::McpServerBuilder;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
+/// Parameter struct for echo tool
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct EchoParams {
+    pub message: String,
+}
+
+/// Parameter struct for greet tool  
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct GreetParams {
+    pub name: Option<String>,
+}
+
+/// Parameter struct for result tool
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ResultParams {
+    pub should_error: Option<bool>,
+}
 
 /// Test server for tool discovery
 #[mcp_server(name = "Tool Discovery Test Server")]
@@ -18,19 +38,19 @@ impl ToolDiscoveryServer {
     }
 
     /// Tool with required parameter
-    pub fn echo_tool(&self, message: String) -> String {
-        format!("Echo: {}", message)
+    pub fn echo_tool(&self, params: EchoParams) -> String {
+        format!("Echo: {}", params.message)
     }
 
     /// Tool with optional parameter
-    pub fn greet_tool(&self, name: Option<String>) -> String {
-        let name = name.unwrap_or_else(|| "World".to_string());
+    pub fn greet_tool(&self, params: GreetParams) -> String {
+        let name = params.name.unwrap_or_else(|| "World".to_string());
         format!("Hello, {}!", name)
     }
 
     /// Tool that returns a result
-    pub fn result_tool(&self, should_error: Option<bool>) -> String {
-        if should_error.unwrap_or(false) {
+    pub fn result_tool(&self, params: ResultParams) -> String {
+        if params.should_error.unwrap_or(false) {
             "Error: Test error".to_string()
         } else {
             "Success!".to_string()
