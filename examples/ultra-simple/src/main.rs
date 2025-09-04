@@ -4,6 +4,24 @@
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use pulseengine_mcp_server::McpServerBuilder;
+use serde::{Deserialize, Serialize};
+use schemars::JsonSchema;
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct SayHelloParams {
+    /// The name to greet
+    pub name: String,
+    /// Optional greeting to use (defaults to "Hello")
+    pub greeting: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct AddParams {
+    /// First number
+    pub a: i32,
+    /// Second number
+    pub b: i32,
+}
 
 #[mcp_server(name = "Ultra Simple")]
 #[derive(Default, Clone)]
@@ -12,18 +30,14 @@ pub struct UltraSimple;
 #[mcp_tools]
 impl UltraSimple {
     /// Say hello to someone with customizable greeting  
-    pub async fn say_hello(
-        &self,
-        name: String,
-        greeting: Option<String>,
-    ) -> anyhow::Result<String> {
-        let greeting = greeting.unwrap_or_else(|| "Hello".to_string());
-        Ok(format!("{greeting}, {name}! 👋"))
+    pub async fn say_hello(&self, params: SayHelloParams) -> anyhow::Result<String> {
+        let greeting = params.greeting.unwrap_or_else(|| "Hello".to_string());
+        Ok(format!("{greeting}, {}! 👋", params.name))
     }
 
     /// Add two numbers together  
-    pub fn add(&self, a: i32, b: i32) -> i32 {
-        a + b
+    pub fn add(&self, params: AddParams) -> i32 {
+        params.a + params.b
     }
 
     /// Get the answer to the ultimate question
