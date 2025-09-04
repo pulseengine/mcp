@@ -762,121 +762,52 @@ fn generate_tool_implementation(
 
 /// Generate JSON schema for method parameters from function signature
 fn generate_input_schema_for_method(sig: &syn::Signature) -> syn::Result<TokenStream> {
-    let mut properties = Vec::new();
-    let mut required = Vec::new();
-
-    // Process function parameters (skip self)
-    for input in &sig.inputs {
-        if let syn::FnArg::Typed(pat_type) = input {
-            if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
-                let param_name = pat_ident.ident.to_string();
-
-                // Determine if parameter is optional (Option<T>)
-                let (is_optional, _inner_type) = extract_option_inner_type(&pat_type.ty);
-
-                if !is_optional {
-                    required.push(param_name.clone());
-                }
-
-                // Generate schema based on type
-                let type_schema = generate_type_schema(&pat_type.ty)?;
-
-                properties.push((param_name, type_schema));
+    // Collect non-self parameters
+    let params: Vec<_> = sig
+        .inputs
+        .iter()
+        .filter_map(|input| {
+            if let syn::FnArg::Typed(pat_type) = input {
+                Some(pat_type)
+            } else {
+                None
             }
-        }
-    }
+        })
+        .collect();
 
-    let properties_map = if properties.is_empty() {
-        quote! { serde_json::Map::new() }
-    } else {
-        let prop_insertions: Vec<_> = properties
-            .into_iter()
-            .map(|(name, schema)| {
-                quote! { props.insert(#name.to_string(), #schema); }
+    match params.len() {
+        0 => {
+            // No parameters - return empty schema
+            Ok(quote! {
+                serde_json::json!({
+                    "type": "object",
+                    "properties": {}
+                })
             })
-            .collect();
-
-        quote! {
-            {
-                let mut props = serde_json::Map::new();
-                #(#prop_insertions)*
-                props
-            }
         }
-    };
-
-    let required_array = if required.is_empty() {
-        quote! { Vec::<String>::new() }
-    } else {
-        quote! { vec![#(#required.to_string()),*] }
-    };
-
-    Ok(quote! {
-        {
-            let mut schema = serde_json::Map::new();
-            schema.insert("type".to_string(), serde_json::Value::String("object".to_string()));
-            schema.insert("properties".to_string(), serde_json::Value::Object(#properties_map));
-            schema.insert("required".to_string(), serde_json::Value::Array(#required_array.into_iter().map(serde_json::Value::String).collect()));
-            serde_json::Value::Object(schema)
-        }
-    })
-}
-
-/// Extract inner type from Option<T>, returns (is_optional, inner_type_or_original)
-fn extract_option_inner_type(ty: &syn::Type) -> (bool, &syn::Type) {
-    if let syn::Type::Path(type_path) = ty {
-        if type_path.path.segments.len() == 1 {
-            let segment = &type_path.path.segments[0];
-            if segment.ident == "Option" {
-                if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
-                    if let Some(syn::GenericArgument::Type(inner_ty)) = args.args.first() {
-                        return (true, inner_ty);
-                    }
+        1 => {
+            // Single parameter - assume it's a JsonSchema struct
+            let param_type = &params[0].ty;
+            Ok(quote! {
+                {
+                    // Use the JsonSchema trait to get the schema
+                    let schema = <#param_type>::json_schema(&mut ::schemars::SchemaGenerator::default());
+                    ::serde_json::to_value(&schema).unwrap_or_else(|_|
+                        ::serde_json::json!({"type": "object", "properties": {}})
+                    )
                 }
-            }
+            })
+        }
+        _ => {
+            // Multiple parameters not supported - enforce single struct pattern
+            Err(syn::Error::new_spanned(
+                &sig.inputs,
+                "Tools with multiple parameters are not supported. Use a single parameter struct with #[derive(JsonSchema)].\n\
+                 Example: fn my_tool(&self, params: MyToolParams) -> Result<String>\n\
+                 where MyToolParams implements JsonSchema.",
+            ))
         }
     }
-    (false, ty)
-}
-
-/// Generate JSON schema for a specific Rust type
-fn generate_type_schema(ty: &syn::Type) -> syn::Result<TokenStream> {
-    let (_, actual_type) = extract_option_inner_type(ty);
-
-    // Handle common types
-    if let syn::Type::Path(type_path) = actual_type {
-        if type_path.path.segments.len() == 1 {
-            let segment = &type_path.path.segments[0];
-            let type_name = segment.ident.to_string();
-
-            match type_name.as_str() {
-                "String" | "str" => {
-                    return Ok(
-                        quote! { serde_json::Value::Object(serde_json::Map::from_iter([("type".to_string(), serde_json::Value::String("string".to_string()))])) },
-                    );
-                }
-                "i32" | "i64" | "i8" | "i16" | "isize" | "u32" | "u64" | "u8" | "u16" | "usize" => {
-                    return Ok(
-                        quote! { serde_json::Value::Object(serde_json::Map::from_iter([("type".to_string(), serde_json::Value::String("integer".to_string()))])) },
-                    );
-                }
-                "f32" | "f64" => {
-                    return Ok(
-                        quote! { serde_json::Value::Object(serde_json::Map::from_iter([("type".to_string(), serde_json::Value::String("number".to_string()))])) },
-                    );
-                }
-                "bool" => {
-                    return Ok(
-                        quote! { serde_json::Value::Object(serde_json::Map::from_iter([("type".to_string(), serde_json::Value::String("boolean".to_string()))])) },
-                    );
-                }
-                _ => {}
-            }
-        }
-    }
-
-    // Default to allowing any type for complex types
-    Ok(quote! { serde_json::Value::Object(serde_json::Map::new()) })
 }
 
 /// Generate JSON schema for method parameters (legacy function - keeping for compatibility)
