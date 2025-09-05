@@ -228,7 +228,9 @@ mod tests {
         let server = PerformanceServer::with_defaults();
 
         let start = Instant::now();
-        let result = server.simulated_io(DurationParams { duration_ms: 50 }).await;
+        let result = server
+            .simulated_io(DurationParams { duration_ms: 50 })
+            .await;
         let elapsed = start.elapsed();
 
         assert!(result.contains("50ms"));
@@ -252,9 +254,9 @@ mod tests {
         let server = PerformanceServer::with_defaults();
 
         let result = server
-            .performance_resource(ResourceParams { 
-                resource_type: "cache".to_string(), 
-                resource_id: "item_1".to_string() 
+            .performance_resource(ResourceParams {
+                resource_type: "cache".to_string(),
+                resource_id: "item_1".to_string(),
             })
             .await;
         assert!(result.is_ok());
@@ -262,9 +264,9 @@ mod tests {
 
         // Test error case
         let result = server
-            .performance_resource(ResourceParams { 
-                resource_type: "".to_string(), 
-                resource_id: "item_1".to_string() 
+            .performance_resource(ResourceParams {
+                resource_type: "".to_string(),
+                resource_id: "item_1".to_string(),
             })
             .await;
         assert!(result.is_err());
@@ -275,9 +277,9 @@ mod tests {
         let server = PerformanceServer::with_defaults();
 
         let result = server
-            .performance_prompt(PromptParams { 
-                query: "database query".to_string(), 
-                optimization_level: "O3".to_string() 
+            .performance_prompt(PromptParams {
+                query: "database query".to_string(),
+                optimization_level: "O3".to_string(),
             })
             .await;
         assert!(result.contains("database query"));
