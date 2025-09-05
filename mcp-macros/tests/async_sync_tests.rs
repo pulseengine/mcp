@@ -2,6 +2,66 @@
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use pulseengine_mcp_server::McpServerBuilder;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct StringParam {
+    pub input: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct I32Param {
+    pub value: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ComplexAsyncParams {
+    pub name: String,
+    pub age: u32,
+    pub active: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ComplexSyncParams {
+    pub required: String,
+    pub optional: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct CalculateParams {
+    pub a: f64,
+    pub b: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct FormatTextParams {
+    pub text: String,
+    pub uppercase: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct MultipleParams {
+    pub a: String,
+    pub b: i32,
+    pub c: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct OptionalParams {
+    pub required: String,
+    pub optional: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct VecParams {
+    pub items: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct JsonParam {
+    pub data: serde_json::Value,
+}
 
 #[test]
 fn test_mixed_async_sync_server() {
@@ -13,55 +73,57 @@ fn test_mixed_async_sync_server() {
     #[allow(dead_code)]
     impl MixedServer {
         /// Synchronous tool
-        pub fn sync_tool(&self, input: String) -> String {
-            format!("Sync: {input}")
+        pub fn sync_tool(&self, params: StringParam) -> String {
+            format!("Sync: {}", params.input)
         }
 
         /// Asynchronous tool
-        pub async fn async_tool(&self, input: String) -> String {
+        pub async fn async_tool(&self, params: StringParam) -> String {
             tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
-            format!("Async: {input}")
+            format!("Async: {}", params.input)
         }
 
         /// Synchronous tool with Result
-        pub fn sync_result_tool(&self, value: i32) -> Result<i32, std::io::Error> {
-            if value < 0 {
+        pub fn sync_result_tool(&self, params: I32Param) -> Result<i32, std::io::Error> {
+            if params.value < 0 {
                 Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
                     "Negative value",
                 ))
             } else {
-                Ok(value * 2)
+                Ok(params.value * 2)
             }
         }
 
         /// Asynchronous tool with Result
-        pub async fn async_result_tool(&self, value: i32) -> Result<i32, std::io::Error> {
+        pub async fn async_result_tool(&self, params: I32Param) -> Result<i32, std::io::Error> {
             tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
-            if value == 0 {
+            if params.value == 0 {
                 Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
                     "Zero value",
                 ))
             } else {
-                Ok(value * 3)
+                Ok(params.value * 3)
             }
         }
 
         /// Complex async tool with multiple parameters
-        pub async fn complex_async_tool(&self, name: String, age: u32, active: bool) -> String {
+        pub async fn complex_async_tool(&self, params: ComplexAsyncParams) -> String {
             tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
             format!(
-                "User {name} is {age} years old and {}",
-                if active { "active" } else { "inactive" }
+                "User {} is {} years old and {}",
+                params.name,
+                params.age,
+                if params.active { "active" } else { "inactive" }
             )
         }
 
         /// Complex sync tool with optional parameters
-        pub fn complex_sync_tool(&self, required: String, optional: Option<String>) -> String {
-            match optional {
-                Some(opt) => format!("Required: {required}, Optional: {opt}"),
-                None => format!("Required: {required}, Optional: None"),
+        pub fn complex_sync_tool(&self, params: ComplexSyncParams) -> String {
+            match params.optional {
+                Some(opt) => format!("Required: {}, Optional: {}", params.required, opt),
+                None => format!("Required: {}, Optional: None", params.required),
             }
         }
     }
@@ -79,26 +141,26 @@ fn test_pure_sync_server() {
     #[allow(dead_code)]
     impl PureSyncServer {
         /// All tools are synchronous
-        pub fn calculate(&self, a: f64, b: f64) -> f64 {
-            a + b
+        pub fn calculate(&self, params: CalculateParams) -> f64 {
+            params.a + params.b
         }
 
-        pub fn format_text(&self, text: String, uppercase: bool) -> String {
-            if uppercase {
-                text.to_uppercase()
+        pub fn format_text(&self, params: FormatTextParams) -> String {
+            if params.uppercase {
+                params.text.to_uppercase()
             } else {
-                text.to_lowercase()
+                params.text.to_lowercase()
             }
         }
 
-        pub fn validate_input(&self, input: String) -> Result<String, std::io::Error> {
-            if input.len() < 3 {
+        pub fn validate_input(&self, params: StringParam) -> Result<String, std::io::Error> {
+            if params.input.len() < 3 {
                 Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
                     "Input too short",
                 ))
             } else {
-                Ok(format!("Valid: {input}"))
+                Ok(format!("Valid: {}", params.input))
             }
         }
     }
@@ -163,28 +225,28 @@ fn test_parameter_combinations() {
         }
 
         // Single parameter
-        pub fn single_param(&self, input: String) -> String {
-            input
+        pub fn single_param(&self, params: StringParam) -> String {
+            params.input
         }
 
         // Multiple parameters
-        pub fn multiple_params(&self, a: String, b: i32, c: bool) -> String {
-            format!("{a}-{b}-{c}")
+        pub fn multiple_params(&self, params: MultipleParams) -> String {
+            format!("{}-{}-{}", params.a, params.b, params.c)
         }
 
         // Optional parameters
-        pub fn optional_params(&self, required: String, optional: Option<String>) -> String {
-            format!("Required: {required}, Optional: {optional:?}")
+        pub fn optional_params(&self, params: OptionalParams) -> String {
+            format!("Required: {}, Optional: {:?}", params.required, params.optional)
         }
 
         // Vector parameters
-        pub fn vec_params(&self, items: Vec<String>) -> String {
-            items.join(",")
+        pub fn vec_params(&self, params: VecParams) -> String {
+            params.items.join(",")
         }
 
         // JSON parameter
-        pub fn json_param(&self, data: serde_json::Value) -> String {
-            data.to_string()
+        pub fn json_param(&self, params: JsonParam) -> String {
+            params.data.to_string()
         }
     }
 

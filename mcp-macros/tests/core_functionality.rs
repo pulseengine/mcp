@@ -13,6 +13,14 @@
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use pulseengine_mcp_server::McpServerBuilder;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ToolParams {
+    pub message: String,
+    pub count: Option<u32>,
+}
 
 #[mcp_server(name = "Test Server")]
 #[derive(Default, Clone)]
@@ -28,11 +36,10 @@ impl TestServer {
     #[allow(dead_code)]
     pub async fn tool_with_params(
         &self,
-        message: String,
-        count: Option<u32>,
+        params: ToolParams,
     ) -> anyhow::Result<String> {
-        let count = count.unwrap_or(1);
-        Ok(format!("{message} (repeated {count} times)"))
+        let count = params.count.unwrap_or(1);
+        Ok(format!("{} (repeated {} times)", params.message, count))
     }
 }
 

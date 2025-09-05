@@ -40,7 +40,8 @@
       "Bash(./target/release/timedate-mcp-server:*)",
       "Bash(gh issue list:*)",
       "Bash(gh pr view:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(git log:*)"
     ],
     "deny": []
   }
