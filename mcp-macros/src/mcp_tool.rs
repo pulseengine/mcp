@@ -811,50 +811,53 @@ fn generate_input_schema_for_method(sig: &syn::Signature) -> syn::Result<TokenSt
 fn generate_multi_parameter_schema(params: &[&syn::PatType]) -> syn::Result<TokenStream> {
     let mut properties = Vec::new();
     let mut required_fields = Vec::new();
-    
+
     for param in params {
         // Extract parameter name
         let param_name = match &*param.pat {
             syn::Pat::Ident(ident) => ident.ident.to_string(),
-            _ => return Err(syn::Error::new_spanned(
-                param.pat.clone(),
-                "Complex parameter patterns are not supported"
-            )),
+            _ => {
+                return Err(syn::Error::new_spanned(
+                    param.pat.clone(),
+                    "Complex parameter patterns are not supported",
+                ));
+            }
         };
-        
+
         // Extract parameter type and determine if it's optional
         let param_type = &param.ty;
         let (is_optional, inner_type) = extract_option_inner_type(param_type);
-        
+
         if !is_optional {
             required_fields.push(param_name.clone());
         }
-        
+
         // Generate schema for this parameter type
-        let type_schema = generate_type_schema_for_type(if is_optional { inner_type } else { param_type });
-        
+        let type_schema =
+            generate_type_schema_for_type(if is_optional { inner_type } else { param_type });
+
         properties.push(quote! {
             (#param_name, #type_schema)
         });
     }
-    
+
     Ok(quote! {
         {
             let mut properties = ::serde_json::Map::new();
             #(
                 properties.insert(#properties.0.to_string(), #properties.1);
             )*
-            
+
             let mut schema = ::serde_json::json!({
                 "type": "object",
                 "properties": properties
             });
-            
+
             let required_fields: Vec<&str> = vec![#(#required_fields),*];
             if !required_fields.is_empty() {
                 schema["required"] = ::serde_json::json!(required_fields);
             }
-            
+
             schema
         }
     })
@@ -884,8 +887,12 @@ fn generate_type_schema_for_type(ty: &syn::Type) -> TokenStream {
             if let Some(segment) = type_path.path.segments.last() {
                 match segment.ident.to_string().as_str() {
                     "String" | "str" => quote! { ::serde_json::json!({"type": "string"}) },
-                    "i8" | "i16" | "i32" | "i64" | "isize" => quote! { ::serde_json::json!({"type": "integer"}) },
-                    "u8" | "u16" | "u32" | "u64" | "usize" => quote! { ::serde_json::json!({"type": "integer", "minimum": 0}) },
+                    "i8" | "i16" | "i32" | "i64" | "isize" => {
+                        quote! { ::serde_json::json!({"type": "integer"}) }
+                    }
+                    "u8" | "u16" | "u32" | "u64" | "usize" => {
+                        quote! { ::serde_json::json!({"type": "integer", "minimum": 0}) }
+                    }
                     "f32" | "f64" => quote! { ::serde_json::json!({"type": "number"}) },
                     "bool" => quote! { ::serde_json::json!({"type": "boolean"}) },
                     "Vec" => {
@@ -897,7 +904,7 @@ fn generate_type_schema_for_type(ty: &syn::Type) -> TokenStream {
                             }
                         }
                         quote! { ::serde_json::json!({"type": "array"}) }
-                    },
+                    }
                     _ => {
                         // For custom types, try to use JsonSchema trait as fallback
                         quote! {
@@ -908,7 +915,7 @@ fn generate_type_schema_for_type(ty: &syn::Type) -> TokenStream {
                                     let mut schema_gen = ::schemars::SchemaGenerator::default();
                                     <#ty as ::schemars::JsonSchema>::json_schema(&mut schema_gen)
                                 }) {
-                                    Ok(schema) => ::serde_json::to_value(&schema).unwrap_or_else(|_| 
+                                    Ok(schema) => ::serde_json::to_value(&schema).unwrap_or_else(|_|
                                         ::serde_json::json!({"type": "object"})
                                     ),
                                     Err(_) => ::serde_json::json!({"type": "object"})

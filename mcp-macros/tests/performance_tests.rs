@@ -155,10 +155,7 @@ mod performance_server {
         }
 
         /// Generate performance prompt
-        pub async fn performance_prompt(
-            &self,
-            params: PromptParams,
-        ) -> String {
+        pub async fn performance_prompt(&self, params: PromptParams) -> String {
             format!(
                 "Performance analysis for '{}' with optimization level: {}",
                 params.query, params.optimization_level
@@ -204,7 +201,7 @@ mod tests {
             "key_999".to_string(),
             "nonexistent".to_string(),
         ];
-        let results = server.bulk_lookup(keys).await;
+        let results = server.bulk_lookup(VecStringParams { keys }).await;
 
         // Results is now a debug-formatted string
         assert!(results.contains("value_1"));
@@ -218,11 +215,11 @@ mod tests {
         let server = PerformanceServer::with_defaults();
 
         // Test memory intensive
-        let memory_result = server.memory_intensive(1000).await;
+        let memory_result = server.memory_intensive(UsizeParams { size: 1000 }).await;
         assert!(memory_result.contains("1000 bytes"));
 
         // Test CPU intensive
-        let cpu_result = server.cpu_intensive(100).await;
+        let cpu_result = server.cpu_intensive(U64Params { iterations: 100 }).await;
         assert!(cpu_result > 0);
     }
 
@@ -231,7 +228,7 @@ mod tests {
         let server = PerformanceServer::with_defaults();
 
         let start = Instant::now();
-        let result = server.simulated_io(50).await;
+        let result = server.simulated_io(DurationParams { duration_ms: 50 }).await;
         let elapsed = start.elapsed();
 
         assert!(result.contains("50ms"));
@@ -242,7 +239,7 @@ mod tests {
     async fn test_concurrent_access() {
         let server = PerformanceServer::with_defaults();
 
-        let results = server.concurrent_access(10).await;
+        let results = server.concurrent_access(U32Params { operations: 10 }).await;
 
         // Results is now a debug-formatted string of Vec<u64>
         // Just check that it contains some numbers
@@ -255,14 +252,20 @@ mod tests {
         let server = PerformanceServer::with_defaults();
 
         let result = server
-            .performance_resource("cache".to_string(), "item_1".to_string())
+            .performance_resource(ResourceParams { 
+                resource_type: "cache".to_string(), 
+                resource_id: "item_1".to_string() 
+            })
             .await;
         assert!(result.is_ok());
         assert!(result.unwrap().contains("cache/item_1"));
 
         // Test error case
         let result = server
-            .performance_resource("".to_string(), "item_1".to_string())
+            .performance_resource(ResourceParams { 
+                resource_type: "".to_string(), 
+                resource_id: "item_1".to_string() 
+            })
             .await;
         assert!(result.is_err());
     }
@@ -272,7 +275,10 @@ mod tests {
         let server = PerformanceServer::with_defaults();
 
         let result = server
-            .performance_prompt("database query".to_string(), "O3".to_string())
+            .performance_prompt(PromptParams { 
+                query: "database query".to_string(), 
+                optimization_level: "O3".to_string() 
+            })
             .await;
         assert!(result.contains("database query"));
         assert!(result.contains("O3"));

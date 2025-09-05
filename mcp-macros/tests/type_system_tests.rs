@@ -2,6 +2,7 @@
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use pulseengine_mcp_server::McpServerBuilder;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -17,14 +18,14 @@ mod custom_types {
         pub metadata: HashMap<String, String>,
     }
 
-    #[derive(Debug, Clone, Serialize, Deserialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
     pub struct CreateUserRequest {
         pub name: String,
         pub email: String,
         pub initial_metadata: Option<HashMap<String, String>>,
     }
 
-    #[derive(Debug, Clone, Serialize, Deserialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
     pub struct UpdateUserRequest {
         pub name: Option<String>,
         pub email: Option<String>,
@@ -32,7 +33,7 @@ mod custom_types {
         pub metadata_updates: Option<HashMap<String, String>>,
     }
 
-    #[derive(Debug, Clone, Serialize, Deserialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
     pub enum UserRole {
         Admin,
         Moderator,
@@ -40,7 +41,7 @@ mod custom_types {
         Guest,
     }
 
-    #[derive(Debug, Clone, Serialize, Deserialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
     pub struct PaginationParams {
         pub limit: Option<u32>,
         pub offset: Option<u32>,
