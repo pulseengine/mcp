@@ -34,10 +34,7 @@ impl TestServer {
     }
 
     #[allow(dead_code)]
-    pub async fn tool_with_params(
-        &self,
-        params: ToolParams,
-    ) -> anyhow::Result<String> {
+    pub async fn tool_with_params(&self, params: ToolParams) -> anyhow::Result<String> {
         let count = params.count.unwrap_or(1);
         Ok(format!("{} (repeated {} times)", params.message, count))
     }

@@ -67,11 +67,11 @@ mod complex_resource {
         }
 
         /// Get API data from external service
-        pub async fn get_api_data(
-            &self,
-            params: ApiDataParams,
-        ) -> Result<String, std::io::Error> {
-            Ok(format!("API data from {} (version {})", params.endpoint, params.version))
+        pub async fn get_api_data(&self, params: ApiDataParams) -> Result<String, std::io::Error> {
+            Ok(format!(
+                "API data from {} (version {})",
+                params.endpoint, params.version
+            ))
         }
     }
 }
@@ -120,12 +120,12 @@ mod tests {
         let server = ResourceServer::with_defaults();
 
         // Test valid path
-        let result = server.read_file("test.txt".to_string()).await;
+        let result = server.read_file(PathParam { path: "test.txt".to_string() }).await;
         assert!(result.is_ok());
         assert!(result.unwrap().contains("test.txt"));
 
         // Test empty path
-        let result = server.read_file("".to_string()).await;
+        let result = server.read_file(PathParam { path: "".to_string() }).await;
         assert!(result.is_err());
     }
 
@@ -135,14 +135,20 @@ mod tests {
 
         // Test database table access
         let result = server
-            .read_database_table("users".to_string(), "accounts".to_string())
+            .read_database_table(DatabaseTableParams { 
+                database: "users".to_string(), 
+                table: "accounts".to_string() 
+            })
             .await;
         assert!(result.is_ok());
         assert!(result.unwrap().contains("users.accounts"));
 
         // Test API data access
         let result = server
-            .get_api_data("https://api.example.com".to_string(), "v1".to_string())
+            .get_api_data(ApiDataParams { 
+                endpoint: "https://api.example.com".to_string(), 
+                version: "v1".to_string() 
+            })
             .await;
         assert!(result.is_ok());
         assert!(result.unwrap().contains("api.example.com"));

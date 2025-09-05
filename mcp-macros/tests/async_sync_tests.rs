@@ -236,7 +236,10 @@ fn test_parameter_combinations() {
 
         // Optional parameters
         pub fn optional_params(&self, params: OptionalParams) -> String {
-            format!("Required: {}, Optional: {:?}", params.required, params.optional)
+            format!(
+                "Required: {}, Optional: {:?}",
+                params.required, params.optional
+            )
         }
 
         // Vector parameters

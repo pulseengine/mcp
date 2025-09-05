@@ -3442,6 +3442,7 @@ dependencies = [
  "pulseengine-mcp-macros",
  "pulseengine-mcp-protocol",
  "pulseengine-mcp-server",
+ "schemars 0.8.22",
  "serde",
  "serde_json",
  "tokio",
