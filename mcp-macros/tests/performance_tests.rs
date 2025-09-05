@@ -2,9 +2,48 @@
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use pulseengine_mcp_server::McpServerBuilder;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::time::{Duration, Instant};
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct VecStringParams {
+    pub keys: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct UsizeParams {
+    pub size: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct U64Params {
+    pub iterations: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct DurationParams {
+    pub duration_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct U32Params {
+    pub operations: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ResourceParams {
+    pub resource_type: String,
+    pub resource_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct PromptParams {
+    pub query: String,
+    pub optimization_level: String,
+}
 
 mod performance_server {
     use super::*;
@@ -43,7 +82,8 @@ mod performance_server {
         }
 
         /// Bulk data lookup operation
-        pub async fn bulk_lookup(&self, keys: Vec<String>) -> String {
+        pub async fn bulk_lookup(&self, params: VecStringParams) -> String {
+            let keys = params.keys;
             let mut results = Vec::new();
             for key in keys {
                 results.push(self.data.get(&key).cloned());
@@ -52,7 +92,8 @@ mod performance_server {
         }
 
         /// Memory-intensive operation
-        pub async fn memory_intensive(&self, size: usize) -> String {
+        pub async fn memory_intensive(&self, params: UsizeParams) -> String {
+            let size = params.size;
             let _data: Vec<u8> = vec![42; size];
             let checksum = if size > 0 {
                 42u64 * (size as u64 % 100)
@@ -63,7 +104,8 @@ mod performance_server {
         }
 
         /// CPU-intensive operation
-        pub async fn cpu_intensive(&self, iterations: u64) -> u64 {
+        pub async fn cpu_intensive(&self, params: U64Params) -> u64 {
+            let iterations = params.iterations;
             let mut result = 0u64;
             for i in 0..iterations {
                 result = result.wrapping_add(i * i);
@@ -72,13 +114,15 @@ mod performance_server {
         }
 
         /// Simulated I/O operation
-        pub async fn simulated_io(&self, duration_ms: u64) -> String {
+        pub async fn simulated_io(&self, params: DurationParams) -> String {
+            let duration_ms = params.duration_ms;
             tokio::time::sleep(Duration::from_millis(duration_ms)).await;
             format!("IO operation completed after {duration_ms}ms")
         }
 
         /// Concurrent data access
-        pub async fn concurrent_access(&self, operations: u32) -> String {
+        pub async fn concurrent_access(&self, params: U32Params) -> String {
+            let operations = params.operations;
             let mut results = Vec::new();
             for _ in 0..operations {
                 let value = self.counter.fetch_add(1, Ordering::Relaxed);
@@ -90,10 +134,9 @@ mod performance_server {
         /// Performance resource access
         pub async fn performance_resource(
             &self,
-            resource_type: String,
-            resource_id: String,
+            params: ResourceParams,
         ) -> Result<String, std::io::Error> {
-            if resource_type.is_empty() || resource_id.is_empty() {
+            if params.resource_type.is_empty() || params.resource_id.is_empty() {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
                     "Resource type and ID cannot be empty",
@@ -106,18 +149,19 @@ mod performance_server {
             let elapsed = start.elapsed();
 
             Ok(format!(
-                "Resource {resource_type}/{resource_id} accessed in {elapsed:?}"
+                "Resource {}/{} accessed in {elapsed:?}",
+                params.resource_type, params.resource_id
             ))
         }
 
         /// Generate performance prompt
         pub async fn performance_prompt(
             &self,
-            query: String,
-            optimization_level: String,
+            params: PromptParams,
         ) -> String {
             format!(
-                "Performance analysis for '{query}' with optimization level: {optimization_level}"
+                "Performance analysis for '{}' with optimization level: {}",
+                params.query, params.optimization_level
             )
         }
     }

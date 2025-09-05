@@ -1,6 +1,25 @@
 //! Tests for resource-related functionality with macro-generated code
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct PathParam {
+    pub path: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct DatabaseTableParams {
+    pub database: String,
+    pub table: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ApiDataParams {
+    pub endpoint: String,
+    pub version: String,
+}
 
 mod basic_resource {
     use super::*;
@@ -12,14 +31,14 @@ mod basic_resource {
     #[mcp_tools]
     impl ResourceServer {
         /// Read a file from the filesystem
-        pub async fn read_file(&self, path: String) -> Result<String, std::io::Error> {
-            if path.is_empty() {
+        pub async fn read_file(&self, params: PathParam) -> Result<String, std::io::Error> {
+            if params.path.is_empty() {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
                     "Path cannot be empty",
                 ));
             }
-            Ok(format!("Content of file: {path}"))
+            Ok(format!("Content of file: {}", params.path))
         }
     }
 }
@@ -36,25 +55,23 @@ mod complex_resource {
         /// Read database table contents
         pub async fn read_database_table(
             &self,
-            database: String,
-            table: String,
+            params: DatabaseTableParams,
         ) -> Result<String, std::io::Error> {
-            if database.is_empty() || table.is_empty() {
+            if params.database.is_empty() || params.table.is_empty() {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
                     "Database and table names cannot be empty",
                 ));
             }
-            Ok(format!("Data from {database}.{table}"))
+            Ok(format!("Data from {}.{}", params.database, params.table))
         }
 
         /// Get API data from external service
         pub async fn get_api_data(
             &self,
-            endpoint: String,
-            version: String,
+            params: ApiDataParams,
         ) -> Result<String, std::io::Error> {
-            Ok(format!("API data from {endpoint} (version {version})"))
+            Ok(format!("API data from {} (version {})", params.endpoint, params.version))
         }
     }
 }
