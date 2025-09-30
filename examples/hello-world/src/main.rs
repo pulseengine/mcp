@@ -21,6 +21,12 @@ pub struct HelloWorld;
 #[mcp_tools]
 impl HelloWorld {
     /// Say hello to someone
+    ///
+    /// AI agents send flat arguments: `{"name": "Alice"}`
+    /// NOT nested: `{"params": {"name": "Alice"}}`
+    ///
+    /// The parameter name "params" is just an internal variable -
+    /// AI agents see the struct's fields directly in the schema.
     pub async fn say_hello(&self, params: SayHelloParams) -> anyhow::Result<String> {
         let name = params.name.unwrap_or_else(|| "World".to_string());
         Ok(format!("Hello, {name}!"))

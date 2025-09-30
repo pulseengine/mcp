@@ -631,26 +631,69 @@ fn extract_parameters(
 
                     param_names.push(param_name.clone());
                     param_types.push(param_type.clone());
-
-                    // Generate parameter extraction code with consistent error handling
-                    if is_option_type(param_type) {
-                        param_fields.push(quote! {
-                            args.get(stringify!(#param_name))
-                                .and_then(|v| serde_json::from_value(v.clone()).ok())
-                        });
-                    } else {
-                        param_fields.push(quote! {
-                            match args.get(stringify!(#param_name))
-                                .and_then(|v| serde_json::from_value(v.clone()).ok()) {
-                                Some(value) => value,
-                                None => return Err(pulseengine_mcp_protocol::Error::invalid_params(
-                                    format!("Missing required parameter '{}' for tool '{}'. Expected type: {}",
-                                        stringify!(#param_name), #tool_name, stringify!(#param_type))
-                                )),
-                            }
-                        });
-                    }
                 }
+            }
+        }
+    }
+
+    // Detect single parameter case
+    if param_names.len() == 1 {
+        let param_name = &param_names[0];
+        let param_type = &param_types[0];
+
+        // Check if it's a custom struct (not primitive/std type)
+        if is_primitive_or_std_type(param_type) {
+            // Primitive - extract by name (standard behavior)
+            if is_option_type(param_type) {
+                param_fields.push(quote! {
+                    args.get(stringify!(#param_name))
+                        .and_then(|v| serde_json::from_value(v.clone()).ok())
+                });
+            } else {
+                param_fields.push(quote! {
+                    match args.get(stringify!(#param_name))
+                        .and_then(|v| serde_json::from_value(v.clone()).ok()) {
+                        Some(value) => value,
+                        None => return Err(pulseengine_mcp_protocol::Error::invalid_params(
+                            format!("Missing required parameter '{}' for tool '{}'. Expected type: {}",
+                                stringify!(#param_name), #tool_name, stringify!(#param_type))
+                        )),
+                    }
+                });
+            }
+        } else {
+            // Custom struct - deserialize entire args object (flattened)
+            param_fields.push(quote! {
+                match serde_json::from_value::<#param_type>(
+                    serde_json::Value::Object(args.clone())
+                ) {
+                    Ok(value) => value,
+                    Err(e) => return Err(pulseengine_mcp_protocol::Error::invalid_params(
+                        format!("Failed to deserialize parameters for tool '{}': {}", #tool_name, e)
+                    )),
+                }
+            });
+        }
+    } else {
+        // Multi-parameter - extract by name
+        for (param_name, param_type) in param_names.iter().zip(param_types.iter()) {
+            // Generate parameter extraction code with consistent error handling
+            if is_option_type(param_type) {
+                param_fields.push(quote! {
+                    args.get(stringify!(#param_name))
+                        .and_then(|v| serde_json::from_value(v.clone()).ok())
+                });
+            } else {
+                param_fields.push(quote! {
+                    match args.get(stringify!(#param_name))
+                        .and_then(|v| serde_json::from_value(v.clone()).ok()) {
+                        Some(value) => value,
+                        None => return Err(pulseengine_mcp_protocol::Error::invalid_params(
+                            format!("Missing required parameter '{}' for tool '{}'. Expected type: {}",
+                                stringify!(#param_name), #tool_name, stringify!(#param_type))
+                        )),
+                    }
+                });
             }
         }
     }
@@ -879,6 +922,44 @@ fn extract_option_inner_type(ty: &syn::Type) -> (bool, &syn::Type) {
     (false, ty)
 }
 
+/// Check if a type is a primitive or standard library type (not a custom struct)
+fn is_primitive_or_std_type(ty: &syn::Type) -> bool {
+    match ty {
+        syn::Type::Path(type_path) => {
+            if let Some(segment) = type_path.path.segments.last() {
+                matches!(
+                    segment.ident.to_string().as_str(),
+                    "String"
+                        | "str"
+                        | "i8"
+                        | "i16"
+                        | "i32"
+                        | "i64"
+                        | "isize"
+                        | "u8"
+                        | "u16"
+                        | "u32"
+                        | "u64"
+                        | "usize"
+                        | "f32"
+                        | "f64"
+                        | "bool"
+                        | "Vec"
+                        | "HashMap"
+                        | "BTreeMap"
+                        | "HashSet"
+                        | "BTreeSet"
+                        | "Option"
+                        | "Value" // serde_json::Value
+                )
+            } else {
+                false
+            }
+        }
+        _ => false,
+    }
+}
+
 /// Generate JSON schema for a specific type
 fn generate_type_schema_for_type(ty: &syn::Type) -> TokenStream {
     // Convert Rust type to JSON schema
@@ -946,7 +1027,9 @@ fn generate_method_call_with_params(
 ) -> syn::Result<TokenStream> {
     let mut param_declarations = Vec::new();
     let mut param_names = Vec::new();
+    let mut param_types = Vec::new();
 
+    // Collect all parameters (skip self)
     for input in &sig.inputs {
         match input {
             syn::FnArg::Receiver(_) => continue, // Skip self
@@ -956,23 +1039,61 @@ fn generate_method_call_with_params(
                     let param_type = &*pat_type.ty;
 
                     param_names.push(param_name);
-
-                    // Generate parameter extraction based on whether it's optional
-                    if is_option_type(param_type) {
-                        param_declarations.push(quote! {
-                            let #param_name = args.get(stringify!(#param_name))
-                                .and_then(|v| serde_json::from_value(v.clone()).ok());
-                        });
-                    } else {
-                        param_declarations.push(quote! {
-                            let #param_name = args.get(stringify!(#param_name))
-                                .and_then(|v| serde_json::from_value(v.clone()).ok())
-                                .ok_or_else(|| pulseengine_mcp_protocol::Error::invalid_params(
-                                    format!("Missing required parameter '{}'", stringify!(#param_name))
-                                ))?;
-                        });
-                    }
+                    param_types.push(param_type);
                 }
+            }
+        }
+    }
+
+    // Detect single parameter case
+    if param_names.len() == 1 {
+        let param_name = param_names[0];
+        let param_type = param_types[0];
+
+        // Check if it's a custom struct (not primitive/std type)
+        if is_primitive_or_std_type(param_type) {
+            // Primitive - extract by name (standard behavior)
+            if is_option_type(param_type) {
+                param_declarations.push(quote! {
+                    let #param_name = args.get(stringify!(#param_name))
+                        .and_then(|v| serde_json::from_value(v.clone()).ok());
+                });
+            } else {
+                param_declarations.push(quote! {
+                    let #param_name = args.get(stringify!(#param_name))
+                        .and_then(|v| serde_json::from_value(v.clone()).ok())
+                        .ok_or_else(|| pulseengine_mcp_protocol::Error::invalid_params(
+                            format!("Missing required parameter '{}'", stringify!(#param_name))
+                        ))?;
+                });
+            }
+        } else {
+            // Custom struct - deserialize entire args object (flattened)
+            param_declarations.push(quote! {
+                let #param_name: #param_type = serde_json::from_value(
+                    serde_json::Value::Object(args.clone())
+                ).map_err(|e| pulseengine_mcp_protocol::Error::invalid_params(
+                    format!("Failed to deserialize parameters: {}", e)
+                ))?;
+            });
+        }
+    } else {
+        // Multi-parameter or no parameters - extract by name
+        for (param_name, param_type) in param_names.iter().zip(param_types.iter()) {
+            // Generate parameter extraction based on whether it's optional
+            if is_option_type(param_type) {
+                param_declarations.push(quote! {
+                    let #param_name = args.get(stringify!(#param_name))
+                        .and_then(|v| serde_json::from_value(v.clone()).ok());
+                });
+            } else {
+                param_declarations.push(quote! {
+                    let #param_name = args.get(stringify!(#param_name))
+                        .and_then(|v| serde_json::from_value(v.clone()).ok())
+                        .ok_or_else(|| pulseengine_mcp_protocol::Error::invalid_params(
+                            format!("Missing required parameter '{}'", stringify!(#param_name))
+                        ))?;
+                });
             }
         }
     }

@@ -179,3 +179,109 @@ async fn test_all_three_patterns_generate_schemas() {
         panic!("Tools should be available");
     }
 }
+
+#[tokio::test]
+async fn test_struct_parameter_flattening_at_runtime() {
+    use pulseengine_mcp_protocol::CallToolRequestParam;
+    use pulseengine_mcp_server::McpToolsProvider;
+
+    let server = DualPatternServer;
+
+    // Test that struct params work with FLAT arguments
+    println!("Testing flat arguments (correct behavior)...");
+    let request = CallToolRequestParam {
+        name: "rich_struct_tool".to_string(),
+        arguments: Some(serde_json::json!({
+            "message": "Hello World",
+            "count": 42
+        })),
+    };
+
+    let result = server.call_tool_impl(request).await;
+    assert!(
+        result.is_ok(),
+        "Flat arguments should work: {:?}",
+        result.err()
+    );
+    println!("✅ Flat arguments work correctly!");
+
+    // Test that NESTED arguments (old broken behavior) now fail
+    println!("Testing nested 'params' wrapper (should fail)...");
+    let nested_request = CallToolRequestParam {
+        name: "rich_struct_tool".to_string(),
+        arguments: Some(serde_json::json!({
+            "params": {
+                "message": "Hello",
+                "count": 42
+            }
+        })),
+    };
+
+    let result = server.call_tool_impl(nested_request).await;
+    assert!(
+        result.is_err(),
+        "Nested 'params' wrapper should not work - AI agents send flat args"
+    );
+    println!("✅ Nested params correctly rejected!");
+}
+
+#[tokio::test]
+async fn test_multi_param_still_works() {
+    use pulseengine_mcp_protocol::CallToolRequestParam;
+    use pulseengine_mcp_server::McpToolsProvider;
+
+    let server = DualPatternServer;
+
+    // Multi-parameter should continue working with named properties
+    println!("Testing multi-parameter tool...");
+    let request = CallToolRequestParam {
+        name: "multi_param_tool".to_string(),
+        arguments: Some(serde_json::json!({
+            "name": "Alice",
+            "age": 30,
+            "active": true
+        })),
+    };
+
+    let result = server.call_tool_impl(request).await;
+    assert!(
+        result.is_ok(),
+        "Multi-parameter should work: {:?}",
+        result.err()
+    );
+
+    if let Ok(call_result) = result {
+        if let Some(pulseengine_mcp_protocol::Content::Text { text }) = call_result.content.first()
+        {
+            assert!(text.contains("Alice"));
+            assert!(text.contains("30"));
+            assert!(text.contains("true"));
+            println!("✅ Multi-parameter tool works correctly!");
+        }
+    }
+}
+
+#[tokio::test]
+async fn test_optional_struct_fields_work() {
+    use pulseengine_mcp_protocol::CallToolRequestParam;
+    use pulseengine_mcp_server::McpToolsProvider;
+
+    let server = DualPatternServer;
+
+    // Test struct with optional field - only send required field
+    println!("Testing optional field handling...");
+    let request = CallToolRequestParam {
+        name: "rich_struct_tool".to_string(),
+        arguments: Some(serde_json::json!({
+            "message": "Hello without count"
+        })),
+    };
+
+    let result = server.call_tool_impl(request).await;
+    assert!(
+        result.is_ok(),
+        "Optional fields should work when omitted: {:?}",
+        result.err()
+    );
+    println!("✅ Optional field handling works correctly!");
+}
