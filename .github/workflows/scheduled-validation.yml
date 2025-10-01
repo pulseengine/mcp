@@ -15,6 +15,10 @@ env:
   CARGO_TERM_COLOR: always
   RUST_LOG: info
 
+permissions:
+  contents: write
+  issues: write
+
 jobs:
   validate-external-servers:
     name: Validate External MCP Servers
