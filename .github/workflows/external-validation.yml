@@ -180,13 +180,13 @@ jobs:
 
       - name: Build framework (parallel)
         run: |
-          # Use parallel compilation and release mode
-          cargo build --all-features --release --jobs $(if [ "${{ runner.os }}" = "Windows" ]; then echo $NUMBER_OF_PROCESSORS; else nproc; fi)
+          # Use parallel compilation and release mode (Cargo automatically detects CPU count)
+          cargo build --all-features --release
 
       - name: Run core tests (parallel)
         run: |
-          # Run tests in parallel, excluding external validation to reduce time
-          cargo test --all-features --release --jobs $(if [ "${{ runner.os }}" = "Windows" ]; then echo $NUMBER_OF_PROCESSORS; else nproc; fi) --workspace --exclude pulseengine-mcp-external-validation
+          # Run tests in parallel, excluding external validation to reduce time (Cargo automatically detects CPU count)
+          cargo test --all-features --release --workspace --exclude pulseengine-mcp-external-validation
 
       - name: Run external validation tests
         run: |
