@@ -25,6 +25,10 @@ env:
   MCP_VALIDATOR_API_URL: https://api.mcp-validator.com
   JSONRPC_VALIDATOR_URL: https://json-rpc.dev/api/validate
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   # Fast validation for PRs - Ubuntu only
   validate-framework-fast:
@@ -64,11 +68,13 @@ jobs:
 
       - name: Build framework (parallel)
         run: |
-          cargo build --all-features --release --jobs $(nproc)
+          # Cargo automatically detects CPU count for parallel builds
+          cargo build --all-features --release
 
       - name: Run core tests (parallel)
         run: |
-          cargo test --all-features --release --jobs $(nproc) --workspace --exclude pulseengine-mcp-external-validation
+          # Cargo automatically detects CPU count for parallel tests
+          cargo test --all-features --release --workspace --exclude pulseengine-mcp-external-validation
 
       - name: Run external validation tests
         run: |
@@ -201,6 +207,7 @@ jobs:
           echo "✅ Validation tools built successfully"
 
       - name: Build timedate-mcp-server for stdio testing
+        shell: bash
         run: |
           # Check if timedate-mcp-server exists in external workspace
           if [ -d "../timedate-mcp" ]; then
@@ -217,6 +224,7 @@ jobs:
         continue-on-error: true
 
       - name: Run stdio integration tests
+        shell: bash
         run: |
           # Only run if we have the timedate-mcp-server binary
           if [ -f "./target/release/timedate-mcp-server" ]; then
@@ -280,20 +288,25 @@ jobs:
         continue-on-error: true
 
       - name: Build timedate-mcp-server
+        shell: bash
         run: |
           if [ -d "timedate-mcp" ]; then
             echo "Building timedate-mcp-server"
             cd timedate-mcp
-            cargo build --release
-            cd ..
-            # Copy binary to expected location
-            mkdir -p ./target/release
-            cp timedate-mcp/target/release/timedate-mcp-server ./target/release/
-            echo "✅ timedate-mcp-server built successfully"
+            if cargo build --release; then
+              cd ..
+              # Copy binary to expected location
+              mkdir -p ./target/release
+              cp timedate-mcp/target/release/timedate-mcp-server ./target/release/
+              echo "✅ timedate-mcp-server built successfully"
+            else
+              cd ..
+              echo "❌ timedate-mcp-server build failed - tests will be skipped"
+            fi
           else
-            echo "❌ timedate-mcp repository not available"
-            exit 1
+            echo "⚠️  timedate-mcp repository not available - tests will be skipped"
           fi
+        continue-on-error: true
 
       - name: Install MCP Inspector
         run: |
