@@ -13,6 +13,10 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
+permissions:
+  contents: write
+  packages: read
+
 jobs:
   validate-release:
     name: Validate Release
@@ -87,7 +91,6 @@ jobs:
         with:
           files: |
             mcp-validation-tools-*.tar.gz
-            release-compliance-report.html
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -145,6 +148,7 @@ jobs:
           cargo test --release --target ${{ matrix.target }} --package pulseengine-mcp-external-validation
 
       - name: Package platform-specific release
+        shell: bash
         run: |
           mkdir -p dist
 
