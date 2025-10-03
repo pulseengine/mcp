@@ -61,6 +61,15 @@ jobs:
           echo "Clippy version: $(cargo clippy --version)"
           echo "Rustfmt version: $(cargo fmt --version)"
 
+      - name: Free up disk space
+        run: |
+          # Remove unnecessary tools and files to free up ~10GB
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          df -h
+
       - name: Cache dependencies
         uses: actions/cache@v4
         with:
@@ -68,10 +77,9 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-pr-release-1.88-${{ hashFiles('**/Cargo.lock', 'rust-toolchain.toml') }}
+          key: ${{ runner.os }}-cargo-pr-quick-1.88-${{ hashFiles('**/Cargo.lock', 'rust-toolchain.toml') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-pr-1.88-
-            ${{ runner.os }}-cargo-
+            ${{ runner.os }}-cargo-pr-quick-1.88-
 
       - name: Check formatting
         run: cargo fmt --all -- --check
@@ -95,10 +103,14 @@ jobs:
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
 
+      - name: Clean previous coverage artifacts
+        run: |
+          # Remove previous coverage data but keep compiled dependencies
+          cargo llvm-cov clean --workspace
+          df -h
+
       - name: Generate coverage report
         run: |
-          # Clean previous builds to save space, then generate coverage
-          cargo clean
           cargo llvm-cov test --all-features --workspace --lcov --output-path lcov.info
           cargo llvm-cov report --summary-only > coverage-summary.txt
           COVERAGE=$(grep -oP '\d+\.\d+(?=%)' coverage-summary.txt | head -1)
@@ -106,9 +118,28 @@ jobs:
 
       - name: Check documentation
         run: |
-          # Clean before docs to save space, build docs for all packages
-          cargo clean
+          # Build docs for all packages
           cargo doc --all-features --no-deps
+
+      - name: Cleanup cache before saving
+        run: |
+          echo "📊 Disk usage before cleanup:"
+          du -sh target || true
+
+          # Remove coverage-specific artifacts
+          rm -rf target/llvm-cov-target
+          rm -rf target/debug/.fingerprint/*-llvm-cov*
+          rm -rf target/*/debug/coverage*
+
+          # Remove test binaries (large and rebuilt every time)
+          find target -type f -name '*-????????????????' -executable -delete 2>/dev/null || true
+
+          # Remove incremental compilation data
+          rm -rf target/debug/incremental
+          rm -rf target/release/incremental
+
+          echo "📊 Disk usage after cleanup:"
+          du -sh target || true
 
   validation-specific-tests:
     name: Validation Framework Tests

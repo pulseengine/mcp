@@ -58,8 +58,7 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-external-fast-1.88-${{ hashFiles('**/Cargo.lock', 'rust-toolchain.toml') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-external-1.88-
-            ${{ runner.os }}-cargo-
+            ${{ runner.os }}-cargo-external-fast-1.88-
 
       - name: Clean procedural macro artifacts
         run: |
@@ -120,6 +119,16 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
+      - name: Free up disk space
+        if: runner.os == 'Linux'
+        run: |
+          # Remove unnecessary tools and files to free up ~10GB
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          df -h
+
       - name: Cache Rust dependencies
         uses: actions/cache@v4
         with:
@@ -127,11 +136,9 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-external-${{ matrix.rust }}-1.88-${{ hashFiles('**/Cargo.lock', 'rust-toolchain.toml') }}
+          key: ${{ runner.os }}-cargo-external-full-${{ matrix.rust }}-1.88-${{ hashFiles('**/Cargo.lock', 'rust-toolchain.toml') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-external-${{ matrix.rust }}-1.88-
-            ${{ runner.os }}-cargo-external-1.88-
-            ${{ runner.os }}-cargo-
+            ${{ runner.os }}-cargo-external-full-${{ matrix.rust }}-1.88-
 
       - name: Cache Python dependencies
         uses: actions/cache@v4
@@ -237,6 +244,24 @@ jobs:
         env:
           RUST_LOG: info
 
+      - name: Cleanup cache before saving
+        run: |
+          echo "📊 Disk usage before cleanup:"
+          du -sh target 2>/dev/null || true
+
+          # Remove test binaries (large and rebuilt every time)
+          find target -type f -name '*-????????????????' -executable -delete 2>/dev/null || true
+
+          # Remove incremental compilation data (doesn't help across runs)
+          rm -rf target/debug/incremental
+          rm -rf target/release/incremental
+
+          # Keep: compiled dependencies in target/*/deps/*.rlib
+          # Keep: build script outputs in target/*/build/*/out
+
+          echo "📊 Disk usage after cleanup:"
+          du -sh target 2>/dev/null || true
+
     # TODO: Re-enable server validation once we have a proper HTTP test server
     # - name: Run full compliance validation
     #   run: |
@@ -273,7 +298,6 @@ jobs:
           key: ${{ runner.os }}-cargo-stdio-1.88-${{ hashFiles('**/Cargo.lock', 'rust-toolchain.toml') }}
           restore-keys: |
             ${{ runner.os }}-cargo-stdio-1.88-
-            ${{ runner.os }}-cargo-
 
       - name: Build framework
         run: |
