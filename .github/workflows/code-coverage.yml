@@ -48,6 +48,15 @@ jobs:
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
 
+      - name: Free up disk space
+        run: |
+          # Remove unnecessary tools and files to free up ~10GB
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          df -h
+
       - name: Cache dependencies
         uses: actions/cache@v4
         with:
@@ -55,16 +64,19 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-coverage-1.88-${{ hashFiles('**/Cargo.lock', 'rust-toolchain.toml') }}
+          key: ${{ runner.os }}-cargo-coverage-only-1.88-${{ hashFiles('**/Cargo.lock', 'rust-toolchain.toml') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-coverage-1.88-
-            ${{ runner.os }}-cargo-
+            ${{ runner.os }}-cargo-coverage-only-1.88-
+
+      - name: Clean previous coverage artifacts
+        run: |
+          # Remove previous coverage data but keep compiled dependencies
+          cargo llvm-cov clean --workspace
+          # Show disk space before coverage generation
+          df -h
 
       - name: Generate code coverage
         run: |
-          # Clean any existing coverage data
-          cargo llvm-cov clean --workspace
-
           # Run tests with coverage for all packages (excluding same files as Codecov)
           # Use debug mode for coverage (release mode can interfere with coverage instrumentation)
           cargo llvm-cov test --all-features --workspace --lcov --output-path lcov.info \
@@ -95,17 +107,35 @@ jobs:
             > coverage-summary.txt
           cat coverage-summary.txt
 
-          # Clean target to save space after coverage generation
-          du -sh target || true
-          cargo clean
-          echo "Cleaned target directory to save disk space"
-
           # Extract coverage percentage for PR comment (use tail -1 to get TOTAL line, not first file)
           COVERAGE=$(grep -oP '\d+\.\d+(?=%)' coverage-summary.txt | tail -1)
           echo "COVERAGE_PERCENT=$COVERAGE" >> $GITHUB_ENV
 
           # Note: Coverage validation is now handled by Codecov, not locally
           echo "ℹ️  Coverage validation delegated to Codecov - see https://codecov.io/gh/${{ github.repository }}"
+
+      - name: Cleanup cache before saving
+        run: |
+          echo "📊 Disk usage before cleanup:"
+          du -sh target || true
+
+          # Remove coverage-specific artifacts that shouldn't be cached
+          rm -rf target/llvm-cov-target
+          rm -rf target/debug/.fingerprint/*-llvm-cov*
+          rm -rf target/*/debug/coverage*
+
+          # Remove test binaries (large and rebuilt every time)
+          find target -type f -name '*-????????????????' -executable -delete 2>/dev/null || true
+
+          # Remove incremental compilation data (doesn't help across runs)
+          rm -rf target/debug/incremental
+          rm -rf target/release/incremental
+
+          # Keep: compiled dependencies in target/debug/deps/*.rlib
+          # Keep: build script outputs in target/debug/build/*/out
+
+          echo "📊 Disk usage after cleanup:"
+          du -sh target || true
 
       - name: Post coverage comment
         if: github.event_name == 'pull_request'
