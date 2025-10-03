@@ -197,7 +197,6 @@ mod full_backend_tests {
 
     /// Test backend with delegate field
     #[test]
-    // #[ignore] // TODO: Fix trait disambiguation issues
     fn test_backend_with_delegate() {
         // Create a mock inner backend
         #[derive(Clone)]
@@ -427,7 +426,6 @@ async fn test_async_methods() {
 
 /// Test full backend async methods
 #[tokio::test]
-// #[ignore] // TODO: Fix trait disambiguation issues
 async fn test_full_backend_async() {
     #[derive(Clone, McpBackend)]
     struct FullAsyncBackend {

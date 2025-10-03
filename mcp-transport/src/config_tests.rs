@@ -160,39 +160,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // CORS origins field doesn't exist in current TransportConfig
-    fn test_cors_origins_variants() {
-        let cors_variants = vec![
-            vec![],                                  // No CORS origins
-            vec!["*".to_string()],                   // Wildcard
-            vec!["https://example.com".to_string()], // Single origin
-            vec![
-                "https://app.example.com".to_string(),
-                "http://localhost:3000".to_string(),
-                "https://*.example.com".to_string(),
-            ], // Multiple origins
-            vec!["null".to_string()],                // Null origin (for file://)
-            vec!["data:".to_string()],               // Data URLs
-        ];
-
-        for _cors_origins in cors_variants {
-            let config = TransportConfig::Http {
-                host: Some("localhost".to_string()),
-                port: 8080,
-            };
-
-            // Should serialize correctly
-            let json = serde_json::to_string(&config).unwrap();
-            let recovered: TransportConfig = serde_json::from_str(&json).unwrap();
-
-            if let TransportConfig::Http { .. } = recovered {
-                // Config validated successfully
-            }
-        }
-    }
-
-    #[test]
-    #[ignore] // CORS origins field doesn't exist in current TransportConfig
     fn test_host_variants() {
         let host_variants = vec![
             "localhost",
@@ -228,7 +195,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // CORS origins field doesn't exist in current TransportConfig
     fn test_port_variants() {
         let port_variants = vec![
             0,     // System assigned
@@ -274,7 +240,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // CORS origins field doesn't exist in current TransportConfig
     fn test_json_structure() {
         let config = TransportConfig::Http {
             host: Some("localhost".to_string()),
@@ -292,29 +257,33 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // CORS origins field doesn't exist in current TransportConfig
     fn test_config_debug_display() {
-        let configs = vec![
-            TransportConfig::Http {
-                host: Some("example.com".to_string()),
-                port: 443,
-            },
-            TransportConfig::WebSocket {
-                host: Some("localhost".to_string()),
-                port: 8081,
-            },
-            TransportConfig::Stdio,
+        let test_cases = vec![
+            (
+                TransportConfig::Http {
+                    host: Some("example.com".to_string()),
+                    port: 443,
+                },
+                "Http",
+            ),
+            (
+                TransportConfig::WebSocket {
+                    host: Some("localhost".to_string()),
+                    port: 8081,
+                },
+                "WebSocket",
+            ),
+            (TransportConfig::Stdio, "Stdio"),
         ];
 
-        for config in configs {
+        for (config, expected_variant) in test_cases {
             let debug_str = format!("{config:?}");
             assert!(!debug_str.is_empty());
-            assert!(debug_str.contains("TransportConfig"));
+            assert!(debug_str.contains(expected_variant));
         }
     }
 
     #[test]
-    #[ignore] // CORS origins field doesn't exist in current TransportConfig
     fn test_config_clone() {
         let original = TransportConfig::Http {
             host: Some("original.com".to_string()),

@@ -8,10 +8,8 @@ use crate::{
     report::{IssueSeverity, JsonRpcValidatorResult, TestScore, ValidationIssue},
 };
 use jsonschema::{Draft, JSONSchema};
-// Note: reqwest::Client used for real message collection
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-// use std::collections::HashMap;  // Removed unused import
 use tokio::io::AsyncWriteExt;
 use tracing::{debug, info, warn};
 
