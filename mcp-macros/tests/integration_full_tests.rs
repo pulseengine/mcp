@@ -186,54 +186,25 @@ mod tests {
         let _info = server.get_server_info();
         let status = "Server is running"; // Simulate server status from the tool, since get_server_info returns ServerInfo
         assert_eq!(status, "Server is running");
-
-        // Skip tool method calls for now due to macro issues
-        //let count1 = server.increment_counter().await;
-        //let count2 = server.increment_counter().await;
-        //assert_eq!(count2, count1 + 1);
     }
 
     #[tokio::test]
     async fn test_data_processing() {
         let _server = FullIntegrationServer::with_defaults();
-
         let _valid_input = json!({"key": "value"});
-        // Skip process_data calls for now
-        // let result = server
-        //     .process_data(valid_input.clone(), "validate".to_string())
-        //     .await;
-        // assert!(result.is_ok());
-        //
-        // let count_result = server
-        //     .process_data(json!("test"), "count".to_string())
-        //     .await;
-        // assert!(count_result.is_ok());
+        // TODO: Implement process_data tests when macro issues are resolved
     }
 
     #[tokio::test]
     async fn test_resource_access() {
         let _server = FullIntegrationServer::with_defaults();
-
-        // Skip resource test for now due to signature mismatch
-        // let config_result = server.read_resource("config".to_string()).await;
-        // assert!(config_result.is_ok());
-        // assert!(config_result.unwrap().contains("dark"));
-
-        // Skip missing resource test for now
-        // let missing_result = server.read_resource("nonexistent".to_string()).await;
-        // assert!(missing_result.is_err());
+        // TODO: Implement resource tests when signature mismatch is resolved
     }
 
     #[tokio::test]
     async fn test_error_handling() {
         let _server = FullIntegrationServer::with_defaults();
-
-        // Skip risky_operation calls for now
-        // let success_result = server.risky_operation("success".to_string()).await;
-        // assert!(success_result.is_ok());
-        //
-        // let fail_result = server.risky_operation("fail".to_string()).await;
-        // assert!(fail_result.is_err());
+        // TODO: Implement error handling tests when macro issues are resolved
     }
 
     #[test]

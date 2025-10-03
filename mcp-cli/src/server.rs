@@ -31,9 +31,6 @@ where
     info!("Server info: {:?}", _config.get_server_info());
 
     // TODO: Integrate with actual server implementation
-    // let server = create_server_from_config(config).await?;
-    // server.run().await?;
-
     Err(CliError::server_setup(
         "Server implementation not yet complete",
     ))

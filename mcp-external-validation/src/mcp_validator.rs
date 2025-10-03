@@ -9,7 +9,6 @@ use crate::{
 };
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-// use std::time::Duration;  // Removed unused import
 use tracing::{debug, info, warn};
 
 /// Client for the MCP Validator service

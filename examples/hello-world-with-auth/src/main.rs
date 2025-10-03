@@ -54,9 +54,6 @@ impl HelloWorldAuth {
             .name
             .unwrap_or_else(|| "Authenticated World".to_string());
 
-        // In a real implementation, you could access the auth context here
-        // let auth = request_context.auth_context();
-
         info!("Hello tool called with name: {}", name);
         Ok(format!(
             "Hello, {name}! 🔐 (Secured with MCP Security Middleware)"

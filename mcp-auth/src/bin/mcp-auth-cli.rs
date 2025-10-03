@@ -1624,8 +1624,6 @@ async fn handle_rate_limit_operation(
     cli: &Cli,
     operation: RateLimitCommands,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    // use pulseengine_mcp_auth::models::Role;
-
     match operation {
         RateLimitCommands::Stats => {
             let stats = auth_manager.get_rate_limit_stats().await;
