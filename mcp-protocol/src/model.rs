@@ -3,6 +3,107 @@
 use crate::Error;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::Arc;
+
+/// Metadata for MCP protocol messages (MCP 2025-06-18)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Meta {
+    /// Progress token for tracking long-running operations
+    #[serde(rename = "progressToken", skip_serializing_if = "Option::is_none")]
+    pub progress_token: Option<String>,
+}
+
+/// A flexible identifier type for JSON-RPC request IDs
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum NumberOrString {
+    Number(i64),
+    String(Arc<str>),
+}
+
+impl NumberOrString {
+    pub fn into_json_value(self) -> serde_json::Value {
+        match self {
+            NumberOrString::Number(n) => serde_json::Value::Number(serde_json::Number::from(n)),
+            NumberOrString::String(s) => serde_json::Value::String(s.to_string()),
+        }
+    }
+
+    pub fn from_json_value(value: serde_json::Value) -> Option<Self> {
+        match value {
+            serde_json::Value::Number(n) => n.as_i64().map(NumberOrString::Number),
+            serde_json::Value::String(s) => Some(NumberOrString::String(Arc::from(s.as_str()))),
+            _ => None,
+        }
+    }
+}
+
+impl std::fmt::Display for NumberOrString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            NumberOrString::Number(n) => write!(f, "{n}"),
+            NumberOrString::String(s) => write!(f, "{s}"),
+        }
+    }
+}
+
+impl Serialize for NumberOrString {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            NumberOrString::Number(n) => serializer.serialize_i64(*n),
+            NumberOrString::String(s) => serializer.serialize_str(s),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for NumberOrString {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct NumberOrStringVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for NumberOrStringVisitor {
+            type Value = NumberOrString;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a number or string")
+            }
+
+            fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(NumberOrString::Number(value))
+            }
+
+            fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(NumberOrString::Number(value as i64))
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(NumberOrString::String(Arc::from(value)))
+            }
+
+            fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(NumberOrString::String(Arc::from(value.as_str())))
+            }
+        }
+
+        deserializer.deserialize_any(NumberOrStringVisitor)
+    }
+}
 
 /// JSON-RPC 2.0 Request
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -14,13 +115,9 @@ pub struct Request {
     /// Request parameters
     #[serde(default = "serde_json::Value::default")]
     pub params: serde_json::Value,
-    /// Request ID (missing for notifications)
-    #[serde(default = "default_null")]
-    pub id: serde_json::Value,
-}
-
-fn default_null() -> serde_json::Value {
-    serde_json::Value::Null
+    /// Request ID (None for notifications)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<NumberOrString>,
 }
 
 /// JSON-RPC 2.0 Response
@@ -34,31 +131,35 @@ pub struct Response {
     /// Response error (if failed)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<Error>,
-    /// Request ID
-    pub id: serde_json::Value,
+    /// Request ID (can be null for error responses)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<NumberOrString>,
 }
 
-/// Protocol version information
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProtocolVersion {
-    pub major: u32,
-    pub minor: u32,
-    pub patch: u32,
-}
+/// MCP Protocol version in date format (YYYY-MM-DD)
+#[derive(Debug, Clone, Eq, PartialEq, Hash, PartialOrd, Serialize, Deserialize)]
+pub struct ProtocolVersion(std::borrow::Cow<'static, str>);
 
 impl Default for ProtocolVersion {
     fn default() -> Self {
-        Self {
-            major: 2025,
-            minor: 6,
-            patch: 18,
-        }
+        Self::LATEST
     }
 }
 
 impl std::fmt::Display for ProtocolVersion {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:04}-{:02}-{:02}", self.major, self.minor, self.patch)
+        self.0.fmt(f)
+    }
+}
+
+impl ProtocolVersion {
+    pub const V_2025_06_18: Self = Self(std::borrow::Cow::Borrowed("2025-06-18"));
+    pub const V_2025_03_26: Self = Self(std::borrow::Cow::Borrowed("2025-03-26"));
+    pub const V_2024_11_05: Self = Self(std::borrow::Cow::Borrowed("2024-11-05"));
+    pub const LATEST: Self = Self::V_2025_06_18;
+
+    pub fn new(version: impl Into<std::borrow::Cow<'static, str>>) -> Self {
+        Self(version.into())
     }
 }
 
@@ -194,10 +295,37 @@ pub struct ServerInfo {
 #[serde(rename_all = "camelCase")]
 pub struct Tool {
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
     pub description: String,
     pub input_schema: serde_json::Value,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub output_schema: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub annotations: Option<ToolAnnotations>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icons: Option<Vec<Icon>>,
+}
+
+/// Tool annotations for behavioral hints
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ToolAnnotations {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub read_only_hint: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub destructive_hint: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub idempotent_hint: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub open_world_hint: Option<bool>,
+}
+
+/// Icon definition for tools and other resources
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Icon {
+    pub uri: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mime_type: Option<String>,
 }
 
 /// List tools result
@@ -227,25 +355,40 @@ pub struct CallToolRequestParam {
 #[serde(tag = "type")]
 pub enum Content {
     #[serde(rename = "text")]
-    Text { text: String },
+    Text {
+        text: String,
+        #[serde(rename = "_meta", skip_serializing_if = "Option::is_none")]
+        _meta: Option<Meta>,
+    },
     #[serde(rename = "image")]
-    Image { data: String, mime_type: String },
+    Image {
+        data: String,
+        mime_type: String,
+        #[serde(rename = "_meta", skip_serializing_if = "Option::is_none")]
+        _meta: Option<Meta>,
+    },
     #[serde(rename = "resource")]
     Resource {
         resource: String,
         text: Option<String>,
+        #[serde(rename = "_meta", skip_serializing_if = "Option::is_none")]
+        _meta: Option<Meta>,
     },
 }
 
 impl Content {
     pub fn text(text: impl Into<String>) -> Self {
-        Self::Text { text: text.into() }
+        Self::Text {
+            text: text.into(),
+            _meta: None,
+        }
     }
 
     pub fn image(data: impl Into<String>, mime_type: impl Into<String>) -> Self {
         Self::Image {
             data: data.into(),
             mime_type: mime_type.into(),
+            _meta: None,
         }
     }
 
@@ -253,6 +396,7 @@ impl Content {
         Self::Resource {
             resource: resource.into(),
             text,
+            _meta: None,
         }
     }
 
@@ -274,7 +418,7 @@ impl Content {
     /// Get text content as `TextContent` struct for compatibility
     pub fn as_text_content(&self) -> Option<TextContent> {
         match self {
-            Self::Text { text } => Some(TextContent { text: text.clone() }),
+            Self::Text { text, .. } => Some(TextContent { text: text.clone() }),
             _ => None,
         }
     }
@@ -288,6 +432,8 @@ pub struct CallToolResult {
     pub is_error: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub structured_content: Option<serde_json::Value>,
+    #[serde(rename = "_meta", skip_serializing_if = "Option::is_none")]
+    pub _meta: Option<Meta>,
 }
 
 impl CallToolResult {
@@ -296,6 +442,7 @@ impl CallToolResult {
             content,
             is_error: Some(false),
             structured_content: None,
+            _meta: None,
         }
     }
 
@@ -304,6 +451,7 @@ impl CallToolResult {
             content,
             is_error: Some(true),
             structured_content: None,
+            _meta: None,
         }
     }
 
@@ -321,6 +469,7 @@ impl CallToolResult {
             content,
             is_error: Some(false),
             structured_content: Some(structured_content),
+            _meta: None,
         }
     }
 
@@ -330,6 +479,7 @@ impl CallToolResult {
             content,
             is_error: Some(true),
             structured_content: Some(structured_content),
+            _meta: None,
         }
     }
 
@@ -364,9 +514,13 @@ impl CallToolResult {
 pub struct Resource {
     pub uri: String,
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
     pub description: Option<String>,
     pub mime_type: Option<String>,
     pub annotations: Option<Annotations>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icons: Option<Vec<Icon>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub raw: Option<RawResource>,
 }
@@ -399,6 +553,8 @@ pub struct ResourceContents {
     pub mime_type: Option<String>,
     pub text: Option<String>,
     pub blob: Option<String>,
+    #[serde(rename = "_meta", skip_serializing_if = "Option::is_none")]
+    pub _meta: Option<Meta>,
 }
 
 /// Read resource result
@@ -459,8 +615,12 @@ impl CompleteResult {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Prompt {
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
     pub description: Option<String>,
     pub arguments: Option<Vec<PromptArgument>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icons: Option<Vec<Icon>>,
 }
 
 /// Prompt argument definition
@@ -541,11 +701,39 @@ pub struct InitializeResult {
     pub instructions: Option<String>,
 }
 
+/// Completion context for context-aware completion (MCP 2025-06-18)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompletionContext {
+    /// Names of arguments that have already been provided
+    pub argument_names: Vec<String>,
+    /// Values of arguments that have already been provided
+    pub values: HashMap<String, serde_json::Value>,
+}
+
+impl CompletionContext {
+    /// Create a new completion context
+    pub fn new(argument_names: Vec<String>, values: HashMap<String, serde_json::Value>) -> Self {
+        Self {
+            argument_names,
+            values,
+        }
+    }
+
+    /// Get an iterator over argument names
+    pub fn argument_names_iter(&self) -> impl Iterator<Item = &String> {
+        self.argument_names.iter()
+    }
+}
+
 /// Completion request parameters
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompleteRequestParam {
     pub ref_: String,
     pub argument: serde_json::Value,
+    /// Optional context for context-aware completion (MCP 2025-06-18)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub context: Option<CompletionContext>,
 }
 
 /// Completion information

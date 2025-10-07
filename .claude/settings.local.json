@@ -41,7 +41,15 @@
       "Bash(gh issue list:*)",
       "Bash(gh pr view:*)",
       "WebSearch",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(awk:*)",
+      "Bash(xargs:*)",
+      "Read(//Users/r/git/**)",
+      "WebFetch(domain:docs.rs)",
+      "Bash(gh release list:*)",
+      "Bash(gh release view:*)",
+      "Bash(gh pr list:*)",
+      "Bash(pre-commit:*)"
     ],
     "deny": []
   }

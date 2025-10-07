@@ -29,13 +29,13 @@ pub struct UltraSimple;
 
 #[mcp_tools]
 impl UltraSimple {
-    /// Say hello to someone with customizable greeting  
+    /// Say hello to someone with customizable greeting
     pub async fn say_hello(&self, params: SayHelloParams) -> anyhow::Result<String> {
         let greeting = params.greeting.unwrap_or_else(|| "Hello".to_string());
         Ok(format!("{greeting}, {}! 👋", params.name))
     }
 
-    /// Add two numbers together  
+    /// Add two numbers together
     pub fn add(&self, params: AddParams) -> i32 {
         params.a + params.b
     }

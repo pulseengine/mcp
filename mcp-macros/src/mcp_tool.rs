@@ -523,9 +523,12 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
                     tool_definitions.push(quote! {
                         pulseengine_mcp_protocol::Tool {
                             name: #tool_name.to_string(),
+                            title: None,
                             description: #description.to_string(),
                             input_schema: #schema,
                             output_schema: None,
+                            annotations: None,
+                            icons: None,
                         }
                     });
 
@@ -778,9 +781,12 @@ fn generate_tool_implementation(
         pub fn #tool_def_fn_name() -> pulseengine_mcp_protocol::Tool {
             pulseengine_mcp_protocol::Tool {
                 name: #tool_name.to_string(),
+                title: None,
                 description: #description_expr,
                 input_schema: #input_schema,
                 output_schema: None,
+                annotations: None,
+                icons: None,
             }
         }
 

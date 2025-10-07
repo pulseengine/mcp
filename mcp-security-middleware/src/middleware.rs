@@ -413,14 +413,14 @@ impl RateLimiter {
 /// async fn main() {
 ///     let security_config = SecurityConfig::development();
 ///     let middleware = security_config.create_middleware().await.unwrap();
-///     
+///
 ///     let app: Router = Router::new()
 ///         .route("/", get(|| async { "Hello, secure world!" }))
 ///         .layer(from_fn(move |req, next| {
 ///             let middleware = middleware.clone();
 ///             async move { middleware.process(req, next).await }
 ///         }));
-///     
+///
 ///     // Start server...
 /// }
 /// ```

@@ -112,23 +112,25 @@ pub fn validate_jsonrpc_message(value: &Value) -> Result<MessageType, Validation
 }
 
 /// Attempts to extract ID from a malformed JSON request for error responses
-pub fn extract_id_from_malformed(text: &str) -> Value {
+pub fn extract_id_from_malformed(text: &str) -> Option<pulseengine_mcp_protocol::NumberOrString> {
+    use pulseengine_mcp_protocol::NumberOrString;
+
     // Try to parse as JSON object and extract ID
     if let Ok(value) = serde_json::from_str::<Value>(text) {
         if let Some(obj) = value.as_object() {
             if let Some(id) = obj.get("id") {
-                return id.clone();
+                return NumberOrString::from_json_value(id.clone());
             }
         }
     }
 
     // Try regex-based extraction as fallback
     if let Some(id_match) = extract_id_with_regex(text) {
-        return id_match;
+        return NumberOrString::from_json_value(id_match);
     }
 
-    // Default to null if we can't extract
-    Value::Null
+    // Default to None if we can't extract
+    None
 }
 
 /// Validates a batch of JSON-RPC messages

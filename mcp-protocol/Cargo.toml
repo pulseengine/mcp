@@ -26,9 +26,13 @@ jsonschema = { workspace = true }
 # Optional dependency for error classification
 pulseengine-mcp-logging = { workspace = true, optional = true }
 
+# Optional dependency for automatic JSON Schema generation
+schemars = { version = "0.8", optional = true }
+
 [features]
 default = []
 logging = ["pulseengine-mcp-logging"]
+schemars = ["dep:schemars"]
 
 [dev-dependencies]
 tokio-test = "0.4"

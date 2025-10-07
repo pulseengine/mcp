@@ -502,7 +502,7 @@ async fn handle_post(
             // Create error response
             let error_response = pulseengine_mcp_protocol::Response {
                 jsonrpc: "2.0".to_string(),
-                id: serde_json::Value::Null,
+                id: None,
                 result: None,
                 error: Some(pulseengine_mcp_protocol::Error::internal_error(
                     e.to_string(),

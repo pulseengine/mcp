@@ -290,7 +290,7 @@ impl<B: McpBackend + 'static> McpServer<B> {
                         Ok(response) => response,
                         Err(error) => Response {
                             jsonrpc: "2.0".to_string(),
-                            id: serde_json::Value::Null,
+                            id: None,
                             result: None,
                             error: Some(error.into()),
                         },
