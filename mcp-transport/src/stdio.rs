@@ -127,10 +127,10 @@ impl StdioTransport {
         if let Err(e) = message.validate() {
             warn!("JSON-RPC validation failed: {}", e);
 
-            // For invalid structure, we can't reliably extract ID, use null
+            // For invalid structure, we can't reliably extract ID, use None
             let error_response = create_error_response(
                 pulseengine_mcp_protocol::Error::invalid_request(format!("Invalid JSON-RPC: {e}")),
-                serde_json::Value::Null,
+                None,
             );
 
             self.send_response(stdout, &error_response).await?;
@@ -159,7 +159,7 @@ impl StdioTransport {
                     pulseengine_mcp_protocol::Error::internal_error(format!(
                         "Processing failed: {e}"
                     )),
-                    serde_json::Value::Null,
+                    None,
                 );
 
                 self.send_response(stdout, &error_response).await?;

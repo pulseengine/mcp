@@ -13,7 +13,7 @@ pub struct EchoParams {
     pub message: String,
 }
 
-/// Parameter struct for greet tool  
+/// Parameter struct for greet tool
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct GreetParams {
     pub name: Option<String>,

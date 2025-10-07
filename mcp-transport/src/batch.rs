@@ -84,7 +84,7 @@ impl JsonRpcMessage {
             JsonRpcMessage::Single(value) => {
                 if let Ok(request) = serde_json::from_value::<Request>(value.clone()) {
                     // Only include if it has an ID (requests, not notifications)
-                    if !request.id.is_null() {
+                    if request.id.is_some() {
                         requests.push(request);
                     }
                 }
@@ -93,7 +93,7 @@ impl JsonRpcMessage {
                 for value in values {
                     if let Ok(request) = serde_json::from_value::<Request>(value.clone()) {
                         // Only include if it has an ID (requests, not notifications)
-                        if !request.id.is_null() {
+                        if request.id.is_some() {
                             requests.push(request);
                         }
                     }
@@ -116,7 +116,7 @@ impl JsonRpcMessage {
             JsonRpcMessage::Single(value) => {
                 if let Ok(request) = serde_json::from_value::<Request>(value.clone()) {
                     // Only include if it doesn't have an ID (notifications)
-                    if request.id.is_null() {
+                    if request.id.is_none() {
                         notifications.push(request);
                     }
                 }
@@ -125,7 +125,7 @@ impl JsonRpcMessage {
                 for value in values {
                     if let Ok(request) = serde_json::from_value::<Request>(value.clone()) {
                         // Only include if it doesn't have an ID (notifications)
-                        if request.id.is_null() {
+                        if request.id.is_none() {
                             notifications.push(request);
                         }
                     }
@@ -141,14 +141,14 @@ impl JsonRpcMessage {
         match self {
             JsonRpcMessage::Single(value) => {
                 if let Ok(request) = serde_json::from_value::<Request>(value.clone()) {
-                    !request.id.is_null()
+                    request.id.is_some()
                 } else {
                     false
                 }
             }
             JsonRpcMessage::Batch(values) => values.iter().any(|value| {
                 if let Ok(request) = serde_json::from_value::<Request>(value.clone()) {
-                    !request.id.is_null()
+                    request.id.is_some()
                 } else {
                     false
                 }
@@ -194,7 +194,7 @@ pub async fn process_batch(
 
     for request in requests {
         debug!(
-            "Processing request: {} (ID: {})",
+            "Processing request: {} (ID: {:?})",
             request.method, request.id
         );
         let response = handler(request).await;
@@ -225,7 +225,7 @@ pub async fn process_batch(
 /// Create an error response for a malformed request
 pub fn create_error_response(
     error: pulseengine_mcp_protocol::Error,
-    request_id: Value,
+    request_id: Option<pulseengine_mcp_protocol::NumberOrString>,
 ) -> Response {
     Response {
         jsonrpc: "2.0".to_string(),

@@ -39,14 +39,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Zero-config development setup
     let security_config = SecurityConfig::development();
     let middleware = security_config.create_middleware().await?;
-    
+
     let app = Router::new()
         .route("/", get(|| async { "Hello, secure world!" }))
         .layer(from_fn(move |req, next| {
             let middleware = middleware.clone();
             async move { middleware.process(req, next).await }
         }));
-        
+
     // Server setup...
     Ok(())
 }
@@ -57,15 +57,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```rust
 use pulseengine_mcp_security_middleware::*;
 
-#[tokio::main]  
+#[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Production-ready security
     let security_config = SecurityConfig::production()
         .with_api_key(std::env::var("MCP_API_KEY")?)
         .with_jwt_secret(std::env::var("MCP_JWT_SECRET")?);
-        
+
     let middleware = security_config.create_middleware().await?;
-    
+
     // Use with your MCP server...
     Ok(())
 }
@@ -74,6 +74,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ## Security Profiles
 
 ### Development Profile
+
 - **Authentication**: Optional (logged when present)
 - **HTTPS**: Optional (localhost connections accepted)
 - **Rate Limiting**: Disabled for development convenience
@@ -87,6 +88,7 @@ let config = SecurityConfig::development();
 ```
 
 ### Staging Profile
+
 - **Authentication**: Required with JWT validation
 - **HTTPS**: Enforced for all connections
 - **Rate Limiting**: Moderate (1000 requests/minute)
@@ -100,6 +102,7 @@ let config = SecurityConfig::staging();
 ```
 
 ### Production Profile
+
 - **Authentication**: Strict JWT with audience validation
 - **HTTPS**: Mandatory with security headers
 - **Rate Limiting**: Conservative (100 requests/minute)
@@ -140,15 +143,15 @@ MCP_ENABLE_AUDIT_LOG=true
 
 ## Features Overview
 
-| Feature | Development | Staging | Production |
-|---------|-------------|---------|------------|
-| Authentication | Optional | Required | Strict |
-| Auto-Generate Keys | ✅ | ✅ | ❌ |
-| HTTPS Required | ❌ | ✅ | ✅ |
-| Rate Limiting | Disabled | 1000/min | 100/min |
-| CORS | Permissive | Localhost | Explicit |
-| Audit Logging | ✅ | ✅ | ✅ |
-| JWT Expiry | 24 hours | 1 hour | 15 minutes |
+| Feature            | Development | Staging   | Production |
+| ------------------ | ----------- | --------- | ---------- |
+| Authentication     | Optional    | Required  | Strict     |
+| Auto-Generate Keys | ✅          | ✅        | ❌         |
+| HTTPS Required     | ❌          | ✅        | ✅         |
+| Rate Limiting      | Disabled    | 1000/min  | 100/min    |
+| CORS               | Permissive  | Localhost | Explicit   |
+| Audit Logging      | ✅          | ✅        | ✅         |
+| JWT Expiry         | 24 hours    | 1 hour    | 15 minutes |
 
 ## Authentication Methods
 
@@ -171,25 +174,30 @@ curl -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..." https://
 ## Security Features
 
 ### Rate Limiting
+
 - Per-client IP address tracking
 - Configurable time windows and request limits
 - Automatic cleanup of old entries
 - Burst allowance for legitimate usage spikes
 
 ### Request Validation
+
 - API key format validation
 - JWT signature and audience verification
 - HTTPS enforcement for production
 - Request size limits
 
 ### Audit Logging
+
 - All authentication attempts logged
 - Request/response correlation IDs
 - Security events tracking
 - Structured logging format
 
 ### Security Headers
+
 Automatically adds security headers to all responses:
+
 - Content Security Policy
 - X-Frame-Options: DENY
 - X-Content-Type-Options: nosniff
@@ -201,6 +209,7 @@ Automatically adds security headers to all responses:
 If you're currently using the complex multi-crate system:
 
 ### Before (5+ crates, 318+ lines of config)
+
 ```rust
 // Complex setup with multiple CLI tools and crates
 use pulseengine_mcp_auth::*;
@@ -210,6 +219,7 @@ use pulseengine_mcp_monitoring::*;
 ```
 
 ### After (1 crate, 3 lines of code)
+
 ```rust
 use pulseengine_mcp_security_middleware::*;
 
@@ -227,13 +237,16 @@ let middleware = config.create_middleware().await?;
 ## Examples
 
 ### Hello World with Authentication
+
 See `examples/hello-world-with-auth/` for a complete working example showing:
+
 - Zero-config development setup
 - Auto-generated API keys
 - Request logging and audit trails
 - Progressive security complexity
 
 ### Integration with MCP Server
+
 ```rust
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use pulseengine_mcp_security_middleware::*;
@@ -280,16 +293,19 @@ The middleware provides clear error responses:
 ## Troubleshooting
 
 ### Authentication Failures
+
 - Check API key format (must start with `mcp_`)
 - Verify JWT secret is at least 32 characters
 - Ensure token audience matches configuration
 
 ### Rate Limiting Issues
+
 - Check client IP detection (proxy headers)
 - Adjust rate limits for your usage patterns
 - Monitor rate limiter memory usage
 
 ### CORS Problems
+
 - Verify allowed origins configuration
 - Check that credentials flag matches wildcard usage
 - Test preflight OPTIONS requests
@@ -299,6 +315,7 @@ The middleware provides clear error responses:
 Contributions welcome! This middleware was designed based on real-world production needs and feedback.
 
 Priority areas:
+
 - Additional authentication methods (OAuth 2.1, SAML)
 - More sophisticated rate limiting algorithms
 - Integration examples with different MCP server frameworks

@@ -195,10 +195,8 @@ impl McpAuthMiddleware {
         let sanitized_request = self.security_validator.sanitize_request(request).await;
 
         let request_id = match &sanitized_request.id {
-            serde_json::Value::String(s) => s.clone(),
-            serde_json::Value::Number(n) => n.to_string(),
-            serde_json::Value::Null => uuid::Uuid::new_v4().to_string(),
-            _ => uuid::Uuid::new_v4().to_string(),
+            Some(id) => id.to_string(),
+            None => uuid::Uuid::new_v4().to_string(),
         };
         let mut context = McpRequestContext::new(request_id);
 

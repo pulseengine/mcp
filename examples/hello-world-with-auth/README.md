@@ -12,18 +12,21 @@ This example demonstrates how to add zero-configuration authentication to an MCP
 ## Key Features
 
 ### 🔐 Development Security Profile
+
 - Authentication is **optional** but **logged** when present
 - Auto-generates API keys for testing
 - Permissive CORS settings
 - Detailed logging for debugging
 
 ### 🎯 Zero Configuration
+
 - No environment variables required
 - No CLI tools to run
 - No configuration files needed
 - Works out of the box
 
 ### 📊 Security Logging
+
 - All authentication attempts logged
 - Request/response audit trail
 - Security events tracking
@@ -37,6 +40,7 @@ cargo run --bin hello-world-with-auth
 ```
 
 The server will display:
+
 - Generated API key for testing
 - Security configuration summary
 - Available endpoints
@@ -64,18 +68,21 @@ curl -H "Authorization: ApiKey mcp_generated_key_here" \\
 ## Code Walkthrough
 
 ### 1. Security Configuration (3 lines)
+
 ```rust
 let security_config = SecurityConfig::development();
 let security_middleware = security_config.create_middleware().await?;
 ```
 
 ### 2. MCP Server Integration (1 line)
+
 ```rust
 // Integrate with MCP server HTTP transport
 .layer(from_fn(security_middleware))
 ```
 
 ### 3. Tool Implementation (unchanged)
+
 ```rust
 #[mcp_tools]
 impl HelloWorldAuth {
@@ -87,14 +94,14 @@ impl HelloWorldAuth {
 
 ## Security Features Demonstrated
 
-| Feature | Development Mode | Notes |
-|---------|------------------|--------|
-| Authentication | Optional | Logged when present |
-| Rate Limiting | Disabled | For development convenience |
-| HTTPS | Optional | Localhost connections accepted |
-| CORS | Permissive | Wildcard origins allowed |
-| Audit Logging | Enabled | All requests logged |
-| API Key Generation | Automatic | New key per restart |
+| Feature            | Development Mode | Notes                          |
+| ------------------ | ---------------- | ------------------------------ |
+| Authentication     | Optional         | Logged when present            |
+| Rate Limiting      | Disabled         | For development convenience    |
+| HTTPS              | Optional         | Localhost connections accepted |
+| CORS               | Permissive       | Wildcard origins allowed       |
+| Audit Logging      | Enabled          | All requests logged            |
+| API Key Generation | Automatic        | New key per restart            |
 
 ## Environment Variables (Optional)
 
@@ -118,12 +125,12 @@ cargo run --bin hello-world-with-auth
 
 ## Comparison with Basic Hello World
 
-| Aspect | hello-world | hello-world-with-auth |
-|--------|-------------|----------------------|
-| Lines of code | 25 | 35 (+authentication) |
-| Setup complexity | None | None (zero-config) |
-| Security features | None | Full middleware stack |
-| Production ready | No | Development ready |
-| Authentication | None | API key + JWT support |
+| Aspect            | hello-world | hello-world-with-auth |
+| ----------------- | ----------- | --------------------- |
+| Lines of code     | 25          | 35 (+authentication)  |
+| Setup complexity  | None        | None (zero-config)    |
+| Security features | None        | Full middleware stack |
+| Production ready  | No          | Development ready     |
+| Authentication    | None        | API key + JWT support |
 
 This demonstrates how the security middleware maintains simplicity while adding comprehensive security features.

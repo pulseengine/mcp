@@ -56,19 +56,28 @@ mod tests {
     #[test]
     fn test_protocol_version_default() {
         let version = ProtocolVersion::default();
-        assert_eq!(version.major, 2025);
-        assert_eq!(version.minor, 6);
-        assert_eq!(version.patch, 18);
+        assert_eq!(version, ProtocolVersion::LATEST);
+        assert_eq!(version.to_string(), "2025-06-18");
     }
 
     #[test]
     fn test_protocol_version_display() {
-        let version = ProtocolVersion {
-            major: 2025,
-            minor: 3,
-            patch: 26,
-        };
+        let version = ProtocolVersion::V_2025_03_26;
         assert_eq!(version.to_string(), "2025-03-26");
+    }
+
+    #[test]
+    fn test_protocol_version_constants() {
+        assert_eq!(ProtocolVersion::V_2025_06_18.to_string(), "2025-06-18");
+        assert_eq!(ProtocolVersion::V_2025_03_26.to_string(), "2025-03-26");
+        assert_eq!(ProtocolVersion::V_2024_11_05.to_string(), "2024-11-05");
+        assert_eq!(ProtocolVersion::LATEST, ProtocolVersion::V_2025_06_18);
+    }
+
+    #[test]
+    fn test_protocol_version_new() {
+        let version = ProtocolVersion::new("2025-06-18");
+        assert_eq!(version.to_string(), "2025-06-18");
     }
 
     #[test]

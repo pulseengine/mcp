@@ -84,7 +84,7 @@ impl<B: McpBackend> GenericServerHandler<B> {
     }
 
     /// Handle an MCP request
-    #[instrument(skip(self, request), fields(mcp.method = %request.method, mcp.request_id = %request.id))]
+    #[instrument(skip(self, request), fields(mcp.method = %request.method, mcp.request_id = ?request.id))]
     pub async fn handle_request(
         &self,
         request: Request,
@@ -110,7 +110,11 @@ impl<B: McpBackend> GenericServerHandler<B> {
 
         // Route to appropriate handler with tracing
         let result = {
-            let span = spans::mcp_request_span(&method, &request_id.to_string());
+            let request_id_str = request_id
+                .as_ref()
+                .map(|id| id.to_string())
+                .unwrap_or_else(|| "none".to_string());
+            let span = spans::mcp_request_span(&method, &request_id_str);
             let _guard = span.enter();
 
             match request.method.as_str() {

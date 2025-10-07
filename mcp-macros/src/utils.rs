@@ -148,6 +148,7 @@ pub fn generate_error_handling(return_type: &syn::ReturnType) -> TokenStream {
                     content: vec![],
                     is_error: Some(false),
                     structured_content: None,
+                    _meta: None,
                 })
             }
         }
@@ -163,6 +164,7 @@ pub fn generate_error_handling(return_type: &syn::ReturnType) -> TokenStream {
                                     content: vec![pulseengine_mcp_protocol::Content::text(format!("{:?}", value))],
                                     is_error: Some(false),
                                     structured_content: None,
+                                    _meta: None,
                                 }),
                                 Err(e) => Err(pulseengine_mcp_protocol::Error::internal_error(e.to_string())),
                             }
@@ -177,6 +179,7 @@ pub fn generate_error_handling(return_type: &syn::ReturnType) -> TokenStream {
                     content: vec![pulseengine_mcp_protocol::Content::text(result.to_string())],
                     is_error: Some(false),
                     structured_content: None,
+                    _meta: None,
                 })
             }
         }

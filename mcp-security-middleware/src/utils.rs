@@ -287,7 +287,7 @@ mod tests {
         // Test boundaries
         assert!(validate_api_key_format("").is_err());
         assert!(validate_api_key_format("a").is_err()); // Too short
-        assert!(validate_api_key_format("ab").is_err()); // Too short  
+        assert!(validate_api_key_format("ab").is_err()); // Too short
 
         // Test without proper prefix
         assert!(validate_api_key_format("abc12345678901234567890").is_err());
