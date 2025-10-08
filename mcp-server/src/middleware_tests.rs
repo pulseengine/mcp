@@ -21,7 +21,7 @@ fn test_middleware_stack_new() {
     // This should work even with empty stack
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("test".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("test"))),
         method: "test".to_string(),
         params: serde_json::Value::Null,
     };
@@ -41,7 +41,7 @@ fn test_middleware_stack_default() {
     let context = RequestContext::new();
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("test".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("test"))),
         method: "test".to_string(),
         params: serde_json::Value::Null,
     };
@@ -80,7 +80,7 @@ fn test_middleware_stack_builder_pattern() {
         let context = RequestContext::new();
         let request = Request {
             jsonrpc: "2.0".to_string(),
-            id: serde_json::Value::String("test".to_string()),
+            id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("test"))),
             method: "test".to_string(),
             params: serde_json::Value::Null,
         };
@@ -98,7 +98,7 @@ async fn test_middleware_stack_process_request() {
 
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("test_request".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("test_request"))),
         method: "tools/list".to_string(),
         params: serde_json::json!({"cursor": null}),
     };
@@ -125,7 +125,7 @@ async fn test_middleware_stack_process_response() {
 
     let response = Response {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("test_response".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("test_response"))),
         result: Some(serde_json::json!({"tools": []})),
         error: None,
     };
@@ -162,7 +162,7 @@ async fn test_middleware_stack_with_auth() {
 
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("auth_test".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("auth_test"))),
         method: "tools/call".to_string(),
         params: serde_json::json!({
             "name": "test_tool",
@@ -206,7 +206,7 @@ async fn test_middleware_stack_full_pipeline() {
     // Test request processing
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("full_pipeline_test".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("full_pipeline_test"))),
         method: "resources/list".to_string(),
         params: serde_json::json!({"cursor": null}),
     };
@@ -217,7 +217,7 @@ async fn test_middleware_stack_full_pipeline() {
     // Test response processing
     let response = Response {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("full_pipeline_test".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("full_pipeline_test"))),
         result: Some(serde_json::json!({"resources": []})),
         error: None,
     };
@@ -235,7 +235,7 @@ async fn test_middleware_stack_error_handling() {
     // Test with malformed request
     let malformed_request = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("error_test".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("error_test"))),
         method: "".to_string(), // Empty method
         params: serde_json::Value::Null,
     };
@@ -259,7 +259,7 @@ async fn test_middleware_stack_request_context_usage() {
 
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("context_test".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("context_test"))),
         method: "ping".to_string(),
         params: serde_json::Value::Null,
     };
@@ -316,7 +316,7 @@ async fn test_custom_middleware_implementation() {
 
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("mock_test".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("mock_test"))),
         method: "test".to_string(),
         params: serde_json::Value::Null,
     };
@@ -326,7 +326,7 @@ async fn test_custom_middleware_implementation() {
 
     let response = Response {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("mock_test".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("mock_test"))),
         result: Some(serde_json::Value::Null),
         error: None,
     };
@@ -343,7 +343,7 @@ async fn test_custom_middleware_failure() {
 
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("fail_test".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("fail_test"))),
         method: "test".to_string(),
         params: serde_json::Value::Null,
     };
@@ -353,7 +353,7 @@ async fn test_custom_middleware_failure() {
 
     let response = Response {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("fail_test".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("fail_test"))),
         result: Some(serde_json::Value::Null),
         error: None,
     };
@@ -385,7 +385,7 @@ fn test_middleware_stack_clone() {
     let context = RequestContext::new();
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("clone_test".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("clone_test"))),
         method: "test".to_string(),
         params: serde_json::Value::Null,
     };

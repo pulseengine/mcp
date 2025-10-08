@@ -110,6 +110,9 @@ impl McpBackend for AuthTestBackend {
                         "required": ["message"]
                     }),
                     output_schema: None,
+                    title: None,
+                    annotations: None,
+                    icons: None,
                 },
                 Tool {
                     name: "authenticated_tool".to_string(),
@@ -122,6 +125,9 @@ impl McpBackend for AuthTestBackend {
                         "required": ["data"]
                     }),
                     output_schema: None,
+                    title: None,
+                    annotations: None,
+                    icons: None,
                 },
             ],
             next_cursor: None,
@@ -143,9 +149,11 @@ impl McpBackend for AuthTestBackend {
                 Ok(CallToolResult {
                     content: vec![Content::Text {
                         text: format!("Public tool executed with: {message}"),
+                        _meta: None,
                     }],
                     is_error: Some(false),
                     structured_content: None,
+                    _meta: None,
                 })
             }
             "authenticated_tool" => {
@@ -159,9 +167,11 @@ impl McpBackend for AuthTestBackend {
                 Ok(CallToolResult {
                     content: vec![Content::Text {
                         text: format!("Authenticated tool executed with: {data}"),
+                        _meta: None,
                     }],
                     is_error: Some(false),
                     structured_content: None,
+                    _meta: None,
                 })
             }
             _ => {
@@ -270,7 +280,7 @@ async fn test_handler_with_authentication() {
 
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("test".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("test"))),
         method: "tools/list".to_string(),
         params: serde_json::json!({"cursor": null}),
     };
@@ -304,7 +314,7 @@ async fn test_tool_call_with_authentication() {
     // Test public tool call (should work without auth)
     let public_request = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("public_test".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("public_test"))),
         method: "tools/call".to_string(),
         params: serde_json::json!({
             "name": "public_tool",
@@ -321,7 +331,7 @@ async fn test_tool_call_with_authentication() {
     let result: CallToolResult = serde_json::from_value(response.result.unwrap()).unwrap();
     assert_eq!(result.is_error, Some(false));
     match &result.content[0] {
-        Content::Text { text } => assert!(text.contains("Hello public!")),
+        Content::Text { text, .. } => assert!(text.contains("Hello public!")),
         _ => panic!("Expected text content"),
     }
 }
@@ -361,7 +371,7 @@ async fn test_auth_context_propagation() {
     // Test that the context can be used with the handler
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("context_test".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("context_test"))),
         method: "tools/list".to_string(),
         params: serde_json::json!({"cursor": null}),
     };

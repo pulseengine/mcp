@@ -115,6 +115,7 @@ impl McpBackend for MockServerBackend {
             content: vec![],
             is_error: Some(false),
             structured_content: None,
+            _meta: None,
         })
     }
 

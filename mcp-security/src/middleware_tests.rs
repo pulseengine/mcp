@@ -14,7 +14,7 @@ mod tests {
             jsonrpc: jsonrpc.to_string(),
             method: method.to_string(),
             params: json!({}),
-            id: json!(1),
+            id: Some(pulseengine_mcp_protocol::NumberOrString::Number(1)),
         }
     }
 
@@ -23,7 +23,7 @@ mod tests {
             jsonrpc: "2.0".to_string(),
             result: Some(json!({"success": true})),
             error: None,
-            id: json!(1),
+            id: Some(pulseengine_mcp_protocol::NumberOrString::Number(1)),
         }
     }
 
@@ -248,7 +248,7 @@ mod tests {
             jsonrpc: "2.0".to_string(),
             result: None,
             error: Some(ProtocolError::method_not_found("unknown")),
-            id: json!(1),
+            id: Some(pulseengine_mcp_protocol::NumberOrString::Number(1)),
         };
         let context = RequestContext {
             request_id: Uuid::new_v4(),

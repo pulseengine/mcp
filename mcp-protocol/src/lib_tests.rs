@@ -66,7 +66,7 @@ mod tests {
             jsonrpc: "2.0".to_string(),
             method: "test".to_string(),
             params: serde_json::Value::Null,
-            id: serde_json::json!(1),
+            id: Some(NumberOrString::Number(1)),
         };
     }
 

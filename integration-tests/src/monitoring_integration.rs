@@ -127,6 +127,9 @@ impl McpBackend for MonitoringTestBackend {
                         "required": ["operation"]
                     }),
                     output_schema: None,
+                    title: None,
+                    annotations: None,
+                    icons: None,
                 },
                 Tool {
                     name: "metrics_tool".to_string(),
@@ -137,6 +140,9 @@ impl McpBackend for MonitoringTestBackend {
                         "required": []
                     }),
                     output_schema: None,
+                    title: None,
+                    annotations: None,
+                    icons: None,
                 },
             ],
             next_cursor: None,
@@ -177,9 +183,11 @@ impl McpBackend for MonitoringTestBackend {
                             "Executed operation '{}' with {}ms delay",
                             operation, delay_ms
                         ),
+                        _meta: None,
                     }],
                     is_error: Some(false),
                     structured_content: None,
+                    _meta: None,
                 })
             }
             "metrics_tool" => {
@@ -189,9 +197,11 @@ impl McpBackend for MonitoringTestBackend {
                 Ok(CallToolResult {
                     content: vec![Content::Text {
                         text: format!("Total requests processed: {}", count),
+                        _meta: None,
                     }],
                     is_error: Some(false),
                     structured_content: None,
+                    _meta: None,
                 })
             }
             _ => {
@@ -334,7 +344,7 @@ async fn test_handler_with_monitoring() {
     for i in 0..5 {
         let request = Request {
             jsonrpc: "2.0".to_string(),
-            id: serde_json::Value::String(format!("test_{}", i)),
+            id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(format!("test_{}", i)))),
             method: "tools/list".to_string(),
             params: serde_json::json!({"cursor": null}),
         };
@@ -377,7 +387,7 @@ async fn test_performance_monitoring() {
 
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("perf_test".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("perf_test"))),
         method: "tools/call".to_string(),
         params: serde_json::json!({
             "name": "monitored_tool",
@@ -401,7 +411,7 @@ async fn test_performance_monitoring() {
     let result: CallToolResult = serde_json::from_value(response.result.unwrap()).unwrap();
     assert_eq!(result.is_error, Some(false));
     match &result.content[0] {
-        Content::Text { text } => assert!(text.contains("performance_test")),
+        Content::Text { text, .. } => assert!(text.contains("performance_test")),
         _ => panic!("Expected text content"),
     }
 }

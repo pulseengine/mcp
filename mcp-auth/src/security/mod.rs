@@ -85,7 +85,7 @@ mod tests {
         let valid_request = Request {
             jsonrpc: "2.0".to_string(),
             method: "tools/list".to_string(),
-            id: json!(1),
+            id: Some(pulseengine_mcp_protocol::NumberOrString::Number(1)),
             params: json!({}),
         };
 
@@ -99,7 +99,7 @@ mod tests {
         let large_request = Request {
             jsonrpc: "2.0".to_string(),
             method: "tools/call".to_string(),
-            id: json!(2),
+            id: Some(pulseengine_mcp_protocol::NumberOrString::Number(2)),
             params: json!(large_params),
         };
 
@@ -209,7 +209,7 @@ mod tests {
         let suspicious_request = Request {
             jsonrpc: "2.0".to_string(),
             method: "tools/call".to_string(),
-            id: json!(1),
+            id: Some(pulseengine_mcp_protocol::NumberOrString::Number(1)),
             params: json!({
                 "name": "test_tool",
                 "arguments": {
