@@ -100,6 +100,9 @@ impl McpBackend for TransportTestBackend {
                         "required": ["message"]
                     }),
                     output_schema: None,
+                    title: None,
+                    annotations: None,
+                    icons: None,
                 },
                 Tool {
                     name: "transport_info".to_string(),
@@ -110,6 +113,9 @@ impl McpBackend for TransportTestBackend {
                         "required": []
                     }),
                     output_schema: None,
+                    title: None,
+                    annotations: None,
+                    icons: None,
                 },
             ],
             next_cursor: None,
@@ -131,17 +137,21 @@ impl McpBackend for TransportTestBackend {
                 Ok(CallToolResult {
                     content: vec![Content::Text {
                         text: format!("Echo: {message}"),
+                        _meta: None,
                     }],
                     is_error: Some(false),
                     structured_content: None,
+                    _meta: None,
                 })
             }
             "transport_info" => Ok(CallToolResult {
                 content: vec![Content::Text {
                     text: format!("Transport test backend: {}", self.server_name),
+                    _meta: None,
                 }],
                 is_error: Some(false),
                 structured_content: None,
+                _meta: None,
             }),
             _ => {
                 Err(BackendError::not_supported(format!("Tool not found: {}", request.name)).into())
@@ -161,6 +171,8 @@ impl McpBackend for TransportTestBackend {
                 mime_type: Some("text/plain".to_string()),
                 annotations: None,
                 raw: None,
+                title: None,
+                icons: None,
             }],
             next_cursor: None,
         })
@@ -180,6 +192,7 @@ impl McpBackend for TransportTestBackend {
                         self.server_name
                     )),
                     blob: None,
+                    _meta: None,
                 }],
             })
         } else {

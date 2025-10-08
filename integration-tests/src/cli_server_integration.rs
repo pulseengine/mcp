@@ -105,6 +105,9 @@ impl McpBackend for CliTestBackend {
                     "required": ["input"]
                 }),
                 output_schema: None,
+                title: None,
+                annotations: None,
+                icons: None,
             })
             .collect();
 
@@ -131,9 +134,11 @@ impl McpBackend for CliTestBackend {
                         "CLI backend '{}' executed tool '{}' with input: {}",
                         self.name, request.name, input
                     ),
+                    _meta: None,
                 }],
                 is_error: Some(false),
                 structured_content: None,
+                _meta: None,
             })
         } else {
             Err(BackendError::not_supported(format!("Tool not found: {}", request.name)).into())
@@ -154,6 +159,8 @@ impl McpBackend for CliTestBackend {
                 mime_type: Some("text/plain".to_string()),
                 annotations: None,
                 raw: None,
+                title: None,
+                icons: None,
             })
             .collect();
 
@@ -178,6 +185,7 @@ impl McpBackend for CliTestBackend {
                             resource_name, self.name
                         )),
                         blob: None,
+                        _meta: None,
                     }],
                 });
             }
@@ -329,7 +337,7 @@ async fn test_cli_server_integration_with_backend() {
 
     assert_eq!(call_result.is_error, Some(false));
     match &call_result.content[0] {
-        Content::Text { text } => {
+        Content::Text { text, .. } => {
             assert!(text.contains("CLI Integration Backend"));
             assert!(text.contains("cli_tool1"));
             assert!(text.contains("test input"));
@@ -454,7 +462,7 @@ async fn test_cli_full_integration_scenario() {
 
     assert_eq!(call_result.is_error, Some(false));
     match &call_result.content[0] {
-        Content::Text { text } => {
+        Content::Text { text, .. } => {
             assert!(text.contains("Full Integration Backend"));
             assert!(text.contains("integration_tool"));
             assert!(text.contains("full integration test"));

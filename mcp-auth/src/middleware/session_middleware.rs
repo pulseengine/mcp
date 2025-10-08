@@ -586,7 +586,7 @@ mod tests {
             jsonrpc: "2.0".to_string(),
             method: "initialize".to_string(), // Anonymous method
             params: serde_json::json!({}),
-            id: serde_json::Value::Number(1.into()),
+            id: Some(pulseengine_mcp_protocol::NumberOrString::Number(1)),
         };
 
         let result = middleware.process_request(request, None).await;

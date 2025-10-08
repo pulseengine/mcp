@@ -144,6 +144,9 @@ impl McpBackend for MemoryAuthBackend {
                     description: "List all API keys currently in memory".to_string(),
                     input_schema: json!({"type": "object", "properties": {}}),
                     output_schema: None,
+                    title: None,
+                    annotations: None,
+                    icons: None,
                 },
                 Tool {
                     name: "add_temp_key".to_string(),
@@ -157,6 +160,9 @@ impl McpBackend for MemoryAuthBackend {
                         "required": ["name", "role"]
                     }),
                     output_schema: None,
+                    title: None,
+                    annotations: None,
+                    icons: None,
                 },
             ],
             next_cursor: None,
@@ -192,6 +198,7 @@ impl McpBackend for MemoryAuthBackend {
                     ))],
                     is_error: Some(false),
                     structured_content: None,
+                    _meta: None,
                 })
             }
             "add_temp_key" => {
@@ -231,6 +238,7 @@ impl McpBackend for MemoryAuthBackend {
                     ))],
                     is_error: Some(false),
                     structured_content: None,
+                    _meta: None,
                 })
             }
             _ => Err(ServerError::InvalidParameter(format!(

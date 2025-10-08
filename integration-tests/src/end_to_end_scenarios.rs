@@ -260,6 +260,9 @@ impl McpBackend for E2ETestBackend {
                     }),
                 },
                 output_schema: None,
+                title: None,
+                annotations: None,
+                icons: None,
             })
             .collect();
 
@@ -294,6 +297,7 @@ impl McpBackend for E2ETestBackend {
                     .unwrap_or("No message provided");
                 vec![Content::Text {
                     text: format!("Echo from {}: {}", self.name, message),
+                    _meta: None,
                 }]
             }
             E2EToolHandler::Calculate => {
@@ -331,6 +335,7 @@ impl McpBackend for E2ETestBackend {
 
                 vec![Content::Text {
                     text: format!("Calculation result for '{expression}': {result}"),
+                    _meta: None,
                 }]
             }
             E2EToolHandler::Session => {
@@ -350,6 +355,7 @@ impl McpBackend for E2ETestBackend {
 
                 vec![Content::Text {
                     text: format!("Stored '{key}' = {value:?} in session"),
+                    _meta: None,
                 }]
             }
             E2EToolHandler::FileSystem => {
@@ -368,6 +374,7 @@ impl McpBackend for E2ETestBackend {
 
                 vec![Content::Text {
                     text: format!("File info for '{}': {}", path, info),
+                    _meta: None,
                 }]
             }
             E2EToolHandler::Weather => {
@@ -404,6 +411,7 @@ impl McpBackend for E2ETestBackend {
 
                 vec![Content::Text {
                     text: format!("Weather for {}: {}", location, weather),
+                    _meta: None,
                 }]
             }
         };
@@ -412,6 +420,7 @@ impl McpBackend for E2ETestBackend {
             content,
             is_error: Some(false),
             structured_content: None,
+            _meta: None,
         })
     }
 
@@ -438,6 +447,8 @@ impl McpBackend for E2ETestBackend {
                 mime_type: Some(res.mime_type.clone()),
                 annotations: None,
                 raw: None,
+                title: None,
+                icons: None,
             })
             .collect();
 
@@ -471,6 +482,7 @@ impl McpBackend for E2ETestBackend {
                 mime_type: Some(resource.mime_type.clone()),
                 text: Some(resource.content.clone()),
                 blob: None,
+                _meta: None,
             }],
         })
     }
@@ -505,6 +517,8 @@ impl McpBackend for E2ETestBackend {
                         required: Some(false),
                     },
                 ]),
+                title: None,
+                icons: None,
             })
             .collect();
 
@@ -612,7 +626,7 @@ async fn test_e2e_handler_workflow() {
     // Test initialization
     let init_request = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("init".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("init"))),
         method: "initialize".to_string(),
         params: serde_json::json!({
             "protocolVersion": "2024-11-05",
@@ -630,7 +644,7 @@ async fn test_e2e_handler_workflow() {
     // Test tool operations
     let tools_request = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("list_tools".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("list_tools"))),
         method: "tools/list".to_string(),
         params: serde_json::json!({"cursor": null}),
     };
@@ -643,7 +657,7 @@ async fn test_e2e_handler_workflow() {
     // Test tool execution
     let call_request = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("call_tool".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("call_tool"))),
         method: "tools/call".to_string(),
         params: serde_json::json!({
             "name": "echo",
@@ -661,7 +675,7 @@ async fn test_e2e_handler_workflow() {
     // Test resource operations
     let resources_request = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("list_resources".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("list_resources"))),
         method: "resources/list".to_string(),
         params: serde_json::json!({"cursor": null}),
     };
@@ -675,7 +689,7 @@ async fn test_e2e_handler_workflow() {
     // Test resource reading
     let read_request = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("read_resource".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("read_resource"))),
         method: "resources/read".to_string(),
         params: serde_json::json!({"uri": "e2e://system/info"}),
     };
@@ -686,7 +700,7 @@ async fn test_e2e_handler_workflow() {
     // Test prompt operations
     let prompts_request = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("list_prompts".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("list_prompts"))),
         method: "prompts/list".to_string(),
         params: serde_json::json!({"cursor": null}),
     };
@@ -696,7 +710,7 @@ async fn test_e2e_handler_workflow() {
 
     let get_prompt_request = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("get_prompt".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("get_prompt"))),
         method: "prompts/get".to_string(),
         params: serde_json::json!({
             "name": "greeting",
@@ -727,7 +741,7 @@ async fn test_e2e_pagination_workflow() {
     // Test tool pagination
     let tools_page1 = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("tools_page1".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("tools_page1"))),
         method: "tools/list".to_string(),
         params: serde_json::json!({"cursor": null}),
     };
@@ -740,7 +754,7 @@ async fn test_e2e_pagination_workflow() {
     // Test resource pagination
     let resources_page1 = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("resources_page1".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("resources_page1"))),
         method: "resources/list".to_string(),
         params: serde_json::json!({"cursor": null}),
     };
@@ -754,7 +768,7 @@ async fn test_e2e_pagination_workflow() {
     // Test prompt pagination
     let prompts_page1 = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("prompts_page1".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("prompts_page1"))),
         method: "prompts/list".to_string(),
         params: serde_json::json!({"cursor": null}),
     };
@@ -783,7 +797,7 @@ async fn test_e2e_error_handling() {
     // Test invalid method
     let invalid_request = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("invalid".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("invalid"))),
         method: "invalid/method".to_string(),
         params: serde_json::Value::Null,
     };
@@ -794,7 +808,7 @@ async fn test_e2e_error_handling() {
     // Test tool not found
     let not_found_request = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("not_found".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("not_found"))),
         method: "tools/call".to_string(),
         params: serde_json::json!({
             "name": "nonexistent_tool",
@@ -808,7 +822,7 @@ async fn test_e2e_error_handling() {
     // Test resource not found
     let resource_not_found = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("resource_not_found".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("resource_not_found"))),
         method: "resources/read".to_string(),
         params: serde_json::json!({"uri": "e2e://nonexistent"}),
     };
@@ -819,7 +833,7 @@ async fn test_e2e_error_handling() {
     // Test prompt not found
     let prompt_not_found = Request {
         jsonrpc: "2.0".to_string(),
-        id: serde_json::Value::String("prompt_not_found".to_string()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("prompt_not_found"))),
         method: "prompts/get".to_string(),
         params: serde_json::json!({
             "name": "nonexistent_prompt",

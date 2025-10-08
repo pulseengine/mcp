@@ -11,7 +11,7 @@ mod tests {
             jsonrpc: "2.0".to_string(),
             method: "tools/list".to_string(),
             params: json!({"cursor": null}),
-            id: json!(1),
+            id: Some(NumberOrString::Number(1)),
         };
 
         let serialized = serde_json::to_string(&request).unwrap();
@@ -19,7 +19,7 @@ mod tests {
 
         assert_eq!(deserialized.jsonrpc, "2.0");
         assert_eq!(deserialized.method, "tools/list");
-        assert_eq!(deserialized.id, json!(1));
+        assert_eq!(deserialized.id, Some(NumberOrString::Number(1)));
     }
 
     #[test]
@@ -28,7 +28,7 @@ mod tests {
             jsonrpc: "2.0".to_string(),
             result: Some(json!({"tools": []})),
             error: None,
-            id: json!(1),
+            id: Some(NumberOrString::Number(1)),
         };
 
         let serialized = serde_json::to_string(&response).unwrap();
@@ -44,7 +44,7 @@ mod tests {
             jsonrpc: "2.0".to_string(),
             result: None,
             error: Some(Error::method_not_found("unknown_method")),
-            id: json!(1),
+            id: Some(NumberOrString::Number(1)),
         };
 
         let serialized = serde_json::to_string(&response).unwrap();
@@ -102,14 +102,14 @@ mod tests {
         // Text content
         let text_content = Content::text("Hello, world!");
         match &text_content {
-            Content::Text { text } => assert_eq!(text, "Hello, world!"),
+            Content::Text { text, .. } => assert_eq!(text, "Hello, world!"),
             _ => panic!("Expected text content"),
         }
 
         // Image content
         let image_content = Content::image("base64data", "image/png");
         match &image_content {
-            Content::Image { data, mime_type } => {
+            Content::Image { data, mime_type, .. } => {
                 assert_eq!(data, "base64data");
                 assert_eq!(mime_type, "image/png");
             }
@@ -120,7 +120,7 @@ mod tests {
         let resource_content =
             Content::resource("file://path/to/resource", Some("text".to_string()));
         match &resource_content {
-            Content::Resource { resource, text } => {
+            Content::Resource { resource, text, .. } => {
                 assert_eq!(resource, "file://path/to/resource");
                 assert_eq!(text.as_ref().unwrap(), "text");
             }
@@ -209,6 +209,9 @@ mod tests {
                 },
                 "required": ["result"]
             })),
+            title: None,
+            annotations: None,
+            icons: None,
         };
 
         assert!(tool.output_schema.is_some());
@@ -229,6 +232,9 @@ mod tests {
                 }
             }),
             output_schema: None,
+            title: None,
+            annotations: None,
+            icons: None,
         };
 
         let serialized = serde_json::to_string(&tool).unwrap();
@@ -247,12 +253,18 @@ mod tests {
                     description: "First tool".to_string(),
                     input_schema: json!({}),
                     output_schema: None,
+                    title: None,
+                    annotations: None,
+                    icons: None,
                 },
                 Tool {
                     name: "tool2".to_string(),
                     description: "Second tool".to_string(),
                     input_schema: json!({}),
                     output_schema: None,
+                    title: None,
+                    annotations: None,
+                    icons: None,
                 },
             ],
             next_cursor: Some("cursor123".to_string()),
@@ -274,6 +286,8 @@ mod tests {
                 priority: Some(0.8),
             }),
             raw: None,
+            title: None,
+            icons: None,
         };
 
         assert_eq!(resource.uri, "file://example.txt");
@@ -380,6 +394,8 @@ mod tests {
                     required: Some(false),
                 },
             ]),
+            title: None,
+            icons: None,
         };
 
         assert_eq!(prompt.name, "code_review");
@@ -407,6 +423,8 @@ mod tests {
             mime_type: None,
             annotations: None,
             raw: None,
+            title: None,
+            icons: None,
         };
         assert!(minimal_resource.description.is_none());
         assert!(minimal_resource.mime_type.is_none());
@@ -414,7 +432,7 @@ mod tests {
         // Content with empty text
         let empty_content = Content::text("");
         match &empty_content {
-            Content::Text { text } => assert_eq!(text, ""),
+            Content::Text { text, .. } => assert_eq!(text, ""),
             _ => panic!("Expected text content"),
         }
     }

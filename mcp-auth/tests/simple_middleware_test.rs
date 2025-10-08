@@ -28,7 +28,7 @@ async fn test_anonymous_method_processing() {
         jsonrpc: "2.0".to_string(),
         method: "initialize".to_string(), // This should be in anonymous methods
         params: serde_json::json!({}),
-        id: serde_json::Value::Number(1.into()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::Number(1)),
     };
 
     let result = middleware.process_request(request, None).await;
@@ -62,7 +62,7 @@ async fn test_authenticated_request() {
         jsonrpc: "2.0".to_string(),
         method: "tools/list".to_string(),
         params: serde_json::json!({}),
-        id: serde_json::Value::Number(1.into()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::Number(1)),
     };
 
     let result = middleware.process_request(request, Some(&headers)).await;
@@ -84,7 +84,7 @@ async fn test_missing_auth_required() {
         jsonrpc: "2.0".to_string(),
         method: "tools/list".to_string(), // This requires auth
         params: serde_json::json!({}),
-        id: serde_json::Value::Number(1.into()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::Number(1)),
     };
 
     let result = middleware.process_request(request, None).await;
@@ -113,7 +113,7 @@ async fn test_invalid_api_key() {
         jsonrpc: "2.0".to_string(),
         method: "tools/list".to_string(),
         params: serde_json::json!({}),
-        id: serde_json::Value::Number(1.into()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::Number(1)),
     };
 
     let result = middleware.process_request(request, Some(&headers)).await;
@@ -142,7 +142,7 @@ async fn test_optional_auth_config() {
         jsonrpc: "2.0".to_string(),
         method: "tools/list".to_string(),
         params: serde_json::json!({}),
-        id: serde_json::Value::Number(1.into()),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::Number(1)),
     };
 
     // Should succeed without auth when require_auth is false

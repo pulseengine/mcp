@@ -158,6 +158,9 @@ impl McpBackend for MockBackend {
                     "required": []
                 }),
                 output_schema: None,
+                title: None,
+                annotations: None,
+                icons: None,
             }],
             next_cursor: None,
         })
@@ -175,9 +178,11 @@ impl McpBackend for MockBackend {
             Ok(CallToolResult {
                 content: vec![Content::Text {
                     text: "Mock tool executed successfully".to_string(),
+                    _meta: None,
                 }],
                 is_error: Some(false),
                 structured_content: None,
+                _meta: None,
             })
         } else {
             Err(BackendError::not_supported(format!("Tool not found: {}", request.name)).into())
@@ -354,6 +359,7 @@ async fn test_mock_backend_optional_methods() {
                 "name": "test",
                 "value": "test"
             }),
+            context: None,
         })
         .await
         .unwrap();
@@ -441,6 +447,7 @@ impl SimpleBackend for MockSimpleBackend {
             content: vec![],
             is_error: Some(false),
             structured_content: None,
+            _meta: None,
         })
     }
 }

@@ -31,6 +31,9 @@
 //!             "condition": {"type": "string"}
 //!         }
 //!     })),
+//!     title: None,
+//!     annotations: None,
+//!     icons: None,
 //! };
 //!
 //! // Create a tool response with optional structured content
@@ -41,6 +44,7 @@
 //!         "temperature": "22°C",
 //!         "condition": "sunny"
 //!     })),
+//!     _meta: None,
 //! };
 //! ```
 //!

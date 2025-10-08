@@ -3,7 +3,7 @@
 #[cfg(test)]
 mod tests {
     use super::super::*;
-    use pulseengine_mcp_protocol::{Error as ProtocolError, Request, Response};
+    use pulseengine_mcp_protocol::{Error as ProtocolError, NumberOrString, Request, Response};
     use serde_json::json;
     use std::sync::Arc;
     use std::time::Duration;
@@ -15,7 +15,7 @@ mod tests {
             jsonrpc: "2.0".to_string(),
             method: method.to_string(),
             params: json!({}),
-            id: json!(1),
+            id: Some(NumberOrString::Number(1)),
         }
     }
 
@@ -24,7 +24,7 @@ mod tests {
             jsonrpc: "2.0".to_string(),
             result: Some(json!({"success": true})),
             error: None,
-            id: json!(1),
+            id: Some(NumberOrString::Number(1)),
         }
     }
 
@@ -33,7 +33,7 @@ mod tests {
             jsonrpc: "2.0".to_string(),
             result: None,
             error: Some(ProtocolError::method_not_found("unknown")),
-            id: json!(1),
+            id: Some(NumberOrString::Number(1)),
         }
     }
 
