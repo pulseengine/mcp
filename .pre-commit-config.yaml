@@ -96,7 +96,7 @@ repos:
       - id: cargo-clippy-check
         name: Cargo Clippy Check
         description: Run clippy with warnings as errors (same as CI)
-        entry: cargo clippy --workspace --lib --all-features -- -D warnings
+        entry: cargo clippy --all-features --all-targets --release -- -D warnings
         language: system
         files: '\.rs$'
         pass_filenames: false
@@ -105,7 +105,7 @@ repos:
       - id: cargo-test-check
         name: Cargo Test Check
         description: Run quick tests to catch major issues before CI
-        entry: cargo test --workspace --lib
+        entry: cargo test --workspace --lib --all-features
         language: system
         files: '\.rs$'
         pass_filenames: false
