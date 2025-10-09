@@ -1,8 +1,8 @@
 [package]
 name = "hello-world-with-auth"
-version = "0.10.0"
-rust-version = "1.88"
-edition = "2024"
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
 publish = false
 
 [dependencies]
