@@ -251,7 +251,8 @@ async fn test_multi_param_still_works() {
     );
 
     if let Ok(call_result) = result {
-        if let Some(pulseengine_mcp_protocol::Content::Text { text, .. }) = call_result.content.first()
+        if let Some(pulseengine_mcp_protocol::Content::Text { text, .. }) =
+            call_result.content.first()
         {
             assert!(text.contains("Alice"));
             assert!(text.contains("30"));

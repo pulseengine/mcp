@@ -327,10 +327,16 @@ mod tests {
     #[test]
     fn test_create_error_response() {
         let error = McpError::parse_error("Test error");
-        let response = create_error_response(error, Some(pulseengine_mcp_protocol::NumberOrString::Number(123)));
+        let response = create_error_response(
+            error,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(123)),
+        );
 
         assert_eq!(response.jsonrpc, "2.0");
-        assert_eq!(response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(123)));
+        assert_eq!(
+            response.id,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(123))
+        );
         assert!(response.result.is_none());
         assert!(response.error.is_some());
     }

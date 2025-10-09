@@ -5,7 +5,7 @@ mod tests {
     use super::super::batch::*;
     use crate::TransportError;
     use pulseengine_mcp_protocol::{Error as McpError, Request, Response};
-    use serde_json::{Value, json};
+    use serde_json::json;
     use std::sync::Arc;
 
     // Mock handler for testing
@@ -157,7 +157,10 @@ mod tests {
         let requests = message.extract_requests().unwrap();
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].method, "test");
-        assert_eq!(requests[0].id, Some(pulseengine_mcp_protocol::NumberOrString::Number(1)));
+        assert_eq!(
+            requests[0].id,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(1))
+        );
     }
 
     #[test]
@@ -182,9 +185,17 @@ mod tests {
         let requests = message.extract_requests().unwrap();
         assert_eq!(requests.len(), 2);
         assert_eq!(requests[0].method, "request1");
-        assert_eq!(requests[0].id, Some(pulseengine_mcp_protocol::NumberOrString::Number(1)));
+        assert_eq!(
+            requests[0].id,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(1))
+        );
         assert_eq!(requests[1].method, "request2");
-        assert_eq!(requests[1].id, Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("string-id"))));
+        assert_eq!(
+            requests[1].id,
+            Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+                "string-id"
+            )))
+        );
     }
 
     #[test]
@@ -354,10 +365,16 @@ mod tests {
     #[test]
     fn test_create_error_response() {
         let error = McpError::parse_error("Test parse error");
-        let response = create_error_response(error, Some(pulseengine_mcp_protocol::NumberOrString::Number(123)));
+        let response = create_error_response(
+            error,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(123)),
+        );
 
         assert_eq!(response.jsonrpc, "2.0");
-        assert_eq!(response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(123)));
+        assert_eq!(
+            response.id,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(123))
+        );
         assert!(response.result.is_none());
         assert!(response.error.is_some());
 
@@ -379,10 +396,20 @@ mod tests {
     #[test]
     fn test_create_error_response_string_id() {
         let error = McpError::method_not_found("Method not found");
-        let response = create_error_response(error, Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("string-id"))));
+        let response = create_error_response(
+            error,
+            Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+                "string-id",
+            ))),
+        );
 
         assert_eq!(response.jsonrpc, "2.0");
-        assert_eq!(response.id, Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("string-id"))));
+        assert_eq!(
+            response.id,
+            Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+                "string-id"
+            )))
+        );
         assert!(response.result.is_none());
         assert!(response.error.is_some());
     }

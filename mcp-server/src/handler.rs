@@ -875,7 +875,10 @@ mod tests {
         let response = handler.handle_request(request).await.unwrap();
 
         assert_eq!(response.jsonrpc, "2.0");
-        assert_eq!(response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(1)));
+        assert_eq!(
+            response.id,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(1))
+        );
         assert!(response.result.is_some());
         assert!(response.error.is_none());
 
@@ -900,7 +903,10 @@ mod tests {
         let response = handler.handle_request(request).await.unwrap();
 
         assert_eq!(response.jsonrpc, "2.0");
-        assert_eq!(response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(2)));
+        assert_eq!(
+            response.id,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(2))
+        );
         assert!(response.result.is_some());
         assert!(response.error.is_none());
 
@@ -927,7 +933,10 @@ mod tests {
         let response = handler.handle_request(request).await.unwrap();
 
         assert_eq!(response.jsonrpc, "2.0");
-        assert_eq!(response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(3)));
+        assert_eq!(
+            response.id,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(3))
+        );
         assert!(response.result.is_some());
         assert!(response.error.is_none());
 
@@ -952,7 +961,10 @@ mod tests {
         let response = handler.handle_request(request).await.unwrap();
 
         assert_eq!(response.jsonrpc, "2.0");
-        assert_eq!(response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(4)));
+        assert_eq!(
+            response.id,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(4))
+        );
         assert!(response.result.is_none());
         assert!(response.error.is_some());
     }
@@ -970,7 +982,10 @@ mod tests {
         let response = handler.handle_request(request).await.unwrap();
 
         assert_eq!(response.jsonrpc, "2.0");
-        assert_eq!(response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(5)));
+        assert_eq!(
+            response.id,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(5))
+        );
         assert!(response.result.is_some());
         assert!(response.error.is_none());
 
@@ -994,7 +1009,10 @@ mod tests {
         let response = handler.handle_request(request).await.unwrap();
 
         assert_eq!(response.jsonrpc, "2.0");
-        assert_eq!(response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(6)));
+        assert_eq!(
+            response.id,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(6))
+        );
         assert!(response.result.is_some());
         assert!(response.error.is_none());
 
@@ -1015,7 +1033,10 @@ mod tests {
         let response = handler.handle_request(request).await.unwrap();
 
         assert_eq!(response.jsonrpc, "2.0");
-        assert_eq!(response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(7)));
+        assert_eq!(
+            response.id,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(7))
+        );
         assert!(response.result.is_some());
         assert!(response.error.is_none());
 
@@ -1040,7 +1061,10 @@ mod tests {
         let response = handler.handle_request(request).await.unwrap();
 
         assert_eq!(response.jsonrpc, "2.0");
-        assert_eq!(response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(8)));
+        assert_eq!(
+            response.id,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(8))
+        );
         assert!(response.result.is_some());
         assert!(response.error.is_none());
 
@@ -1063,7 +1087,10 @@ mod tests {
         let response = handler.handle_request(request).await.unwrap();
 
         assert_eq!(response.jsonrpc, "2.0");
-        assert_eq!(response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(9)));
+        assert_eq!(
+            response.id,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(9))
+        );
         assert!(response.result.is_some());
         assert!(response.error.is_none());
     }
@@ -1083,7 +1110,10 @@ mod tests {
         let response = handler.handle_request(request).await.unwrap();
 
         assert_eq!(response.jsonrpc, "2.0");
-        assert_eq!(response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(10)));
+        assert_eq!(
+            response.id,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(10))
+        );
         assert!(response.result.is_some());
         assert!(response.error.is_none());
     }
@@ -1107,7 +1137,10 @@ mod tests {
         let response = handler.handle_request(request).await.unwrap();
 
         assert_eq!(response.jsonrpc, "2.0");
-        assert_eq!(response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(11)));
+        assert_eq!(
+            response.id,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(11))
+        );
         assert!(response.result.is_some());
         assert!(response.error.is_none());
 
@@ -1138,7 +1171,10 @@ mod tests {
         let response = handler.handle_request(request).await.unwrap();
 
         assert_eq!(response.jsonrpc, "2.0");
-        assert_eq!(response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(12)));
+        assert_eq!(
+            response.id,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(12))
+        );
         assert!(response.result.is_some());
         assert!(response.error.is_none());
 
@@ -1160,7 +1196,10 @@ mod tests {
         let response = handler.handle_request(request).await.unwrap();
 
         assert_eq!(response.jsonrpc, "2.0");
-        assert_eq!(response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(13)));
+        assert_eq!(
+            response.id,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(13))
+        );
         assert!(response.result.is_some());
         assert!(response.error.is_none());
     }
@@ -1178,7 +1217,10 @@ mod tests {
         let response = handler.handle_request(request).await.unwrap();
 
         assert_eq!(response.jsonrpc, "2.0");
-        assert_eq!(response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(14)));
+        assert_eq!(
+            response.id,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(14))
+        );
         assert!(response.result.is_some());
         assert!(response.error.is_none());
 
@@ -1199,7 +1241,10 @@ mod tests {
         let response = handler.handle_request(request).await.unwrap();
 
         assert_eq!(response.jsonrpc, "2.0");
-        assert_eq!(response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(15)));
+        assert_eq!(
+            response.id,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(15))
+        );
         assert!(response.result.is_none());
         assert!(response.error.is_some());
 
@@ -1220,7 +1265,10 @@ mod tests {
         let response = handler.handle_request(request).await.unwrap();
 
         assert_eq!(response.jsonrpc, "2.0");
-        assert_eq!(response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(16)));
+        assert_eq!(
+            response.id,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(16))
+        );
         assert!(response.result.is_none());
         assert!(response.error.is_some());
     }

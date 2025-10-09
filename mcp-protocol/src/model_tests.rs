@@ -109,7 +109,9 @@ mod tests {
         // Image content
         let image_content = Content::image("base64data", "image/png");
         match &image_content {
-            Content::Image { data, mime_type, .. } => {
+            Content::Image {
+                data, mime_type, ..
+            } => {
                 assert_eq!(data, "base64data");
                 assert_eq!(mime_type, "image/png");
             }

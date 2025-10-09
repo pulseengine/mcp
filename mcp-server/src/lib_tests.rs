@@ -247,7 +247,9 @@ async fn test_integration_handler_flow() {
     // Test initialize request
     let init_request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("init"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "init",
+        ))),
         method: "initialize".to_string(),
         params: serde_json::json!({
             "protocolVersion": "2024-11-05",
@@ -266,7 +268,9 @@ async fn test_integration_handler_flow() {
     // Test list tools
     let tools_request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("tools"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "tools",
+        ))),
         method: "tools/list".to_string(),
         params: serde_json::json!({"cursor": null}),
     };
@@ -282,7 +286,9 @@ async fn test_integration_handler_flow() {
     // Test call tool
     let call_request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("call"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "call",
+        ))),
         method: "tools/call".to_string(),
         params: serde_json::json!({
             "name": "integration_tool",
@@ -342,7 +348,9 @@ async fn test_integration_middleware_flow() {
 
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("middleware_test"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "middleware_test",
+        ))),
         method: "ping".to_string(),
         params: serde_json::Value::Null,
     };
@@ -352,7 +360,9 @@ async fn test_integration_middleware_flow() {
 
     let response = Response {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("middleware_test"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "middleware_test",
+        ))),
         result: Some(serde_json::Value::Null),
         error: None,
     };

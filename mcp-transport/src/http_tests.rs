@@ -7,7 +7,7 @@ mod tests {
     use axum::http::HeaderMap;
     use axum::http::header::{AUTHORIZATION, ORIGIN};
     use pulseengine_mcp_protocol::{Request, Response};
-    use serde_json::{Value, json};
+    use serde_json::json;
 
     // Mock handler for testing
     fn mock_handler(

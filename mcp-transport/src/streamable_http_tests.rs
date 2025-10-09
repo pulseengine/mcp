@@ -5,7 +5,7 @@ mod tests {
     use super::super::streamable_http::*;
     use crate::{Transport, TransportError};
     use pulseengine_mcp_protocol::{Request, Response};
-    use serde_json::{Value, json};
+    use serde_json::json;
 
     // Mock handler for testing
     fn mock_handler(

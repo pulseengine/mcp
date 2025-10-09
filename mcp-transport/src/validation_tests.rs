@@ -230,16 +230,12 @@ mod tests {
             ),
             (
                 r#"{"jsonrpc": "2.0", "method": "test", "id": "string-id"}"#,
-                Some(pulseengine_mcp_protocol::NumberOrString::String(std::sync::Arc::from("string-id"))),
+                Some(pulseengine_mcp_protocol::NumberOrString::String(
+                    std::sync::Arc::from("string-id"),
+                )),
             ),
-            (
-                r#"{"jsonrpc": "2.0", "method": "test", "id": null}"#,
-                None,
-            ),
-            (
-                r#"{"jsonrpc": "2.0", "method": "test"}"#,
-                None,
-            ), // Notification (no id)
+            (r#"{"jsonrpc": "2.0", "method": "test", "id": null}"#, None),
+            (r#"{"jsonrpc": "2.0", "method": "test"}"#, None), // Notification (no id)
             (
                 r#"{"jsonrpc": "2.0", "result": "ok", "id": 42}"#,
                 Some(pulseengine_mcp_protocol::NumberOrString::Number(42)),
