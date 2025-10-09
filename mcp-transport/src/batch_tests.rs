@@ -6,6 +6,7 @@ mod tests {
     use crate::TransportError;
     use pulseengine_mcp_protocol::{Error as McpError, Request, Response};
     use serde_json::{Value, json};
+    use std::sync::Arc;
 
     // Mock handler for testing
     fn mock_handler(
@@ -156,7 +157,7 @@ mod tests {
         let requests = message.extract_requests().unwrap();
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].method, "test");
-        assert_eq!(requests[0].id, json!(1));
+        assert_eq!(requests[0].id, Some(pulseengine_mcp_protocol::NumberOrString::Number(1)));
     }
 
     #[test]
@@ -181,9 +182,9 @@ mod tests {
         let requests = message.extract_requests().unwrap();
         assert_eq!(requests.len(), 2);
         assert_eq!(requests[0].method, "request1");
-        assert_eq!(requests[0].id, json!(1));
+        assert_eq!(requests[0].id, Some(pulseengine_mcp_protocol::NumberOrString::Number(1)));
         assert_eq!(requests[1].method, "request2");
-        assert_eq!(requests[1].id, json!("string-id"));
+        assert_eq!(requests[1].id, Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("string-id"))));
     }
 
     #[test]
@@ -194,7 +195,7 @@ mod tests {
         let notifications = message.extract_notifications().unwrap();
         assert_eq!(notifications.len(), 1);
         assert_eq!(notifications[0].method, "notification");
-        assert!(notifications[0].id.is_null());
+        assert!(notifications[0].id.is_none());
     }
 
     #[test]
@@ -220,8 +221,8 @@ mod tests {
         assert_eq!(notifications.len(), 2);
         assert_eq!(notifications[0].method, "notification1");
         assert_eq!(notifications[1].method, "notification2");
-        assert!(notifications[0].id.is_null());
-        assert!(notifications[1].id.is_null());
+        assert!(notifications[0].id.is_none());
+        assert!(notifications[1].id.is_none());
     }
 
     #[test]

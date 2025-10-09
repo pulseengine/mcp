@@ -309,15 +309,15 @@ mod tests {
     fn test_extract_id_from_malformed() {
         // Valid JSON with extractable ID
         let text = r#"{"jsonrpc": "2.0", "method": "test", "id": 123}"#;
-        assert_eq!(extract_id_from_malformed(text), json!(123));
+        assert_eq!(extract_id_from_malformed(text), Some(pulseengine_mcp_protocol::NumberOrString::Number(123)));
 
         // Invalid JSON but regex can extract
         let text = r#"{"jsonrpc": "2.0", "method": "test", "id": "abc""#; // Missing closing brace
-        assert_eq!(extract_id_from_malformed(text), json!("abc"));
+        assert_eq!(extract_id_from_malformed(text), Some(pulseengine_mcp_protocol::NumberOrString::String(std::sync::Arc::from("abc"))));
 
         // No ID extractable
         let text = r#"{"jsonrpc": "2.0", "method": "test"}"#;
-        assert_eq!(extract_id_from_malformed(text), Value::Null);
+        assert_eq!(extract_id_from_malformed(text), None);
     }
 
     #[test]

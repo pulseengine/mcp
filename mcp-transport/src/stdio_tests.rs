@@ -32,7 +32,7 @@ mod tests {
         Box::pin(async move {
             Response {
                 jsonrpc: "2.0".to_string(),
-                id: Value::Null,
+                id: None,
                 result: None,
                 error: Some(McpError::internal_error("Test error".to_string())),
             }
@@ -213,7 +213,7 @@ mod tests {
 
         let response = Response {
             jsonrpc: "2.0".to_string(),
-            id: json!(1),
+            id: Some(pulseengine_mcp_protocol::NumberOrString::Number(1)),
             result: Some(json!({"status": "ok"})),
             error: None,
         };

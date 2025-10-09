@@ -847,7 +847,7 @@ mod tests {
         Box::pin(async move {
             Response {
                 jsonrpc: "2.0".to_string(),
-                id: serde_json::Value::Null,
+                id: None,
                 result: None,
                 error: None,
             }
