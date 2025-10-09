@@ -354,22 +354,22 @@ mod tests {
         // Test valid JSON with ID
         let text = r#"{"jsonrpc": "2.0", "method": "test", "id": 123}"#;
         let id = extract_id_from_malformed(text);
-        assert_eq!(id, json!(123));
+        assert_eq!(id, Some(pulseengine_mcp_protocol::NumberOrString::Number(123)));
 
         // Test string ID
         let text = r#"{"jsonrpc": "2.0", "method": "test", "id": "abc"}"#;
         let id = extract_id_from_malformed(text);
-        assert_eq!(id, json!("abc"));
+        assert_eq!(id, Some(pulseengine_mcp_protocol::NumberOrString::String(std::sync::Arc::from("abc"))));
 
         // Test malformed JSON
         let text = r#"{"jsonrpc": "2.0", "method": "test", "id": 456"#; // Missing closing brace
         let id = extract_id_from_malformed(text);
-        assert_eq!(id, json!(456));
+        assert_eq!(id, Some(pulseengine_mcp_protocol::NumberOrString::Number(456)));
 
         // Test no ID
         let text = r#"{"jsonrpc": "2.0", "method": "test"}"#;
         let id = extract_id_from_malformed(text);
-        assert_eq!(id, serde_json::Value::Null);
+        assert_eq!(id, None);
     }
 
     #[test]
@@ -535,29 +535,29 @@ mod tests {
         // Null ID
         let text = r#"{"jsonrpc": "2.0", "method": "test", "id": null}"#;
         let id = extract_id_from_malformed(text);
-        assert_eq!(id, serde_json::Value::Null);
+        assert_eq!(id, None);
 
         // Boolean ID (not standard but should handle)
         let text = r#"{"jsonrpc": "2.0", "method": "test", "id": true}"#;
         let id = extract_id_from_malformed(text);
-        assert_eq!(id, json!(true));
+        assert_eq!(id, None);
 
         // Completely invalid JSON
         let text = "not json at all";
         let id = extract_id_from_malformed(text);
-        assert_eq!(id, serde_json::Value::Null);
+        assert_eq!(id, None);
 
         // Empty string
         let text = "";
         let id = extract_id_from_malformed(text);
-        assert_eq!(id, serde_json::Value::Null);
+        assert_eq!(id, None);
     }
 
     #[tokio::test]
     async fn test_response_serialization() {
         let response = Response {
             jsonrpc: "2.0".to_string(),
-            id: json!(1),
+            id: Some(pulseengine_mcp_protocol::NumberOrString::Number(1)),
             result: Some(json!({"status": "ok"})),
             error: None,
         };
@@ -574,12 +574,12 @@ mod tests {
     #[tokio::test]
     async fn test_error_response_creation() {
         let error = McpError::invalid_request("Test error");
-        let request_id = json!(42);
+        let request_id = Some(pulseengine_mcp_protocol::NumberOrString::Number(42));
 
         let response = create_error_response(error, request_id);
 
         assert_eq!(response.jsonrpc, "2.0");
-        assert_eq!(response.id, json!(42));
+        assert_eq!(response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(42)));
         assert!(response.error.is_some());
         assert!(response.result.is_none());
 
@@ -597,12 +597,12 @@ mod tests {
                 jsonrpc: "2.0".to_string(),
                 method: "test_method".to_string(),
                 params: json!({}),
-                id: json!(1),
+                id: Some(pulseengine_mcp_protocol::NumberOrString::Number(1)),
             };
 
             let response = handler(request).await;
             assert_eq!(response.jsonrpc, "2.0");
-            assert_eq!(response.id, json!(1));
+            assert_eq!(response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(1)));
             assert!(response.result.is_some());
             assert!(response.error.is_none());
 
@@ -611,12 +611,12 @@ mod tests {
                 jsonrpc: "2.0".to_string(),
                 method: "error_method".to_string(),
                 params: json!({}),
-                id: json!(2),
+                id: Some(pulseengine_mcp_protocol::NumberOrString::Number(2)),
             };
 
             let error_response = handler(error_request).await;
             assert_eq!(error_response.jsonrpc, "2.0");
-            assert_eq!(error_response.id, json!(2));
+            assert_eq!(error_response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(2)));
             assert!(error_response.result.is_none());
             assert!(error_response.error.is_some());
         });

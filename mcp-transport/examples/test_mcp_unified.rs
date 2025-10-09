@@ -43,10 +43,10 @@ fn mcp_handler(
             }
             "initialized" => {
                 info!("✅ Client initialized");
-                // This is a notification, so we return a response with null id
+                // This is a notification, so we return a response with None id
                 Response {
                     jsonrpc: "2.0".to_string(),
-                    id: serde_json::Value::Null,
+                    id: None,
                     result: Some(json!({})),
                     error: None,
                 }

@@ -83,7 +83,7 @@ fn complete_mcp_handler(
                 // Notification - no response needed
                 Response {
                     jsonrpc: "2.0".to_string(),
-                    id: serde_json::Value::Null,
+                    id: None,
                     result: Some(json!({})),
                     error: None,
                 }

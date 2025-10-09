@@ -226,23 +226,23 @@ mod tests {
         let test_cases = vec![
             (
                 r#"{"jsonrpc": "2.0", "method": "test", "id": 1}"#,
-                serde_json::json!(1),
+                Some(pulseengine_mcp_protocol::NumberOrString::Number(1)),
             ),
             (
                 r#"{"jsonrpc": "2.0", "method": "test", "id": "string-id"}"#,
-                serde_json::json!("string-id"),
+                Some(pulseengine_mcp_protocol::NumberOrString::String(std::sync::Arc::from("string-id"))),
             ),
             (
                 r#"{"jsonrpc": "2.0", "method": "test", "id": null}"#,
-                serde_json::Value::Null,
+                None,
             ),
             (
                 r#"{"jsonrpc": "2.0", "method": "test"}"#,
-                serde_json::Value::Null,
+                None,
             ), // Notification (no id)
             (
                 r#"{"jsonrpc": "2.0", "result": "ok", "id": 42}"#,
-                serde_json::json!(42),
+                Some(pulseengine_mcp_protocol::NumberOrString::Number(42)),
             ),
         ];
 
@@ -265,10 +265,10 @@ mod tests {
 
         for message in malformed_messages {
             let result = extract_id_from_malformed(message);
-            // Should return Null for malformed JSON
+            // Should return None for malformed JSON
             assert!(
-                result == serde_json::Value::Null,
-                "Should return Null for malformed: {message}"
+                result.is_none(),
+                "Should return None for malformed: {message}"
             );
         }
     }
