@@ -344,7 +344,9 @@ async fn test_handler_with_monitoring() {
     for i in 0..5 {
         let request = Request {
             jsonrpc: "2.0".to_string(),
-            id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(format!("test_{}", i)))),
+            id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+                format!("test_{}", i),
+            ))),
             method: "tools/list".to_string(),
             params: serde_json::json!({"cursor": null}),
         };
@@ -387,7 +389,9 @@ async fn test_performance_monitoring() {
 
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("perf_test"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "perf_test",
+        ))),
         method: "tools/call".to_string(),
         params: serde_json::json!({
             "name": "monitored_tool",

@@ -354,17 +354,28 @@ mod tests {
         // Test valid JSON with ID
         let text = r#"{"jsonrpc": "2.0", "method": "test", "id": 123}"#;
         let id = extract_id_from_malformed(text);
-        assert_eq!(id, Some(pulseengine_mcp_protocol::NumberOrString::Number(123)));
+        assert_eq!(
+            id,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(123))
+        );
 
         // Test string ID
         let text = r#"{"jsonrpc": "2.0", "method": "test", "id": "abc"}"#;
         let id = extract_id_from_malformed(text);
-        assert_eq!(id, Some(pulseengine_mcp_protocol::NumberOrString::String(std::sync::Arc::from("abc"))));
+        assert_eq!(
+            id,
+            Some(pulseengine_mcp_protocol::NumberOrString::String(
+                std::sync::Arc::from("abc")
+            ))
+        );
 
         // Test malformed JSON
         let text = r#"{"jsonrpc": "2.0", "method": "test", "id": 456"#; // Missing closing brace
         let id = extract_id_from_malformed(text);
-        assert_eq!(id, Some(pulseengine_mcp_protocol::NumberOrString::Number(456)));
+        assert_eq!(
+            id,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(456))
+        );
 
         // Test no ID
         let text = r#"{"jsonrpc": "2.0", "method": "test"}"#;
@@ -579,7 +590,10 @@ mod tests {
         let response = create_error_response(error, request_id);
 
         assert_eq!(response.jsonrpc, "2.0");
-        assert_eq!(response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(42)));
+        assert_eq!(
+            response.id,
+            Some(pulseengine_mcp_protocol::NumberOrString::Number(42))
+        );
         assert!(response.error.is_some());
         assert!(response.result.is_none());
 
@@ -602,7 +616,10 @@ mod tests {
 
             let response = handler(request).await;
             assert_eq!(response.jsonrpc, "2.0");
-            assert_eq!(response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(1)));
+            assert_eq!(
+                response.id,
+                Some(pulseengine_mcp_protocol::NumberOrString::Number(1))
+            );
             assert!(response.result.is_some());
             assert!(response.error.is_none());
 
@@ -616,7 +633,10 @@ mod tests {
 
             let error_response = handler(error_request).await;
             assert_eq!(error_response.jsonrpc, "2.0");
-            assert_eq!(error_response.id, Some(pulseengine_mcp_protocol::NumberOrString::Number(2)));
+            assert_eq!(
+                error_response.id,
+                Some(pulseengine_mcp_protocol::NumberOrString::Number(2))
+            );
             assert!(error_response.result.is_none());
             assert!(error_response.error.is_some());
         });

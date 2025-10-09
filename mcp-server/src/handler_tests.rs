@@ -328,7 +328,9 @@ async fn test_handler_initialize() {
 
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("init_test"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "init_test",
+        ))),
         method: "initialize".to_string(),
         params: serde_json::json!({
             "protocolVersion": "2024-11-05",
@@ -357,7 +359,9 @@ async fn test_handler_list_tools() {
 
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("list_tools_test"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "list_tools_test",
+        ))),
         method: "tools/list".to_string(),
         params: serde_json::json!({"cursor": null}),
     };
@@ -380,7 +384,9 @@ async fn test_handler_call_tool_success() {
 
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("call_tool_test"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "call_tool_test",
+        ))),
         method: "tools/call".to_string(),
         params: serde_json::json!({
             "name": "test_tool",
@@ -411,7 +417,9 @@ async fn test_handler_call_tool_not_found() {
 
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("call_tool_not_found_test"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "call_tool_not_found_test",
+        ))),
         method: "tools/call".to_string(),
         params: serde_json::json!({
             "name": "nonexistent_tool",
@@ -435,7 +443,9 @@ async fn test_handler_list_resources() {
 
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("list_resources_test"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "list_resources_test",
+        ))),
         method: "resources/list".to_string(),
         params: serde_json::json!({"cursor": null}),
     };
@@ -457,7 +467,9 @@ async fn test_handler_read_resource() {
 
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("read_resource_test"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "read_resource_test",
+        ))),
         method: "resources/read".to_string(),
         params: serde_json::json!({"uri": "test://resource1"}),
     };
@@ -482,7 +494,9 @@ async fn test_handler_list_prompts() {
 
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("list_prompts_test"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "list_prompts_test",
+        ))),
         method: "prompts/list".to_string(),
         params: serde_json::json!({"cursor": null}),
     };
@@ -504,7 +518,9 @@ async fn test_handler_get_prompt() {
 
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("get_prompt_test"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "get_prompt_test",
+        ))),
         method: "prompts/get".to_string(),
         params: serde_json::json!({
             "name": "test_prompt",
@@ -531,7 +547,9 @@ async fn test_handler_ping() {
 
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("ping_test"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "ping_test",
+        ))),
         method: "ping".to_string(),
         params: serde_json::Value::Null,
     };
@@ -549,7 +567,9 @@ async fn test_handler_unknown_method() {
 
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("unknown_method_test"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "unknown_method_test",
+        ))),
         method: "unknown/method".to_string(),
         params: serde_json::Value::Null,
     };
@@ -570,7 +590,9 @@ async fn test_handler_invalid_params() {
 
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("invalid_params_test"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "invalid_params_test",
+        ))),
         method: "tools/call".to_string(),
         params: serde_json::json!("invalid_params"), // Should be an object
     };
@@ -604,7 +626,9 @@ async fn test_handler_with_failing_backend() {
 
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("failing_backend_test"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "failing_backend_test",
+        ))),
         method: "tools/list".to_string(),
         params: serde_json::json!({"cursor": null}),
     };
@@ -626,7 +650,9 @@ async fn test_handler_optional_methods() {
     // Test list resource templates
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("list_templates_test"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "list_templates_test",
+        ))),
         method: "resources/templates/list".to_string(),
         params: serde_json::json!({"cursor": null}),
     };
@@ -637,7 +663,9 @@ async fn test_handler_optional_methods() {
     // Test subscribe
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("subscribe_test"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "subscribe_test",
+        ))),
         method: "resources/subscribe".to_string(),
         params: serde_json::json!({"uri": "test://resource"}),
     };
@@ -648,7 +676,9 @@ async fn test_handler_optional_methods() {
     // Test completion
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("complete_test"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "complete_test",
+        ))),
         method: "completion/complete".to_string(),
         params: serde_json::json!({
             "ref_": "test://resource",
@@ -665,7 +695,9 @@ async fn test_handler_optional_methods() {
     // Test set level
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("set_level_test"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "set_level_test",
+        ))),
         method: "logging/setLevel".to_string(),
         params: serde_json::json!({"level": "info"}),
     };

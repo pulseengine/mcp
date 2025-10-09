@@ -280,7 +280,9 @@ async fn test_handler_with_authentication() {
 
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("test"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "test",
+        ))),
         method: "tools/list".to_string(),
         params: serde_json::json!({"cursor": null}),
     };
@@ -314,7 +316,9 @@ async fn test_tool_call_with_authentication() {
     // Test public tool call (should work without auth)
     let public_request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("public_test"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "public_test",
+        ))),
         method: "tools/call".to_string(),
         params: serde_json::json!({
             "name": "public_tool",
@@ -371,7 +375,9 @@ async fn test_auth_context_propagation() {
     // Test that the context can be used with the handler
     let request = Request {
         jsonrpc: "2.0".to_string(),
-        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from("context_test"))),
+        id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
+            "context_test",
+        ))),
         method: "tools/list".to_string(),
         params: serde_json::json!({"cursor": null}),
     };
