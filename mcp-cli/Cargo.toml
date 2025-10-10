@@ -40,3 +40,4 @@ derive = ["pulseengine-mcp-cli-derive"]
 [dev-dependencies]
 tokio-test = "0.4"
 tempfile = "3.0"
+serial_test = "3.0"

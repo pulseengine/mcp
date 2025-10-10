@@ -358,6 +358,7 @@ mod integration_tests {
 
     /// Test environment variable support
     #[test]
+    #[serial_test::serial]
     fn test_env_var_support() {
         use std::env;
 
