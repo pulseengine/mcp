@@ -147,6 +147,7 @@ fn test_env_utils_get_env_or_default() {
 }
 
 #[test]
+#[serial_test::serial]
 fn test_env_utils_with_set_env_var() {
     use env_utils::*;
 
@@ -183,6 +184,7 @@ fn test_env_utils_get_required_env_missing() {
 }
 
 #[test]
+#[serial_test::serial]
 fn test_env_utils_get_required_env_present() {
     use env_utils::*;
 
@@ -204,6 +206,7 @@ fn test_env_utils_get_required_env_present() {
 }
 
 #[test]
+#[serial_test::serial]
 fn test_env_utils_get_required_env_invalid_type() {
     use env_utils::*;
 
@@ -231,6 +234,7 @@ fn test_env_utils_get_required_env_invalid_type() {
 }
 
 #[test]
+#[serial_test::serial]
 fn test_env_utils_get_required_env_valid_type() {
     use env_utils::*;
 
