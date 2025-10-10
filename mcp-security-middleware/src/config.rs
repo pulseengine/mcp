@@ -473,6 +473,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_env_config_loading() {
         unsafe {
             env::set_var("MCP_SECURITY_PROFILE", "development");

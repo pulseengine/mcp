@@ -61,6 +61,7 @@ pulseengine-mcp-protocol = { workspace = true }
 tempfile = { workspace = true }
 assert_matches = { workspace = true }
 tokio-test = "0.4"
+serial_test = "3.0"
 
 [features]
 default = ["auto-config"]

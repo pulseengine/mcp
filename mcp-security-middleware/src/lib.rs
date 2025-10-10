@@ -173,7 +173,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Fix race condition with parallel tests - use serial_test crate
+    #[serial_test::serial]
     fn test_env_security_with_invalid_profile() {
         use std::env;
 
@@ -192,6 +192,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_env_security_with_valid_profiles() {
         use std::env;
 
