@@ -158,14 +158,31 @@ pub fn generate_error_handling(return_type: &syn::ReturnType) -> TokenStream {
                 if let Some(segment) = type_path.path.segments.last() {
                     if segment.ident == "Result" {
                         // It's already a Result, wrap it properly for the dispatch context
+                        // Use JSON serialization for structured data, with fallback
                         return quote! {
                             match result {
-                                Ok(value) => Ok(pulseengine_mcp_protocol::CallToolResult {
-                                    content: vec![pulseengine_mcp_protocol::Content::text(format!("{:?}", value))],
-                                    is_error: Some(false),
-                                    structured_content: None,
-                                    _meta: None,
-                                }),
+                                Ok(value) => {
+                                    // Try JSON serialization first (for structured data)
+                                    let (text_content, structured) = match serde_json::to_value(&value) {
+                                        Ok(json_value) => {
+                                            // Serialize as JSON string for text content
+                                            let text = serde_json::to_string(&value)
+                                                .unwrap_or_else(|_| format!("{:?}", value));
+                                            (text, Some(json_value))
+                                        }
+                                        Err(_) => {
+                                            // Fallback to Debug if not serializable
+                                            (format!("{:?}", value), None)
+                                        }
+                                    };
+
+                                    Ok(pulseengine_mcp_protocol::CallToolResult {
+                                        content: vec![pulseengine_mcp_protocol::Content::text(text_content)],
+                                        is_error: Some(false),
+                                        structured_content: structured,
+                                        _meta: None,
+                                    })
+                                }
                                 Err(e) => Err(pulseengine_mcp_protocol::Error::internal_error(e.to_string())),
                             }
                         };
@@ -173,14 +190,30 @@ pub fn generate_error_handling(return_type: &syn::ReturnType) -> TokenStream {
                 }
             }
 
-            // Not a Result, wrap it with simple Display formatting
+            // Not a Result, wrap it with JSON serialization (preferred) or Display formatting
             quote! {
-                Ok(pulseengine_mcp_protocol::CallToolResult {
-                    content: vec![pulseengine_mcp_protocol::Content::text(result.to_string())],
-                    is_error: Some(false),
-                    structured_content: None,
-                    _meta: None,
-                })
+                {
+                    // Try JSON serialization first (for structured data)
+                    let (text_content, structured) = match serde_json::to_value(&result) {
+                        Ok(json_value) => {
+                            // Serialize as JSON string for text content
+                            let text = serde_json::to_string(&result)
+                                .unwrap_or_else(|_| format!("{:?}", result));
+                            (text, Some(json_value))
+                        }
+                        Err(_) => {
+                            // Fallback to Debug if not serializable
+                            (format!("{:?}", result), None)
+                        }
+                    };
+
+                    Ok(pulseengine_mcp_protocol::CallToolResult {
+                        content: vec![pulseengine_mcp_protocol::Content::text(text_content)],
+                        is_error: Some(false),
+                        structured_content: structured,
+                        _meta: None,
+                    })
+                }
             }
         }
     }
