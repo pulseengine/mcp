@@ -49,7 +49,8 @@
       "Bash(gh release list:*)",
       "Bash(gh release view:*)",
       "Bash(gh pr list:*)",
-      "Bash(pre-commit:*)"
+      "Bash(pre-commit:*)",
+      "WebFetch(domain:spec.modelcontextprotocol.io)"
     ],
     "deny": []
   }
