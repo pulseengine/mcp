@@ -4299,6 +4299,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "wasm-stdio-minimal"
+version = "0.13.0"
+dependencies = [
+ "anyhow",
+ "pulseengine-mcp-protocol",
+ "pulseengine-mcp-runtime",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "wasm-streams"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

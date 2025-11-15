@@ -26,6 +26,7 @@ members = [
     "examples/profiling-demo",
     "examples/demos",
     "examples/ultra-simple",
+    "examples/wasm-stdio-minimal",
 ]
 
 resolver = "2"
