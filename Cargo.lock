@@ -4303,6 +4303,7 @@ name = "wasm-stdio-minimal"
 version = "0.13.0"
 dependencies = [
  "anyhow",
+ "futures",
  "pulseengine-mcp-protocol",
  "pulseengine-mcp-runtime",
  "serde",

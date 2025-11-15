@@ -13,3 +13,7 @@ pulseengine-mcp-runtime = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 anyhow = { workspace = true }
+
+# For WASM: Need futures for extension traits
+[target.'cfg(target_family = "wasm")'.dependencies]
+futures = { workspace = true }
