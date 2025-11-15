@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "mcp-protocol",
+    "mcp-runtime",
     "mcp-logging",
     "mcp-auth",
     "mcp-security",
@@ -57,6 +58,9 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 anyhow = "1.0"
 thiserror = "2.0"
 
+# WASM async runtime (interim solution for wasm32-wasip2)
+wstd = "0.5"
+
 # Validation
 validator = { version = "0.20", features = ["derive"] }
 
@@ -109,6 +113,7 @@ serde_yaml = "0.9"
 
 # Framework internal dependencies (published versions)
 pulseengine-mcp-protocol = { version = "0.13.0", path = "mcp-protocol" }
+pulseengine-mcp-runtime = { version = "0.13.0", path = "mcp-runtime" }
 pulseengine-mcp-logging = { version = "0.13.0", path = "mcp-logging" }
 pulseengine-mcp-auth = { version = "0.13.0", path = "mcp-auth" }
 pulseengine-mcp-security = { version = "0.13.0", path = "mcp-security" }
@@ -154,6 +159,7 @@ lto = false
 [patch.crates-io]
 # Patch published crates to use local versions for development
 pulseengine-mcp-protocol = { path = "mcp-protocol" }
+pulseengine-mcp-runtime = { path = "mcp-runtime" }
 pulseengine-mcp-logging = { path = "mcp-logging" }
 pulseengine-mcp-auth = { path = "mcp-auth" }
 pulseengine-mcp-security = { path = "mcp-security" }

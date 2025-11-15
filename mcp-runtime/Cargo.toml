@@ -1,0 +1,42 @@
+[package]
+name = "pulseengine-mcp-runtime"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Async runtime abstraction for MCP - supports both native (Tokio) and WASM (wstd) targets"
+homepage.workspace = true
+repository.workspace = true
+documentation = "https://docs.rs/pulseengine-mcp-runtime"
+readme = "README.md"
+keywords = ["mcp", "runtime", "async", "wasm", "tokio"]
+categories = ["asynchronous", "api-bindings", "wasm"]
+rust-version.workspace = true
+
+[dependencies]
+# Core async trait
+async-trait = { workspace = true }
+futures = { workspace = true }
+thiserror = { workspace = true }
+
+# Serialization for cross-runtime compatibility
+serde = { workspace = true, optional = true }
+
+# Native runtime (Tokio)
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+tokio = { workspace = true, features = ["rt", "sync", "time", "io-util", "io-std", "macros"] }
+
+# WASM runtime (wstd) - only for wasm32-wasip2
+[target.'cfg(all(target_family = "wasm", target_os = "wasi"))'.dependencies]
+wstd = "0.5"
+
+[features]
+default = []
+io = []
+net = []
+time = []
+sync = []
+full = ["io", "net", "time", "sync"]
+
+[dev-dependencies]
+tokio-test = "0.4"
