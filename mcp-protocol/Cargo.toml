@@ -21,7 +21,6 @@ thiserror = { workspace = true }
 validator = { workspace = true }
 chrono = { workspace = true }
 async-trait = { workspace = true }
-jsonschema = { workspace = true }
 
 # Optional dependency for error classification
 pulseengine-mcp-logging = { workspace = true, optional = true }
@@ -29,10 +28,15 @@ pulseengine-mcp-logging = { workspace = true, optional = true }
 # Optional dependency for automatic JSON Schema generation
 schemars = { version = "0.8", optional = true }
 
+# Schema validation (not available on WASM due to reqwest::blocking dependency)
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+jsonschema = { workspace = true }
+
 [features]
-default = []
+default = ["schema-validation"]
 logging = ["pulseengine-mcp-logging"]
 schemars = ["dep:schemars"]
+schema-validation = []
 
 [dev-dependencies]
 tokio-test = "0.4"

@@ -1,11 +1,14 @@
 //! Validation utilities for MCP protocol types
 
 use crate::{Error, Result};
-use jsonschema::{JSONSchema, ValidationError};
 use serde_json::Value;
 use std::collections::HashMap;
 use uuid::Uuid;
 use validator::Validate;
+
+// JSON Schema validation is only available on non-WASM targets
+#[cfg(not(target_family = "wasm"))]
+use jsonschema::{JSONSchema, ValidationError};
 
 /// Protocol validation utilities
 pub struct Validator;
@@ -178,6 +181,12 @@ impl Validator {
     /// # Errors
     ///
     /// Returns an error if the content doesn't match the schema or if the schema is invalid
+    ///
+    /// # Platform Notes
+    ///
+    /// On WASM targets, this performs basic validation only (schema structure check).
+    /// Full JSON schema validation requires the jsonschema crate which is not WASM-compatible.
+    #[cfg(not(target_family = "wasm"))]
     pub fn validate_structured_content(content: &Value, output_schema: &Value) -> Result<()> {
         // First validate that the schema itself is valid
         Self::validate_json_schema(output_schema)?;
@@ -197,6 +206,16 @@ impl Validator {
             )));
         }
 
+        Ok(())
+    }
+
+    /// WASM version: Basic validation only (no full JSON schema support)
+    #[cfg(target_family = "wasm")]
+    pub fn validate_structured_content(_content: &Value, output_schema: &Value) -> Result<()> {
+        // On WASM, we can only do basic validation
+        Self::validate_json_schema(output_schema)?;
+        // Note: Full schema validation is not available on WASM
+        // Consider using feature flags to enable schema validation when needed
         Ok(())
     }
 
@@ -254,6 +273,11 @@ impl Validator {
     /// # Errors
     ///
     /// Returns formatted validation error messages
+    ///
+    /// # Platform Notes
+    ///
+    /// Only available on non-WASM targets where full JSON schema validation is supported.
+    #[cfg(not(target_family = "wasm"))]
     pub fn format_validation_errors<'a>(
         errors: impl Iterator<Item = ValidationError<'a>>,
     ) -> String {
@@ -456,6 +480,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(target_family = "wasm"))]
     fn test_validate_structured_content() {
         // Valid structured content
         let content = json!({
@@ -576,6 +601,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(target_family = "wasm"))]
     fn test_structured_content_with_arrays() {
         // Array content validation
         let content = json!([
@@ -606,6 +632,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(target_family = "wasm"))]
     fn test_nested_structured_content() {
         // Nested object validation
         let content = json!({
@@ -662,6 +689,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(target_family = "wasm"))]
     fn test_format_validation_errors() {
         // This is a basic test since we can't easily create ValidationError instances
         // The function is mainly for internal use
@@ -671,6 +699,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(target_family = "wasm"))]
     fn test_call_tool_result_structured_validation() {
         use crate::model::{CallToolResult, Content};
 
