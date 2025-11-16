@@ -11,11 +11,12 @@
 
 #![warn(missing_docs)]
 #![warn(missing_debug_implementations)]
+#![allow(dead_code)] // Temporary while implementing
 
 mod backend;
 mod ctx;
 mod error;
-mod host;
+pub mod host; // Make public to see generated code
 mod registry;
 
 pub use ctx::{WasiMcpCtx, WasiMcpView};
