@@ -63,13 +63,18 @@ impl std::fmt::Debug for WasiMcpCtx {
 /// Provides a mutable view into `WasiMcpCtx` for host trait implementations.
 /// This follows the pattern from wasi-nn and wasi-http.
 pub struct WasiMcpView<'a> {
-    ctx: &'a mut WasiMcpCtx,
+    pub(crate) ctx: &'a mut WasiMcpCtx,
 }
 
 impl<'a> WasiMcpView<'a> {
     /// Create a new view
     pub fn new(ctx: &'a mut WasiMcpCtx) -> Self {
         Self { ctx }
+    }
+
+    /// Get mutable context (for internal use)
+    pub(crate) fn ctx_mut(&mut self) -> &mut WasiMcpCtx {
+        self.ctx
     }
 
     /// Get a reference to the backend

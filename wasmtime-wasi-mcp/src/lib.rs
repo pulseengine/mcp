@@ -14,6 +14,7 @@
 #![allow(dead_code)] // Temporary while implementing
 
 mod backend;
+mod conversions;
 mod ctx;
 mod error;
 pub mod host; // Make public to see generated code
@@ -31,7 +32,7 @@ use wasmtime::component::Linker;
 /// allowing WASM components to call MCP runtime functions.
 pub fn add_to_linker<T>(
     linker: &mut Linker<T>,
-    get_ctx: impl Fn(&mut T) -> WasiMcpView<'_> + Send + Sync + Copy + 'static,
+    get_ctx: impl Fn(&mut T) -> &mut WasiMcpCtx + Send + Sync + Copy + 'static,
 ) -> anyhow::Result<()>
 where
     T: Send + 'static,
