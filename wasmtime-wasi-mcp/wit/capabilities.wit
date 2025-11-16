@@ -1,0 +1,148 @@
+package wasi:mcp@0.1.0;
+
+/// MCP Capabilities System
+///
+/// Defines the capability negotiation types for MCP protocol following
+/// the 2025-06-18 specification. Capabilities allow servers and clients
+/// to advertise which features they support.
+@since(version = 0.1.0)
+interface capabilities {
+
+    /// Experimental capabilities
+    ///
+    /// Non-standard capabilities that are not yet part of the core spec.
+    /// Represented as JSON to allow arbitrary extension.
+    @since(version = 0.1.0)
+    record experimental-capability {
+        /// Capability data as JSON
+        data: list<u8>,
+    }
+
+    /// Logging capability
+    ///
+    /// Indicates support for sending/receiving log messages.
+    @since(version = 0.1.0)
+    record logging-capability {
+        /// Supported log levels (if specified)
+        levels: option<list<log-level>>,
+    }
+
+    /// Log level enumeration
+    ///
+    /// Maps to syslog message severities (RFC-5424)
+    @since(version = 0.1.0)
+    enum log-level {
+        debug,
+        info,
+        notice,
+        warning,
+        error,
+        critical,
+        alert,
+        emergency,
+    }
+
+    /// Completions capability
+    ///
+    /// Indicates support for argument auto-completion suggestions.
+    @since(version = 0.1.0)
+    record completions-capability {
+        // Empty for now, presence indicates support
+    }
+
+    /// Prompts capability
+    ///
+    /// Indicates support for prompt templates.
+    @since(version = 0.1.0)
+    record prompts-capability {
+        /// Whether the server supports notifications for changes to the prompt list
+        list-changed: option<bool>,
+    }
+
+    /// Resources capability
+    ///
+    /// Indicates support for resources (data sources).
+    @since(version = 0.1.0)
+    record resources-capability {
+        /// Whether the server supports subscribing to resource updates
+        subscribe: option<bool>,
+        /// Whether the server supports notifications for changes to the resource list
+        list-changed: option<bool>,
+    }
+
+    /// Tools capability
+    ///
+    /// Indicates support for tools (executable functions).
+    @since(version = 0.1.0)
+    record tools-capability {
+        /// Whether the server supports notifications for changes to the tool list
+        list-changed: option<bool>,
+    }
+
+    /// Sampling capability
+    ///
+    /// Indicates support for LLM sampling requests.
+    /// When present, the server can request the client to sample from an LLM.
+    @since(version = 0.1.0)
+    record sampling-capability {
+        // Empty for now, presence indicates support
+    }
+
+    /// Elicitation capability
+    ///
+    /// Indicates support for eliciting user input.
+    /// When present, the server can request user input from the client.
+    @since(version = 0.1.0)
+    record elicitation-capability {
+        // Empty for now, presence indicates support
+    }
+
+    /// Roots capability
+    ///
+    /// Indicates support for listing roots (client-side capability).
+    @since(version = 0.1.0)
+    record roots-capability {
+        /// Whether the client supports notifications for changes to the roots list
+        list-changed: option<bool>,
+    }
+
+    /// Server capabilities
+    ///
+    /// Advertises which features a server supports. All fields are optional;
+    /// absence of a field indicates that capability is not supported.
+    @since(version = 0.1.0)
+    record server-capabilities {
+        /// Experimental, non-standard capabilities
+        experimental: option<experimental-capability>,
+        /// Logging support
+        logging: option<logging-capability>,
+        /// Argument completion support
+        completions: option<completions-capability>,
+        /// Prompt template support
+        prompts: option<prompts-capability>,
+        /// Resource support
+        resources: option<resources-capability>,
+        /// Tool support
+        tools: option<tools-capability>,
+        /// LLM sampling support
+        sampling: option<sampling-capability>,
+        /// User elicitation support
+        elicitation: option<elicitation-capability>,
+    }
+
+    /// Client capabilities
+    ///
+    /// Advertises which features a client supports. All fields are optional;
+    /// absence of a field indicates that capability is not supported.
+    @since(version = 0.1.0)
+    record client-capabilities {
+        /// Experimental, non-standard capabilities
+        experimental: option<experimental-capability>,
+        /// Roots listing support
+        roots: option<roots-capability>,
+        /// LLM sampling support (client can provide sampling)
+        sampling: option<sampling-capability>,
+        /// User elicitation support (client can elicit user input)
+        elicitation: option<elicitation-capability>,
+    }
+}

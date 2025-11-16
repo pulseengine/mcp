@@ -1,0 +1,343 @@
+package wasi:mcp@0.1.0;
+
+/// MCP Handler Interface
+///
+/// Components export this interface to handle incoming MCP requests.
+/// The host calls these functions when MCP protocol operations arrive.
+///
+/// The host has already:
+/// - Parsed and validated the JSON-RPC request
+/// - Validated parameters against registered schemas
+/// - Extracted relevant data into typed parameters
+///
+/// The component should:
+/// - Implement the actual business logic
+/// - Return results in the appropriate format
+/// - Return errors for unsupported or failed operations
+///
+/// This follows the WASI callback pattern where components export handlers
+/// that the host invokes (similar to wasi:http/incoming-handler).
+@since(version = 0.1.0)
+interface handlers {
+    use types.{error};
+    use content.{content-block, prompt-message};
+
+    /// Result of tool execution
+    ///
+    /// Contains the tool's output as content blocks.
+    record tool-result {
+        /// Content blocks returned by the tool
+        /// Can include text, images, embedded resources, etc.
+        content: list<content-block>,
+
+        /// Whether this result represents an error
+        /// If true, the content should explain the error
+        is-error: option<bool>,
+    }
+
+    /// Contents of a resource
+    ///
+    /// Contains the resource data as content blocks.
+    record resource-contents {
+        /// Content blocks for the resource
+        /// Typically a single block, but can be multiple
+        contents: list<content-block>,
+    }
+
+    /// Contents of a prompt
+    ///
+    /// Contains the prompt messages to display to the AI agent.
+    record prompt-contents {
+        /// Prompt messages (system, user, assistant)
+        messages: list<prompt-message>,
+    }
+
+    /// Completion suggestion
+    record completion {
+        /// Completion value (e.g., "file:///src/main.rs")
+        value: string,
+
+        /// Optional label for display (e.g., "main.rs")
+        label: option<string>,
+    }
+
+    /// Reference type for completion
+    enum completion-ref-type {
+        /// Complete tool name (ref value is partial tool name)
+        tool-name,
+
+        /// Complete resource URI (ref value is partial URI)
+        resource-uri,
+
+        /// Complete prompt name (ref value is partial prompt name)
+        prompt-name,
+
+        /// Complete argument name (ref value is partial argument)
+        argument-name,
+    }
+
+    /// Elicitation field definition
+    ///
+    /// Defines a field to collect from the user.
+    record elicitation-field {
+        /// Field name
+        name: string,
+
+        /// Field type (e.g., "string", "number", "boolean", "array", "object")
+        field-type: string,
+
+        /// Human-readable description
+        description: option<string>,
+
+        /// Whether this field is required
+        required: option<bool>,
+    }
+
+    /// Elicitation response
+    ///
+    /// Contains collected field values from the user.
+    record elicitation-response {
+        /// Collected field values as JSON bytes
+        /// Example: {"name": "Alice", "age": 30}
+        values: list<u8>,
+    }
+
+    /// Called when a client requests tool execution
+    ///
+    /// The host has already:
+    /// - Validated the tool name exists in registered tools
+    /// - Validated arguments against the tool's input_schema
+    /// - Parsed JSON into bytes
+    ///
+    /// The component should:
+    /// - Parse arguments (already validated against schema)
+    /// - Execute the tool's business logic
+    /// - Return result as content blocks
+    /// - Set is-error to true if execution failed
+    ///
+    /// # Parameters
+    /// - name: Tool name (matches a registered tool)
+    /// - arguments: Tool arguments as JSON bytes
+    ///
+    /// # Returns
+    /// - tool-result: Tool output and error status
+    ///
+    /// # Example
+    /// ```pseudo
+    /// call-tool("say_hello", {"name": "Alice"})
+    /// -> {
+    ///     content: [{ text: { text: "Hello, Alice!" } }],
+    ///     is-error: false
+    /// }
+    /// ```
+    ///
+    /// # Errors
+    /// - invalid-params: Arguments are invalid (despite schema validation)
+    /// - internal-error: Tool execution failed
+    /// - tool-not-found: Tool name not recognized (shouldn't happen)
+    @since(version = 0.1.0)
+    call-tool: func(
+        name: string,
+        arguments: list<u8>
+    ) -> result<tool-result, error>;
+
+    /// Called when a client reads a resource
+    ///
+    /// The host has already:
+    /// - Validated the resource URI exists or matches a template
+    ///
+    /// The component should:
+    /// - Read the resource data
+    /// - Return content blocks (text, image, etc.)
+    /// - Return appropriate MIME type in content block
+    ///
+    /// # Parameters
+    /// - uri: Resource URI (e.g., "file:///path/to/file")
+    ///
+    /// # Returns
+    /// - resource-contents: Resource data as content blocks
+    ///
+    /// # Example
+    /// ```pseudo
+    /// read-resource("file:///README.md")
+    /// -> {
+    ///     contents: [{ text: {
+    ///         text: "# My Project\n...",
+    ///         content-type: "text/markdown"
+    ///     } }]
+    /// }
+    /// ```
+    ///
+    /// # Errors
+    /// - resource-not-found: Resource URI not found
+    /// - internal-error: Failed to read resource
+    /// - unsupported-operation: Resources not supported
+    @since(version = 0.1.0)
+    read-resource: func(uri: string) -> result<resource-contents, error>;
+
+    /// Called when a client requests a prompt
+    ///
+    /// The host has already:
+    /// - Validated the prompt name exists in registered prompts
+    /// - Parsed arguments (if provided)
+    ///
+    /// The component should:
+    /// - Generate prompt messages based on arguments
+    /// - Return system/user/assistant messages
+    /// - Customize prompt based on arguments
+    ///
+    /// # Parameters
+    /// - name: Prompt name (matches a registered prompt)
+    /// - arguments: Optional prompt arguments as JSON bytes
+    ///
+    /// # Returns
+    /// - prompt-contents: Prompt messages to display
+    ///
+    /// # Example
+    /// ```pseudo
+    /// get-prompt("code_review", {"language": "rust"})
+    /// -> {
+    ///     messages: [
+    ///         { role: system, content: "You are a code reviewer" },
+    ///         { role: user, content: "Review this Rust code" }
+    ///     ]
+    /// }
+    /// ```
+    ///
+    /// # Errors
+    /// - prompt-not-found: Prompt name not recognized
+    /// - invalid-params: Arguments are invalid
+    /// - internal-error: Failed to generate prompt
+    /// - unsupported-operation: Prompts not supported
+    @since(version = 0.1.0)
+    get-prompt: func(
+        name: string,
+        arguments: option<list<u8>>
+    ) -> result<prompt-contents, error>;
+
+    /// Called when a client subscribes to resource updates (optional)
+    ///
+    /// If the subscriptions capability is enabled, this is called when
+    /// a client wants to receive notifications about resource changes.
+    ///
+    /// The component should:
+    /// - Track the subscription internally
+    /// - Later call runtime::send-notification() when the resource changes
+    /// - Send notifications::resources-updated with the URI
+    ///
+    /// # Parameters
+    /// - uri: Resource URI to subscribe to
+    ///
+    /// # Returns
+    /// - unit: Success
+    ///
+    /// # Example
+    /// ```pseudo
+    /// handle-subscribe("file:///data.json")
+    /// // Later when file changes:
+    /// runtime::send-notification(resources-updated(["file:///data.json"]))
+    /// ```
+    ///
+    /// # Errors
+    /// - unsupported-operation: Subscriptions not supported
+    /// - resource-not-found: Resource URI not found
+    /// - internal-error: Failed to subscribe
+    @since(version = 0.1.0)
+    handle-subscribe: func(uri: string) -> result<_, error>;
+
+    /// Called when a client unsubscribes from resource updates (optional)
+    ///
+    /// The component should stop tracking this subscription.
+    ///
+    /// # Parameters
+    /// - uri: Resource URI to unsubscribe from
+    ///
+    /// # Returns
+    /// - unit: Success
+    ///
+    /// # Errors
+    /// - unsupported-operation: Subscriptions not supported
+    /// - resource-not-found: Resource URI not found
+    /// - internal-error: Failed to unsubscribe
+    @since(version = 0.1.0)
+    handle-unsubscribe: func(uri: string) -> result<_, error>;
+
+    /// Called for auto-completion requests (optional)
+    ///
+    /// If the completions capability is enabled, this is called to provide
+    /// auto-completion suggestions for tool names, resource URIs, prompt names,
+    /// or argument names.
+    ///
+    /// The component should:
+    /// - Return a list of completions matching the partial value
+    /// - Provide user-friendly labels where appropriate
+    /// - Return empty list if no completions available
+    ///
+    /// # Parameters
+    /// - ref-type: What type of reference to complete
+    /// - ref-value: Partial value to complete
+    ///
+    /// # Returns
+    /// - list<completion>: List of completion suggestions
+    ///
+    /// # Example
+    /// ```pseudo
+    /// handle-complete(resource-uri, "file:///src/")
+    /// -> [
+    ///     { value: "file:///src/main.rs", label: "main.rs" },
+    ///     { value: "file:///src/lib.rs", label: "lib.rs" }
+    /// ]
+    /// ```
+    ///
+    /// # Errors
+    /// - unsupported-operation: Completions not supported
+    /// - invalid-params: Invalid ref-type or ref-value
+    /// - internal-error: Failed to generate completions
+    @since(version = 0.1.0)
+    handle-complete: func(
+        ref-type: completion-ref-type,
+        ref-value: string
+    ) -> result<list<completion>, error>;
+
+    /// Called for elicitation requests (optional)
+    ///
+    /// If the elicitation capability is enabled, this is called to request
+    /// structured input from the user through the client UI.
+    ///
+    /// The component should:
+    /// - Define fields to collect from the user
+    /// - Provide clear descriptions for each field
+    /// - Mark required vs optional fields
+    ///
+    /// Note: The actual user input collection is handled by the client,
+    /// not the component. This just defines what to collect.
+    ///
+    /// # Parameters
+    /// - message: Message to display to the user
+    /// - fields: Fields to collect
+    ///
+    /// # Returns
+    /// - elicitation-response: Collected field values as JSON
+    ///
+    /// # Example
+    /// ```pseudo
+    /// handle-elicit(
+    ///     "Enter deployment configuration",
+    ///     [
+    ///         { name: "environment", field-type: "string", required: true },
+    ///         { name: "replicas", field-type: "number", required: false }
+    ///     ]
+    /// )
+    /// -> { values: {"environment": "production", "replicas": 3} }
+    /// ```
+    ///
+    /// # Errors
+    /// - unsupported-operation: Elicitation not supported
+    /// - invalid-params: Invalid field definitions
+    /// - internal-error: Failed to elicit input
+    @since(version = 0.1.0)
+    handle-elicit: func(
+        message: string,
+        fields: list<elicitation-field>
+    ) -> result<elicitation-response, error>;
+}

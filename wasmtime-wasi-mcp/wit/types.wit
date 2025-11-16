@@ -1,0 +1,396 @@
+package wasi:mcp@0.1.0;
+
+/// Core types for the Model Context Protocol (MCP)
+///
+/// This interface defines fundamental types following the MCP 2025-06-18
+/// specification, adapted for WASI Preview3 with async patterns.
+@since(version = 0.1.0)
+interface types {
+    use wasi:io/poll@0.2.3.{pollable};
+    use wasi:clocks/wall-clock@0.2.3.{datetime};
+    use capabilities.{server-capabilities, client-capabilities, log-level};
+    use content.{content-block, tool-annotations, resource-annotations};
+
+    // ============================================================================
+    // Core Protocol Types
+    // ============================================================================
+
+    /// Request ID for JSON-RPC messages
+    ///
+    /// Can be either a string or number in the JSON-RPC protocol.
+    /// We represent it as a string in WIT for simplicity.
+    @since(version = 0.1.0)
+    type request-id = string;
+
+    /// Cursor for pagination
+    ///
+    /// Opaque token used to represent pagination state. Servers create these
+    /// tokens and clients pass them back to get the next page of results.
+    @since(version = 0.1.0)
+    type cursor = string;
+
+    /// Progress token for long-running operations
+    ///
+    /// Used to associate progress notifications with the original request.
+    /// Can be either string or number; we use string for WIT.
+    @since(version = 0.1.0)
+    type progress-token = string;
+
+    /// Resource ID
+    @since(version = 0.1.0)
+    type resource-id = string;
+
+    /// Tool ID
+    @since(version = 0.1.0)
+    type tool-id = string;
+
+    /// Prompt ID
+    @since(version = 0.1.0)
+    type prompt-id = string;
+
+    // ============================================================================
+    // Protocol Version
+    // ============================================================================
+
+    /// MCP Protocol version
+    ///
+    /// Protocol versions are in date format (YYYY-MM-DD).
+    /// Current latest version is "2025-06-18".
+    @since(version = 0.1.0)
+    record protocol-version {
+        version: string,
+    }
+
+    // ============================================================================
+    // Implementation Info
+    // ============================================================================
+
+    /// Implementation information
+    ///
+    /// Describes the name and version of an MCP implementation (server or client).
+    @since(version = 0.1.0)
+    record implementation {
+        /// Implementation name (e.g., "my-mcp-server")
+        name: string,
+        /// Implementation version (e.g., "1.0.0")
+        version: string,
+        /// Optional website URL for this implementation
+        website-url: option<string>,
+    }
+
+    // ============================================================================
+    // Error Handling
+    // ============================================================================
+
+    /// MCP error codes
+    ///
+    /// Based on JSON-RPC 2.0 error codes plus MCP-specific codes.
+    @since(version = 0.1.0)
+    enum error-code {
+        // JSON-RPC standard errors (-32700 to -32600)
+        /// Parse error - Invalid JSON
+        parse-error,
+        /// Invalid request - JSON is not a valid request object
+        invalid-request,
+        /// Method not found - Method does not exist
+        method-not-found,
+        /// Invalid params - Invalid method parameters
+        invalid-params,
+        /// Internal error - Internal JSON-RPC error
+        internal-error,
+
+        // MCP-specific errors
+        /// Resource not found
+        resource-not-found,
+        /// Tool not found
+        tool-not-found,
+        /// Prompt not found
+        prompt-not-found,
+        /// Authentication required
+        unauthorized,
+        /// Access forbidden
+        forbidden,
+        /// Operation timeout
+        timeout,
+        /// Rate limit exceeded
+        rate-limited,
+        /// Server unavailable
+        unavailable,
+
+        // SDK errors
+        /// Connection was closed
+        connection-closed,
+        /// Request timeout
+        request-timeout,
+    }
+
+    /// Error resource
+    ///
+    /// Represents an error that occurred during MCP operations.
+    /// Follows WASI error handling patterns.
+    @since(version = 0.1.0)
+    resource error {
+        /// Get the error code
+        code: func() -> error-code;
+
+        /// Get a human-readable error message
+        message: func() -> string;
+
+        /// Get debug information (stack trace, etc.)
+        to-debug-string: func() -> string;
+
+        /// Get additional error data as JSON (optional)
+        data: func() -> option<list<u8>>;
+    }
+
+    // ============================================================================
+    // Pagination
+    // ============================================================================
+
+    /// Parameters for paginated requests
+    ///
+    /// Used by list operations to support pagination.
+    @since(version = 0.1.0)
+    record paginated-request {
+        /// Cursor from previous response (omit for first page)
+        cursor: option<cursor>,
+    }
+
+    // ============================================================================
+    // Request Metadata
+    // ============================================================================
+
+    /// Metadata for requests
+    ///
+    /// Can include progress token for tracking long-running operations.
+    @since(version = 0.1.0)
+    record request-meta {
+        /// Progress token for out-of-band progress notifications
+        progress-token: option<progress-token>,
+    }
+
+    // ============================================================================
+    // Initialization
+    // ============================================================================
+
+    /// Parameters for the initialize request
+    ///
+    /// Sent from client to server to initiate the protocol.
+    @since(version = 0.1.0)
+    record initialize-params {
+        /// Protocol version the client wants to use
+        protocol-version: string,
+        /// Client capabilities
+        capabilities: client-capabilities,
+        /// Client implementation info
+        client-info: implementation,
+    }
+
+    /// Result from the initialize request
+    ///
+    /// Server's response to initialization.
+    @since(version = 0.1.0)
+    record initialize-result {
+        /// Protocol version the server will use
+        protocol-version: string,
+        /// Server capabilities
+        capabilities: server-capabilities,
+        /// Server implementation info
+        server-info: implementation,
+        /// Optional instructions for using the server
+        instructions: option<string>,
+    }
+
+    // ============================================================================
+    // Resources
+    // ============================================================================
+
+    /// Resource descriptor
+    ///
+    /// Describes a resource available from the server.
+    @since(version = 0.1.0)
+    record resource-info {
+        /// Resource URI (can use any protocol)
+        uri: string,
+        /// Resource name (for display/fallback)
+        name: string,
+        /// Optional display title
+        title: option<string>,
+        /// Resource description
+        description: option<string>,
+        /// MIME type hint
+        mime-type: option<string>,
+        /// Size in bytes (if known, before encoding)
+        size: option<u64>,
+        /// Annotations for the client
+        annotations: option<resource-annotations>,
+    }
+
+    /// Resource template
+    ///
+    /// URI template (RFC 6570) for constructing resource URIs.
+    @since(version = 0.1.0)
+    record resource-template {
+        /// URI template (e.g., "file:///{path}")
+        uri-template: string,
+        /// Template name
+        name: string,
+        /// Optional display title
+        title: option<string>,
+        /// Template description
+        description: option<string>,
+        /// MIME type (if all resources of this template have same type)
+        mime-type: option<string>,
+        /// Annotations for the client
+        annotations: option<resource-annotations>,
+    }
+
+    /// Resource contents (either text or binary)
+    @since(version = 0.1.0)
+    variant resource-contents {
+        /// Text content
+        text(text-resource-contents),
+        /// Binary content (base64 encoded in JSON)
+        blob(blob-resource-contents),
+    }
+
+    /// Text resource contents
+    @since(version = 0.1.0)
+    record text-resource-contents {
+        /// Resource URI
+        uri: string,
+        /// MIME type
+        mime-type: option<string>,
+        /// The text content
+        text: string,
+    }
+
+    /// Binary resource contents
+    @since(version = 0.1.0)
+    record blob-resource-contents {
+        /// Resource URI
+        uri: string,
+        /// MIME type
+        mime-type: option<string>,
+        /// Base64-encoded binary data
+        blob: string,
+    }
+
+    // ============================================================================
+    // Tools
+    // ============================================================================
+
+    /// Tool descriptor
+    ///
+    /// Describes a tool (executable function) available from the server.
+    @since(version = 0.1.0)
+    record tool {
+        /// Tool name (used to invoke it)
+        name: string,
+        /// Optional display title
+        title: option<string>,
+        /// Tool description
+        description: option<string>,
+        /// JSON Schema for input parameters
+        input-schema: list<u8>,  // JSON
+        /// Optional JSON Schema for output
+        output-schema: option<list<u8>>,  // JSON
+        /// Annotations providing hints about tool behavior
+        annotations: option<tool-annotations>,
+    }
+
+    /// Tool call result
+    ///
+    /// Result from executing a tool.
+    @since(version = 0.1.0)
+    record call-tool-result {
+        /// Result content blocks
+        content: list<content-block>,
+        /// Optional structured output (JSON)
+        structured-content: option<list<u8>>,
+        /// Whether this result represents an error
+        is-error: option<bool>,
+    }
+
+    // ============================================================================
+    // Prompts
+    // ============================================================================
+
+    /// Prompt argument descriptor
+    ///
+    /// Describes an argument that a prompt template accepts.
+    @since(version = 0.1.0)
+    record prompt-argument {
+        /// Argument name
+        name: string,
+        /// Optional display title
+        title: option<string>,
+        /// Argument description
+        description: option<string>,
+        /// Whether this argument is required
+        required: option<bool>,
+    }
+
+    /// Prompt descriptor
+    ///
+    /// Describes a prompt template available from the server.
+    @since(version = 0.1.0)
+    record prompt {
+        /// Prompt name (used to get it)
+        name: string,
+        /// Optional display title
+        title: option<string>,
+        /// Prompt description
+        description: option<string>,
+        /// Arguments this prompt accepts
+        arguments: option<list<prompt-argument>>,
+    }
+
+    /// Role in a conversation
+    @since(version = 0.1.0)
+    enum role {
+        user,
+        assistant,
+    }
+
+    /// Prompt message
+    ///
+    /// A message in a rendered prompt.
+    @since(version = 0.1.0)
+    record prompt-message {
+        /// Message role
+        role: role,
+        /// Message content
+        content: content-block,
+    }
+
+    /// Get prompt result
+    ///
+    /// Result from rendering a prompt template.
+    @since(version = 0.1.0)
+    record get-prompt-result {
+        /// Optional description
+        description: option<string>,
+        /// Rendered messages
+        messages: list<prompt-message>,
+    }
+
+    // ============================================================================
+    // Server Status
+    // ============================================================================
+
+    /// Server status
+    @since(version = 0.1.0)
+    enum server-status {
+        /// Server is initializing
+        initializing,
+        /// Server is running normally
+        running,
+        /// Server is shutting down
+        shutting-down,
+        /// Server has stopped
+        stopped,
+        /// Server encountered an error
+        error,
+    }
+}

@@ -1,0 +1,176 @@
+package wasi:mcp@0.1.0;
+
+/// Content types for MCP protocol messages
+///
+/// This interface defines the content block system used throughout MCP for
+/// representing different types of data in resources, tool results, and prompts.
+/// Following MCP specification 2025-06-18.
+@since(version = 0.1.0)
+interface content {
+    use wasi:clocks/wall-clock@0.2.3.{datetime};
+
+    /// Text content block
+    ///
+    /// Represents textual data in UTF-8 encoding.
+    @since(version = 0.1.0)
+    record text-content {
+        /// The type discriminator
+        content-type: string,  // Always "text"
+        /// The actual text content
+        text: string,
+        /// Optional annotations for the client
+        annotations: option<annotations>,
+    }
+
+    /// Image content block
+    ///
+    /// Represents image data, either as a URL or base64-encoded data URI.
+    @since(version = 0.1.0)
+    record image-content {
+        /// The type discriminator
+        content-type: string,  // Always "image"
+        /// Image data as URL or data URI
+        data: string,
+        /// MIME type of the image (e.g., "image/png", "image/jpeg")
+        mime-type: string,
+        /// Optional annotations for the client
+        annotations: option<annotations>,
+    }
+
+    /// Embedded resource content
+    ///
+    /// Represents a resource embedded directly into a message, including its
+    /// full content. Used when the content should be immediately available.
+    @since(version = 0.1.0)
+    record embedded-resource {
+        /// The type discriminator
+        content-type: string,  // Always "resource"
+        /// Resource URI
+        uri: string,
+        /// MIME type of the resource
+        mime-type: option<string>,
+        /// Text content (for text-based resources)
+        text: option<string>,
+        /// Binary content as base64 (for binary resources)
+        blob: option<string>,
+        /// Optional annotations for the client
+        annotations: option<annotations>,
+    }
+
+    /// Resource link content
+    ///
+    /// Represents a reference to a resource without including its content.
+    /// The client can fetch the resource separately if needed.
+    @since(version = 0.1.0)
+    record resource-link {
+        /// The type discriminator
+        content-type: string,  // Always "resource_link"
+        /// Resource URI
+        uri: string,
+        /// Resource name
+        name: string,
+        /// Resource description
+        description: option<string>,
+        /// MIME type hint
+        mime-type: option<string>,
+        /// Optional annotations for the client
+        annotations: option<annotations>,
+    }
+
+    /// Content block variant
+    ///
+    /// Represents any type of content that can appear in MCP messages.
+    /// This is used in tool results, prompt messages, and resource contents.
+    @since(version = 0.1.0)
+    variant content-block {
+        /// Text content
+        text(text-content),
+        /// Image content
+        image(image-content),
+        /// Embedded resource with full content
+        embedded-resource(embedded-resource),
+        /// Link to a resource
+        resource-link(resource-link),
+    }
+
+    /// Generic annotations for content, tools, and resources
+    ///
+    /// Annotations provide hints to clients about how to handle or display
+    /// various MCP entities. These are always hints and should not be used
+    /// for security decisions.
+    @since(version = 0.1.0)
+    record annotations {
+        /// Priority hint for display (higher = more important)
+        priority: option<f32>,
+        /// Audience hint (who should see this)
+        audience: option<list<string>>,
+        /// Custom annotations as JSON
+        custom: option<list<u8>>,
+    }
+
+    /// Tool-specific annotations
+    ///
+    /// Provides hints about tool behavior. All properties are hints and
+    /// MUST NOT be used for security decisions by clients.
+    @since(version = 0.1.0)
+    record tool-annotations {
+        /// Human-readable title for the tool (overrides name for display)
+        title: option<string>,
+        /// If true, the tool does not modify its environment
+        read-only-hint: option<bool>,
+        /// If true, the tool may perform destructive updates
+        /// Only meaningful when read-only-hint is false
+        destructive-hint: option<bool>,
+        /// If true, calling repeatedly with same args has no additional effect
+        /// Only meaningful when read-only-hint is false
+        idempotent-hint: option<bool>,
+        /// If true, tool interacts with "open world" of external entities
+        open-world-hint: option<bool>,
+        /// Generic annotations
+        base: option<annotations>,
+    }
+
+    /// Resource-specific annotations
+    @since(version = 0.1.0)
+    record resource-annotations {
+        /// Generic annotations
+        base: option<annotations>,
+    }
+
+    /// Log level for MCP logging protocol
+    @since(version = 0.1.0)
+    enum log-level {
+        /// Debug-level messages
+        debug,
+        /// Informational messages
+        info,
+        /// Warning messages
+        warning,
+        /// Error messages
+        error,
+        /// Critical error messages
+        critical,
+    }
+
+    /// Message role in prompts
+    @since(version = 0.1.0)
+    enum message-role {
+        /// System message (instructions)
+        system,
+        /// User message (input)
+        user,
+        /// Assistant message (response)
+        assistant,
+    }
+
+    /// Prompt message
+    ///
+    /// Represents a single message in a prompt template.
+    @since(version = 0.1.0)
+    record prompt-message {
+        /// Role of this message
+        role: message-role,
+        /// Message content
+        content: content-block,
+    }
+}

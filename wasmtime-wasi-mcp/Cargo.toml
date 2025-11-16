@@ -1,0 +1,37 @@
+[package]
+name = "wasmtime-wasi-mcp"
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+# Wasmtime component model
+wasmtime = { version = "28", features = ["component-model"] }
+wasmtime-wasi = "28"
+
+# Async runtime
+tokio = { workspace = true, features = ["full"] }
+async-trait = { workspace = true }
+futures = { workspace = true }
+
+# Serialization
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Our existing types (for optimization)
+pulseengine-mcp-protocol = { workspace = true }
+pulseengine-mcp-runtime = { workspace = true }
+
+[lints]
+workspace = true

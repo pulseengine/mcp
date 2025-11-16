@@ -1,0 +1,10 @@
+# WIT Dependencies
+#
+# This file specifies where to find external WIT interfaces that
+# wasi-mcp depends on (like wasi:clocks, wasi:io, etc.)
+
+# Use wasmtime's built-in WASI interfaces
+# The wasmtime crate includes WASI Preview2 interfaces
+[wasi]
+# For now, we'll comment this out and let wasmtime provide them
+# path = "https://github.com/WebAssembly/wasi/tree/main/wit"

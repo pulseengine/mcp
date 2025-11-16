@@ -1,0 +1,157 @@
+package wasi:mcp@0.1.0;
+
+/// MCP Client Interface
+///
+/// Components import this interface to act as MCP clients, connecting to and
+/// consuming MCP servers.
+///
+/// This interface is kept simple for MVP. Components using this can:
+/// - Connect to MCP servers (via host-provided transport)
+/// - Make MCP protocol requests
+/// - Receive responses
+///
+/// The host handles:
+/// - Transport layer (stdio, HTTP, WebSocket)
+/// - JSON-RPC protocol encoding/decoding
+/// - Connection management
+/// - Error handling
+///
+/// Note: This is a simplified version for the redesign. A full client interface
+/// can be developed in a future iteration. For now, components that need MCP
+/// client functionality can use native MCP client libraries.
+@since(version = 0.1.0)
+interface client {
+    use types.{error};
+    use content.{content-block, prompt-message};
+
+    /// Tool call result from remote server
+    record tool-call-result {
+        /// Result content blocks
+        content: list<content-block>,
+        /// Whether this is an error
+        is-error: option<bool>,
+    }
+
+    /// Resource read result from remote server
+    record resource-read-result {
+        /// Resource content blocks
+        contents: list<content-block>,
+    }
+
+    /// Prompt get result from remote server
+    record prompt-get-result {
+        /// Prompt messages
+        messages: list<prompt-message>,
+    }
+
+    /// Connect to an MCP server
+    ///
+    /// Establishes a connection to an MCP server via the host.
+    /// The host handles transport (stdio, HTTP, WebSocket).
+    ///
+    /// # Parameters
+    /// - endpoint: Connection endpoint (format depends on transport)
+    ///   Examples: "stdio", "http://localhost:3000", "ws://server/mcp"
+    ///
+    /// # Returns
+    /// - connection-id: Identifier for this connection
+    ///
+    /// # Errors
+    /// - internal-error: Failed to connect
+    @since(version = 0.1.0)
+    connect: func(endpoint: string) -> result<string, error>;
+
+    /// Initialize MCP session
+    ///
+    /// Performs protocol handshake and capability negotiation.
+    ///
+    /// # Parameters
+    /// - connection-id: Connection identifier from connect()
+    /// - client-name: Client name (e.g., "my-client")
+    /// - client-version: Client version (e.g., "1.0.0")
+    ///
+    /// # Returns
+    /// - server-name: Connected server name
+    /// - server-version: Connected server version
+    ///
+    /// # Errors
+    /// - internal-error: Initialization failed
+    @since(version = 0.1.0)
+    initialize: func(
+        connection-id: string,
+        client-name: string,
+        client-version: string
+    ) -> result<tuple<string, string>, error>;
+
+    /// Call a tool on the remote server
+    ///
+    /// # Parameters
+    /// - connection-id: Connection identifier
+    /// - tool-name: Name of the tool to call
+    /// - arguments: Tool arguments as JSON bytes
+    ///
+    /// # Returns
+    /// - tool-call-result: Tool execution result
+    ///
+    /// # Errors
+    /// - tool-not-found: Tool doesn't exist
+    /// - invalid-params: Arguments are invalid
+    /// - internal-error: Tool execution failed
+    @since(version = 0.1.0)
+    call-tool: func(
+        connection-id: string,
+        tool-name: string,
+        arguments: list<u8>
+    ) -> result<tool-call-result, error>;
+
+    /// Read a resource from the remote server
+    ///
+    /// # Parameters
+    /// - connection-id: Connection identifier
+    /// - resource-uri: Resource URI to read
+    ///
+    /// # Returns
+    /// - resource-read-result: Resource contents
+    ///
+    /// # Errors
+    /// - resource-not-found: Resource doesn't exist
+    /// - internal-error: Read failed
+    @since(version = 0.1.0)
+    read-resource: func(
+        connection-id: string,
+        resource-uri: string
+    ) -> result<resource-read-result, error>;
+
+    /// Get a prompt from the remote server
+    ///
+    /// # Parameters
+    /// - connection-id: Connection identifier
+    /// - prompt-name: Name of the prompt
+    /// - arguments: Optional prompt arguments as JSON bytes
+    ///
+    /// # Returns
+    /// - prompt-get-result: Prompt messages
+    ///
+    /// # Errors
+    /// - prompt-not-found: Prompt doesn't exist
+    /// - invalid-params: Arguments are invalid
+    /// - internal-error: Prompt generation failed
+    @since(version = 0.1.0)
+    get-prompt: func(
+        connection-id: string,
+        prompt-name: string,
+        arguments: option<list<u8>>
+    ) -> result<prompt-get-result, error>;
+
+    /// Disconnect from an MCP server
+    ///
+    /// Closes the connection gracefully.
+    ///
+    /// # Parameters
+    /// - connection-id: Connection identifier
+    ///
+    /// # Errors
+    /// - internal-error: Disconnect failed
+    @since(version = 0.1.0)
+    disconnect: func(connection-id: string) -> result<_, error>;
+}

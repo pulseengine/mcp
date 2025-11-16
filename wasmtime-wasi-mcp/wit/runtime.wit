@@ -1,0 +1,411 @@
+package wasi:mcp@0.1.0;
+
+/// MCP Runtime Interface
+///
+/// Components import this interface to register capabilities and start serving.
+/// The host provides the MCP protocol implementation, transport layer,
+/// authentication, middleware, and lifecycle management.
+///
+/// This follows the WASI system interface pattern where the host provides
+/// capabilities that components import and use.
+@since(version = 0.1.0)
+interface runtime {
+    use types.{error, progress-token};
+    use content.{log-level};
+    use capabilities.{server-capabilities};
+
+    /// Server metadata and capabilities
+    ///
+    /// Describes this component's identity and what it can do.
+    record server-info {
+        /// Server name (e.g., "file-server")
+        name: string,
+
+        /// Server version (e.g., "1.0.0")
+        version: string,
+
+        /// Server capabilities (tools, resources, prompts, etc.)
+        capabilities: server-capabilities,
+
+        /// Optional instructions for AI agents
+        instructions: option<string>,
+    }
+
+    /// Tool definition for registration
+    ///
+    /// Defines a tool that this component provides.
+    record tool-definition {
+        /// Unique tool name
+        name: string,
+
+        /// Optional display title
+        title: option<string>,
+
+        /// Human-readable description
+        description: string,
+
+        /// JSON Schema for input validation (JSON bytes)
+        input-schema: list<u8>,
+
+        /// Optional JSON Schema for output (JSON bytes)
+        output-schema: option<list<u8>>,
+
+        /// Optional tool annotations
+        annotations: option<tool-annotations>,
+    }
+
+    /// Tool annotations for hints to clients
+    record tool-annotations {
+        /// Display title
+        title: option<string>,
+
+        /// Tool only reads data (hint)
+        read-only-hint: option<bool>,
+
+        /// Tool may cause destructive changes (hint)
+        destructive-hint: option<bool>,
+
+        /// Tool is idempotent (hint)
+        idempotent-hint: option<bool>,
+
+        /// Tool may return different results for same input (hint)
+        open-world-hint: option<bool>,
+    }
+
+    /// Resource definition for registration
+    ///
+    /// Defines a resource that this component provides.
+    record resource-definition {
+        /// Resource URI (e.g., "file:///path/to/file")
+        uri: string,
+
+        /// Resource name
+        name: string,
+
+        /// Optional display title
+        title: option<string>,
+
+        /// Human-readable description
+        description: option<string>,
+
+        /// MIME type (e.g., "text/plain", "application/json")
+        mime-type: option<string>,
+
+        /// Optional resource size in bytes
+        size: option<u64>,
+    }
+
+    /// Resource template for dynamic URIs (RFC 6570)
+    ///
+    /// Allows components to expose parameterized resources.
+    record resource-template {
+        /// URI template (e.g., "file:///{path}")
+        uri-template: string,
+
+        /// Template name
+        name: string,
+
+        /// Optional display title
+        title: option<string>,
+
+        /// Human-readable description
+        description: option<string>,
+
+        /// MIME type for resources matching this template
+        mime-type: option<string>,
+    }
+
+    /// Prompt definition for registration
+    ///
+    /// Defines a prompt that this component provides.
+    record prompt-definition {
+        /// Unique prompt name
+        name: string,
+
+        /// Optional display title
+        title: option<string>,
+
+        /// Human-readable description
+        description: option<string>,
+
+        /// Optional list of arguments this prompt accepts
+        arguments: option<list<prompt-argument>>,
+    }
+
+    /// Prompt argument definition
+    record prompt-argument {
+        /// Argument name
+        name: string,
+
+        /// Human-readable description
+        description: option<string>,
+
+        /// Whether this argument is required
+        required: option<bool>,
+    }
+
+    /// Notification types that can be sent to clients
+    variant notification {
+        /// Resources list has changed
+        resources-list-changed,
+
+        /// Specific resources were updated
+        resources-updated(list<string>),
+
+        /// Tools list has changed
+        tools-list-changed,
+
+        /// Prompts list has changed
+        prompts-list-changed,
+
+        /// Progress update
+        progress(progress-notification),
+
+        /// Log message
+        message(message-notification),
+
+        /// Request was cancelled
+        cancelled(string),
+    }
+
+    /// Progress notification details
+    record progress-notification {
+        /// Progress token identifying the operation
+        progress-token: progress-token,
+
+        /// Current progress value
+        progress: u64,
+
+        /// Optional total value
+        total: option<u64>,
+    }
+
+    /// Message notification details
+    record message-notification {
+        /// Log level
+        level: log-level,
+
+        /// Log message
+        message: string,
+
+        /// Optional structured data (JSON bytes)
+        data: option<list<u8>>,
+    }
+
+    /// Register this component's server information
+    ///
+    /// Must be called once before calling serve().
+    /// Defines the component's identity and capabilities.
+    ///
+    /// # Example
+    /// ```wit
+    /// register-server({
+    ///     name: "hello-world",
+    ///     version: "1.0.0",
+    ///     capabilities: {
+    ///         tools: some({ list-changed: some(true) })
+    ///     },
+    ///     instructions: some("A simple hello world server")
+    /// })
+    /// ```
+    ///
+    /// # Errors
+    /// - invalid-params: Server info is invalid
+    /// - internal-error: Registration failed
+    @since(version = 0.1.0)
+    register-server: func(info: server-info) -> result<_, error>;
+
+    /// Register tools this component provides
+    ///
+    /// Can be called multiple times to register additional tools.
+    /// Each tool must have a unique name within this component.
+    /// The input-schema must be valid JSON Schema.
+    ///
+    /// # Example
+    /// ```wit
+    /// register-tools([{
+    ///     name: "say_hello",
+    ///     title: some("Say Hello"),
+    ///     description: "Say hello to someone",
+    ///     input-schema: /* JSON Schema bytes */,
+    ///     output-schema: none,
+    ///     annotations: none
+    /// }])
+    /// ```
+    ///
+    /// # Errors
+    /// - invalid-params: Tool definition is invalid or duplicate name
+    /// - internal-error: Registration failed
+    @since(version = 0.1.0)
+    register-tools: func(tools: list<tool-definition>) -> result<_, error>;
+
+    /// Register resources this component provides
+    ///
+    /// Can be called multiple times to register additional resources.
+    /// Each resource must have a unique URI within this component.
+    ///
+    /// # Example
+    /// ```wit
+    /// register-resources([{
+    ///     uri: "file:///README.md",
+    ///     name: "README",
+    ///     title: some("Project README"),
+    ///     description: some("Main README file"),
+    ///     mime-type: some("text/markdown"),
+    ///     size: some(1024)
+    /// }])
+    /// ```
+    ///
+    /// # Errors
+    /// - invalid-params: Resource definition is invalid or duplicate URI
+    /// - internal-error: Registration failed
+    @since(version = 0.1.0)
+    register-resources: func(resources: list<resource-definition>) -> result<_, error>;
+
+    /// Register resource templates (URI templates per RFC 6570)
+    ///
+    /// Can be called multiple times to register additional templates.
+    /// Templates allow dynamic resource URIs like "file:///{path}".
+    ///
+    /// # Example
+    /// ```wit
+    /// register-resource-templates([{
+    ///     uri-template: "file:///{path}",
+    ///     name: "file",
+    ///     title: some("File Access"),
+    ///     description: some("Read any file by path"),
+    ///     mime-type: some("application/octet-stream")
+    /// }])
+    /// ```
+    ///
+    /// # Errors
+    /// - invalid-params: Template is invalid or duplicate
+    /// - internal-error: Registration failed
+    @since(version = 0.1.0)
+    register-resource-templates: func(templates: list<resource-template>) -> result<_, error>;
+
+    /// Register prompts this component provides
+    ///
+    /// Can be called multiple times to register additional prompts.
+    /// Each prompt must have a unique name within this component.
+    ///
+    /// # Example
+    /// ```wit
+    /// register-prompts([{
+    ///     name: "code_review",
+    ///     title: some("Code Review"),
+    ///     description: some("Review code for issues"),
+    ///     arguments: some([{
+    ///         name: "language",
+    ///         description: some("Programming language"),
+    ///         required: some(true)
+    ///     }])
+    /// }])
+    /// ```
+    ///
+    /// # Errors
+    /// - invalid-params: Prompt definition is invalid or duplicate name
+    /// - internal-error: Registration failed
+    @since(version = 0.1.0)
+    register-prompts: func(prompts: list<prompt-definition>) -> result<_, error>;
+
+    /// Start serving MCP requests
+    ///
+    /// This function blocks and runs the MCP server event loop.
+    /// The host handles all protocol concerns:
+    /// - MCP protocol (initialize, list-tools, call-tool, etc.)
+    /// - Transport layer (stdio, HTTP, WebSocket)
+    /// - Authentication and authorization
+    /// - Middleware (rate limiting, logging, monitoring)
+    /// - Request routing to component handlers
+    /// - JSON serialization/deserialization
+    /// - Progress token management
+    /// - Pagination cursor management
+    ///
+    /// Call this after all registration calls are complete.
+    /// Returns when the server shuts down (e.g., client disconnect, signal).
+    ///
+    /// # Example
+    /// ```wit
+    /// register-server(...)?;
+    /// register-tools(...)?;
+    /// serve()?;  // Blocks until shutdown
+    /// ```
+    ///
+    /// # Errors
+    /// - internal-error: Server failed to start or runtime error occurred
+    @since(version = 0.1.0)
+    serve: func() -> result<_, error>;
+
+    /// Send a notification to connected clients
+    ///
+    /// Used to notify clients about changes or events:
+    /// - Resource updates (resources-updated, resources-list-changed)
+    /// - Tool list changes (tools-list-changed)
+    /// - Prompt list changes (prompts-list-changed)
+    /// - Progress updates (progress)
+    /// - Log messages (message)
+    ///
+    /// Notifications are best-effort; failures are logged but don't error.
+    ///
+    /// # Example
+    /// ```wit
+    /// // Notify that resources list changed
+    /// send-notification(resources-list-changed)?;
+    ///
+    /// // Notify specific resources updated
+    /// send-notification(resources-updated(["file:///data.json"]))?;
+    ///
+    /// // Send progress update
+    /// send-notification(progress({
+    ///     progress-token: "upload-1",
+    ///     progress: 50,
+    ///     total: some(100)
+    /// }))?;
+    /// ```
+    ///
+    /// # Errors
+    /// - invalid-params: Notification is invalid
+    /// - internal-error: Failed to send notification
+    @since(version = 0.1.0)
+    send-notification: func(notification: notification) -> result<_, error>;
+
+    /// Log a message through MCP logging protocol
+    ///
+    /// If the logging capability is enabled and a client has set a logging level,
+    /// this sends a log message to connected clients through the MCP logging protocol.
+    ///
+    /// # Example
+    /// ```wit
+    /// log(info, "Tool execution started", none)?;
+    /// log(error, "Failed to read file", some(/* JSON error data */))?;
+    /// ```
+    ///
+    /// # Errors
+    /// - invalid-params: Log parameters are invalid
+    /// - internal-error: Failed to log message
+    @since(version = 0.1.0)
+    log: func(level: log-level, message: string, data: option<list<u8>>) -> result<_, error>;
+
+    /// Report progress for long-running operations
+    ///
+    /// For operations that support progress tracking (identified by progress-token),
+    /// report current progress. Clients can display progress bars or status updates.
+    ///
+    /// # Example
+    /// ```wit
+    /// report-progress("upload-file", 1024, some(4096))?;  // 1KB of 4KB uploaded
+    /// report-progress("process-items", 5, some(10))?;      // 5 of 10 items processed
+    /// report-progress("indefinite", 42, none)?;            // Indefinite progress
+    /// ```
+    ///
+    /// # Errors
+    /// - invalid-params: Invalid progress token or values
+    /// - internal-error: Failed to report progress
+    @since(version = 0.1.0)
+    report-progress: func(
+        token: progress-token,
+        progress: u64,
+        total: option<u64>
+    ) -> result<_, error>;
+}

@@ -1,0 +1,290 @@
+package wasi:mcp@0.1.0;
+
+/// WASI MCP Worlds
+///
+/// Defines component worlds for MCP backends and clients following the
+/// WASI system interface pattern (bidirectional: import capabilities + export handlers).
+///
+/// This follows the wasi-http precedent where components:
+/// - Import runtime capabilities from the host
+/// - Export handlers for the host to invoke
+///
+/// The host provides:
+/// - MCP protocol implementation (initialize, list-tools, call-tool, etc.)
+/// - Transport layer (stdio, HTTP, WebSocket)
+/// - Authentication and authorization
+/// - Middleware (rate limiting, logging, monitoring)
+/// - Request routing and JSON serialization
+///
+/// The component provides:
+/// - Domain-specific business logic (tools, resources, prompts)
+/// - Simple handlers that the host invokes
+
+// ============================================================================
+// MCP Backend World
+// ============================================================================
+
+/// MCP Backend World
+///
+/// A component that provides MCP tools, resources, and/or prompts to AI systems.
+/// This is the primary world for building MCP servers in WebAssembly.
+///
+/// The component:
+/// - **Imports** `runtime` to register capabilities and start serving
+/// - **Exports** `handlers` to execute tools, read resources, etc.
+/// - Imports standard WASI capabilities for I/O and time
+///
+/// The host handles all protocol concerns (pagination, cursors, progress tokens,
+/// JSON-RPC, transport), while the component focuses solely on domain logic.
+///
+/// # Architecture
+/// ```
+/// ┌─────────────────────────────────────────┐
+/// │            Host Runtime                  │
+/// │  ┌────────────────────────────────────┐  │
+/// │  │  MCP Protocol Implementation        │  │
+/// │  │  - initialize, list-tools, etc.    │  │
+/// │  │  - JSON-RPC handling                │  │
+/// │  │  - Pagination, cursors, progress    │  │
+/// │  └────────────────────────────────────┘  │
+/// │  ┌────────────────────────────────────┐  │
+/// │  │  Transport Layer                    │  │
+/// │  │  - stdio, HTTP, WebSocket           │  │
+/// │  └────────────────────────────────────┘  │
+/// │  ┌────────────────────────────────────┐  │
+/// │  │  Middleware                         │  │
+/// │  │  - Auth, rate limiting, logging     │  │
+/// │  └────────────────────────────────────┘  │
+/// └─────────────────────────────────────────┘
+///                     ↕
+///           imports runtime
+///           exports handlers
+///                     ↕
+/// ┌─────────────────────────────────────────┐
+/// │      Component (Your Code)               │
+/// │  ┌────────────────────────────────────┐  │
+/// │  │  Registration                       │  │
+/// │  │  - register-server(info)            │  │
+/// │  │  - register-tools([...])            │  │
+/// │  │  - serve()                          │  │
+/// │  └────────────────────────────────────┘  │
+/// │  ┌────────────────────────────────────┐  │
+/// │  │  Handlers (Domain Logic)            │  │
+/// │  │  - call-tool(name, args)            │  │
+/// │  │  - read-resource(uri)               │  │
+/// │  │  - get-prompt(name, args)           │  │
+/// │  └────────────────────────────────────┘  │
+/// └─────────────────────────────────────────┘
+/// ```
+///
+/// # Use Cases
+/// - Expose data sources as MCP resources (files, databases, APIs)
+/// - Provide executable functions as MCP tools (queries, operations)
+/// - Offer prompt templates for AI interactions
+///
+/// # Example Usage (Conceptual)
+/// ```rust
+/// // Component exports handlers interface
+/// impl handlers::Guest for MyComponent {
+///     fn call_tool(name: String, args: Vec<u8>) -> Result<ToolResult, Error> {
+///         match name.as_str() {
+///             "say_hello" => { /* implementation */ }
+///             _ => Err(Error::tool_not_found(name))
+///         }
+///     }
+///     // ... other handlers
+/// }
+///
+/// fn main() {
+///     // Import runtime to register and serve
+///     runtime::register_server(ServerInfo { ... })?;
+///     runtime::register_tools(vec![ToolDefinition { ... }])?;
+///     runtime::serve()?;  // Blocks, host handles protocol
+/// }
+/// ```
+///
+/// # Lines of Code
+/// - Minimal hello world: ~60 lines
+/// - With macro helpers: ~25 lines (similar to production Rust MCP)
+///
+/// # Comparison with Protocol-Faithful Pattern
+/// This pattern differs from directly exporting MCP protocol operations:
+/// - ✅ Component implements domain logic only (not protocol details)
+/// - ✅ Host handles pagination, cursors, initialization
+/// - ✅ Simpler: ~60 lines vs 150+ lines
+/// - ✅ Macro-friendly: can add `#[wasi_mcp::tool]` annotations
+/// - ✅ Extensible: MCP protocol changes don't break components
+@since(version = 0.1.0)
+world mcp-backend {
+    /// Component imports MCP runtime to register capabilities and serve
+    ///
+    /// The runtime provides:
+    /// - register-server: Define server identity and capabilities
+    /// - register-tools: Register available tools
+    /// - register-resources: Register available resources
+    /// - register-resource-templates: Register URI templates
+    /// - register-prompts: Register available prompts
+    /// - serve: Start serving (blocks, host handles protocol)
+    /// - send-notification: Send notifications to clients
+    /// - log: Log messages through MCP protocol
+    /// - report-progress: Report progress for long operations
+    import runtime;
+
+    /// Component exports handlers for tool execution, resource reads, etc.
+    ///
+    /// The host calls these when MCP protocol operations arrive:
+    /// - call-tool: Execute a tool
+    /// - read-resource: Read a resource
+    /// - get-prompt: Generate a prompt
+    /// - handle-subscribe: Handle subscription request (optional)
+    /// - handle-unsubscribe: Handle unsubscription request (optional)
+    /// - handle-complete: Provide completions (optional)
+    /// - handle-elicit: Handle elicitation request (optional)
+    export handlers;
+
+    /// Standard WASI I/O capabilities
+    ///
+    /// Used for:
+    /// - Reading files (if component implements file resources)
+    /// - Network I/O (if component calls external APIs)
+    /// - Event polling for async operations
+    import wasi:io/poll@0.2.3;
+    import wasi:io/streams@0.2.3;
+
+    /// Standard WASI time capabilities
+    ///
+    /// Used for:
+    /// - Timestamps in log messages
+    /// - Measuring operation duration
+    /// - Timeout handling
+    import wasi:clocks/wall-clock@0.2.3;
+    import wasi:clocks/monotonic-clock@0.2.3;
+}
+
+// ============================================================================
+// MCP Client World
+// ============================================================================
+
+/// MCP Client World
+///
+/// A component that acts as an MCP client, connecting to and consuming
+/// MCP servers. Imports client operations for calling remote servers.
+///
+/// The component:
+/// - **Imports** `client` to make MCP requests
+/// - Imports standard WASI capabilities for I/O and time
+///
+/// # Use Cases
+/// - Connect to MCP servers to gather context
+/// - Aggregate data from multiple MCP sources
+/// - Act as AI agents consuming context providers
+///
+/// # Example Usage (Conceptual)
+/// ```rust
+/// fn main() {
+///     // Connect to an MCP server
+///     let client = client::connect("stdio")?;
+///
+///     // Initialize connection
+///     client.initialize(InitializeParams {
+///         protocol_version: ProtocolVersion::default(),
+///         client_info: Implementation {
+///             name: "my-client".into(),
+///             version: "1.0.0".into(),
+///         },
+///         capabilities: ClientCapabilities::default(),
+///     })?;
+///
+///     // List available tools
+///     let tools = client.list_tools(None)?;
+///
+///     // Call a tool
+///     let result = client.call_tool("say_hello", Some(args))?;
+/// }
+/// ```
+@since(version = 0.1.0)
+world mcp-client {
+    /// Component imports MCP client operations
+    ///
+    /// The client interface provides:
+    /// - connect: Connect to an MCP server
+    /// - initialize: Initialize MCP session
+    /// - list-tools: List available tools
+    /// - call-tool: Execute a tool
+    /// - list-resources: List available resources
+    /// - read-resource: Read a resource
+    /// - list-prompts: List available prompts
+    /// - get-prompt: Get a prompt
+    /// - subscribe: Subscribe to resource updates
+    /// - complete: Request completions
+    import client;
+
+    /// Standard WASI I/O capabilities
+    import wasi:io/poll@0.2.3;
+    import wasi:io/streams@0.2.3;
+
+    /// Standard WASI time capabilities
+    import wasi:clocks/wall-clock@0.2.3;
+    import wasi:clocks/monotonic-clock@0.2.3;
+}
+
+// ============================================================================
+// MCP Proxy World
+// ============================================================================
+
+/// MCP Proxy World
+///
+/// A component that acts as both backend (providing tools/resources) and
+/// client (consuming upstream servers), enabling MCP server composition,
+/// aggregation, and middleware functionality.
+///
+/// The component:
+/// - **Imports** `runtime` to register its own capabilities
+/// - **Exports** `handlers` to handle downstream requests
+/// - **Imports** `client` to call upstream MCP servers
+///
+/// # Use Cases
+/// - Aggregate multiple upstream MCP servers
+/// - Add caching or filtering to MCP servers
+/// - Transform or enrich MCP responses
+/// - Implement authentication/authorization logic
+///
+/// # Example Usage (Conceptual)
+/// ```rust
+/// impl handlers::Guest for MyProxy {
+///     fn call_tool(name: String, args: Vec<u8>) -> Result<ToolResult, Error> {
+///         // Forward to upstream server
+///         let upstream = client::connect("upstream")?;
+///         let result = upstream.call_tool(name, Some(args))?;
+///
+///         // Transform/cache/filter result
+///         Ok(transform(result))
+///     }
+/// }
+///
+/// fn main() {
+///     // Register this proxy's capabilities
+///     runtime::register_server(ServerInfo { ... })?;
+///     runtime::register_tools(aggregated_tools)?;
+///     runtime::serve()?;
+/// }
+/// ```
+@since(version = 0.1.0)
+world mcp-proxy {
+    /// Component imports MCP runtime (for downstream serving)
+    import runtime;
+
+    /// Component exports handlers (for downstream requests)
+    export handlers;
+
+    /// Component imports MCP client (for upstream requests)
+    import client;
+
+    /// Standard WASI I/O capabilities
+    import wasi:io/poll@0.2.3;
+    import wasi:io/streams@0.2.3;
+
+    /// Standard WASI time capabilities
+    import wasi:clocks/wall-clock@0.2.3;
+    import wasi:clocks/monotonic-clock@0.2.3;
+}
