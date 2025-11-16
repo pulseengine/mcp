@@ -159,9 +159,73 @@ impl runtime::Host for WasiMcpCtx {
         Box::pin(async move {
             eprintln!("[HOST] serve: Starting MCP event loop");
 
-            // This is the main event loop where the host takes control
-            // For now, just return to avoid blocking
-            // TODO: Implement full event loop with JSON-RPC handling
+            let router = crate::jsonrpc::MessageRouter::new();
+
+            // Main event loop: read JSON-RPC messages from stdio and respond
+            loop {
+                // Read message from backend
+                match self.backend.read_message().await {
+                    Ok(msg_value) => {
+                        // Parse as JSON-RPC request
+                        match serde_json::from_value::<crate::jsonrpc::JsonRpcRequest>(msg_value) {
+                            Ok(request) => {
+                                eprintln!("[HOST] Received request: method={}", request.method);
+
+                                let id = request.id.clone().unwrap_or(serde_json::Value::Null);
+
+                                // Route request to handler
+                                match router.route(&request, self) {
+                                    Ok(result) => {
+                                        let response = crate::jsonrpc::JsonRpcResponse::success(id, result);
+                                        if let Ok(json_str) = response.to_json() {
+                                            if let Ok(json_val) = serde_json::from_str(&json_str) {
+                                                if let Err(e) = self.backend.write_message(&json_val).await {
+                                                    eprintln!("[HOST] ERROR: Failed to write response: {}", e);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    Err((code, message)) => {
+                                        let error = crate::jsonrpc::JsonRpcError::error(
+                                            id,
+                                            code,
+                                            message,
+                                            None,
+                                        );
+                                        if let Ok(json_str) = error.to_json() {
+                                            if let Ok(json_val) = serde_json::from_str(&json_str) {
+                                                if let Err(e) = self.backend.write_message(&json_val).await {
+                                                    eprintln!("[HOST] ERROR: Failed to write error response: {}", e);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                eprintln!("[HOST] ERROR: Failed to parse JSON-RPC request: {}", e);
+                                // Send parse error response
+                                let error = crate::jsonrpc::JsonRpcError::error(
+                                    serde_json::Value::Null,
+                                    crate::jsonrpc::error_codes::PARSE_ERROR,
+                                    format!("Parse error: {}", e),
+                                    None,
+                                );
+                                if let Ok(json_str) = error.to_json() {
+                                    if let Ok(json_val) = serde_json::from_str(&json_str) {
+                                        let _ = self.backend.write_message(&json_val).await;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("[HOST] ERROR: Failed to read message: {}", e);
+                        // Connection closed or error - exit serve loop
+                        break;
+                    }
+                }
+            }
 
             eprintln!("[HOST] serve: Event loop complete");
             Ok(())

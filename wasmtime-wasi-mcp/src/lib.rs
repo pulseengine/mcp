@@ -18,6 +18,7 @@ mod conversions;
 mod ctx;
 mod error;
 pub mod host; // Make public to see generated code
+mod jsonrpc;
 mod registry;
 
 pub use ctx::{WasiMcpCtx, WasiMcpView};

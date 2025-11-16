@@ -46,6 +46,11 @@ impl WasiMcpCtx {
     pub fn new_with_stdio() -> Self {
         Self::new(Box::new(StdioBackend::new()))
     }
+
+    /// Get a mutable reference to the resource table
+    pub fn table(&mut self) -> &mut ResourceTable {
+        &mut self.table
+    }
 }
 
 impl std::fmt::Debug for WasiMcpCtx {

@@ -1,0 +1,16 @@
+[package]
+name = "mcp-compositor"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "mcp-compositor"
+path = "src/main.rs"
+
+[dependencies]
+wasmtime = { version = "28", features = ["component-model"] }
+wasmtime-wasi = "28"
+wasmtime-wasi-mcp = { path = "../../wasmtime-wasi-mcp" }
+tokio = { version = "1.40", features = ["full"] }
+anyhow = "1.0"
+serde_json = "1.0"
