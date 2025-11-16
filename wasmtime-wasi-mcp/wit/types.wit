@@ -6,8 +6,8 @@ package wasi:mcp@0.1.0;
 /// specification, adapted for WASI Preview3 with async patterns.
 @since(version = 0.1.0)
 interface types {
-    use wasi:io/poll@0.2.3.{pollable};
-    use wasi:clocks/wall-clock@0.2.3.{datetime};
+    use wasi:io/poll@0.2.8.{pollable};
+    use wasi:clocks/wall-clock@0.2.8.{datetime};
     use capabilities.{server-capabilities, client-capabilities, log-level};
     use content.{content-block, tool-annotations, resource-annotations};
 

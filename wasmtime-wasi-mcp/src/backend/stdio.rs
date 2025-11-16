@@ -3,7 +3,7 @@
 use super::Backend;
 use crate::error::{Error, Result};
 use async_trait::async_trait;
-use pulseengine_mcp_protocol::model::{JsonRpcMessage, JsonRpcNotification};
+use serde_json::Value;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, Stdin, Stdout};
 
 /// Stdio transport backend
@@ -36,7 +36,7 @@ impl Default for StdioBackend {
 
 #[async_trait]
 impl Backend for StdioBackend {
-    async fn read_message(&mut self) -> Result<JsonRpcMessage> {
+    async fn read_message(&mut self) -> Result<Value> {
         let mut line = String::new();
         let n = self.stdin.read_line(&mut line).await?;
 
@@ -46,20 +46,12 @@ impl Backend for StdioBackend {
             return Err(Error::internal("EOF reached on stdin"));
         }
 
-        let message: JsonRpcMessage = serde_json::from_str(line.trim())?;
+        let message: Value = serde_json::from_str(line.trim())?;
         Ok(message)
     }
 
-    async fn write_message(&mut self, message: &JsonRpcMessage) -> Result<()> {
+    async fn write_message(&mut self, message: &Value) -> Result<()> {
         let json = serde_json::to_string(message)?;
-        self.stdout.write_all(json.as_bytes()).await?;
-        self.stdout.write_all(b"\n").await?;
-        self.stdout.flush().await?;
-        Ok(())
-    }
-
-    async fn write_notification(&mut self, notification: &JsonRpcNotification) -> Result<()> {
-        let json = serde_json::to_string(notification)?;
         self.stdout.write_all(json.as_bytes()).await?;
         self.stdout.write_all(b"\n").await?;
         self.stdout.flush().await?;

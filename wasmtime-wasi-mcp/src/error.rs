@@ -62,13 +62,9 @@ pub enum Error {
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
 
-    /// Wasmtime error
+    /// Wasmtime error (Note: wasmtime::Error already implements From<anyhow::Error>)
     #[error("Wasmtime error: {0}")]
     Wasmtime(#[from] wasmtime::Error),
-
-    /// Other errors
-    #[error("Error: {0}")]
-    Other(#[from] anyhow::Error),
 }
 
 impl Error {

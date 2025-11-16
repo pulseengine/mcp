@@ -5,8 +5,8 @@ mod stdio;
 pub use stdio::StdioBackend;
 
 use crate::error::Result;
-use pulseengine_mcp_protocol::model::{JsonRpcMessage, JsonRpcNotification};
 use async_trait::async_trait;
+use serde_json::Value;
 
 /// Transport backend trait
 ///
@@ -17,17 +17,12 @@ pub trait Backend: Send + Sync {
     /// Read a JSON-RPC message from the transport
     ///
     /// Blocks until a complete message is available or an error occurs.
-    async fn read_message(&mut self) -> Result<JsonRpcMessage>;
+    async fn read_message(&mut self) -> Result<Value>;
 
     /// Write a JSON-RPC message to the transport
     ///
     /// Sends the message and flushes the output.
-    async fn write_message(&mut self, message: &JsonRpcMessage) -> Result<()>;
-
-    /// Write a JSON-RPC notification to the transport
-    ///
-    /// Sends the notification and flushes the output.
-    async fn write_notification(&mut self, notification: &JsonRpcNotification) -> Result<()>;
+    async fn write_message(&mut self, message: &Value) -> Result<()>;
 
     /// Check if the transport is still active
     ///

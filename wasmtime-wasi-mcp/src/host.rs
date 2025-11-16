@@ -4,7 +4,6 @@
 //! from the WASI-MCP WIT definitions, then implements the host traits.
 
 use crate::ctx::WasiMcpView;
-use crate::error::{Error, ErrorCode, Result};
 use wasmtime::component::{bindgen, Linker};
 
 // Generate bindings from WIT
@@ -12,15 +11,7 @@ bindgen!({
     world: "mcp-backend",
     path: "wit",
     async: true,
-    with: {
-        // Map WIT string types to Rust String for simplicity
-        "wasi:mcp/types/request-id": String,
-        "wasi:mcp/types/cursor": String,
-        "wasi:mcp/types/progress-token": String,
-        "wasi:mcp/types/resource-id": String,
-        "wasi:mcp/types/tool-id": String,
-        "wasi:mcp/types/prompt-id": String,
-    },
+    // Type mapping will be added after we see what bindgen generates
 });
 
 /// Add WASI-MCP runtime interface to linker

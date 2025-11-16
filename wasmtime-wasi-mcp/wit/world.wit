@@ -148,8 +148,8 @@ world mcp-backend {
     /// - Reading files (if component implements file resources)
     /// - Network I/O (if component calls external APIs)
     /// - Event polling for async operations
-    import wasi:io/poll@0.2.3;
-    import wasi:io/streams@0.2.3;
+    import wasi:io/poll@0.2.8;
+    import wasi:io/streams@0.2.8;
 
     /// Standard WASI time capabilities
     ///
@@ -157,8 +157,8 @@ world mcp-backend {
     /// - Timestamps in log messages
     /// - Measuring operation duration
     /// - Timeout handling
-    import wasi:clocks/wall-clock@0.2.3;
-    import wasi:clocks/monotonic-clock@0.2.3;
+    import wasi:clocks/wall-clock@0.2.8;
+    import wasi:clocks/monotonic-clock@0.2.8;
 }
 
 // ============================================================================
@@ -220,12 +220,12 @@ world mcp-client {
     import client;
 
     /// Standard WASI I/O capabilities
-    import wasi:io/poll@0.2.3;
-    import wasi:io/streams@0.2.3;
+    import wasi:io/poll@0.2.8;
+    import wasi:io/streams@0.2.8;
 
     /// Standard WASI time capabilities
-    import wasi:clocks/wall-clock@0.2.3;
-    import wasi:clocks/monotonic-clock@0.2.3;
+    import wasi:clocks/wall-clock@0.2.8;
+    import wasi:clocks/monotonic-clock@0.2.8;
 }
 
 // ============================================================================
@@ -281,10 +281,10 @@ world mcp-proxy {
     import client;
 
     /// Standard WASI I/O capabilities
-    import wasi:io/poll@0.2.3;
-    import wasi:io/streams@0.2.3;
+    import wasi:io/poll@0.2.8;
+    import wasi:io/streams@0.2.8;
 
     /// Standard WASI time capabilities
-    import wasi:clocks/wall-clock@0.2.3;
-    import wasi:clocks/monotonic-clock@0.2.3;
+    import wasi:clocks/wall-clock@0.2.8;
+    import wasi:clocks/monotonic-clock@0.2.8;
 }

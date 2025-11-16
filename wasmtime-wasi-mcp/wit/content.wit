@@ -7,7 +7,7 @@ package wasi:mcp@0.1.0;
 /// Following MCP specification 2025-06-18.
 @since(version = 0.1.0)
 interface content {
-    use wasi:clocks/wall-clock@0.2.3.{datetime};
+    use wasi:clocks/wall-clock@0.2.8.{datetime};
 
     /// Text content block
     ///

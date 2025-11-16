@@ -1,17 +1,16 @@
 //! Registry for MCP tools, resources, and prompts
 
 use crate::error::{Error, Result};
-use pulseengine_mcp_protocol::model::{Prompt, ResourceInfo, ResourceTemplate, Tool};
+use pulseengine_mcp_protocol::model::{Prompt, Resource, Tool};
 use std::collections::HashMap;
 
 /// Registry for MCP server capabilities
 ///
-/// Stores tools, resources, prompts, and templates registered by components.
+/// Stores tools, resources, and prompts registered by components.
 #[derive(Debug, Default)]
 pub struct Registry {
     tools: HashMap<String, Tool>,
-    resources: HashMap<String, ResourceInfo>,
-    resource_templates: Vec<ResourceTemplate>,
+    resources: HashMap<String, Resource>,
     prompts: HashMap<String, Prompt>,
 }
 
@@ -50,7 +49,7 @@ impl Registry {
     }
 
     /// Register a resource
-    pub fn add_resource(&mut self, resource: ResourceInfo) -> Result<()> {
+    pub fn add_resource(&mut self, resource: Resource) -> Result<()> {
         let uri = resource.uri.clone();
         if self.resources.contains_key(&uri) {
             return Err(Error::invalid_params(format!("Resource '{}' already registered", uri)));
@@ -60,7 +59,7 @@ impl Registry {
     }
 
     /// Register multiple resources
-    pub fn add_resources(&mut self, resources: Vec<ResourceInfo>) -> Result<()> {
+    pub fn add_resources(&mut self, resources: Vec<Resource>) -> Result<()> {
         for resource in resources {
             self.add_resource(resource)?;
         }
@@ -68,33 +67,13 @@ impl Registry {
     }
 
     /// Get a resource by URI
-    pub fn get_resource(&self, uri: &str) -> Option<&ResourceInfo> {
+    pub fn get_resource(&self, uri: &str) -> Option<&Resource> {
         self.resources.get(uri)
     }
 
     /// List all resources
-    pub fn list_resources(&self) -> Vec<ResourceInfo> {
+    pub fn list_resources(&self) -> Vec<Resource> {
         self.resources.values().cloned().collect()
-    }
-
-    /// Register a resource template
-    pub fn add_resource_template(&mut self, template: ResourceTemplate) -> Result<()> {
-        // Templates can have duplicate uri_templates (different metadata)
-        self.resource_templates.push(template);
-        Ok(())
-    }
-
-    /// Register multiple resource templates
-    pub fn add_resource_templates(&mut self, templates: Vec<ResourceTemplate>) -> Result<()> {
-        for template in templates {
-            self.add_resource_template(template)?;
-        }
-        Ok(())
-    }
-
-    /// List all resource templates
-    pub fn list_resource_templates(&self) -> Vec<ResourceTemplate> {
-        self.resource_templates.clone()
     }
 
     /// Register a prompt
@@ -129,7 +108,6 @@ impl Registry {
     pub fn clear(&mut self) {
         self.tools.clear();
         self.resources.clear();
-        self.resource_templates.clear();
         self.prompts.clear();
     }
 }
