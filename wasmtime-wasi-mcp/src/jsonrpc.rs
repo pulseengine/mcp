@@ -111,6 +111,16 @@ impl JsonRpcError {
         )
     }
 
+    /// Create a parse error
+    pub fn parse_error(id: Value) -> Self {
+        Self::error(
+            id,
+            error_codes::PARSE_ERROR,
+            "Parse error".to_string(),
+            None,
+        )
+    }
+
     /// Serialize to JSON string
     pub fn to_json(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string(self)
@@ -120,6 +130,7 @@ impl JsonRpcError {
 /// MCP message router
 ///
 /// Routes JSON-RPC requests to appropriate handlers based on method name.
+#[derive(Debug)]
 pub struct MessageRouter {
 }
 
@@ -237,5 +248,224 @@ impl MessageRouter {
 
         // Return prompt not found for now
         Err((error_codes::METHOD_NOT_FOUND, format!("Prompt not found (component not loaded): {}", params.name)))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_request_serialization() {
+        let request = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(json!(1)),
+            method: "initialize".to_string(),
+            params: Some(json!({"protocolVersion": "2024-11-05"})),
+        };
+
+        let serialized = serde_json::to_value(&request).unwrap();
+        assert_eq!(serialized["jsonrpc"], "2.0");
+        assert_eq!(serialized["method"], "initialize");
+        assert_eq!(serialized["id"], 1);
+    }
+
+    #[test]
+    fn test_request_deserialization() {
+        let json_str = r#"{
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/list",
+            "params": {}
+        }"#;
+
+        let request: JsonRpcRequest = serde_json::from_str(json_str).unwrap();
+        assert_eq!(request.jsonrpc, "2.0");
+        assert_eq!(request.method, "tools/list");
+        assert!(request.id.is_some());
+        assert!(request.params.is_some());
+    }
+
+    #[test]
+    fn test_request_without_params() {
+        let json_str = r#"{
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "tools/list"
+        }"#;
+
+        let request: JsonRpcRequest = serde_json::from_str(json_str).unwrap();
+        assert_eq!(request.method, "tools/list");
+        assert!(request.params.is_none());
+    }
+
+    #[test]
+    fn test_success_response_creation() {
+        let response = JsonRpcResponse::success(json!(1), json!({"status": "ok"}));
+
+        assert_eq!(response.jsonrpc, "2.0");
+        assert_eq!(response.id, 1);
+        assert!(response.result.is_some());
+        assert_eq!(response.result.unwrap()["status"], "ok");
+    }
+
+    #[test]
+    fn test_success_response_serialization() {
+        let response = JsonRpcResponse::success(json!(1), json!({"tools": []}));
+        let serialized = serde_json::to_value(&response).unwrap();
+
+        assert_eq!(serialized["jsonrpc"], "2.0");
+        assert_eq!(serialized["id"], 1);
+        assert!(serialized["result"].is_object());
+    }
+
+    #[test]
+    fn test_error_response_creation() {
+        let error = JsonRpcError::error(
+            json!(1),
+            error_codes::METHOD_NOT_FOUND,
+            "Method not found".to_string(),
+            None,
+        );
+
+        assert_eq!(error.jsonrpc, "2.0");
+        assert_eq!(error.id, 1);
+        assert_eq!(error.error.code, error_codes::METHOD_NOT_FOUND);
+        assert_eq!(error.error.message, "Method not found");
+    }
+
+    #[test]
+    fn test_error_response_with_data() {
+        let error = JsonRpcError::error(
+            json!(1),
+            error_codes::INVALID_PARAMS,
+            "Invalid params".to_string(),
+            Some(json!({"field": "missing"})),
+        );
+
+        assert!(error.error.data.is_some());
+        assert_eq!(error.error.data.unwrap()["field"], "missing");
+    }
+
+    #[test]
+    fn test_error_codes() {
+        assert_eq!(error_codes::PARSE_ERROR, -32700);
+        assert_eq!(error_codes::INVALID_REQUEST, -32600);
+        assert_eq!(error_codes::METHOD_NOT_FOUND, -32601);
+        assert_eq!(error_codes::INVALID_PARAMS, -32602);
+        assert_eq!(error_codes::INTERNAL_ERROR, -32603);
+    }
+
+    #[test]
+    fn test_router_creation() {
+        let router = MessageRouter::new();
+        // Router should be created successfully
+        assert!(format!("{:?}", router).contains("MessageRouter"));
+    }
+
+    #[test]
+    fn test_method_not_found() {
+        let router = MessageRouter::new();
+        let ctx = crate::ctx::WasiMcpCtx::new_with_stdio();
+
+        let request = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(json!(1)),
+            method: "invalid/method".to_string(),
+            params: None,
+        };
+
+        let result = router.route(&request, &ctx);
+        assert!(result.is_err());
+        let (code, message) = result.unwrap_err();
+        assert_eq!(code, error_codes::METHOD_NOT_FOUND);
+        assert!(message.contains("Method not found"));
+    }
+
+    #[test]
+    fn test_initialize_without_params() {
+        // Note: Current implementation accepts initialize without params
+        // TODO: Should validate protocolVersion in params
+        let router = MessageRouter::new();
+        let ctx = crate::ctx::WasiMcpCtx::new_with_stdio();
+
+        let request = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(json!(1)),
+            method: "initialize".to_string(),
+            params: None,
+        };
+
+        let result = router.route(&request, &ctx);
+        assert!(result.is_ok());
+        let response = result.unwrap();
+        assert!(response.is_object());
+        assert_eq!(response["protocolVersion"], "2024-11-05");
+    }
+
+    #[test]
+    fn test_tools_list_success() {
+        let router = MessageRouter::new();
+        let ctx = crate::ctx::WasiMcpCtx::new_with_stdio();
+
+        let request = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(json!(1)),
+            method: "tools/list".to_string(),
+            params: None,
+        };
+
+        let result = router.route(&request, &ctx);
+        assert!(result.is_ok());
+        let response = result.unwrap();
+        assert!(response.is_object());
+        assert!(response.get("tools").is_some());
+    }
+
+    #[test]
+    fn test_resources_list_success() {
+        let router = MessageRouter::new();
+        let ctx = crate::ctx::WasiMcpCtx::new_with_stdio();
+
+        let request = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(json!(1)),
+            method: "resources/list".to_string(),
+            params: None,
+        };
+
+        let result = router.route(&request, &ctx);
+        assert!(result.is_ok());
+        let response = result.unwrap();
+        assert!(response.is_object());
+        assert!(response.get("resources").is_some());
+    }
+
+    #[test]
+    fn test_prompts_list_success() {
+        let router = MessageRouter::new();
+        let ctx = crate::ctx::WasiMcpCtx::new_with_stdio();
+
+        let request = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(json!(1)),
+            method: "prompts/list".to_string(),
+            params: None,
+        };
+
+        let result = router.route(&request, &ctx);
+        assert!(result.is_ok());
+        let response = result.unwrap();
+        assert!(response.is_object());
+        assert!(response.get("prompts").is_some());
+    }
+
+    #[test]
+    fn test_parse_error_response() {
+        let error = JsonRpcError::parse_error(json!(null));
+
+        assert_eq!(error.error.code, error_codes::PARSE_ERROR);
+        assert!(error.error.message.contains("Parse error"));
     }
 }

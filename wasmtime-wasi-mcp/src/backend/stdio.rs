@@ -68,3 +68,36 @@ impl Backend for StdioBackend {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_stdio_backend_creation() {
+        let backend = StdioBackend::new();
+        assert!(backend.is_active());
+    }
+
+    #[test]
+    fn test_stdio_backend_default() {
+        let backend = StdioBackend::default();
+        assert!(backend.is_active());
+    }
+
+    #[tokio::test]
+    async fn test_stdio_backend_shutdown() {
+        let mut backend = StdioBackend::new();
+        assert!(backend.is_active());
+
+        backend.shutdown().await.unwrap();
+        assert!(!backend.is_active());
+    }
+
+    #[test]
+    fn test_stdio_backend_debug() {
+        let backend = StdioBackend::new();
+        let debug_str = format!("{:?}", backend);
+        assert!(debug_str.contains("StdioBackend"));
+    }
+}

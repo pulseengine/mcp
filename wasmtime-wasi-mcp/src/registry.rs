@@ -110,4 +110,162 @@ impl Registry {
         self.resources.clear();
         self.prompts.clear();
     }
+
+    /// Get number of registered tools
+    pub fn tool_count(&self) -> usize {
+        self.tools.len()
+    }
+
+    /// Get number of registered resources
+    pub fn resource_count(&self) -> usize {
+        self.resources.len()
+    }
+
+    /// Get number of registered prompts
+    pub fn prompt_count(&self) -> usize {
+        self.prompts.len()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_registry_creation() {
+        let registry = Registry::new();
+        assert_eq!(registry.tool_count(), 0);
+        assert_eq!(registry.resource_count(), 0);
+        assert_eq!(registry.prompt_count(), 0);
+    }
+
+    #[test]
+    fn test_add_tool() {
+        let mut registry = Registry::new();
+
+        let tool = Tool {
+            name: "test-tool".to_string(),
+            title: Some("Test Tool".to_string()),
+            description: "A test tool".to_string(),
+            input_schema: json!({"type": "object"}),
+            output_schema: None,
+            annotations: None,
+            icons: None,
+        };
+
+        assert!(registry.add_tool(tool).is_ok());
+        assert_eq!(registry.tool_count(), 1);
+        assert!(registry.get_tool("test-tool").is_some());
+    }
+
+    #[test]
+    fn test_duplicate_tool_error() {
+        let mut registry = Registry::new();
+
+        let tool1 = Tool {
+            name: "duplicate".to_string(),
+            title: None,
+            description: "Tool 1".to_string(),
+            input_schema: json!({}),
+            output_schema: None,
+            annotations: None,
+            icons: None,
+        };
+
+        let tool2 = Tool {
+            name: "duplicate".to_string(),
+            title: None,
+            description: "Tool 2".to_string(),
+            input_schema: json!({}),
+            output_schema: None,
+            annotations: None,
+            icons: None,
+        };
+
+        assert!(registry.add_tool(tool1).is_ok());
+        assert!(registry.add_tool(tool2).is_err());
+    }
+
+    #[test]
+    fn test_add_resource() {
+        let mut registry = Registry::new();
+
+        let resource = Resource {
+            uri: "file:///test.txt".to_string(),
+            name: "test".to_string(),
+            title: None,
+            description: None,
+            mime_type: Some("text/plain".to_string()),
+            annotations: None,
+            icons: None,
+            raw: None,
+        };
+
+        assert!(registry.add_resource(resource).is_ok());
+        assert_eq!(registry.resource_count(), 1);
+        assert!(registry.get_resource("file:///test.txt").is_some());
+    }
+
+    #[test]
+    fn test_add_prompt() {
+        let mut registry = Registry::new();
+
+        let prompt = Prompt {
+            name: "test-prompt".to_string(),
+            title: None,
+            description: None,
+            arguments: None,
+            icons: None,
+        };
+
+        assert!(registry.add_prompt(prompt).is_ok());
+        assert_eq!(registry.prompt_count(), 1);
+        assert!(registry.get_prompt("test-prompt").is_some());
+    }
+
+    #[test]
+    fn test_list_tools() {
+        let mut registry = Registry::new();
+
+        for i in 0..3 {
+            let tool = Tool {
+                name: format!("tool-{}", i),
+                title: None,
+                description: format!("Tool {}", i),
+                input_schema: json!({}),
+                output_schema: None,
+                annotations: None,
+                icons: None,
+            };
+            registry.add_tool(tool).unwrap();
+        }
+
+        let tools = registry.list_tools();
+        assert_eq!(tools.len(), 3);
+    }
+
+    #[test]
+    fn test_clear_registry() {
+        let mut registry = Registry::new();
+
+        let tool = Tool {
+            name: "tool".to_string(),
+            title: None,
+            description: "Tool".to_string(),
+            input_schema: json!({}),
+            output_schema: None,
+            annotations: None,
+            icons: None,
+        };
+        registry.add_tool(tool).unwrap();
+
+        assert_eq!(registry.tool_count(), 1);
+
+        registry.clear();
+
+        assert_eq!(registry.tool_count(), 0);
+        assert_eq!(registry.resource_count(), 0);
+        assert_eq!(registry.prompt_count(), 0);
+    }
 }
