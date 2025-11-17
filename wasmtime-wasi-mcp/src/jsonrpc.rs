@@ -133,8 +133,11 @@ impl MessageRouter {
         match req.method.as_str() {
             "initialize" => self.handle_initialize(req, ctx),
             "tools/list" => self.handle_tools_list(req, ctx),
+            "tools/call" => self.handle_tools_call(req, ctx),
             "resources/list" => self.handle_resources_list(req, ctx),
+            "resources/read" => self.handle_resources_read(req, ctx),
             "prompts/list" => self.handle_prompts_list(req, ctx),
+            "prompts/get" => self.handle_prompts_get(req, ctx),
             _ => Err((error_codes::METHOD_NOT_FOUND, format!("Method not found: {}", req.method))),
         }
     }
@@ -186,5 +189,53 @@ impl MessageRouter {
 
         serde_json::to_value(result)
             .map_err(|e| (error_codes::INTERNAL_ERROR, format!("Serialization error: {}", e)))
+    }
+
+    fn handle_tools_call(&self, req: &JsonRpcRequest, _ctx: &crate::ctx::WasiMcpCtx) -> Result<Value, (i32, String)> {
+        // Parse parameters
+        let params: model::CallToolRequestParam = serde_json::from_value(
+            req.params.as_ref()
+                .ok_or_else(|| (error_codes::INVALID_PARAMS, "Missing parameters".to_string()))?
+                .clone()
+        ).map_err(|e| (error_codes::INVALID_PARAMS, format!("Invalid parameters: {}", e)))?;
+
+        // TODO: Actually invoke the component's call-tool handler
+        // For now, return a stub response
+        eprintln!("[ROUTER] tools/call: name={}", params.name);
+
+        // Return tool not found for now since we can't invoke components yet
+        Err((error_codes::METHOD_NOT_FOUND, format!("Tool not found (component not loaded): {}", params.name)))
+    }
+
+    fn handle_resources_read(&self, req: &JsonRpcRequest, _ctx: &crate::ctx::WasiMcpCtx) -> Result<Value, (i32, String)> {
+        // Parse parameters
+        let params: model::ReadResourceRequestParam = serde_json::from_value(
+            req.params.as_ref()
+                .ok_or_else(|| (error_codes::INVALID_PARAMS, "Missing parameters".to_string()))?
+                .clone()
+        ).map_err(|e| (error_codes::INVALID_PARAMS, format!("Invalid parameters: {}", e)))?;
+
+        // TODO: Actually invoke the component's read-resource handler
+        // For now, return a stub response
+        eprintln!("[ROUTER] resources/read: uri={}", params.uri);
+
+        // Return resource not found for now
+        Err((error_codes::METHOD_NOT_FOUND, format!("Resource not found (component not loaded): {}", params.uri)))
+    }
+
+    fn handle_prompts_get(&self, req: &JsonRpcRequest, _ctx: &crate::ctx::WasiMcpCtx) -> Result<Value, (i32, String)> {
+        // Parse parameters
+        let params: model::GetPromptRequestParam = serde_json::from_value(
+            req.params.as_ref()
+                .ok_or_else(|| (error_codes::INVALID_PARAMS, "Missing parameters".to_string()))?
+                .clone()
+        ).map_err(|e| (error_codes::INVALID_PARAMS, format!("Invalid parameters: {}", e)))?;
+
+        // TODO: Actually invoke the component's get-prompt handler
+        // For now, return a stub response
+        eprintln!("[ROUTER] prompts/get: name={}", params.name);
+
+        // Return prompt not found for now
+        Err((error_codes::METHOD_NOT_FOUND, format!("Prompt not found (component not loaded): {}", params.name)))
     }
 }
