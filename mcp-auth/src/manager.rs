@@ -248,6 +248,33 @@ impl AuthenticationManager {
         Ok(manager)
     }
 
+    /// Create a disabled authentication manager that allows all requests
+    /// Used when authentication is disabled in ServerConfig
+    pub fn new_disabled() -> Self {
+        use crate::storage::MemoryStorage;
+
+        let storage = Arc::new(MemoryStorage::new()) as Arc<dyn StorageBackend>;
+        let audit_logger = Arc::new(AuditLogger::new_disabled());
+        let jwt_manager =
+            Arc::new(JwtManager::new(JwtConfig::default()).expect("Failed to create JWT manager"));
+
+        let config = AuthConfig {
+            enabled: false,
+            ..Default::default()
+        };
+
+        Self {
+            storage,
+            validation_config: ValidationConfig::default(),
+            api_keys_cache: Arc::new(RwLock::new(HashMap::new())),
+            rate_limit_state: Arc::new(RwLock::new(HashMap::new())),
+            role_rate_limit_state: Arc::new(RwLock::new(HashMap::new())),
+            audit_logger,
+            jwt_manager,
+            config,
+        }
+    }
+
     pub async fn new_with_validation(
         config: AuthConfig,
         validation_config: ValidationConfig,

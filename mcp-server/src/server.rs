@@ -155,12 +155,17 @@ impl<B: McpBackend + 'static> McpServer<B> {
             None
         };
 
-        // Initialize authentication
-        let auth_manager = Arc::new(
-            AuthenticationManager::new(config.auth_config.clone())
-                .await
-                .map_err(|e| ServerError::Authentication(e.to_string()))?,
-        );
+        // Initialize authentication only if enabled
+        let auth_manager = if config.auth_config.enabled {
+            Arc::new(
+                AuthenticationManager::new(config.auth_config.clone())
+                    .await
+                    .map_err(|e| ServerError::Authentication(e.to_string()))?,
+            )
+        } else {
+            // Create a dummy auth manager that always succeeds
+            Arc::new(AuthenticationManager::new_disabled())
+        };
 
         // Initialize transport
         let transport =

@@ -54,6 +54,7 @@
 pub mod error;
 pub mod errors;
 pub mod model;
+pub mod ui;
 pub mod validation;
 
 #[cfg(test)]
@@ -63,12 +64,15 @@ mod lib_tests;
 #[cfg(test)]
 mod model_tests;
 #[cfg(test)]
+mod ui_tests;
+#[cfg(test)]
 mod validation_tests;
 
 // Re-export core types for easy access
 pub use error::{Error, ErrorCode, McpResult, Result};
 pub use errors::{CommonError, CommonResult};
 pub use model::*;
+pub use ui::*;
 pub use validation::Validator;
 
 /// Protocol version constants

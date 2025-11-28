@@ -548,6 +548,7 @@ mod tests {
                     title: None,
                     annotations: None,
                     icons: None,
+                    _meta: None,
                 }],
                 resources: vec![Resource {
                     uri: "test://resource1".to_string(),
@@ -558,6 +559,7 @@ mod tests {
                     raw: None,
                     title: None,
                     icons: None,
+                    _meta: None,
                 }],
                 prompts: vec![Prompt {
                     name: "test_prompt".to_string(),

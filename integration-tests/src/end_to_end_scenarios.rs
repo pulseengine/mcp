@@ -263,6 +263,7 @@ impl McpBackend for E2ETestBackend {
                 title: None,
                 annotations: None,
                 icons: None,
+                _meta: None,
             })
             .collect();
 
@@ -449,6 +450,7 @@ impl McpBackend for E2ETestBackend {
                 raw: None,
                 title: None,
                 icons: None,
+                _meta: None,
             })
             .collect();
 

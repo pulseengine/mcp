@@ -9,6 +9,8 @@
 
 This framework provides everything you need to build production-ready MCP servers in Rust. It's been developed and proven through a real-world home automation server with 30+ tools that successfully integrates with MCP Inspector, Claude Desktop, and HTTP clients.
 
+**🎉 NEW: MCP Apps Extension Support** - First production Rust framework supporting [SEP-1865](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/1865) for interactive HTML user interfaces!
+
 ## What is MCP?
 
 The [Model Context Protocol](https://modelcontextprotocol.io/) enables AI assistants to securely connect to and interact with external systems through tools, resources, and prompts. Instead of AI models having static knowledge, they can dynamically access live data and perform actions through MCP servers.
@@ -135,6 +137,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 - MCP request/response types with validation
 - JSON-RPC 2.0 support and error handling
 - Schema validation for tool parameters
+- **MCP Apps Extension support** - `ui://` resources, tool metadata, `text/html+mcp`
 
 ### 🏗️ [mcp-server](mcp-server/) - Server Infrastructure
 
@@ -183,6 +186,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### 🌍 [Hello World](examples/hello-world/)
 
 Complete minimal MCP server demonstrating basic concepts.
+
+### 🎨 [UI-Enabled Server](examples/ui-enabled-server/) **NEW!**
+
+**MCP Apps Extension demonstration** with interactive HTML interfaces:
+
+- Tool with UI resource link
+- `ui://` URI scheme usage
+- `text/html+mcp` MIME type
+- Complete testing guide
 
 ### 🏗️ [Backend Example](examples/backend-example/)
 

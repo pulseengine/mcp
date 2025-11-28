@@ -529,6 +529,7 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
                             output_schema: None,
                             annotations: None,
                             icons: None,
+                            _meta: None,
                         }
                     });
 
@@ -787,6 +788,7 @@ fn generate_tool_implementation(
                 output_schema: None,
                 annotations: None,
                 icons: None,
+                _meta: None,
             }
         }
 

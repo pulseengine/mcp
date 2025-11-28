@@ -103,6 +103,7 @@ impl McpBackend for TransportTestBackend {
                     title: None,
                     annotations: None,
                     icons: None,
+                    _meta: None,
                 },
                 Tool {
                     name: "transport_info".to_string(),
@@ -116,6 +117,7 @@ impl McpBackend for TransportTestBackend {
                     title: None,
                     annotations: None,
                     icons: None,
+                    _meta: None,
                 },
             ],
             next_cursor: None,
@@ -173,6 +175,7 @@ impl McpBackend for TransportTestBackend {
                 raw: None,
                 title: None,
                 icons: None,
+                _meta: None,
             }],
             next_cursor: None,
         })
