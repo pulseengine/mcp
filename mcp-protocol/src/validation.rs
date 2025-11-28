@@ -75,6 +75,37 @@ impl Validator {
         Ok(())
     }
 
+    /// Validate a UI resource URI (MCP Apps Extension)
+    ///
+    /// UI resource URIs must use the `ui://` scheme and follow URI conventions.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the URI doesn't start with `ui://` or is otherwise invalid
+    pub fn validate_ui_resource_uri(uri: &str) -> Result<()> {
+        Self::validate_resource_uri(uri)?;
+
+        if !uri.starts_with("ui://") {
+            return Err(Error::validation_error(
+                "UI resource URI must start with 'ui://'",
+            ));
+        }
+
+        // Ensure there's something after the scheme
+        if uri.len() <= 5 {
+            return Err(Error::validation_error(
+                "UI resource URI must have a path after 'ui://'",
+            ));
+        }
+
+        Ok(())
+    }
+
+    /// Check if a URI is a UI resource URI
+    pub fn is_ui_resource_uri(uri: &str) -> bool {
+        uri.starts_with("ui://")
+    }
+
     /// Validate JSON schema
     ///
     /// # Errors

@@ -108,6 +108,7 @@ impl McpBackend for CliTestBackend {
                 title: None,
                 annotations: None,
                 icons: None,
+                _meta: None,
             })
             .collect();
 
@@ -161,6 +162,7 @@ impl McpBackend for CliTestBackend {
                 raw: None,
                 title: None,
                 icons: None,
+                _meta: None,
             })
             .collect();
 

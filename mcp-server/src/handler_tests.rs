@@ -115,6 +115,7 @@ impl McpBackend for MockHandlerBackend {
                     title: None,
                     annotations: None,
                     icons: None,
+                    _meta: None,
                 },
                 Tool {
                     name: "another_tool".to_string(),
@@ -128,6 +129,7 @@ impl McpBackend for MockHandlerBackend {
                     title: None,
                     annotations: None,
                     icons: None,
+                    _meta: None,
                 },
             ],
             next_cursor: None,
@@ -189,6 +191,7 @@ impl McpBackend for MockHandlerBackend {
                 raw: None,
                 title: None,
                 icons: None,
+                _meta: None,
             }],
             next_cursor: None,
         })

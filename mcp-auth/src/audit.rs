@@ -260,6 +260,15 @@ impl AuditLogger {
         Ok(Self { config })
     }
 
+    /// Create a disabled audit logger (no-op)
+    pub fn new_disabled() -> Self {
+        let config = AuditConfig {
+            enabled: false,
+            ..Default::default()
+        };
+        Self { config }
+    }
+
     /// Log an audit event
     pub async fn log(&self, event: AuditEvent) -> Result<(), AuditError> {
         if !self.config.enabled {

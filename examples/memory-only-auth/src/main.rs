@@ -147,6 +147,7 @@ impl McpBackend for MemoryAuthBackend {
                     title: None,
                     annotations: None,
                     icons: None,
+                    _meta: None,
                 },
                 Tool {
                     name: "add_temp_key".to_string(),
@@ -163,6 +164,7 @@ impl McpBackend for MemoryAuthBackend {
                     title: None,
                     annotations: None,
                     icons: None,
+                    _meta: None,
                 },
             ],
             next_cursor: None,

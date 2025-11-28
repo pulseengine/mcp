@@ -113,6 +113,7 @@ impl McpBackend for AuthTestBackend {
                     title: None,
                     annotations: None,
                     icons: None,
+                    _meta: None,
                 },
                 Tool {
                     name: "authenticated_tool".to_string(),
@@ -128,6 +129,7 @@ impl McpBackend for AuthTestBackend {
                     title: None,
                     annotations: None,
                     icons: None,
+                    _meta: None,
                 },
             ],
             next_cursor: None,

@@ -230,10 +230,11 @@ impl Transport for StreamableHttpTransport {
             sessions: Arc::new(RwLock::new(HashMap::new())),
         });
 
-        // Build router
+        // Build router - using /mcp endpoint for MCP-UI compatibility
         let app = Router::new()
-            .route("/messages", post(handle_messages))
-            .route("/sse", get(handle_sse))
+            .route("/mcp", post(handle_messages).get(handle_sse))
+            .route("/messages", post(handle_messages)) // Legacy endpoint
+            .route("/sse", get(handle_sse)) // Legacy endpoint
             .route("/", get(|| async { "MCP Streamable HTTP Server" }))
             .layer(ServiceBuilder::new().layer(if self.config.enable_cors {
                 CorsLayer::permissive()
@@ -253,8 +254,19 @@ impl Transport for StreamableHttpTransport {
 
         info!("Streamable HTTP transport listening on {}", addr);
         info!("Endpoints:");
-        info!("  POST http://{}/messages - MCP messages", addr);
-        info!("  GET  http://{}/sse      - Session establishment", addr);
+        info!(
+            "  POST http://{}/mcp      - MCP messages (MCP-UI compatible)",
+            addr
+        );
+        info!(
+            "  GET  http://{}/mcp      - Session establishment (MCP-UI compatible)",
+            addr
+        );
+        info!("  POST http://{}/messages - MCP messages (legacy)", addr);
+        info!(
+            "  GET  http://{}/sse      - Session establishment (legacy)",
+            addr
+        );
 
         let server_handle = tokio::spawn(async move {
             if let Err(e) = axum::serve(listener, app).await {

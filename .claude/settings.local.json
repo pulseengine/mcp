@@ -50,7 +50,13 @@
       "Bash(gh release view:*)",
       "Bash(gh pr list:*)",
       "Bash(pre-commit:*)",
-      "WebFetch(domain:spec.modelcontextprotocol.io)"
+      "WebFetch(domain:spec.modelcontextprotocol.io)",
+      "Bash(gh search:*)",
+      "Bash(curl:*)",
+      "WebFetch(domain:mcpui.dev)",
+      "Bash(npm view:*)",
+      "Bash(cat:*)",
+      "Bash(gh repo clone:*)"
     ],
     "deny": []
   }

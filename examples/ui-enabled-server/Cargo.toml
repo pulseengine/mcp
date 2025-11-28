@@ -1,0 +1,15 @@
+[package]
+name = "ui-enabled-server"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "ui-enabled-server"
+path = "src/main.rs"
+
+[dependencies]
+pulseengine-mcp-server = { path = "../../mcp-server" }
+pulseengine-mcp-protocol = { path = "../../mcp-protocol" }
+tokio = { version = "1.0", features = ["full"] }
+async-trait = "0.1"
+serde_json = "1.0"

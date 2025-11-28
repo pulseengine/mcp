@@ -214,6 +214,7 @@ mod tests {
             title: None,
             annotations: None,
             icons: None,
+            _meta: None,
         };
 
         assert!(tool.output_schema.is_some());
@@ -237,6 +238,7 @@ mod tests {
             title: None,
             annotations: None,
             icons: None,
+            _meta: None,
         };
 
         let serialized = serde_json::to_string(&tool).unwrap();
@@ -258,6 +260,7 @@ mod tests {
                     title: None,
                     annotations: None,
                     icons: None,
+                    _meta: None,
                 },
                 Tool {
                     name: "tool2".to_string(),
@@ -267,6 +270,7 @@ mod tests {
                     title: None,
                     annotations: None,
                     icons: None,
+                    _meta: None,
                 },
             ],
             next_cursor: Some("cursor123".to_string()),
@@ -290,6 +294,7 @@ mod tests {
             raw: None,
             title: None,
             icons: None,
+            _meta: None,
         };
 
         assert_eq!(resource.uri, "file://example.txt");
@@ -427,6 +432,7 @@ mod tests {
             raw: None,
             title: None,
             icons: None,
+            _meta: None,
         };
         assert!(minimal_resource.description.is_none());
         assert!(minimal_resource.mime_type.is_none());

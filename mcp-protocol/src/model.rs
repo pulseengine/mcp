@@ -5,6 +5,39 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 
+/// MIME type constants for common resource types
+pub mod mime_types {
+    /// HTML content with MCP JavaScript SDK for interactive UIs (MCP Apps Extension)
+    pub const HTML_MCP: &str = "text/html+mcp";
+
+    /// Plain HTML content
+    pub const HTML: &str = "text/html";
+
+    /// JSON data
+    pub const JSON: &str = "application/json";
+
+    /// Plain text
+    pub const TEXT: &str = "text/plain";
+
+    /// Binary blob
+    pub const OCTET_STREAM: &str = "application/octet-stream";
+}
+
+/// URI scheme constants for resource URIs
+pub mod uri_schemes {
+    /// UI resources for interactive interfaces (MCP Apps Extension)
+    pub const UI: &str = "ui://";
+
+    /// File system resources
+    pub const FILE: &str = "file://";
+
+    /// HTTP resources
+    pub const HTTP: &str = "http://";
+
+    /// HTTPS resources
+    pub const HTTPS: &str = "https://";
+}
+
 /// Metadata for MCP protocol messages (MCP 2025-06-18)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Meta {
@@ -305,6 +338,9 @@ pub struct Tool {
     pub annotations: Option<ToolAnnotations>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub icons: Option<Vec<Icon>>,
+    /// Tool metadata for extensions like MCP Apps (SEP-1865)
+    #[serde(rename = "_meta", skip_serializing_if = "Option::is_none")]
+    pub _meta: Option<ToolMeta>,
 }
 
 /// Tool annotations for behavioral hints
@@ -318,6 +354,32 @@ pub struct ToolAnnotations {
     pub idempotent_hint: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub open_world_hint: Option<bool>,
+}
+
+/// Tool metadata for protocol extensions
+///
+/// This supports the MCP Apps Extension (SEP-1865) and future extensions
+/// that need to attach metadata to tools.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ToolMeta {
+    /// Reference to a UI resource (MCP Apps Extension)
+    ///
+    /// Links this tool to an interactive HTML interface that can be displayed
+    /// when the tool is called. The URI should use the `ui://` scheme and
+    /// reference a resource returned by `list_resources`.
+    ///
+    /// Example: `"ui://charts/bar-chart"`
+    #[serde(rename = "ui/resourceUri", skip_serializing_if = "Option::is_none")]
+    pub ui_resource_uri: Option<String>,
+}
+
+impl ToolMeta {
+    /// Create tool metadata with a UI resource reference
+    pub fn with_ui_resource(uri: impl Into<String>) -> Self {
+        Self {
+            ui_resource_uri: Some(uri.into()),
+        }
+    }
 }
 
 /// Icon definition for tools and other resources
@@ -369,6 +431,7 @@ pub enum Content {
     },
     #[serde(rename = "resource")]
     Resource {
+        #[serde(with = "serde_json_string_or_object")]
         resource: String,
         text: Option<String>,
         #[serde(rename = "_meta", skip_serializing_if = "Option::is_none")]
@@ -396,6 +459,79 @@ impl Content {
         Self::Resource {
             resource: resource.into(),
             text,
+            _meta: None,
+        }
+    }
+
+    /// Create a UI HTML resource content (for MCP Apps Extension / MCP-UI)
+    ///
+    /// This helper simplifies creating HTML UI resources by automatically formatting
+    /// the resource JSON according to the MCP-UI specification.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use pulseengine_mcp_protocol::Content;
+    ///
+    /// let html = r#"<html><body><h1>Hello!</h1></body></html>"#;
+    /// let content = Content::ui_html("ui://greetings/interactive", html);
+    /// ```
+    ///
+    /// This is equivalent to but much more concise than:
+    /// ```rust,ignore
+    /// let resource_json = serde_json::json!({
+    ///     "uri": "ui://greetings/interactive",
+    ///     "mimeType": "text/html",
+    ///     "text": html
+    /// });
+    /// Content::Resource {
+    ///     resource: resource_json.to_string(),
+    ///     text: None,
+    ///     _meta: None,
+    /// }
+    /// ```
+    pub fn ui_html(uri: impl Into<String>, html: impl Into<String>) -> Self {
+        let resource_json = serde_json::json!({
+            "uri": uri.into(),
+            "mimeType": "text/html",
+            "text": html.into()
+        });
+        Self::Resource {
+            resource: resource_json.to_string(),
+            text: None,
+            _meta: None,
+        }
+    }
+
+    /// Create a UI resource content with custom MIME type (for MCP Apps Extension / MCP-UI)
+    ///
+    /// This helper allows you to create UI resources with any MIME type and content.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use pulseengine_mcp_protocol::Content;
+    ///
+    /// let json_data = r#"{"message": "Hello, World!"}"#;
+    /// let content = Content::ui_resource(
+    ///     "ui://data/greeting",
+    ///     "application/json",
+    ///     json_data
+    /// );
+    /// ```
+    pub fn ui_resource(
+        uri: impl Into<String>,
+        mime_type: impl Into<String>,
+        content: impl Into<String>,
+    ) -> Self {
+        let resource_json = serde_json::json!({
+            "uri": uri.into(),
+            "mimeType": mime_type.into(),
+            "text": content.into()
+        });
+        Self::Resource {
+            resource: resource_json.to_string(),
+            text: None,
             _meta: None,
         }
     }
@@ -523,6 +659,45 @@ pub struct Resource {
     pub icons: Option<Vec<Icon>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub raw: Option<RawResource>,
+    /// UI-specific metadata (MCP Apps Extension)
+    #[serde(rename = "_meta", skip_serializing_if = "Option::is_none")]
+    pub _meta: Option<ResourceMeta>,
+}
+
+/// Resource metadata for extensions
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ResourceMeta {
+    /// UI configuration (MCP Apps Extension)
+    #[serde(rename = "ui", skip_serializing_if = "Option::is_none")]
+    pub ui: Option<UiResourceMeta>,
+}
+
+/// UI resource metadata (MCP Apps Extension - SEP-1865)
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct UiResourceMeta {
+    /// Content Security Policy configuration
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub csp: Option<CspConfig>,
+
+    /// Optional dedicated sandbox origin/domain
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub domain: Option<String>,
+
+    /// Whether the UI prefers a visual boundary/border
+    #[serde(rename = "prefersBorder", skip_serializing_if = "Option::is_none")]
+    pub prefers_border: Option<bool>,
+}
+
+/// Content Security Policy configuration for UI resources
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CspConfig {
+    /// Allowed origins for network requests (fetch, XHR, WebSocket)
+    #[serde(rename = "connectDomains", skip_serializing_if = "Option::is_none")]
+    pub connect_domains: Option<Vec<String>>,
+
+    /// Allowed origins for static resources (images, scripts, fonts)
+    #[serde(rename = "resourceDomains", skip_serializing_if = "Option::is_none")]
+    pub resource_domains: Option<Vec<String>>,
 }
 
 /// Resource annotations
@@ -530,6 +705,113 @@ pub struct Resource {
 pub struct Annotations {
     pub audience: Option<Vec<String>>,
     pub priority: Option<f32>,
+}
+
+impl Resource {
+    /// Create a UI resource for interactive interfaces (MCP Apps Extension)
+    ///
+    /// This creates a resource with the `text/html+mcp` MIME type and `ui://` URI scheme,
+    /// suitable for embedding interactive HTML interfaces.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pulseengine_mcp_protocol::Resource;
+    ///
+    /// let resource = Resource::ui_resource(
+    ///     "ui://charts/bar-chart",
+    ///     "Bar Chart Viewer",
+    ///     "Interactive bar chart visualization",
+    /// );
+    /// ```
+    pub fn ui_resource(
+        uri: impl Into<String>,
+        name: impl Into<String>,
+        description: impl Into<String>,
+    ) -> Self {
+        Self {
+            uri: uri.into(),
+            name: name.into(),
+            title: None,
+            description: Some(description.into()),
+            mime_type: Some(mime_types::HTML_MCP.to_string()),
+            annotations: None,
+            icons: None,
+            raw: None,
+            _meta: None,
+        }
+    }
+
+    /// Create a UI resource with CSP configuration
+    pub fn ui_resource_with_csp(
+        uri: impl Into<String>,
+        name: impl Into<String>,
+        description: impl Into<String>,
+        csp: CspConfig,
+    ) -> Self {
+        Self {
+            uri: uri.into(),
+            name: name.into(),
+            title: None,
+            description: Some(description.into()),
+            mime_type: Some(mime_types::HTML_MCP.to_string()),
+            annotations: None,
+            icons: None,
+            raw: None,
+            _meta: Some(ResourceMeta {
+                ui: Some(UiResourceMeta {
+                    csp: Some(csp),
+                    domain: None,
+                    prefers_border: None,
+                }),
+            }),
+        }
+    }
+
+    /// Check if this resource is a UI resource (has `ui://` scheme)
+    pub fn is_ui_resource(&self) -> bool {
+        self.uri.starts_with(uri_schemes::UI)
+    }
+
+    /// Get the URI scheme of this resource (e.g., "ui://", "file://", etc.)
+    pub fn uri_scheme(&self) -> Option<&str> {
+        self.uri.split_once("://").map(|(scheme, _)| scheme)
+    }
+}
+
+impl ResourceContents {
+    /// Create resource contents for HTML UI (MCP Apps Extension)
+    pub fn html_ui(uri: impl Into<String>, html: impl Into<String>) -> Self {
+        Self {
+            uri: uri.into(),
+            mime_type: Some(mime_types::HTML_MCP.to_string()),
+            text: Some(html.into()),
+            blob: None,
+            _meta: None,
+        }
+    }
+
+    /// Create resource contents with JSON data
+    pub fn json(uri: impl Into<String>, json: impl Into<String>) -> Self {
+        Self {
+            uri: uri.into(),
+            mime_type: Some(mime_types::JSON.to_string()),
+            text: Some(json.into()),
+            blob: None,
+            _meta: None,
+        }
+    }
+
+    /// Create resource contents with plain text
+    pub fn text(uri: impl Into<String>, text: impl Into<String>) -> Self {
+        Self {
+            uri: uri.into(),
+            mime_type: Some(mime_types::TEXT.to_string()),
+            text: Some(text.into()),
+            blob: None,
+            _meta: None,
+        }
+    }
 }
 
 /// List resources result
@@ -847,5 +1129,31 @@ impl ElicitationResult {
                 data: None,
             },
         }
+    }
+}
+
+/// Serde module for serializing/deserializing JSON strings as objects
+mod serde_json_string_or_object {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    use serde_json::Value;
+
+    pub fn serialize<S>(value: &str, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // Parse the string as JSON and serialize it as an object
+        match serde_json::from_str::<Value>(value) {
+            Ok(json_value) => json_value.serialize(serializer),
+            Err(_) => serializer.serialize_str(value), // Fall back to string if not valid JSON
+        }
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<String, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // Deserialize as JSON Value and convert to string
+        let value = Value::deserialize(deserializer)?;
+        Ok(value.to_string())
     }
 }
