@@ -284,11 +284,9 @@ pub mod manager_vault;
 pub mod middleware;
 pub mod models;
 pub mod monitoring;
-pub mod performance;
 pub mod permissions;
 pub mod security;
 pub mod session;
-pub mod setup;
 pub mod storage;
 pub mod transport;
 pub mod validation;
@@ -319,7 +317,6 @@ pub use monitoring::{
     SecurityEvent, SecurityEventType, SecurityMetrics, SecurityMonitor, SecurityMonitorConfig,
     SystemHealth, create_default_alert_rules,
 };
-pub use performance::{PerformanceConfig, PerformanceResults, PerformanceTest, TestOperation};
 pub use permissions::{
     McpPermission, McpPermissionChecker, PermissionAction, PermissionConfig, PermissionError,
     PermissionRule, ResourcePermissionConfig, ToolPermissionConfig,
