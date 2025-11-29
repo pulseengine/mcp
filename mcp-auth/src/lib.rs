@@ -133,6 +133,7 @@ pub mod middleware;
 pub mod models;
 #[cfg(feature = "monitoring")]
 pub mod monitoring;
+pub mod oauth;
 pub mod permissions;
 pub mod security;
 pub mod session;

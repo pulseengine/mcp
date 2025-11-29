@@ -2,8 +2,11 @@
 //!
 //! OAuth 2.1 dynamic client registration endpoint
 
-use crate::oauth::models::{ClientRegistrationRequest, ClientRegistrationResponse, OAuthError};
-use axum::{http::StatusCode, response::IntoResponse, Json};
+use crate::oauth::{
+    OAuthState,
+    models::{ClientRegistrationRequest, ClientRegistrationResponse, OAuthClient, OAuthError},
+};
+use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use chrono::Utc;
 use rand::Rng;
 
@@ -39,6 +42,7 @@ use rand::Rng;
 /// }
 /// ```
 pub async fn register_client(
+    State(state): State<OAuthState>,
     Json(request): Json<ClientRegistrationRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<OAuthError>)> {
     // Validate redirect URIs (OAuth 2.1 Security BCP)
@@ -65,7 +69,10 @@ pub async fn register_client(
 
     // Validate grant_types
     let grant_types = if request.grant_types.is_empty() {
-        vec!["authorization_code".to_string(), "refresh_token".to_string()]
+        vec![
+            "authorization_code".to_string(),
+            "refresh_token".to_string(),
+        ]
     } else {
         request.grant_types.clone()
     };
@@ -105,15 +112,35 @@ pub async fn register_client(
     let client_id = generate_token(32);
     let client_secret = generate_token(64);
 
-    // TODO: Store client in database (see mcp-auth/migrations/)
-    // TODO: Hash client_secret with bcrypt/argon2 before storage
+    let client_name = request
+        .client_name
+        .unwrap_or_else(|| "Unnamed Client".to_string());
+
+    // Create OAuth client
+    let client = OAuthClient {
+        client_id: client_id.clone(),
+        client_secret: client_secret.clone(), // TODO: Hash with bcrypt/argon2 in production
+        client_name: client_name.clone(),
+        redirect_uris: request.redirect_uris.clone(),
+        created_at: Utc::now(),
+        client_secret_expires_at: None,
+    };
+
+    // Save to storage
+    state.storage.save_client(&client).await.map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(OAuthError::invalid_request(format!(
+                "Failed to save client: {}",
+                e
+            ))),
+        )
+    })?;
 
     let response = ClientRegistrationResponse {
         client_id,
         client_secret,
-        client_name: request
-            .client_name
-            .unwrap_or_else(|| "Unnamed Client".to_string()),
+        client_name,
         redirect_uris: request.redirect_uris,
         client_secret_expires_at: 0, // Never expires (0 per RFC 7591)
         grant_types,

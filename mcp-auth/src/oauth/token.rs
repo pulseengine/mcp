@@ -4,9 +4,9 @@
 
 use crate::oauth::models::{AccessTokenClaims, OAuthError, TokenRequest, TokenResponse};
 use crate::oauth::pkce::verify_pkce;
-use axum::{http::StatusCode, response::IntoResponse, Form, Json};
+use axum::{Form, Json, http::StatusCode, response::IntoResponse};
 use chrono::Utc;
-use jsonwebtoken::{encode, EncodingKey, Header};
+use jsonwebtoken::{EncodingKey, Header, encode};
 use rand::Rng;
 
 /// POST /oauth/token - Exchange authorization code or refresh token for access token
@@ -69,16 +69,16 @@ pub async fn token_endpoint(
 /// Handle authorization_code grant type
 async fn handle_authorization_code_grant(
     request: TokenRequest,
-) -> Result<impl IntoResponse, (StatusCode, Json<OAuthError>)> {
+) -> Result<(StatusCode, Json<TokenResponse>), (StatusCode, Json<OAuthError>)> {
     // Validate required parameters
-    let code = request.code.ok_or_else(|| {
+    let _code = request.code.ok_or_else(|| {
         (
             StatusCode::BAD_REQUEST,
             Json(OAuthError::invalid_request("code is required")),
         )
     })?;
 
-    let redirect_uri = request.redirect_uri.ok_or_else(|| {
+    let _redirect_uri = request.redirect_uri.ok_or_else(|| {
         (
             StatusCode::BAD_REQUEST,
             Json(OAuthError::invalid_request("redirect_uri is required")),
@@ -134,15 +134,15 @@ async fn handle_authorization_code_grant(
         scope: Some(scopes.join(" ")),
     };
 
-    Ok((StatusCode::OK, Json(response)).into_response())
+    Ok((StatusCode::OK, Json(response)))
 }
 
 /// Handle refresh_token grant type
 async fn handle_refresh_token_grant(
     request: TokenRequest,
-) -> Result<impl IntoResponse, (StatusCode, Json<OAuthError>)> {
+) -> Result<(StatusCode, Json<TokenResponse>), (StatusCode, Json<OAuthError>)> {
     // Validate required parameters
-    let refresh_token = request.refresh_token.ok_or_else(|| {
+    let _refresh_token = request.refresh_token.ok_or_else(|| {
         (
             StatusCode::BAD_REQUEST,
             Json(OAuthError::invalid_request("refresh_token is required")),
@@ -174,7 +174,7 @@ async fn handle_refresh_token_grant(
         scope: Some(scopes.join(" ")),
     };
 
-    Ok((StatusCode::OK, Json(response)).into_response())
+    Ok((StatusCode::OK, Json(response)))
 }
 
 /// Generate JWT access token
@@ -185,11 +185,11 @@ fn generate_access_token(
 ) -> Result<String, (StatusCode, Json<OAuthError>)> {
     // TODO: Load JWT signing key from secure storage
     // For now, use a placeholder key (MUST be replaced with actual secret)
-    let secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| {
-        "REPLACE_THIS_WITH_SECURE_SECRET_FROM_ENV_OR_VAULT".to_string()
-    });
+    let secret = std::env::var("JWT_SECRET")
+        .unwrap_or_else(|_| "REPLACE_THIS_WITH_SECURE_SECRET_FROM_ENV_OR_VAULT".to_string());
 
-    let base_url = std::env::var("BASE_URL").unwrap_or_else(|_| "http://localhost:3000".to_string());
+    let base_url =
+        std::env::var("BASE_URL").unwrap_or_else(|_| "http://localhost:3000".to_string());
 
     let now = Utc::now().timestamp();
     let claims = AccessTokenClaims {

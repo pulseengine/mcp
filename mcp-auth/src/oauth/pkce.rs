@@ -37,7 +37,7 @@ pub fn verify_pkce(code_verifier: &str, code_challenge: &str) -> bool {
 /// - Contain only [A-Z] / [a-z] / [0-9] / "-" / "." / "_" / "~"
 pub fn validate_code_verifier(code_verifier: &str) -> bool {
     let len = code_verifier.len();
-    if len < 43 || len > 128 {
+    if !(43..=128).contains(&len) {
         return false;
     }
 
@@ -53,7 +53,7 @@ pub fn validate_code_verifier(code_verifier: &str) -> bool {
 /// - Contain only [A-Z] / [a-z] / [0-9] / "-" / "_"
 pub fn validate_code_challenge(code_challenge: &str) -> bool {
     let len = code_challenge.len();
-    if len < 43 || len > 128 {
+    if !(43..=128).contains(&len) {
         return false;
     }
 

@@ -3,12 +3,12 @@
 //! Implements authorization code flow with mandatory PKCE (S256)
 
 use crate::oauth::models::{AuthorizeRequest, OAuthError};
-use crate::oauth::pkce::{validate_code_challenge, validate_code_verifier};
+use crate::oauth::pkce::validate_code_challenge;
 use axum::{
+    Form,
     extract::Query,
     http::StatusCode,
     response::{Html, IntoResponse, Redirect},
-    Form,
 };
 use serde::Deserialize;
 
@@ -120,14 +120,14 @@ pub async fn authorize_post(
 }
 
 /// Validate authorization request parameters
-fn validate_authorize_request(params: &AuthorizeRequest) -> Result<(), (StatusCode, Json<OAuthError>)> {
+fn validate_authorize_request(
+    params: &AuthorizeRequest,
+) -> Result<(), (StatusCode, Json<OAuthError>)> {
     // Validate response_type
     if params.response_type != "code" {
         return Err((
             StatusCode::BAD_REQUEST,
-            Json(OAuthError::invalid_request(
-                "response_type must be 'code'",
-            )),
+            Json(OAuthError::invalid_request("response_type must be 'code'")),
         ));
     }
 
@@ -145,9 +145,7 @@ fn validate_authorize_request(params: &AuthorizeRequest) -> Result<(), (StatusCo
     if !validate_code_challenge(&params.code_challenge) {
         return Err((
             StatusCode::BAD_REQUEST,
-            Json(OAuthError::invalid_request(
-                "Invalid code_challenge format",
-            )),
+            Json(OAuthError::invalid_request("Invalid code_challenge format")),
         ));
     }
 
