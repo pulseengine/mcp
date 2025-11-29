@@ -22,7 +22,7 @@ pub struct AuthorizationCode {
     pub code: String,
     pub client_id: String,
     pub redirect_uri: String,
-    pub code_challenge: String, // PKCE S256 challenge
+    pub code_challenge: String,   // PKCE S256 challenge
     pub resource: Option<String>, // RFC 8707: Resource indicator
     pub scopes: Vec<String>,
     pub expires_at: DateTime<Utc>,
@@ -72,18 +72,18 @@ pub struct AuthorizeRequest {
     pub client_id: String,
     pub redirect_uri: String,
     pub state: Option<String>,
-    pub code_challenge: String, // PKCE S256 code challenge
+    pub code_challenge: String,        // PKCE S256 code challenge
     pub code_challenge_method: String, // Must be "S256"
-    pub resource: Option<String>, // RFC 8707: Resource indicator
+    pub resource: Option<String>,      // RFC 8707: Resource indicator
     pub scope: Option<String>,
 }
 
 /// Token request parameters
 #[derive(Debug, Deserialize)]
 pub struct TokenRequest {
-    pub grant_type: String, // "authorization_code" or "refresh_token"
-    pub code: Option<String>, // For authorization_code grant
-    pub redirect_uri: Option<String>, // For authorization_code grant
+    pub grant_type: String,            // "authorization_code" or "refresh_token"
+    pub code: Option<String>,          // For authorization_code grant
+    pub redirect_uri: Option<String>,  // For authorization_code grant
     pub code_verifier: Option<String>, // PKCE S256 code verifier
     pub refresh_token: Option<String>, // For refresh_token grant
     pub client_id: String,
@@ -96,7 +96,7 @@ pub struct TokenRequest {
 pub struct TokenResponse {
     pub access_token: String,
     pub token_type: String, // Always "Bearer"
-    pub expires_in: i64, // Seconds until expiration
+    pub expires_in: i64,    // Seconds until expiration
     pub refresh_token: Option<String>,
     pub scope: Option<String>,
 }
@@ -162,11 +162,11 @@ impl OAuthError {
 /// JWT claims for access tokens
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AccessTokenClaims {
-    pub sub: String, // Subject (client_id)
+    pub sub: String,         // Subject (client_id)
     pub aud: Option<String>, // Audience (resource server)
-    pub exp: i64, // Expiration time (Unix timestamp)
-    pub iat: i64, // Issued at (Unix timestamp)
-    pub iss: String, // Issuer (authorization server)
-    pub scope: String, // Space-separated scopes
+    pub exp: i64,            // Expiration time (Unix timestamp)
+    pub iat: i64,            // Issued at (Unix timestamp)
+    pub iss: String,         // Issuer (authorization server)
+    pub scope: String,       // Space-separated scopes
     pub client_id: String,
 }

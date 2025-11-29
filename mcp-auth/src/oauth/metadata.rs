@@ -2,8 +2,8 @@
 //!
 //! Provides OAuth 2.1 server metadata discovery endpoint
 
-use axum::{http::StatusCode, response::IntoResponse, Json};
-use serde_json::{json, Value};
+use axum::{Json, http::StatusCode, response::IntoResponse};
+use serde_json::json;
 
 /// RFC 8414: Authorization Server Metadata
 ///
@@ -17,7 +17,8 @@ use serde_json::{json, Value};
 /// - Must support resource indicators (RFC 8707)
 pub async fn authorization_server_metadata() -> impl IntoResponse {
     // TODO: Load base_url from environment or configuration
-    let base_url = std::env::var("BASE_URL").unwrap_or_else(|_| "http://localhost:3000".to_string());
+    let base_url =
+        std::env::var("BASE_URL").unwrap_or_else(|_| "http://localhost:3000".to_string());
 
     let metadata = json!({
         "issuer": base_url,

@@ -56,7 +56,8 @@
       "WebFetch(domain:mcpui.dev)",
       "Bash(npm view:*)",
       "Bash(cat:*)",
-      "Bash(gh repo clone:*)"
+      "Bash(gh repo clone:*)",
+      "WebFetch(domain:crates.io)"
     ],
     "deny": []
   }

@@ -2,7 +2,7 @@
 //!
 //! Provides metadata about the MCP protected resource server
 
-use axum::{http::StatusCode, response::IntoResponse, Json};
+use axum::{Json, http::StatusCode, response::IntoResponse};
 use serde_json::json;
 
 /// RFC 9728: Protected Resource Metadata
@@ -17,7 +17,8 @@ use serde_json::json;
 /// - Bearer token usage requirements
 pub async fn protected_resource_metadata() -> impl IntoResponse {
     // TODO: Load base_url from environment or configuration
-    let base_url = std::env::var("BASE_URL").unwrap_or_else(|_| "http://localhost:3000".to_string());
+    let base_url =
+        std::env::var("BASE_URL").unwrap_or_else(|_| "http://localhost:3000".to_string());
 
     let metadata = json!({
         "resource": base_url,
