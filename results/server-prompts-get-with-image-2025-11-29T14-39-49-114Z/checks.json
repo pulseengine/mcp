@@ -1,0 +1,16 @@
+[
+  {
+    "id": "prompts-get-with-image",
+    "name": "PromptsGetWithImage",
+    "description": "Get prompt with image content",
+    "status": "FAILURE",
+    "timestamp": "2025-11-29T14:39:49.116Z",
+    "errorMessage": "Failed: MCP error -32602: No prompts available",
+    "specReferences": [
+      {
+        "id": "MCP-Prompts-Image",
+        "url": "https://modelcontextprotocol.io/specification/2025-06-18/server/prompts#image-content"
+      }
+    ]
+  }
+]

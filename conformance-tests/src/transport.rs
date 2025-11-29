@@ -20,18 +20,15 @@ impl ServerProcess {
     pub fn spawn_network(binary: &str, port: u16) -> Result<Self> {
         // Kill any existing process on this port
         let _ = Command::new("lsof")
-            .args(["-ti", &format!(":{}", port)])
+            .args(["-ti", &format!(":{port}")])
             .output()
-            .and_then(|output| {
+            .map(|output| {
                 if output.status.success() {
                     let pids = String::from_utf8_lossy(&output.stdout);
                     for pid in pids.lines() {
-                        let _ = Command::new("kill")
-                            .args(["-9", pid])
-                            .status();
+                        let _ = Command::new("kill").args(["-9", pid]).status();
                     }
                 }
-                Ok(())
             });
 
         std::thread::sleep(Duration::from_secs(1));
@@ -51,12 +48,12 @@ impl ServerProcess {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .context(format!("Failed to spawn server: {}", binary))?;
+            .context(format!("Failed to spawn server: {binary}"))?;
 
         let pid = child.id();
 
         // Wait for server to be ready
-        println!("  Waiting for server to start (PID: {})...", pid);
+        println!("  Waiting for server to start (PID: {pid})...");
 
         let max_wait = 30;
         for i in 0..max_wait {

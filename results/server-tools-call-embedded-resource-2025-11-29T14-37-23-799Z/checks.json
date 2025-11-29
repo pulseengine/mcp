@@ -1,0 +1,16 @@
+[
+  {
+    "id": "tools-call-embedded-resource",
+    "name": "ToolsCallEmbeddedResource",
+    "description": "Tool returns embedded resource content",
+    "status": "FAILURE",
+    "timestamp": "2025-11-29T14:37:23.799Z",
+    "errorMessage": "Failed: fetch failed",
+    "specReferences": [
+      {
+        "id": "MCP-Tools-Call",
+        "url": "https://modelcontextprotocol.io/specification/2025-06-18/server/tools#calling-tools"
+      }
+    ]
+  }
+]

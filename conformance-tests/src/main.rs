@@ -70,15 +70,7 @@ fn main() -> Result<()> {
             timeout,
             port,
         } => {
-            run_conformance_tests(
-                server,
-                scenario,
-                auth,
-                server_only,
-                verbose,
-                timeout,
-                port,
-            )?;
+            run_conformance_tests(server, scenario, auth, server_only, verbose, timeout, port)?;
         }
         Commands::List => {
             list_scenarios()?;
@@ -103,15 +95,15 @@ fn run_conformance_tests(
     println!(
         "{} {}",
         "ℹ".blue(),
-        format!("Loading server config: {}", server_name).bold()
+        format!("Loading server config: {server_name}").bold()
     );
 
     // Load server configuration
-    let config_path = PathBuf::from("conformance-tests/servers")
-        .join(format!("{}.json", server_name));
+    let config_path =
+        PathBuf::from("conformance-tests/servers").join(format!("{server_name}.json"));
 
     let mut config = ServerConfig::load(&config_path)
-        .context(format!("Failed to load server config: {}", server_name))?;
+        .context(format!("Failed to load server config: {server_name}"))?;
 
     // Override port if specified
     if let Some(port) = port_override {
@@ -122,7 +114,7 @@ fn run_conformance_tests(
     println!("  Binary: {}", config.binary);
     println!("  Transport: {}", config.transport);
     if let Some(port) = config.port {
-        println!("  Port: {}", port);
+        println!("  Port: {port}");
     }
     println!("  OAuth: {}", config.oauth);
 
@@ -165,8 +157,7 @@ fn list_servers() -> Result<()> {
         return Ok(());
     }
 
-    let entries = std::fs::read_dir(&servers_dir)
-        .context("Failed to read servers directory")?;
+    let entries = std::fs::read_dir(&servers_dir).context("Failed to read servers directory")?;
 
     for entry in entries {
         let entry = entry?;
@@ -178,7 +169,7 @@ fn list_servers() -> Result<()> {
                 if let Ok(config) = ServerConfig::load(&path) {
                     println!("  {} - {}", name.green(), config.description);
                 } else {
-                    println!("  {}", name);
+                    println!("  {name}");
                 }
             }
         }

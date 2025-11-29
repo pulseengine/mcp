@@ -1,0 +1,16 @@
+[
+  {
+    "id": "resources-subscribe",
+    "name": "ResourcesSubscribe",
+    "description": "Subscribe to resource successfully",
+    "status": "FAILURE",
+    "timestamp": "2025-11-29T14:39:49.099Z",
+    "errorMessage": "Failed: MCP error -32603: Operation not supported: Subscriptions not supported",
+    "specReferences": [
+      {
+        "id": "MCP-Resources-Subscribe",
+        "url": "https://modelcontextprotocol.io/specification/2025-06-18/server/resources#resource-subscriptions"
+      }
+    ]
+  }
+]
