@@ -2,10 +2,13 @@
 //!
 //! Handles token exchange for authorization codes and refresh tokens
 
-use crate::oauth::models::{AccessTokenClaims, OAuthError, TokenRequest, TokenResponse};
+use crate::oauth::OAuthState;
+use crate::oauth::models::{
+    AccessTokenClaims, OAuthError, RefreshToken, TokenRequest, TokenResponse,
+};
 use crate::oauth::pkce::verify_pkce;
-use axum::{Form, Json, http::StatusCode, response::IntoResponse};
-use chrono::Utc;
+use axum::{Form, Json, extract::State, http::StatusCode, response::IntoResponse};
+use chrono::{Duration, Utc};
 use jsonwebtoken::{EncodingKey, Header, encode};
 use rand::Rng;
 
@@ -48,14 +51,31 @@ use rand::Rng;
 /// }
 /// ```
 pub async fn token_endpoint(
+    State(state): State<OAuthState>,
     Form(request): Form<TokenRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<OAuthError>)> {
-    // TODO: Verify client credentials (client_id + client_secret)
-    // TODO: Load client from database and verify hashed secret
+    // Verify client credentials (client_id + client_secret)
+    let is_valid = state
+        .storage
+        .verify_client_secret(&request.client_id, &request.client_secret)
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::UNAUTHORIZED,
+                Json(OAuthError::invalid_client("Invalid client credentials")),
+            )
+        })?;
+
+    if !is_valid {
+        return Err((
+            StatusCode::UNAUTHORIZED,
+            Json(OAuthError::invalid_client("Invalid client credentials")),
+        ));
+    }
 
     match request.grant_type.as_str() {
-        "authorization_code" => handle_authorization_code_grant(request).await,
-        "refresh_token" => handle_refresh_token_grant(request).await,
+        "authorization_code" => handle_authorization_code_grant(state, request).await,
+        "refresh_token" => handle_refresh_token_grant(state, request).await,
         _ => Err((
             StatusCode::BAD_REQUEST,
             Json(OAuthError::unsupported_grant_type(format!(
@@ -68,17 +88,18 @@ pub async fn token_endpoint(
 
 /// Handle authorization_code grant type
 async fn handle_authorization_code_grant(
+    state: OAuthState,
     request: TokenRequest,
 ) -> Result<(StatusCode, Json<TokenResponse>), (StatusCode, Json<OAuthError>)> {
     // Validate required parameters
-    let _code = request.code.ok_or_else(|| {
+    let code = request.code.ok_or_else(|| {
         (
             StatusCode::BAD_REQUEST,
             Json(OAuthError::invalid_request("code is required")),
         )
     })?;
 
-    let _redirect_uri = request.redirect_uri.ok_or_else(|| {
+    let redirect_uri = request.redirect_uri.ok_or_else(|| {
         (
             StatusCode::BAD_REQUEST,
             Json(OAuthError::invalid_request("redirect_uri is required")),
@@ -92,46 +113,96 @@ async fn handle_authorization_code_grant(
         )
     })?;
 
-    // TODO: Load authorization code from database
-    // For now, we'll simulate the stored code_challenge
-    let stored_code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"; // Example from RFC 7636
+    // Load authorization code from storage
+    let auth_code = state
+        .storage
+        .get_authorization_code(&code)
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::BAD_REQUEST,
+                Json(OAuthError::invalid_grant(
+                    "Invalid or expired authorization code",
+                )),
+            )
+        })?;
+
+    // Verify authorization code parameters
+    if auth_code.client_id != request.client_id {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(OAuthError::invalid_grant("client_id mismatch")),
+        ));
+    }
+
+    if auth_code.redirect_uri != redirect_uri {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(OAuthError::invalid_grant("redirect_uri mismatch")),
+        ));
+    }
 
     // Verify PKCE code_verifier against stored code_challenge
-    if !verify_pkce(&code_verifier, stored_code_challenge) {
+    if !verify_pkce(&code_verifier, &auth_code.code_challenge) {
         return Err((
             StatusCode::BAD_REQUEST,
             Json(OAuthError::invalid_grant("PKCE verification failed")),
         ));
     }
 
-    // TODO: Verify authorization code:
-    // - Code exists in database
-    // - Not expired (10 minutes max)
-    // - redirect_uri matches
-    // - client_id matches
-    // - Mark code as used (single use only)
-
-    // TODO: Load scopes and resource from stored authorization code
-    let scopes = vec!["mcp:read".to_string(), "mcp:write".to_string()];
-    let resource = request.resource.clone();
+    // Delete authorization code (single use only per OAuth 2.1)
+    state
+        .storage
+        .delete_authorization_code(&code)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(OAuthError::invalid_request(format!(
+                    "Failed to delete authorization code: {}",
+                    e
+                ))),
+            )
+        })?;
 
     // Generate tokens
-    let access_token = generate_access_token(&request.client_id, &scopes, resource.as_deref())?;
-    let refresh_token = generate_refresh_token();
+    let access_token = generate_access_token(
+        &request.client_id,
+        &auth_code.scopes,
+        auth_code.resource.as_deref(),
+    )?;
+    let refresh_token_value = generate_refresh_token();
 
-    // TODO: Store refresh token in database with:
-    // - token (hashed)
-    // - client_id
-    // - resource
-    // - scopes
-    // - expires_at (30 days from now)
+    // Store refresh token in storage
+    let refresh_token = RefreshToken {
+        token: refresh_token_value.clone(),
+        client_id: request.client_id.clone(),
+        resource: auth_code.resource.clone(),
+        scopes: auth_code.scopes.clone(),
+        expires_at: Utc::now() + Duration::days(30), // 30 days expiration
+        created_at: Utc::now(),
+    };
+
+    state
+        .storage
+        .save_refresh_token(&refresh_token)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(OAuthError::invalid_request(format!(
+                    "Failed to save refresh token: {}",
+                    e
+                ))),
+            )
+        })?;
 
     let response = TokenResponse {
         access_token,
         token_type: "Bearer".to_string(),
         expires_in: 3600, // 1 hour
-        refresh_token: Some(refresh_token),
-        scope: Some(scopes.join(" ")),
+        refresh_token: Some(refresh_token_value),
+        scope: Some(auth_code.scopes.join(" ")),
     };
 
     Ok((StatusCode::OK, Json(response)))
@@ -139,39 +210,92 @@ async fn handle_authorization_code_grant(
 
 /// Handle refresh_token grant type
 async fn handle_refresh_token_grant(
+    state: OAuthState,
     request: TokenRequest,
 ) -> Result<(StatusCode, Json<TokenResponse>), (StatusCode, Json<OAuthError>)> {
     // Validate required parameters
-    let _refresh_token = request.refresh_token.ok_or_else(|| {
+    let refresh_token_value = request.refresh_token.ok_or_else(|| {
         (
             StatusCode::BAD_REQUEST,
             Json(OAuthError::invalid_request("refresh_token is required")),
         )
     })?;
 
-    // TODO: Load refresh token from database
-    // TODO: Verify:
-    // - Token exists and matches client_id
-    // - Not expired
-    // - Delete old refresh token (rotation)
+    // Load refresh token from storage
+    let old_refresh_token = state
+        .storage
+        .get_refresh_token(&refresh_token_value)
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::BAD_REQUEST,
+                Json(OAuthError::invalid_grant(
+                    "Invalid or expired refresh token",
+                )),
+            )
+        })?;
 
-    // TODO: Load scopes and resource from stored refresh token
-    let scopes = vec!["mcp:read".to_string(), "mcp:write".to_string()];
-    let resource = request.resource.clone();
+    // Verify refresh token matches client_id
+    if old_refresh_token.client_id != request.client_id {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(OAuthError::invalid_grant("client_id mismatch")),
+        ));
+    }
 
     // Generate new tokens (refresh token rotation per OAuth 2.1)
-    let access_token = generate_access_token(&request.client_id, &scopes, resource.as_deref())?;
-    let new_refresh_token = generate_refresh_token();
+    let access_token = generate_access_token(
+        &request.client_id,
+        &old_refresh_token.scopes,
+        old_refresh_token.resource.as_deref(),
+    )?;
+    let new_refresh_token_value = generate_refresh_token();
 
-    // TODO: Store new refresh token in database
-    // TODO: Delete old refresh token
+    // Store new refresh token in storage
+    let new_refresh_token = RefreshToken {
+        token: new_refresh_token_value.clone(),
+        client_id: request.client_id.clone(),
+        resource: old_refresh_token.resource.clone(),
+        scopes: old_refresh_token.scopes.clone(),
+        expires_at: Utc::now() + Duration::days(30), // 30 days expiration
+        created_at: Utc::now(),
+    };
+
+    state
+        .storage
+        .save_refresh_token(&new_refresh_token)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(OAuthError::invalid_request(format!(
+                    "Failed to save refresh token: {}",
+                    e
+                ))),
+            )
+        })?;
+
+    // Delete old refresh token (rotation per OAuth 2.1)
+    state
+        .storage
+        .delete_refresh_token(&refresh_token_value)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(OAuthError::invalid_request(format!(
+                    "Failed to delete old refresh token: {}",
+                    e
+                ))),
+            )
+        })?;
 
     let response = TokenResponse {
         access_token,
         token_type: "Bearer".to_string(),
         expires_in: 3600, // 1 hour
-        refresh_token: Some(new_refresh_token),
-        scope: Some(scopes.join(" ")),
+        refresh_token: Some(new_refresh_token_value),
+        scope: Some(old_refresh_token.scopes.join(" ")),
     };
 
     Ok((StatusCode::OK, Json(response)))
