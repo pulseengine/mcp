@@ -57,7 +57,9 @@
       "Bash(npm view:*)",
       "Bash(cat:*)",
       "Bash(gh repo clone:*)",
-      "WebFetch(domain:crates.io)"
+      "WebFetch(domain:crates.io)",
+      "Bash(npx -y @modelcontextprotocol/conformance list)",
+      "Bash(target/debug/hello-world:*)"
     ],
     "deny": []
   }

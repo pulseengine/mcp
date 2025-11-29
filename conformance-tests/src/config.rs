@@ -45,8 +45,8 @@ impl ServerConfig {
         let content = std::fs::read_to_string(path)
             .context(format!("Failed to read config file: {}", path.display()))?;
 
-        let config: ServerConfig = serde_json::from_str(&content)
-            .context("Failed to parse server config JSON")?;
+        let config: ServerConfig =
+            serde_json::from_str(&content).context("Failed to parse server config JSON")?;
 
         Ok(config)
     }
@@ -60,11 +60,11 @@ impl ServerConfig {
             }
             "http" | "sse" => {
                 let port = self.port.context("HTTP/SSE transport requires port")?;
-                Ok(format!("http://localhost:{}/mcp", port))
+                Ok(format!("http://localhost:{port}/mcp"))
             }
             "websocket" => {
                 let port = self.port.context("WebSocket transport requires port")?;
-                Ok(format!("ws://localhost:{}/mcp", port))
+                Ok(format!("ws://localhost:{port}/mcp"))
             }
             other => anyhow::bail!("Unknown transport type: {}", other),
         }

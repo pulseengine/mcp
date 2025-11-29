@@ -1,0 +1,16 @@
+[
+  {
+    "id": "tools-call-audio",
+    "name": "ToolsCallAudio",
+    "description": "Tool returns audio content",
+    "status": "FAILURE",
+    "timestamp": "2025-11-29T10:18:13.099Z",
+    "errorMessage": "Failed: fetch failed",
+    "specReferences": [
+      {
+        "id": "MCP-Tools-Call",
+        "url": "https://modelcontextprotocol.io/specification/2025-06-18/server/tools#calling-tools"
+      }
+    ]
+  }
+]

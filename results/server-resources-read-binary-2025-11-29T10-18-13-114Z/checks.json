@@ -1,0 +1,16 @@
+[
+  {
+    "id": "resources-read-binary",
+    "name": "ResourcesReadBinary",
+    "description": "Read binary resource successfully",
+    "status": "FAILURE",
+    "timestamp": "2025-11-29T10:18:13.114Z",
+    "errorMessage": "Failed: fetch failed",
+    "specReferences": [
+      {
+        "id": "MCP-Resources-Read",
+        "url": "https://modelcontextprotocol.io/specification/2025-06-18/server/resources#reading-resources"
+      }
+    ]
+  }
+]

@@ -9,7 +9,7 @@ use crate::transport::ServerProcess;
 pub struct ConformanceRunner {
     config: ServerConfig,
     _timeout: u64,
-    verbose: bool,
+    _verbose: bool,
     results_dir: PathBuf,
 }
 
@@ -20,28 +20,25 @@ impl ConformanceRunner {
         let results_dir = PathBuf::from("conformance-tests/results")
             .join(format!("{}-{}", config.name, timestamp));
 
-        std::fs::create_dir_all(&results_dir)
-            .context("Failed to create results directory")?;
+        std::fs::create_dir_all(&results_dir).context("Failed to create results directory")?;
 
         Ok(Self {
             config,
             _timeout: timeout,
-            verbose,
+            _verbose: verbose,
             results_dir,
         })
     }
 
-    pub fn run(
-        &self,
-        scenario: Option<String>,
-        auth_only: bool,
-        server_only: bool,
-    ) -> Result<()> {
+    pub fn run(&self, scenario: Option<String>, auth_only: bool, server_only: bool) -> Result<()> {
         println!("{} Starting server...", "ℹ".blue());
 
         // Start server based on transport type
         let mut server = if self.config.needs_network() {
-            let port = self.config.port.context("Network transport requires port")?;
+            let port = self
+                .config
+                .port
+                .context("Network transport requires port")?;
             ServerProcess::spawn_network(&self.config.binary, port)?
         } else {
             println!("  Using stdio transport - server will be spawned per test");
@@ -71,7 +68,13 @@ impl ConformanceRunner {
         let url = self.config.get_url()?;
 
         let mut cmd = Command::new("npx");
-        cmd.args(["-y", "@modelcontextprotocol/conformance", "server", "--url", &url]);
+        cmd.args([
+            "-y",
+            "@modelcontextprotocol/conformance",
+            "server",
+            "--url",
+            &url,
+        ]);
 
         // Add scenario filters
         if let Some(scenario) = scenario {
@@ -85,22 +88,18 @@ impl ConformanceRunner {
             cmd.args(["--scenario", "server-*"]);
         }
 
-        println!("  Running: {:?}", cmd);
+        println!("  Running: {cmd:?}");
 
         // Run tests and capture output
-        let output = cmd
-            .output()
-            .context("Failed to run conformance tests")?;
+        let output = cmd.output().context("Failed to run conformance tests")?;
 
         // Save output
         let output_file = self.results_dir.join("test-output.txt");
-        std::fs::write(&output_file, &output.stdout)
-            .context("Failed to save test output")?;
+        std::fs::write(&output_file, &output.stdout).context("Failed to save test output")?;
 
         if !output.stderr.is_empty() {
             let stderr_file = self.results_dir.join("test-stderr.txt");
-            std::fs::write(&stderr_file, &output.stderr)
-                .context("Failed to save test stderr")?;
+            std::fs::write(&stderr_file, &output.stderr).context("Failed to save test stderr")?;
         }
 
         // Display output
@@ -121,40 +120,50 @@ impl ConformanceRunner {
             println!("{} All conformance tests passed!", "✓".green());
             Ok(())
         } else {
-            println!("{} Some conformance tests failed (see results above)", "⚠".yellow());
+            println!(
+                "{} Some conformance tests failed (see results above)",
+                "⚠".yellow()
+            );
             anyhow::bail!("Conformance tests failed")
         }
     }
 
     fn generate_summary(&self) -> Result<()> {
-        println!("{} Test results saved to: {}", "ℹ".blue(), self.results_dir.display());
+        println!(
+            "{} Test results saved to: {}",
+            "ℹ".blue(),
+            self.results_dir.display()
+        );
 
         let checks_file = self.results_dir.join("checks.json");
         if !checks_file.exists() {
             return Ok(());
         }
 
-        let checks_content = std::fs::read_to_string(&checks_file)
-            .context("Failed to read checks.json")?;
+        let checks_content =
+            std::fs::read_to_string(&checks_file).context("Failed to read checks.json")?;
 
-        let checks: serde_json::Value = serde_json::from_str(&checks_content)
-            .context("Failed to parse checks.json")?;
+        let checks: serde_json::Value =
+            serde_json::from_str(&checks_content).context("Failed to parse checks.json")?;
 
         if let Some(checks_array) = checks.as_array() {
             let total = checks_array.len();
-            let success = checks_array.iter()
+            let success = checks_array
+                .iter()
                 .filter(|c| c["status"] == "SUCCESS")
                 .count();
-            let warnings = checks_array.iter()
+            let warnings = checks_array
+                .iter()
                 .filter(|c| c["status"] == "WARNING")
                 .count();
-            let failures = checks_array.iter()
+            let failures = checks_array
+                .iter()
                 .filter(|c| c["status"] == "FAILURE")
                 .count();
 
             println!();
             println!("{} Test Summary:", "ℹ".blue());
-            println!("  Total Checks: {}", total);
+            println!("  Total Checks: {total}");
             println!("  {} Success: {}", "✓".green(), success);
             println!("  {} Warnings: {}", "⚠".yellow(), warnings);
             println!("  {} Failures: {}", "✗".red(), failures);
@@ -164,11 +173,10 @@ impl ConformanceRunner {
                 println!("{} Failed checks:", "⚠".yellow());
                 for check in checks_array {
                     if check["status"] == "FAILURE" {
-                        if let (Some(name), Some(desc)) = (
-                            check["name"].as_str(),
-                            check["description"].as_str(),
-                        ) {
-                            println!("  - {}: {}", name, desc);
+                        if let (Some(name), Some(desc)) =
+                            (check["name"].as_str(), check["description"].as_str())
+                        {
+                            println!("  - {name}: {desc}");
                         }
                     }
                 }

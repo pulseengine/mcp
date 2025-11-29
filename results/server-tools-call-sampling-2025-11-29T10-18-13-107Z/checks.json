@@ -1,0 +1,16 @@
+[
+  {
+    "id": "tools-call-sampling",
+    "name": "ToolsCallSampling",
+    "description": "Tool requests LLM sampling from client",
+    "status": "FAILURE",
+    "timestamp": "2025-11-29T10:18:13.108Z",
+    "errorMessage": "Failed: fetch failed",
+    "specReferences": [
+      {
+        "id": "MCP-Sampling",
+        "url": "https://modelcontextprotocol.io/specification/2025-06-18/server/utilities/sampling"
+      }
+    ]
+  }
+]
