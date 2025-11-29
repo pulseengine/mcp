@@ -1,0 +1,12 @@
+{
+  "name": "test-tools-server",
+  "description": "Server for testing various tool implementations",
+  "binary": "cargo run --bin test-tools-server",
+  "transport": "stdio",
+  "oauth": false,
+  "timeout": 30000,
+  "scenarios": {
+    "include": ["server-initialize", "tools-*"],
+    "exclude": ["auth/*", "resources-*", "prompts-*"]
+  }
+}

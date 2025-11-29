@@ -1,0 +1,9 @@
+# Conformance test results
+results/
+
+# Temporary files
+*.log
+*.tmp
+
+# Node modules if tests install dependencies
+node_modules/

@@ -1,0 +1,13 @@
+{
+  "name": "ui-enabled-server",
+  "description": "Server with OAuth and MCP UI support",
+  "binary": "cargo run --bin ui-enabled-server",
+  "transport": "http",
+  "port": 3001,
+  "oauth": false,
+  "timeout": 30000,
+  "scenarios": {
+    "include": ["server-initialize", "tools-*", "resources-*"],
+    "exclude": ["auth/*"]
+  }
+}
