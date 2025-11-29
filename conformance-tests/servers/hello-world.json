@@ -1,0 +1,12 @@
+{
+  "name": "hello-world",
+  "description": "Simple hello world server with basic tools",
+  "binary": "target/debug/hello-world",
+  "transport": "stdio",
+  "oauth": false,
+  "timeout": 30000,
+  "scenarios": {
+    "include": ["server-initialize", "tools-list", "tools-call-*"],
+    "exclude": ["auth/*"]
+  }
+}
