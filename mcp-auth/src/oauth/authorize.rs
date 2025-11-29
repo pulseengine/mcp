@@ -2,14 +2,16 @@
 //!
 //! Implements authorization code flow with mandatory PKCE (S256)
 
-use crate::oauth::models::{AuthorizeRequest, OAuthError};
+use crate::oauth::OAuthState;
+use crate::oauth::models::{AuthorizationCode, AuthorizeRequest, OAuthError};
 use crate::oauth::pkce::validate_code_challenge;
 use axum::{
     Form,
-    extract::Query,
+    extract::{Query, State},
     http::StatusCode,
     response::{Html, IntoResponse, Redirect},
 };
+use chrono::{Duration, Utc};
 use serde::Deserialize;
 
 /// GET /oauth/authorize - Display authorization consent form
@@ -38,13 +40,33 @@ use serde::Deserialize;
 ///   scope=mcp:read mcp:write
 /// ```
 pub async fn authorize_get(
+    State(state): State<OAuthState>,
     Query(params): Query<AuthorizeRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<OAuthError>)> {
     // Validate request parameters
     validate_authorize_request(&params)?;
 
-    // TODO: Verify client_id exists in database
-    // TODO: Verify redirect_uri matches registered URIs for this client
+    // Verify client_id exists in storage
+    let client = state
+        .storage
+        .get_client(&params.client_id)
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::UNAUTHORIZED,
+                Json(OAuthError::invalid_client("Client not found")),
+            )
+        })?;
+
+    // Verify redirect_uri matches registered URIs for this client
+    if !client.redirect_uris.contains(&params.redirect_uri) {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(OAuthError::invalid_request(
+                "redirect_uri does not match registered URIs",
+            )),
+        ));
+    }
 
     // Render consent form
     let html = render_consent_form(&params);
@@ -75,6 +97,7 @@ pub struct AuthorizeForm {
 }
 
 pub async fn authorize_post(
+    State(state): State<OAuthState>,
     Form(form): Form<AuthorizeForm>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<OAuthError>)> {
     // Check if user denied authorization
@@ -90,20 +113,68 @@ pub async fn authorize_post(
         return Ok(Redirect::to(&error_redirect).into_response());
     }
 
-    // TODO: Verify client_id exists in database
-    // TODO: Verify redirect_uri matches registered URIs
+    // Verify client_id exists in storage
+    let client = state
+        .storage
+        .get_client(&form.client_id)
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::UNAUTHORIZED,
+                Json(OAuthError::invalid_client("Client not found")),
+            )
+        })?;
+
+    // Verify redirect_uri matches registered URIs
+    if !client.redirect_uris.contains(&form.redirect_uri) {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(OAuthError::invalid_request(
+                "redirect_uri does not match registered URIs",
+            )),
+        ));
+    }
 
     // Generate authorization code
     let code = generate_authorization_code();
 
-    // TODO: Store authorization code in database with:
-    // - code
-    // - client_id
-    // - redirect_uri
-    // - code_challenge
-    // - resource
-    // - scopes
-    // - expires_at (10 minutes from now)
+    // Parse scopes from space-separated string
+    let scopes = form
+        .scope
+        .as_ref()
+        .map(|s| {
+            s.split_whitespace()
+                .map(|scope| scope.to_string())
+                .collect()
+        })
+        .unwrap_or_else(Vec::new);
+
+    // Create authorization code record
+    let authorization_code = AuthorizationCode {
+        code: code.clone(),
+        client_id: form.client_id.clone(),
+        redirect_uri: form.redirect_uri.clone(),
+        code_challenge: form.code_challenge,
+        resource: form.resource,
+        scopes,
+        expires_at: Utc::now() + Duration::minutes(10), // 10 minutes expiration per OAuth 2.1
+        created_at: Utc::now(),
+    };
+
+    // Store authorization code in storage
+    state
+        .storage
+        .save_authorization_code(&authorization_code)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(OAuthError::invalid_request(format!(
+                    "Failed to save authorization code: {}",
+                    e
+                ))),
+            )
+        })?;
 
     // Redirect to client with authorization code
     let success_redirect = format!(
