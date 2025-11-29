@@ -13,6 +13,7 @@ members = [
     "mcp-macros",
     "mcp-external-validation",
     "integration-tests",
+    "conformance-tests",
     "examples/hello-world",
     "examples/hello-world-with-auth",
     "examples/hello-world-complex",
