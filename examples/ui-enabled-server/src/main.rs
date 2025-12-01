@@ -28,6 +28,7 @@ impl McpBackend for UiBackend {
             capabilities: ServerCapabilities::builder()
                 .enable_tools()
                 .enable_resources()
+                .enable_logging()
                 .build(),
             server_info: Implementation {
                 name: "UI-Enabled Example Server".to_string(),
@@ -196,6 +197,15 @@ impl McpBackend for UiBackend {
         Err(CommonMcpError::InvalidParams(
             "No prompts available".to_string(),
         ))
+    }
+
+    async fn set_level(
+        &self,
+        params: SetLevelRequestParam,
+    ) -> std::result::Result<(), Self::Error> {
+        // For this example, we just log the level change
+        eprintln!("📊 Logging level changed to: {}", params.level);
+        Ok(())
     }
 }
 
