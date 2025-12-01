@@ -369,7 +369,7 @@ async fn test_mock_backend_optional_methods() {
     // Test set level (not supported)
     let set_level_result = backend
         .set_level(SetLevelRequestParam {
-            level: "info".to_string(),
+            level: LogLevel::Info,
         })
         .await;
     assert!(set_level_result.is_err());

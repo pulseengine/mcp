@@ -246,6 +246,59 @@ pub struct LoggingCapability {
     pub level: Option<String>,
 }
 
+/// Log level based on RFC 5424 syslog severity levels
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum LogLevel {
+    Emergency,
+    Alert,
+    Critical,
+    Error,
+    Warning,
+    Notice,
+    Info,
+    Debug,
+}
+
+impl LogLevel {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            LogLevel::Emergency => "emergency",
+            LogLevel::Alert => "alert",
+            LogLevel::Critical => "critical",
+            LogLevel::Error => "error",
+            LogLevel::Warning => "warning",
+            LogLevel::Notice => "notice",
+            LogLevel::Info => "info",
+            LogLevel::Debug => "debug",
+        }
+    }
+}
+
+impl std::str::FromStr for LogLevel {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "emergency" => Ok(LogLevel::Emergency),
+            "alert" => Ok(LogLevel::Alert),
+            "critical" => Ok(LogLevel::Critical),
+            "error" => Ok(LogLevel::Error),
+            "warning" => Ok(LogLevel::Warning),
+            "notice" => Ok(LogLevel::Notice),
+            "info" => Ok(LogLevel::Info),
+            "debug" => Ok(LogLevel::Debug),
+            _ => Err(format!("Invalid log level: {s}")),
+        }
+    }
+}
+
+impl std::fmt::Display for LogLevel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SamplingCapability {}
 
@@ -1034,7 +1087,7 @@ pub struct CompleteResult {
 /// Set logging level parameters
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SetLevelRequestParam {
-    pub level: String,
+    pub level: LogLevel,
 }
 
 /// Resource template definition
