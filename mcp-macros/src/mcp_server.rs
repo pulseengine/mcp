@@ -255,15 +255,74 @@ fn generate_server_implementation(
         impl #impl_generics #struct_name #ty_generics #where_clause {
             /// Serve using STDIO transport
             pub async fn serve_stdio(self) -> std::result::Result<pulseengine_mcp_server::McpServer<Self>, #error_type_name> {
-                use pulseengine_mcp_server::{McpServer, ServerConfig};
+                use pulseengine_mcp_server::{McpServer, ServerConfig, TransportConfig};
 
                 let mut config = ServerConfig::default();
+                config.transport_config = TransportConfig::Stdio;
 
                 // Set the server info to use the macro-generated values
                 config.server_info = <Self as pulseengine_mcp_server::HasServerInfo>::server_info();
 
                 // Set auth configuration based on macro parameter
                 #auth_config
+
+                let server = McpServer::new(self, config).await.map_err(|e| {
+                    #error_type_name::Internal(format!("Failed to create server: {}", e))
+                })?;
+
+                Ok(server)
+            }
+
+            /// Serve using HTTP (Streamable HTTP) transport
+            pub async fn serve_http(self, port: u16) -> std::result::Result<pulseengine_mcp_server::McpServer<Self>, #error_type_name> {
+                use pulseengine_mcp_server::{McpServer, ServerConfig, TransportConfig};
+
+                let mut config = ServerConfig::default();
+                config.transport_config = TransportConfig::StreamableHttp {
+                    port,
+                    host: None,
+                };
+
+                // Set the server info to use the macro-generated values
+                config.server_info = <Self as pulseengine_mcp_server::HasServerInfo>::server_info();
+
+                // Set auth configuration based on macro parameter
+                #auth_config
+
+                let server = McpServer::new(self, config).await.map_err(|e| {
+                    #error_type_name::Internal(format!("Failed to create server: {}", e))
+                })?;
+
+                Ok(server)
+            }
+
+
+            /// Serve using WebSocket transport
+            pub async fn serve_websocket(self, port: u16) -> std::result::Result<pulseengine_mcp_server::McpServer<Self>, #error_type_name> {
+                use pulseengine_mcp_server::{McpServer, ServerConfig, TransportConfig};
+
+                let mut config = ServerConfig::default();
+                config.transport_config = TransportConfig::WebSocket {
+                    port,
+                    host: None,
+                };
+
+                // Set the server info to use the macro-generated values
+                config.server_info = <Self as pulseengine_mcp_server::HasServerInfo>::server_info();
+
+                // Set auth configuration based on macro parameter
+                #auth_config
+
+                let server = McpServer::new(self, config).await.map_err(|e| {
+                    #error_type_name::Internal(format!("Failed to create server: {}", e))
+                })?;
+
+                Ok(server)
+            }
+
+            /// Build a server with custom configuration
+            pub async fn build_server(self, config: pulseengine_mcp_server::ServerConfig) -> std::result::Result<pulseengine_mcp_server::McpServer<Self>, #error_type_name> {
+                use pulseengine_mcp_server::McpServer;
 
                 let server = McpServer::new(self, config).await.map_err(|e| {
                     #error_type_name::Internal(format!("Failed to create server: {}", e))
