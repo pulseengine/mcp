@@ -1,0 +1,16 @@
+[
+  {
+    "id": "server-initialize",
+    "name": "ServerInitialize",
+    "description": "Server responds to initialize request with valid structure",
+    "status": "FAILURE",
+    "timestamp": "2025-11-30T06:56:02.473Z",
+    "errorMessage": "Failed to initialize: fetch failed",
+    "specReferences": [
+      {
+        "id": "MCP-Initialize",
+        "url": "https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle#initialization"
+      }
+    ]
+  }
+]

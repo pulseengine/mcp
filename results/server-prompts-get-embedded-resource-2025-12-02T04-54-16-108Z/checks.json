@@ -1,0 +1,16 @@
+[
+  {
+    "id": "prompts-get-embedded-resource",
+    "name": "PromptsGetEmbeddedResource",
+    "description": "Get prompt with embedded resource",
+    "status": "FAILURE",
+    "timestamp": "2025-12-02T04:54:16.111Z",
+    "errorMessage": "Failed: MCP error -32602: Unknown prompt: test_prompt_with_embedded_resource",
+    "specReferences": [
+      {
+        "id": "MCP-Prompts-Embedded-Resources",
+        "url": "https://modelcontextprotocol.io/specification/2025-06-18/server/prompts#embedded-resources"
+      }
+    ]
+  }
+]

@@ -5,9 +5,11 @@ use pulseengine_mcp_auth::AuthenticationManager;
 use pulseengine_mcp_logging::{get_metrics, spans};
 use pulseengine_mcp_protocol::*;
 
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Instant;
 use thiserror::Error;
+use tokio::sync::RwLock;
 use tracing::{debug, error, info, instrument};
 
 /// Error type for handler operations
@@ -67,6 +69,10 @@ pub struct GenericServerHandler<B: McpBackend> {
     #[allow(dead_code)]
     auth_manager: Arc<AuthenticationManager>,
     middleware: MiddlewareStack,
+    /// Global subscription registry tracking subscribed resource URIs
+    /// Note: This is a simplified global implementation. For per-client
+    /// subscriptions, use a HashMap<ClientId, HashSet<String>> instead.
+    subscriptions: Arc<RwLock<HashSet<String>>>,
 }
 
 impl<B: McpBackend> GenericServerHandler<B> {
@@ -80,7 +86,26 @@ impl<B: McpBackend> GenericServerHandler<B> {
             backend,
             auth_manager,
             middleware,
+            subscriptions: Arc::new(RwLock::new(HashSet::new())),
         }
+    }
+
+    /// Get a list of all currently subscribed resource URIs
+    ///
+    /// This is useful for Phase 3 notification delivery - backends can query
+    /// which resources have active subscriptions before sending notifications.
+    pub async fn get_subscribed_uris(&self) -> Vec<String> {
+        let subs = self.subscriptions.read().await;
+        subs.iter().cloned().collect()
+    }
+
+    /// Check if a specific resource URI has active subscriptions
+    ///
+    /// Useful for optimizing notification delivery - only send notifications
+    /// for resources that have active subscribers.
+    pub async fn is_subscribed(&self, uri: &str) -> bool {
+        let subs = self.subscriptions.read().await;
+        subs.contains(uri)
     }
 
     /// Handle an MCP request
@@ -378,8 +403,19 @@ impl<B: McpBackend> GenericServerHandler<B> {
 
     async fn handle_subscribe(&self, request: Request) -> std::result::Result<Response, Error> {
         let params: SubscribeRequestParam = serde_json::from_value(request.params)?;
+        let uri = params.uri.clone();
 
+        // Forward to backend first (allows custom validation/logic)
         self.backend.subscribe(params).await.map_err(|e| e.into())?;
+
+        // Track subscription globally
+        let mut subs = self.subscriptions.write().await;
+        let is_new = subs.insert(uri.clone());
+        drop(subs);
+
+        if is_new {
+            debug!("Subscribed to resource: {}", uri);
+        }
 
         Ok(Response {
             jsonrpc: "2.0".to_string(),
@@ -391,11 +427,22 @@ impl<B: McpBackend> GenericServerHandler<B> {
 
     async fn handle_unsubscribe(&self, request: Request) -> std::result::Result<Response, Error> {
         let params: UnsubscribeRequestParam = serde_json::from_value(request.params)?;
+        let uri = params.uri.clone();
 
+        // Forward to backend first
         self.backend
             .unsubscribe(params)
             .await
             .map_err(|e| e.into())?;
+
+        // Remove from subscription tracking
+        let mut subs = self.subscriptions.write().await;
+        let was_present = subs.remove(&uri);
+        drop(subs);
+
+        if was_present {
+            debug!("Unsubscribed from resource: {}", uri);
+        }
 
         Ok(Response {
             jsonrpc: "2.0".to_string(),

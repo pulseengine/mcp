@@ -1,0 +1,16 @@
+[
+  {
+    "id": "tools-call-mixed-content",
+    "name": "ToolsCallMixedContent",
+    "description": "Tool returns multiple content types",
+    "status": "FAILURE",
+    "timestamp": "2025-11-29T19:38:26.301Z",
+    "errorMessage": "Failed: MCP error -32602: Unknown tool",
+    "specReferences": [
+      {
+        "id": "MCP-Tools-Call",
+        "url": "https://modelcontextprotocol.io/specification/2025-06-18/server/tools#calling-tools"
+      }
+    ]
+  }
+]

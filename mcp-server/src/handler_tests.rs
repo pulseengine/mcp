@@ -663,7 +663,7 @@ async fn test_handler_optional_methods() {
     let response = handler.handle_request(request).await.unwrap();
     assert!(response.error.is_none());
 
-    // Test subscribe
+    // Test subscribe (Phase 1: now accepts subscriptions)
     let request = Request {
         jsonrpc: "2.0".to_string(),
         id: Some(pulseengine_mcp_protocol::NumberOrString::String(Arc::from(
@@ -674,7 +674,7 @@ async fn test_handler_optional_methods() {
     };
 
     let response = handler.handle_request(request).await.unwrap();
-    assert!(response.error.is_some()); // Should fail with "not supported"
+    assert!(response.error.is_none()); // Should succeed (Phase 1 subscription support)
 
     // Test completion
     let request = Request {

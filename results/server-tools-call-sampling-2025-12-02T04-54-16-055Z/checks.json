@@ -1,0 +1,16 @@
+[
+  {
+    "id": "tools-call-sampling",
+    "name": "ToolsCallSampling",
+    "description": "Tool requests LLM sampling from client",
+    "status": "FAILURE",
+    "timestamp": "2025-12-02T04:54:16.058Z",
+    "errorMessage": "Failed: MCP error -32602: InvalidParams: Unknown tool: test_sampling",
+    "specReferences": [
+      {
+        "id": "MCP-Sampling",
+        "url": "https://modelcontextprotocol.io/specification/2025-06-18/server/utilities/sampling"
+      }
+    ]
+  }
+]

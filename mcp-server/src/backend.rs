@@ -154,21 +154,26 @@ pub trait McpBackend: Send + Sync + Clone {
     // Subscription Management (optional)
 
     /// Subscribe to resource updates
+    /// Default implementation accepts all subscriptions but does not track them
+    /// Override this method to implement custom subscription logic
     async fn subscribe(
         &self,
-        request: SubscribeRequestParam,
+        _request: SubscribeRequestParam,
     ) -> std::result::Result<(), Self::Error> {
-        let _ = request;
-        Err(BackendError::not_supported("Subscriptions not supported").into())
+        // Default: accept subscription silently
+        // Notification delivery requires additional infrastructure
+        Ok(())
     }
 
     /// Unsubscribe from resource updates
+    /// Default implementation accepts all unsubscribe requests
+    /// Override this method to implement custom unsubscribe logic
     async fn unsubscribe(
         &self,
-        request: UnsubscribeRequestParam,
+        _request: UnsubscribeRequestParam,
     ) -> std::result::Result<(), Self::Error> {
-        let _ = request;
-        Err(BackendError::not_supported("Subscriptions not supported").into())
+        // Default: accept unsubscription silently
+        Ok(())
     }
 
     // Auto-completion (optional)

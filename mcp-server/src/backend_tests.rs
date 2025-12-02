@@ -342,15 +342,17 @@ async fn test_mock_backend_optional_methods() {
             uri: "test://resource".to_string(),
         })
         .await;
-    assert!(subscribe_result.is_err());
+    // Default implementation now accepts subscriptions (Phase 1 of subscription support)
+    assert!(subscribe_result.is_ok());
 
-    // Test unsubscribe (not supported)
+    // Test unsubscribe (default implementation accepts)
     let unsubscribe_result = backend
         .unsubscribe(UnsubscribeRequestParam {
             uri: "test://resource".to_string(),
         })
         .await;
-    assert!(unsubscribe_result.is_err());
+    // Default implementation now accepts unsubscriptions (Phase 1 of subscription support)
+    assert!(unsubscribe_result.is_ok());
 
     // Test complete (default implementation)
     let complete_result = backend
