@@ -1,0 +1,23 @@
+[
+  {
+    "id": "resources-list",
+    "name": "ResourcesList",
+    "description": "Server lists available resources with valid structure",
+    "status": "SUCCESS",
+    "timestamp": "2025-12-02T18:05:29.762Z",
+    "specReferences": [
+      {
+        "id": "MCP-Resources-List",
+        "url": "https://modelcontextprotocol.io/specification/2025-06-18/server/resources#listing-resources"
+      }
+    ],
+    "details": {
+      "resourceCount": 3,
+      "resources": [
+        "user://{user_id}",
+        "config://{config_name}",
+        "data://{key}"
+      ]
+    }
+  }
+]

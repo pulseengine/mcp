@@ -1,0 +1,16 @@
+[
+  {
+    "id": "tools-call-error",
+    "name": "ToolsCallError",
+    "description": "Tool returns error correctly",
+    "status": "FAILURE",
+    "timestamp": "2025-12-02T04:30:37.113Z",
+    "errorMessage": "Failed: fetch failed",
+    "specReferences": [
+      {
+        "id": "MCP-Error-Handling",
+        "url": "https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle"
+      }
+    ]
+  }
+]

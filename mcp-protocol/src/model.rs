@@ -1122,6 +1122,14 @@ pub struct UnsubscribeRequestParam {
     pub uri: String,
 }
 
+/// Resource updated notification parameters
+/// Sent when a subscribed resource changes
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResourceUpdatedNotification {
+    /// URI of the resource that was updated
+    pub uri: String,
+}
+
 /// Elicitation request parameters
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ElicitationRequestParam {

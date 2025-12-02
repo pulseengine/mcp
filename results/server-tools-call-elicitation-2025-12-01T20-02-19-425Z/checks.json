@@ -1,0 +1,16 @@
+[
+  {
+    "id": "tools-call-elicitation",
+    "name": "ToolsCallElicitation",
+    "description": "Tool requests user input from client",
+    "status": "FAILURE",
+    "timestamp": "2025-12-01T20:02:19.426Z",
+    "errorMessage": "Failed: fetch failed",
+    "specReferences": [
+      {
+        "id": "MCP-Elicitation",
+        "url": "https://modelcontextprotocol.io/specification/2025-06-18/server/utilities/elicitation"
+      }
+    ]
+  }
+]
