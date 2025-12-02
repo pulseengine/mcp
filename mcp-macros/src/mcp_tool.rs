@@ -285,6 +285,7 @@ fn generate_matchit_resource_impl(
                                         mime_type: Some("application/json".to_string()),
                                         text: Some(content_str),
                                         blob: None,
+                                        _meta: None,
                                     }]
                                 })
                             }
@@ -311,6 +312,7 @@ fn generate_matchit_resource_impl(
                                         mime_type: Some("application/json".to_string()),
                                         text: Some(content_str),
                                         blob: None,
+                                        _meta: None,
                                     }]
                                 })
                             }
@@ -501,10 +503,13 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
                         pulseengine_mcp_protocol::Resource {
                             uri: #uri_template.to_string(),
                             name: #resource_name.to_string(),
+                            title: None,
                             description: Some(#description.to_string()),
                             mime_type: Some("application/json".to_string()),
                             annotations: None,
+                            icons: None,
                             raw: None,
+                            _meta: None,
                         }
                     });
                 } else {
@@ -570,9 +575,19 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
 
     // Resource backend override temporarily disabled to avoid trait conflicts
 
+    // Strip #[mcp_resource] attributes from the impl block before outputting
+    let mut cleaned_impl_block = impl_block.clone();
+    for item in &mut cleaned_impl_block.items {
+        if let syn::ImplItem::Fn(method) = item {
+            method
+                .attrs
+                .retain(|attr| !attr.path().is_ident("mcp_resource"));
+        }
+    }
+
     // Generate the enhanced impl block that uses a trait-based approach to avoid method conflicts
     let enhanced_impl = quote! {
-        #impl_block
+        #cleaned_impl_block
 
         // Implement a tools provider trait
         impl #impl_generics pulseengine_mcp_server::McpToolsProvider for #struct_name #ty_generics #where_clause {
