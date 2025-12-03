@@ -60,6 +60,10 @@ regex = "1.10"
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
+# Linux-specific dependencies for filesystem monitoring
+[target.'cfg(target_os = "linux")'.dependencies]
+inotify = "0.10"
+
 [features]
 default = []
 
