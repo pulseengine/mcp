@@ -48,7 +48,7 @@ impl OAuthState {
     /// use pulseengine_mcp_auth::oauth::{OAuthState, oauth_router};
     ///
     /// let state = OAuthState::new_in_memory();
-    /// let app = oauth_router().with_state(state);
+    /// let app: axum::Router = oauth_router().with_state(state);
     /// ```
     pub fn new_in_memory() -> Self {
         Self {
@@ -66,7 +66,7 @@ impl OAuthState {
     /// // Bring your own storage implementation
     /// let custom_storage: Arc<dyn OAuthStorage> = todo!();
     /// let state = OAuthState::new(custom_storage);
-    /// let app = oauth_router().with_state(state);
+    /// let app: axum::Router = oauth_router().with_state(state);
     /// ```
     pub fn new(storage: Arc<dyn OAuthStorage>) -> Self {
         Self { storage }
@@ -81,7 +81,7 @@ impl OAuthState {
 ///
 /// // That's it! One line to create OAuth state, one line to create the router
 /// let state = OAuthState::new_in_memory();
-/// let app = oauth_router().with_state(state);
+/// let app: axum::Router = oauth_router().with_state(state);
 /// ```
 ///
 /// # Endpoints

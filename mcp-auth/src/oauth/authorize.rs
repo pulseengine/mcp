@@ -29,7 +29,7 @@ use serde::Deserialize;
 /// - `scope`: (Optional) Space-separated scopes
 ///
 /// # Example
-/// ```
+/// ```text
 /// GET /oauth/authorize?
 ///   response_type=code&
 ///   client_id=abc123&
