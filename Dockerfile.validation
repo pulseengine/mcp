@@ -30,6 +30,7 @@ COPY mcp-cli-derive ./mcp-cli-derive/
 COPY mcp-macros ./mcp-macros/
 COPY mcp-server ./mcp-server/
 COPY mcp-external-validation ./mcp-external-validation/
+COPY conformance-tests ./conformance-tests/
 COPY examples ./examples/
 COPY integration-tests ./integration-tests/
 
