@@ -34,6 +34,7 @@
 //!     title: None,
 //!     annotations: None,
 //!     icons: None,
+//!     _meta: None,
 //! };
 //!
 //! // Create a tool response with optional structured content
