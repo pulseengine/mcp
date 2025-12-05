@@ -63,7 +63,6 @@ jobs:
       - name: Clean procedural macro artifacts
         run: |
           cargo clean -p pulseengine-mcp-macros
-          cargo clean -p pulseengine-mcp-cli-derive
 
       - name: Build framework (parallel)
         run: |
@@ -189,7 +188,6 @@ jobs:
         run: |
           # Clean procedural macro artifacts to prevent version conflicts
           cargo clean -p pulseengine-mcp-macros
-          cargo clean -p pulseengine-mcp-cli-derive
 
       - name: Build framework (parallel)
         run: |

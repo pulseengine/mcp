@@ -84,11 +84,10 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
 
-      - name: Clean stale artifacts
+      - name: Clean procedural macro artifacts
         run: |
           # Clean procedural macro artifacts to prevent version conflicts
           cargo clean -p pulseengine-mcp-macros
-          cargo clean -p pulseengine-mcp-cli-derive
 
       - name: Run clippy
         run: |
