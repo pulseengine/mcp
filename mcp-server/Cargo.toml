@@ -41,7 +41,7 @@ prometheus = "0.14"
 chrono = { workspace = true }
 
 # Optional stdio logging support
-tracing-subscriber = { workspace = true, optional = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"], optional = true }
 
 [features]
 default = ["stdio-logging"]

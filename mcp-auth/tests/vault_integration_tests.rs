@@ -2,6 +2,10 @@
 //!
 //! These tests verify the vault integration works correctly with mock
 //! Infisical responses and configuration scenarios.
+//!
+//! These tests are only compiled when the `vault` feature is enabled.
+
+#![cfg(feature = "vault")]
 
 use pulseengine_mcp_auth::vault::{VaultConfig, VaultType};
 use std::env;

@@ -35,7 +35,6 @@ pulseengine-mcp-security = { workspace = true }
 pulseengine-mcp-monitoring = { workspace = true }
 pulseengine-mcp-transport = { workspace = true }
 pulseengine-mcp-server = { workspace = true }
-pulseengine-mcp-cli = { workspace = true }
 
 [dev-dependencies]
 tokio-test = "0.4"

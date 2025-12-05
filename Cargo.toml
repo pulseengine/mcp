@@ -7,27 +7,17 @@ members = [
     "mcp-security-middleware",
     "mcp-monitoring",
     "mcp-transport",
-    "mcp-cli",
-    "mcp-cli-derive",
     "mcp-server",
     "mcp-macros",
     "mcp-external-validation",
     "integration-tests",
     "conformance-tests",
-    "examples/hello-world",
-    "examples/hello-world-with-auth",
-    "examples/hello-world-complex",
-    "examples/memory-only-auth",
-    "examples/error-harmonization-demo",
-    "examples/backend-example",
-    "examples/cli-example",
-    "examples/test-tools-server",
-    "examples/advanced-server-example",
-    "examples/profiling-demo",
-    "examples/demos",
-    "examples/ultra-simple",
-    "examples/ui-enabled-server",
-    "examples/resources-demo",
+    # Examples (5 total - consolidated from 19)
+    "examples/hello-world",           # Minimal starter example
+    "examples/hello-world-with-auth", # Security/auth integration
+    "examples/ultra-simple",          # Macro showcase (8 lines)
+    "examples/ui-enabled-server",     # MCP Apps Extension (SEP-1865)
+    "examples/resources-demo",        # Resource handling patterns
 ]
 
 resolver = "2"
@@ -118,8 +108,6 @@ pulseengine-mcp-security = { version = "0.14.0", path = "mcp-security" }
 pulseengine-mcp-security-middleware = { version = "0.14.0", path = "mcp-security-middleware" }
 pulseengine-mcp-monitoring = { version = "0.14.0", path = "mcp-monitoring" }
 pulseengine-mcp-transport = { version = "0.14.0", path = "mcp-transport" }
-pulseengine-mcp-cli = { version = "0.14.0", path = "mcp-cli" }
-pulseengine-mcp-cli-derive = { version = "0.14.0", path = "mcp-cli-derive" }
 pulseengine-mcp-server = { version = "0.14.0", path = "mcp-server" }
 pulseengine-mcp-macros = { version = "0.14.0", path = "mcp-macros" }
 pulseengine-mcp-external-validation = { version = "0.14.0", path = "mcp-external-validation" }
@@ -163,8 +151,6 @@ pulseengine-mcp-security = { path = "mcp-security" }
 pulseengine-mcp-security-middleware = { path = "mcp-security-middleware" }
 pulseengine-mcp-monitoring = { path = "mcp-monitoring" }
 pulseengine-mcp-transport = { path = "mcp-transport" }
-pulseengine-mcp-cli = { path = "mcp-cli" }
-pulseengine-mcp-cli-derive = { path = "mcp-cli-derive" }
 pulseengine-mcp-server = { path = "mcp-server" }
 pulseengine-mcp-macros = { path = "mcp-macros" }
 pulseengine-mcp-external-validation = { path = "mcp-external-validation" }

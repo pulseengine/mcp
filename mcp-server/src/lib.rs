@@ -119,6 +119,7 @@
 //!
 
 pub mod builder_trait;
+pub mod cli_helpers;
 pub mod common_backend;
 
 pub mod backend;
@@ -158,6 +159,9 @@ pub use context::RequestContext;
 pub use handler::{GenericServerHandler, HandlerError};
 pub use middleware::{Middleware, MiddlewareStack};
 pub use server::{McpServer, ServerConfig, ServerError};
+
+// Re-export CLI helpers
+pub use cli_helpers::{CliError, DefaultLoggingConfig, LogFormat, LogOutput, create_server_info};
 
 // Re-export from dependencies for convenience
 pub use pulseengine_mcp_auth::{self as auth, AuthConfig, AuthenticationManager};
