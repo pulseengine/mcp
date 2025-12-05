@@ -115,11 +115,10 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@1.88
 
-      - name: Clean stale artifacts
+      - name: Clean procedural macro artifacts
         run: |
           # Clean procedural macro artifacts to prevent version conflicts
           cargo clean -p pulseengine-mcp-macros
-          cargo clean -p pulseengine-mcp-cli-derive
           cargo clean -p pulseengine-mcp-external-validation
 
       - name: Test protocol version ${{ matrix.protocol_version }} with ${{ matrix.transport }}

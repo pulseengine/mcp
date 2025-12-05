@@ -31,7 +31,6 @@ coverage:
 # Ignore certain files/paths from coverage
 ignore:
   - "examples/**/*"
-  - "mcp-cli-derive/**/*" # Procedural macros are hard to test
   - "**/tests/**/*" # Test files themselves
   - "**/benches/**/*" # Benchmark files
   - "**/*_tests.rs" # Test modules
@@ -55,8 +54,6 @@ flags:
       - "mcp-auth/**"
       - "mcp-security/**"
       - "mcp-security-middleware/**"
-      - "mcp-monitoring/**"
       - "mcp-logging/**"
-      - "mcp-cli/**"
       - "integration-tests/**"
     carryforward: true
