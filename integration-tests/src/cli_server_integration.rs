@@ -2,9 +2,9 @@
 
 use crate::test_utils::*;
 use async_trait::async_trait;
-use pulseengine_mcp_cli::{CliError, config::create_server_info};
 use pulseengine_mcp_protocol::*;
 use pulseengine_mcp_server::backend::{BackendError, McpBackend};
+use pulseengine_mcp_server::{CliError, create_server_info};
 use pulseengine_mcp_transport::TransportConfig;
 use std::error::Error as StdError;
 use std::fmt;

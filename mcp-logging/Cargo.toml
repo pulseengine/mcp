@@ -44,8 +44,5 @@ hex = "0.4"
 # Static initializer
 once_cell = "1.0"
 
-# Metadata
-tonic = "0.9"
-
 # OpenTelemetry dependencies removed due to API compatibility issues
 # TODO: Re-add when we can properly integrate with the current API versions

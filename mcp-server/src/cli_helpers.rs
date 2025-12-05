@@ -1,9 +1,54 @@
-//! Configuration management and utilities
+//! CLI helpers and configuration utilities
+//!
+//! This module provides utilities for CLI-based MCP servers, including:
+//! - Server info creation from Cargo.toml metadata
+//! - Logging configuration
+//! - Environment variable utilities
 
-use crate::CliError;
 use pulseengine_mcp_protocol::{Implementation, ProtocolVersion, ServerCapabilities, ServerInfo};
 use serde::{Deserialize, Serialize};
 use std::env;
+use thiserror::Error;
+
+/// CLI-related errors
+#[derive(Debug, Error)]
+pub enum CliError {
+    #[error("Configuration error: {0}")]
+    Configuration(String),
+
+    #[error("CLI parsing error: {0}")]
+    Parsing(String),
+
+    #[error("Server setup error: {0}")]
+    ServerSetup(String),
+
+    #[error("Logging setup error: {0}")]
+    Logging(String),
+
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+
+    #[error("Protocol error: {0}")]
+    Protocol(#[from] pulseengine_mcp_protocol::Error),
+}
+
+impl CliError {
+    pub fn configuration(msg: impl Into<String>) -> Self {
+        Self::Configuration(msg.into())
+    }
+
+    pub fn parsing(msg: impl Into<String>) -> Self {
+        Self::Parsing(msg.into())
+    }
+
+    pub fn server_setup(msg: impl Into<String>) -> Self {
+        Self::ServerSetup(msg.into())
+    }
+
+    pub fn logging(msg: impl Into<String>) -> Self {
+        Self::Logging(msg.into())
+    }
+}
 
 /// Default logging configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,7 +92,6 @@ impl Default for DefaultLoggingConfig {
 
 impl DefaultLoggingConfig {
     pub fn initialize(&self) -> Result<(), CliError> {
-        // Initialize tracing subscriber based on configuration
         use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
         let level = env::var("RUST_LOG").unwrap_or_else(|_| self.level.clone());
@@ -80,7 +124,18 @@ impl DefaultLoggingConfig {
     }
 }
 
-/// Utility to create default server info from Cargo.toml
+/// Create default server info from Cargo.toml metadata
+///
+/// # Arguments
+/// * `name` - Optional server name (defaults to CARGO_PKG_NAME)
+/// * `version` - Optional version (defaults to CARGO_PKG_VERSION)
+///
+/// # Example
+/// ```rust,ignore
+/// use pulseengine_mcp_server::cli_helpers::create_server_info;
+///
+/// let info = create_server_info(Some("My Server".to_string()), None);
+/// ```
 pub fn create_server_info(name: Option<String>, version: Option<String>) -> ServerInfo {
     ServerInfo {
         protocol_version: ProtocolVersion::default(),
@@ -110,18 +165,18 @@ pub mod env_utils {
     }
 
     /// Get required environment variable
-    pub fn get_required_env<T>(key: &str) -> Result<T, crate::CliError>
+    pub fn get_required_env<T>(key: &str) -> Result<T, super::CliError>
     where
         T: FromStr,
         T::Err: std::fmt::Display,
     {
         env::var(key)
             .map_err(|_| {
-                crate::CliError::configuration(format!(
+                super::CliError::configuration(format!(
                     "Missing required environment variable: {key}"
                 ))
             })?
             .parse()
-            .map_err(|e| crate::CliError::configuration(format!("Invalid value for {key}: {e}")))
+            .map_err(|e| super::CliError::configuration(format!("Invalid value for {key}: {e}")))
     }
 }
