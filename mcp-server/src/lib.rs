@@ -121,6 +121,7 @@
 pub mod builder_trait;
 pub mod cli_helpers;
 pub mod common_backend;
+pub mod observability;
 
 pub mod backend;
 pub mod context;
@@ -165,7 +166,13 @@ pub use cli_helpers::{CliError, DefaultLoggingConfig, LogFormat, LogOutput, crea
 
 // Re-export from dependencies for convenience
 pub use pulseengine_mcp_auth::{self as auth, AuthConfig, AuthenticationManager};
-pub use pulseengine_mcp_monitoring::{self as monitoring, MetricsCollector, MonitoringConfig};
 pub use pulseengine_mcp_protocol::{self as protocol, *};
 pub use pulseengine_mcp_security::{self as security, SecurityConfig, SecurityMiddleware};
 pub use pulseengine_mcp_transport::{self as transport, Transport, TransportConfig};
+
+// Re-export observability (merged from mcp-monitoring)
+pub use observability::{MetricsCollector, MonitoringConfig, ServerMetrics, SystemMetrics};
+/// Alias for backward compatibility
+pub mod monitoring {
+    pub use super::observability::*;
+}

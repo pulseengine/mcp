@@ -1,10 +1,10 @@
 //! Tests for MCP server implementation
 
 use crate::backend::{BackendError, McpBackend};
+use crate::observability::MonitoringConfig;
 use crate::server::{HealthStatus, McpServer, ServerConfig, ServerError};
 use async_trait::async_trait;
 use pulseengine_mcp_auth::{AuthConfig, config::StorageConfig};
-use pulseengine_mcp_monitoring::MonitoringConfig;
 use pulseengine_mcp_protocol::*;
 use pulseengine_mcp_security::SecurityConfig;
 use pulseengine_mcp_transport::TransportConfig;

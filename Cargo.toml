@@ -5,7 +5,6 @@ members = [
     "mcp-auth",
     "mcp-security",
     "mcp-security-middleware",
-    "mcp-monitoring",
     "mcp-transport",
     "mcp-server",
     "mcp-macros",
@@ -106,7 +105,6 @@ pulseengine-mcp-logging = { version = "0.14.0", path = "mcp-logging" }
 pulseengine-mcp-auth = { version = "0.14.0", path = "mcp-auth" }
 pulseengine-mcp-security = { version = "0.14.0", path = "mcp-security" }
 pulseengine-mcp-security-middleware = { version = "0.14.0", path = "mcp-security-middleware" }
-pulseengine-mcp-monitoring = { version = "0.14.0", path = "mcp-monitoring" }
 pulseengine-mcp-transport = { version = "0.14.0", path = "mcp-transport" }
 pulseengine-mcp-server = { version = "0.14.0", path = "mcp-server" }
 pulseengine-mcp-macros = { version = "0.14.0", path = "mcp-macros" }
@@ -149,7 +147,6 @@ pulseengine-mcp-logging = { path = "mcp-logging" }
 pulseengine-mcp-auth = { path = "mcp-auth" }
 pulseengine-mcp-security = { path = "mcp-security" }
 pulseengine-mcp-security-middleware = { path = "mcp-security-middleware" }
-pulseengine-mcp-monitoring = { path = "mcp-monitoring" }
 pulseengine-mcp-transport = { path = "mcp-transport" }
 pulseengine-mcp-server = { path = "mcp-server" }
 pulseengine-mcp-macros = { path = "mcp-macros" }

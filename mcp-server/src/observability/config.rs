@@ -27,6 +27,4 @@ impl Default for MonitoringConfig {
     }
 }
 
-#[cfg(test)]
-#[path = "config_tests.rs"]
-mod config_tests;
+// Tests moved to integration-tests crate
