@@ -180,3 +180,94 @@ pub mod env_utils {
             .map_err(|e| super::CliError::configuration(format!("Invalid value for {key}: {e}")))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cli_error_constructors() {
+        let config_err = CliError::configuration("config issue");
+        assert!(matches!(config_err, CliError::Configuration(_)));
+        assert!(config_err.to_string().contains("config issue"));
+
+        let parse_err = CliError::parsing("parse issue");
+        assert!(matches!(parse_err, CliError::Parsing(_)));
+        assert!(parse_err.to_string().contains("parse issue"));
+
+        let setup_err = CliError::server_setup("setup issue");
+        assert!(matches!(setup_err, CliError::ServerSetup(_)));
+        assert!(setup_err.to_string().contains("setup issue"));
+
+        let log_err = CliError::logging("log issue");
+        assert!(matches!(log_err, CliError::Logging(_)));
+        assert!(log_err.to_string().contains("log issue"));
+    }
+
+    #[test]
+    fn test_default_logging_config() {
+        let config = DefaultLoggingConfig::default();
+        assert_eq!(config.level, "info");
+        assert!(config.structured);
+        assert!(matches!(config.format, LogFormat::Pretty));
+        assert!(matches!(config.output, LogOutput::Stdout));
+    }
+
+    #[test]
+    fn test_log_format_serialization() {
+        let json_format = serde_json::to_string(&LogFormat::Json).unwrap();
+        assert!(json_format.contains("json"));
+
+        let pretty_format = serde_json::to_string(&LogFormat::Pretty).unwrap();
+        assert!(pretty_format.contains("pretty"));
+
+        let compact_format = serde_json::to_string(&LogFormat::Compact).unwrap();
+        assert!(compact_format.contains("compact"));
+    }
+
+    #[test]
+    fn test_log_output_serialization() {
+        let stdout = serde_json::to_string(&LogOutput::Stdout).unwrap();
+        assert!(stdout.contains("stdout"));
+
+        let stderr = serde_json::to_string(&LogOutput::Stderr).unwrap();
+        assert!(stderr.contains("stderr"));
+
+        let file = serde_json::to_string(&LogOutput::File("/tmp/log.txt".to_string())).unwrap();
+        assert!(file.contains("/tmp/log.txt"));
+    }
+
+    #[test]
+    fn test_create_server_info_with_custom_values() {
+        let info = create_server_info(Some("TestServer".to_string()), Some("1.0.0".to_string()));
+        assert_eq!(info.server_info.name, "TestServer");
+        assert_eq!(info.server_info.version, "1.0.0");
+    }
+
+    #[test]
+    fn test_create_server_info_with_defaults() {
+        let info = create_server_info(None, None);
+        // Should use CARGO_PKG_NAME and CARGO_PKG_VERSION
+        assert!(!info.server_info.name.is_empty());
+        assert!(!info.server_info.version.is_empty());
+    }
+
+    #[test]
+    fn test_env_utils_get_env_or_default() {
+        // Test with non-existent env var
+        let result: i32 = env_utils::get_env_or_default("NON_EXISTENT_VAR_12345", 42);
+        assert_eq!(result, 42);
+
+        // Test with string
+        let result: String =
+            env_utils::get_env_or_default("NON_EXISTENT_VAR_12345", "default".to_string());
+        assert_eq!(result, "default");
+    }
+
+    #[test]
+    fn test_env_utils_get_required_env_missing() {
+        let result: Result<String, _> = env_utils::get_required_env("NON_EXISTENT_VAR_12345");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Missing required"));
+    }
+}
