@@ -160,7 +160,7 @@ impl OAuthError {
 }
 
 /// JWT claims for access tokens
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccessTokenClaims {
     pub sub: String,         // Subject (client_id)
     pub aud: Option<String>, // Audience (resource server)
