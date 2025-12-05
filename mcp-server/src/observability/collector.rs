@@ -1,6 +1,6 @@
 //! Metrics collector implementation
 
-use crate::{
+use super::{
     config::MonitoringConfig,
     metrics::{ServerMetrics, SystemMetrics},
 };
@@ -223,7 +223,7 @@ impl MetricsCollector {
             memory_available_bytes: sys.available_memory(),
             swap_total_bytes: sys.total_swap(),
             swap_used_bytes: sys.used_swap(),
-            load_average: crate::metrics::LoadAverage {
+            load_average: super::metrics::LoadAverage {
                 one: load_avg.one,
                 five: load_avg.five,
                 fifteen: load_avg.fifteen,
@@ -237,6 +237,4 @@ impl MetricsCollector {
     }
 }
 
-#[cfg(test)]
-#[path = "collector_tests.rs"]
-mod collector_tests;
+// Tests moved to integration-tests crate

@@ -32,7 +32,6 @@ rand = { workspace = true }
 pulseengine-mcp-protocol = { workspace = true }
 pulseengine-mcp-auth = { workspace = true }
 pulseengine-mcp-security = { workspace = true }
-pulseengine-mcp-monitoring = { workspace = true }
 pulseengine-mcp-transport = { workspace = true }
 pulseengine-mcp-server = { workspace = true }
 

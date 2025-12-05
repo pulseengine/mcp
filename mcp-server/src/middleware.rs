@@ -1,8 +1,8 @@
 //! Middleware stack for request/response processing
 
 use crate::context::RequestContext;
+use crate::observability::MetricsCollector;
 use pulseengine_mcp_auth::AuthenticationManager;
-use pulseengine_mcp_monitoring::MetricsCollector;
 use pulseengine_mcp_protocol::*;
 use pulseengine_mcp_security::SecurityMiddleware;
 
@@ -104,7 +104,7 @@ impl MiddlewareStack {
 
         // Monitoring middleware (last)
         if let Some(monitoring) = &self.monitoring {
-            let mon_context = pulseengine_mcp_monitoring::collector::RequestContext {
+            let mon_context = crate::observability::collector::RequestContext {
                 request_id: context.request_id,
             };
             request = monitoring.process_request(request, &mon_context)?;
@@ -123,7 +123,7 @@ impl MiddlewareStack {
 
         // Monitoring middleware (first on response)
         if let Some(monitoring) = &self.monitoring {
-            let mon_context = pulseengine_mcp_monitoring::collector::RequestContext {
+            let mon_context = crate::observability::collector::RequestContext {
                 request_id: context.request_id,
             };
             response = monitoring.process_response(response, &mon_context)?;

@@ -1,9 +1,9 @@
 //! Metrics endpoints for monitoring and observability
 
+use crate::observability::MetricsCollector;
 use axum::{Router, extract::State, http::StatusCode, response::IntoResponse, routing::get};
 use prometheus::{Counter, Encoder, Gauge, Histogram, Registry, TextEncoder};
 use pulseengine_mcp_logging::get_metrics as get_logging_metrics;
-use pulseengine_mcp_monitoring::MetricsCollector;
 use std::sync::Arc;
 
 /// Prometheus metrics registry
@@ -141,7 +141,7 @@ pub fn create_metrics_router(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pulseengine_mcp_monitoring::MonitoringConfig;
+    use crate::observability::MonitoringConfig;
 
     #[tokio::test]
     async fn test_prometheus_metrics() {

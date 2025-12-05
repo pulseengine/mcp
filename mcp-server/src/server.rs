@@ -1,5 +1,6 @@
 //! Generic MCP server implementation
 
+use crate::observability::{MetricsCollector, MonitoringConfig};
 use crate::{backend::McpBackend, handler::GenericServerHandler, middleware::MiddlewareStack};
 use pulseengine_mcp_auth::{AuthConfig, AuthenticationManager};
 use pulseengine_mcp_logging::{
@@ -7,7 +8,6 @@ use pulseengine_mcp_logging::{
     PersistenceConfig, ProfilingConfig, SanitizationConfig, StructuredLogger, TelemetryConfig,
     TelemetryManager,
 };
-use pulseengine_mcp_monitoring::{MetricsCollector, MonitoringConfig};
 use pulseengine_mcp_protocol::*;
 use pulseengine_mcp_security::{SecurityConfig, SecurityMiddleware};
 use pulseengine_mcp_transport::{Transport, TransportConfig};
@@ -100,7 +100,7 @@ impl Default for ServerConfig {
             auth_config: pulseengine_mcp_auth::default_config(),
             transport_config: pulseengine_mcp_transport::TransportConfig::default(),
             security_config: pulseengine_mcp_security::default_config(),
-            monitoring_config: pulseengine_mcp_monitoring::default_config(),
+            monitoring_config: crate::observability::default_config(),
             sanitization_config: SanitizationConfig::default(),
             persistence_config: None,
             telemetry_config: TelemetryConfig::default(),
@@ -485,4 +485,4 @@ pub struct HealthStatus {
 }
 
 // Re-export monitoring metrics type
-pub use pulseengine_mcp_monitoring::ServerMetrics;
+pub use crate::observability::ServerMetrics;
