@@ -10,6 +10,7 @@
 //! Reference: https://github.com/shuttle-hq/shuttle-examples/tree/main/mcp/mcp-sse-oauth
 
 pub mod authorize;
+pub mod bearer;
 pub mod metadata;
 pub mod models;
 pub mod pkce;
@@ -19,6 +20,10 @@ pub mod storage;
 pub mod token;
 
 pub use authorize::{authorize_get, authorize_post};
+pub use bearer::{
+    BearerError, BearerToken, BearerTokenConfig, WwwAuthenticate, unauthorized_response,
+    validate_bearer_token,
+};
 pub use metadata::authorization_server_metadata;
 pub use registration::register_client;
 pub use resource::protected_resource_metadata;
