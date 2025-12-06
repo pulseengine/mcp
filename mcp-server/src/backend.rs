@@ -201,12 +201,21 @@ pub trait McpBackend: Send + Sync + Clone {
     // Logging control (optional)
 
     /// Set logging level
+    ///
+    /// By default, this accepts any valid log level and does nothing.
+    /// This is valid MCP behavior since servers are not required to emit log notifications.
+    ///
+    /// Override this method if you want to:
+    /// - Store the log level and use it to filter `notifications/message` log notifications
+    /// - Adjust internal logging verbosity (e.g., tracing subscriber level)
     async fn set_level(
         &self,
         request: SetLevelRequestParam,
     ) -> std::result::Result<(), Self::Error> {
+        // Accept the log level but don't do anything with it by default.
+        // Servers can override this to implement actual log level filtering.
         let _ = request;
-        Err(BackendError::not_supported("Logging level control not supported").into())
+        Ok(())
     }
 
     // Lifecycle hooks
