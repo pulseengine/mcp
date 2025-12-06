@@ -55,6 +55,7 @@ fn parse_uri_template(uri_template: &str) -> (String, Vec<String>) {
 }
 
 /// Extract parameter names from URI template path
+/// Handles both regular params {name} and catch-all params {*name}
 fn extract_uri_parameters(path: &str) -> Vec<String> {
     let mut params = Vec::new();
     let mut chars = path.chars().peekable();
@@ -69,7 +70,10 @@ fn extract_uri_parameters(path: &str) -> Vec<String> {
                 param_name.push(ch);
             }
             if !param_name.is_empty() {
-                params.push(param_name);
+                // Strip the leading '*' for catch-all parameters
+                // matchit uses {*name} syntax but stores params without the '*'
+                let clean_name = param_name.strip_prefix('*').unwrap_or(&param_name);
+                params.push(clean_name.to_string());
             }
         }
     }
