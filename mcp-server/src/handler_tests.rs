@@ -706,7 +706,7 @@ async fn test_handler_optional_methods() {
     };
 
     let response = handler.handle_request(request).await.unwrap();
-    assert!(response.error.is_some()); // Should fail with "not supported"
+    assert!(response.error.is_none()); // Should succeed (default accepts any level)
 }
 
 // Test thread safety

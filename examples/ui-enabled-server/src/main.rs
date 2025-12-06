@@ -199,14 +199,8 @@ impl McpBackend for UiBackend {
         ))
     }
 
-    async fn set_level(
-        &self,
-        params: SetLevelRequestParam,
-    ) -> std::result::Result<(), Self::Error> {
-        // For this example, we just log the level change
-        eprintln!("📊 Logging level changed to: {}", params.level);
-        Ok(())
-    }
+    // Note: set_level uses the default implementation from McpBackend which accepts
+    // any log level. Override this if you want to filter notifications/message logs.
 }
 
 #[tokio::main]

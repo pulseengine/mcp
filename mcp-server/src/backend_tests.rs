@@ -368,13 +368,13 @@ async fn test_mock_backend_optional_methods() {
         .unwrap();
     assert!(complete_result.completion.is_empty());
 
-    // Test set level (not supported)
+    // Test set level (default accepts any level)
     let set_level_result = backend
         .set_level(SetLevelRequestParam {
             level: LogLevel::Info,
         })
         .await;
-    assert!(set_level_result.is_err());
+    assert!(set_level_result.is_ok());
 
     // Test custom method (not supported)
     let custom_result = backend
