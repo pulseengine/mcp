@@ -20,6 +20,7 @@ struct ResourceInfo {
     path_pattern: String,
     param_names: Vec<String>,
     method_param_names: Vec<syn::Ident>,
+    method_param_types: Vec<syn::Type>,
     is_async: bool,
     has_params: bool,
 }
@@ -251,14 +252,41 @@ fn generate_matchit_resource_impl(
                     .iter()
                     .enumerate()
                     .map(|(param_idx, param_name)| {
-                        if let Some(method_param) = info.method_param_names.get(param_idx) {
+                        let method_param = match info.method_param_names.get(param_idx) {
+                            Some(p) => p,
+                            None => return quote! {},
+                        };
+                        let param_type = match info.method_param_types.get(param_idx) {
+                            Some(t) => t,
+                            None => return quote! {},
+                        };
+
+                        // Check if the type is String - if so, no parsing needed
+                        let is_string_type = if let syn::Type::Path(type_path) = param_type {
+                            type_path.path.segments.last()
+                                .map(|seg| seg.ident == "String")
+                                .unwrap_or(false)
+                        } else {
+                            false
+                        };
+
+                        if is_string_type {
+                            // String type - just convert directly
                             quote! {
-                                let #method_param = matched.params.get(#param_name)
-                                    .unwrap_or("default")
+                                let #method_param: #param_type = matched.params.get(#param_name)
+                                    .unwrap_or("")
                                     .to_string();
                             }
                         } else {
-                            quote! {}
+                            // Non-String type - parse from string
+                            quote! {
+                                let #method_param: #param_type = matched.params.get(#param_name)
+                                    .unwrap_or("")
+                                    .parse()
+                                    .map_err(|e| pulseengine_mcp_protocol::Error::invalid_params(
+                                        format!("Failed to parse parameter '{}': {}", #param_name, e)
+                                    ))?;
+                            }
                         }
                     })
                     .collect();
@@ -471,14 +499,16 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
                     // Parse URI template to get matchit path pattern
                     let (path_pattern, template_param_names) = parse_uri_template(&uri_template);
 
-                    // Extract method parameter names
+                    // Extract method parameter names and types
                     let mut method_param_names = Vec::new();
+                    let mut method_param_types = Vec::new();
                     for input in &method.sig.inputs {
                         match input {
                             syn::FnArg::Receiver(_) => continue,
                             syn::FnArg::Typed(pat_type) => {
                                 if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
                                     method_param_names.push(pat_ident.ident.clone());
+                                    method_param_types.push((*pat_type.ty).clone());
                                 }
                             }
                         }
@@ -492,6 +522,7 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
                         path_pattern,
                         param_names: template_param_names,
                         method_param_names,
+                        method_param_types,
                         is_async: method.sig.asyncness.is_some(),
                         has_params: method.sig.inputs.len() > 1,
                     };
