@@ -1,9 +1,13 @@
 name: Scheduled External Validation
 
+# Disabled: No external MCP servers configured to test against.
+# The workflow only tests localhost which is always skipped in CI.
+# Re-enable when external servers are available by uncommenting the schedule trigger.
+# See: https://github.com/pulseengine/mcp/issues/74
 on:
-  schedule:
-    # Run every 6 hours to validate against external services
-    - cron: "0 */6 * * *"
+  # schedule:
+  #   # Run every 6 hours to validate against external services
+  #   - cron: "0 */6 * * *"
   workflow_dispatch:
     inputs:
       test_servers:
