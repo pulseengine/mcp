@@ -503,4 +503,278 @@ mod tests {
             _ => panic!("Expected text content"),
         }
     }
+
+    // ==================== MCP 2025-11-25 Elicitation Tests ====================
+
+    #[test]
+    fn test_elicitation_mode_serialization() {
+        // Form mode serializes to lowercase
+        let form_mode = ElicitationMode::Form;
+        let json = serde_json::to_string(&form_mode).unwrap();
+        assert_eq!(json, "\"form\"");
+
+        // URL mode serializes to lowercase
+        let url_mode = ElicitationMode::Url;
+        let json = serde_json::to_string(&url_mode).unwrap();
+        assert_eq!(json, "\"url\"");
+    }
+
+    #[test]
+    fn test_elicitation_mode_deserialization() {
+        let form: ElicitationMode = serde_json::from_str("\"form\"").unwrap();
+        assert_eq!(form, ElicitationMode::Form);
+
+        let url: ElicitationMode = serde_json::from_str("\"url\"").unwrap();
+        assert_eq!(url, ElicitationMode::Url);
+    }
+
+    #[test]
+    fn test_elicitation_mode_default() {
+        let mode = ElicitationMode::default();
+        assert_eq!(mode, ElicitationMode::Form);
+    }
+
+    #[test]
+    fn test_elicitation_capability_form_only() {
+        let capability = ElicitationCapability {
+            form: Some(FormElicitationCapability {}),
+            url: None,
+        };
+
+        let json = serde_json::to_string(&capability).unwrap();
+        assert!(json.contains("\"form\""));
+        assert!(!json.contains("\"url\""));
+
+        // Round-trip
+        let deserialized: ElicitationCapability = serde_json::from_str(&json).unwrap();
+        assert!(deserialized.form.is_some());
+        assert!(deserialized.url.is_none());
+    }
+
+    #[test]
+    fn test_elicitation_capability_url_only() {
+        let capability = ElicitationCapability {
+            form: None,
+            url: Some(UrlElicitationCapability {}),
+        };
+
+        let json = serde_json::to_string(&capability).unwrap();
+        assert!(!json.contains("\"form\""));
+        assert!(json.contains("\"url\""));
+
+        let deserialized: ElicitationCapability = serde_json::from_str(&json).unwrap();
+        assert!(deserialized.form.is_none());
+        assert!(deserialized.url.is_some());
+    }
+
+    #[test]
+    fn test_elicitation_capability_both_modes() {
+        let capability = ElicitationCapability {
+            form: Some(FormElicitationCapability {}),
+            url: Some(UrlElicitationCapability {}),
+        };
+
+        let json = serde_json::to_string(&capability).unwrap();
+        assert!(json.contains("\"form\""));
+        assert!(json.contains("\"url\""));
+
+        let deserialized: ElicitationCapability = serde_json::from_str(&json).unwrap();
+        assert!(deserialized.form.is_some());
+        assert!(deserialized.url.is_some());
+    }
+
+    #[test]
+    fn test_server_capabilities_elicitation_modes() {
+        let capabilities = ServerCapabilities::builder()
+            .enable_elicitation_modes(true, true)
+            .build();
+
+        assert!(capabilities.elicitation.is_some());
+        let elicitation = capabilities.elicitation.unwrap();
+        assert!(elicitation.form.is_some());
+        assert!(elicitation.url.is_some());
+
+        // Test form-only
+        let capabilities = ServerCapabilities::builder()
+            .enable_elicitation_modes(true, false)
+            .build();
+
+        let elicitation = capabilities.elicitation.unwrap();
+        assert!(elicitation.form.is_some());
+        assert!(elicitation.url.is_none());
+    }
+
+    #[test]
+    fn test_elicitation_request_form_mode() {
+        let schema = json!({
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "email": {"type": "string", "format": "email"}
+            },
+            "required": ["name", "email"]
+        });
+
+        let request =
+            ElicitationRequestParam::form("Please provide your contact info", schema.clone());
+
+        assert_eq!(request.mode, ElicitationMode::Form);
+        assert!(request.elicitation_id.is_none());
+        assert_eq!(request.message, "Please provide your contact info");
+        assert_eq!(request.requested_schema, Some(schema));
+        assert!(request.url.is_none());
+    }
+
+    #[test]
+    fn test_elicitation_request_url_mode() {
+        let request = ElicitationRequestParam::url(
+            "elicit-123",
+            "https://example.com/oauth/authorize",
+            "Please authenticate with your account",
+        );
+
+        assert_eq!(request.mode, ElicitationMode::Url);
+        assert_eq!(request.elicitation_id, Some("elicit-123".to_string()));
+        assert_eq!(request.message, "Please authenticate with your account");
+        assert!(request.requested_schema.is_none());
+        assert_eq!(
+            request.url,
+            Some("https://example.com/oauth/authorize".to_string())
+        );
+    }
+
+    #[test]
+    fn test_elicitation_request_form_mode_serialization() {
+        let request = ElicitationRequestParam::form("Enter data", json!({"type": "object"}));
+
+        let json = serde_json::to_string(&request).unwrap();
+        // Form mode should NOT serialize mode field (it's the default)
+        assert!(!json.contains("\"mode\""));
+        assert!(json.contains("\"message\""));
+        assert!(json.contains("\"requestedSchema\""));
+    }
+
+    #[test]
+    fn test_elicitation_request_url_mode_serialization() {
+        let request =
+            ElicitationRequestParam::url("elicit-456", "https://auth.example.com", "Authenticate");
+
+        let json = serde_json::to_string(&request).unwrap();
+        // URL mode SHOULD serialize mode field
+        assert!(json.contains("\"mode\":\"url\""));
+        assert!(json.contains("\"elicitationId\":\"elicit-456\""));
+        assert!(json.contains("\"url\":\"https://auth.example.com\""));
+    }
+
+    #[test]
+    fn test_elicitation_request_backwards_compatibility() {
+        // Old-style request without mode field should deserialize as form mode
+        let json = r#"{
+            "message": "Please provide your name",
+            "requestedSchema": {"type": "string"}
+        }"#;
+
+        let request: ElicitationRequestParam = serde_json::from_str(json).unwrap();
+        assert_eq!(request.mode, ElicitationMode::Form);
+        assert_eq!(request.message, "Please provide your name");
+    }
+
+    #[test]
+    fn test_elicitation_complete_notification() {
+        let notification = ElicitationCompleteNotification {
+            elicitation_id: "elicit-789".to_string(),
+        };
+
+        let json = serde_json::to_string(&notification).unwrap();
+        assert!(json.contains("\"elicitationId\":\"elicit-789\""));
+
+        let deserialized: ElicitationCompleteNotification = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.elicitation_id, "elicit-789");
+    }
+
+    #[test]
+    fn test_url_elicitation_info_new() {
+        let info = UrlElicitationInfo::new(
+            "elicit-abc",
+            "https://example.com/setup",
+            "Complete setup to continue",
+        );
+
+        assert_eq!(info.mode, ElicitationMode::Url);
+        assert_eq!(info.elicitation_id, "elicit-abc");
+        assert_eq!(info.url, "https://example.com/setup");
+        assert_eq!(info.message, "Complete setup to continue");
+    }
+
+    #[test]
+    fn test_url_elicitation_info_serialization() {
+        let info = UrlElicitationInfo::new("elicit-def", "https://oauth.example.com", "Sign in");
+
+        let json = serde_json::to_string(&info).unwrap();
+        assert!(json.contains("\"mode\":\"url\""));
+        assert!(json.contains("\"elicitationId\":\"elicit-def\""));
+        assert!(json.contains("\"url\":\"https://oauth.example.com\""));
+        assert!(json.contains("\"message\":\"Sign in\""));
+
+        // Round-trip
+        let deserialized: UrlElicitationInfo = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.elicitation_id, "elicit-def");
+    }
+
+    #[test]
+    fn test_url_elicitation_required_data() {
+        let data = UrlElicitationRequiredData {
+            elicitations: vec![
+                UrlElicitationInfo::new("e1", "https://a.com", "Auth A"),
+                UrlElicitationInfo::new("e2", "https://b.com", "Auth B"),
+            ],
+        };
+
+        let json = serde_json::to_string(&data).unwrap();
+        assert!(json.contains("\"elicitations\""));
+
+        let deserialized: UrlElicitationRequiredData = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.elicitations.len(), 2);
+        assert_eq!(deserialized.elicitations[0].elicitation_id, "e1");
+        assert_eq!(deserialized.elicitations[1].elicitation_id, "e2");
+    }
+
+    #[test]
+    fn test_url_elicitation_required_error() {
+        use crate::Error;
+
+        let error = Error::url_elicitation_required(
+            "OAuth authentication required",
+            vec![UrlElicitationInfo::new(
+                "oauth-flow-1",
+                "https://provider.com/oauth",
+                "Please sign in to continue",
+            )],
+        );
+
+        assert_eq!(error.code, crate::ErrorCode::UrlElicitationRequired);
+        assert!(error.message.contains("OAuth authentication required"));
+        assert!(error.data.is_some());
+
+        // Verify the error data contains the elicitation info
+        let data: UrlElicitationRequiredData = serde_json::from_value(error.data.unwrap()).unwrap();
+        assert_eq!(data.elicitations.len(), 1);
+        assert_eq!(data.elicitations[0].elicitation_id, "oauth-flow-1");
+    }
+
+    #[test]
+    fn test_url_elicitation_required_error_code() {
+        use crate::ErrorCode;
+
+        // Verify the error code value per MCP spec
+        assert_eq!(ErrorCode::UrlElicitationRequired as i32, -32042);
+
+        // Verify serialization
+        let json = serde_json::to_string(&ErrorCode::UrlElicitationRequired).unwrap();
+        assert_eq!(json, "-32042");
+
+        // Verify deserialization
+        let code: ErrorCode = serde_json::from_str("-32042").unwrap();
+        assert_eq!(code, ErrorCode::UrlElicitationRequired);
+    }
 }

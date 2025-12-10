@@ -331,8 +331,28 @@ impl std::fmt::Display for LogLevel {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SamplingCapability {}
 
+/// Elicitation capability configuration (MCP 2025-11-25)
+///
+/// Supports two modes:
+/// - `form`: In-band structured data collection with JSON schema validation
+/// - `url`: Out-of-band interaction via URL navigation (for sensitive data, OAuth, etc.)
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct ElicitationCapability {}
+pub struct ElicitationCapability {
+    /// Form mode elicitation support
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub form: Option<FormElicitationCapability>,
+    /// URL mode elicitation support (MCP 2025-11-25)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<UrlElicitationCapability>,
+}
+
+/// Form mode elicitation capability
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct FormElicitationCapability {}
+
+/// URL mode elicitation capability (MCP 2025-11-25)
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct UrlElicitationCapability {}
 
 impl ServerCapabilities {
     pub fn builder() -> ServerCapabilitiesBuilder {
@@ -385,9 +405,31 @@ impl ServerCapabilitiesBuilder {
         self
     }
 
+    /// Enable form-only elicitation (backwards compatible default)
     #[must_use]
     pub fn enable_elicitation(mut self) -> Self {
-        self.capabilities.elicitation = Some(ElicitationCapability {});
+        self.capabilities.elicitation = Some(ElicitationCapability {
+            form: Some(FormElicitationCapability {}),
+            url: None,
+        });
+        self
+    }
+
+    /// Enable elicitation with specific modes (MCP 2025-11-25)
+    #[must_use]
+    pub fn enable_elicitation_modes(mut self, form: bool, url: bool) -> Self {
+        self.capabilities.elicitation = Some(ElicitationCapability {
+            form: if form {
+                Some(FormElicitationCapability {})
+            } else {
+                None
+            },
+            url: if url {
+                Some(UrlElicitationCapability {})
+            } else {
+                None
+            },
+        });
         self
     }
 
@@ -1184,12 +1226,126 @@ pub struct ResourceUpdatedNotification {
     pub uri: String,
 }
 
-/// Elicitation request parameters
+/// Elicitation completion notification (MCP 2025-11-25)
+///
+/// Sent by the server when a URL mode elicitation interaction completes.
+/// Clients can use this to automatically retry requests or update UI.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ElicitationCompleteNotification {
+    /// The elicitation ID that completed
+    #[serde(rename = "elicitationId")]
+    pub elicitation_id: String,
+}
+
+/// URL elicitation required error data (MCP 2025-11-25)
+///
+/// Returned as error data when a request requires URL mode elicitation
+/// before it can be processed.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UrlElicitationRequiredData {
+    /// List of elicitations required before the request can proceed
+    pub elicitations: Vec<UrlElicitationInfo>,
+}
+
+/// Information about a required URL elicitation (MCP 2025-11-25)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UrlElicitationInfo {
+    /// Always "url" for URL mode elicitation
+    pub mode: ElicitationMode,
+    /// Unique identifier for this elicitation
+    #[serde(rename = "elicitationId")]
+    pub elicitation_id: String,
+    /// URL to navigate to
+    pub url: String,
+    /// Human-readable message explaining what information is needed
+    pub message: String,
+}
+
+impl UrlElicitationInfo {
+    /// Create a new URL elicitation info
+    pub fn new(
+        elicitation_id: impl Into<String>,
+        url: impl Into<String>,
+        message: impl Into<String>,
+    ) -> Self {
+        Self {
+            mode: ElicitationMode::Url,
+            elicitation_id: elicitation_id.into(),
+            url: url.into(),
+            message: message.into(),
+        }
+    }
+}
+
+/// Elicitation mode (MCP 2025-11-25)
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ElicitationMode {
+    /// In-band structured data collection with JSON schema validation
+    Form,
+    /// Out-of-band interaction via URL navigation
+    Url,
+}
+
+impl Default for ElicitationMode {
+    fn default() -> Self {
+        Self::Form
+    }
+}
+
+/// Elicitation request parameters (MCP 2025-11-25 enhanced)
+///
+/// Supports two modes:
+/// - Form mode: Traditional in-band data collection with schema validation
+/// - URL mode: Out-of-band interaction for sensitive data, OAuth flows, etc.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ElicitationRequestParam {
+    /// Elicitation mode (form or url). Defaults to form for backwards compatibility.
+    #[serde(default, skip_serializing_if = "is_form_mode")]
+    pub mode: ElicitationMode,
+    /// Unique identifier for this elicitation request (MCP 2025-11-25)
+    #[serde(rename = "elicitationId", skip_serializing_if = "Option::is_none")]
+    pub elicitation_id: Option<String>,
+    /// Human-readable message explaining what information is needed
     pub message: String,
-    #[serde(rename = "requestedSchema")]
-    pub requested_schema: serde_json::Value,
+    /// JSON Schema for requested data (form mode only)
+    #[serde(rename = "requestedSchema", skip_serializing_if = "Option::is_none")]
+    pub requested_schema: Option<serde_json::Value>,
+    /// URL to navigate to (url mode only, MCP 2025-11-25)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+}
+
+fn is_form_mode(mode: &ElicitationMode) -> bool {
+    *mode == ElicitationMode::Form
+}
+
+impl ElicitationRequestParam {
+    /// Create a form mode elicitation request
+    pub fn form(message: impl Into<String>, schema: serde_json::Value) -> Self {
+        Self {
+            mode: ElicitationMode::Form,
+            elicitation_id: None,
+            message: message.into(),
+            requested_schema: Some(schema),
+            url: None,
+        }
+    }
+
+    /// Create a URL mode elicitation request (MCP 2025-11-25)
+    pub fn url(
+        elicitation_id: impl Into<String>,
+        url: impl Into<String>,
+        message: impl Into<String>,
+    ) -> Self {
+        Self {
+            mode: ElicitationMode::Url,
+            elicitation_id: Some(elicitation_id.into()),
+            message: message.into(),
+            requested_schema: None,
+            url: Some(url.into()),
+        }
+    }
 }
 
 /// Elicitation response actions
