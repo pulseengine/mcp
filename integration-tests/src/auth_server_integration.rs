@@ -110,6 +110,7 @@ impl McpBackend for AuthTestBackend {
                     title: None,
                     annotations: None,
                     icons: None,
+                    execution: None,
                     _meta: None,
                 },
                 Tool {
@@ -126,6 +127,7 @@ impl McpBackend for AuthTestBackend {
                     title: None,
                     annotations: None,
                     icons: None,
+                    execution: None,
                     _meta: None,
                 },
             ],

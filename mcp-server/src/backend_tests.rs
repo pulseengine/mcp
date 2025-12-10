@@ -158,6 +158,7 @@ impl McpBackend for MockBackend {
                 title: None,
                 annotations: None,
                 icons: None,
+                execution: None,
                 _meta: None,
             }],
             next_cursor: None,

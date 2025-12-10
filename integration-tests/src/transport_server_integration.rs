@@ -100,6 +100,7 @@ impl McpBackend for TransportTestBackend {
                     title: None,
                     annotations: None,
                     icons: None,
+                    execution: None,
                     _meta: None,
                 },
                 Tool {
@@ -114,6 +115,7 @@ impl McpBackend for TransportTestBackend {
                     title: None,
                     annotations: None,
                     icons: None,
+                    execution: None,
                     _meta: None,
                 },
             ],

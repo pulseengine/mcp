@@ -247,6 +247,9 @@ pub struct ServerCapabilities {
     pub sampling: Option<SamplingCapability>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub elicitation: Option<ElicitationCapability>,
+    /// Tasks capability (MCP 2025-11-25 experimental)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tasks: Option<TasksCapability>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -459,6 +462,38 @@ impl ServerCapabilitiesBuilder {
         self
     }
 
+    /// Enable tasks capability (MCP 2025-11-25 experimental)
+    #[must_use]
+    pub fn enable_tasks(mut self) -> Self {
+        self.capabilities.tasks = Some(TasksCapability {
+            cancel: Some(TaskCancelCapability {}),
+            list: Some(TaskListCapability {}),
+            requests: Some(TaskRequestsCapability {
+                sampling: Some(TaskSamplingCapability {
+                    create_message: Some(TaskMethodCapability {}),
+                }),
+                elicitation: Some(TaskElicitationCapability {
+                    create: Some(TaskMethodCapability {}),
+                }),
+                tools: Some(TaskToolsCapability {
+                    call: Some(TaskMethodCapability {}),
+                }),
+            }),
+        });
+        self
+    }
+
+    /// Enable basic tasks capability without request augmentation
+    #[must_use]
+    pub fn enable_tasks_basic(mut self) -> Self {
+        self.capabilities.tasks = Some(TasksCapability {
+            cancel: Some(TaskCancelCapability {}),
+            list: Some(TaskListCapability {}),
+            requests: None,
+        });
+        self
+    }
+
     pub fn build(self) -> ServerCapabilities {
         self.capabilities
     }
@@ -488,6 +523,9 @@ pub struct Tool {
     pub annotations: Option<ToolAnnotations>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub icons: Option<Vec<Icon>>,
+    /// Execution configuration for task support (MCP 2025-11-25)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub execution: Option<ToolExecution>,
     /// Tool metadata for extensions like MCP Apps (SEP-1865)
     #[serde(rename = "_meta", skip_serializing_if = "Option::is_none")]
     pub _meta: Option<ToolMeta>,
@@ -1765,6 +1803,327 @@ pub mod stop_reasons {
     pub const MAX_TOKENS: &str = "max_tokens";
     /// Model wants to use a tool
     pub const TOOL_USE: &str = "tool_use";
+}
+
+// ==================== MCP 2025-11-25 Tasks (Experimental) ====================
+
+/// Task status values (MCP 2025-11-25)
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum TaskStatus {
+    /// Task is actively processing
+    Working,
+    /// Task is waiting for user/client input
+    InputRequired,
+    /// Task completed successfully
+    Completed,
+    /// Task failed with an error
+    Failed,
+    /// Task was explicitly cancelled
+    Cancelled,
+}
+
+impl std::fmt::Display for TaskStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            TaskStatus::Working => "working",
+            TaskStatus::InputRequired => "input-required",
+            TaskStatus::Completed => "completed",
+            TaskStatus::Failed => "failed",
+            TaskStatus::Cancelled => "cancelled",
+        };
+        write!(f, "{s}")
+    }
+}
+
+/// Represents an asynchronous task (MCP 2025-11-25 experimental)
+///
+/// Tasks enable long-running operations that can be polled for status,
+/// cancelled, and have their results retrieved asynchronously.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Task {
+    /// Unique identifier for the task
+    pub task_id: String,
+    /// Current execution status
+    pub status: TaskStatus,
+    /// Optional human-readable status description
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status_message: Option<String>,
+    /// ISO 8601 timestamp of task creation
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    /// ISO 8601 timestamp of last status change
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_updated_at: Option<String>,
+    /// Time-to-live in seconds before automatic cleanup
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ttl: Option<u64>,
+    /// Suggested polling interval in milliseconds
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub poll_interval: Option<u64>,
+}
+
+impl Task {
+    /// Create a new working task
+    pub fn new(task_id: impl Into<String>) -> Self {
+        Self {
+            task_id: task_id.into(),
+            status: TaskStatus::Working,
+            status_message: None,
+            created_at: None,
+            last_updated_at: None,
+            ttl: None,
+            poll_interval: None,
+        }
+    }
+
+    /// Create a new task with timestamps
+    pub fn with_timestamps(task_id: impl Into<String>, created_at: impl Into<String>) -> Self {
+        let ts = created_at.into();
+        Self {
+            task_id: task_id.into(),
+            status: TaskStatus::Working,
+            status_message: None,
+            created_at: Some(ts.clone()),
+            last_updated_at: Some(ts),
+            ttl: None,
+            poll_interval: None,
+        }
+    }
+
+    /// Check if the task is in a terminal state
+    pub fn is_terminal(&self) -> bool {
+        matches!(
+            self.status,
+            TaskStatus::Completed | TaskStatus::Failed | TaskStatus::Cancelled
+        )
+    }
+
+    /// Check if the task is still running
+    pub fn is_running(&self) -> bool {
+        matches!(self.status, TaskStatus::Working | TaskStatus::InputRequired)
+    }
+}
+
+/// Tasks capability configuration (MCP 2025-11-25 experimental)
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct TasksCapability {
+    /// Whether task cancellation is supported
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cancel: Option<TaskCancelCapability>,
+    /// Whether task listing is supported
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub list: Option<TaskListCapability>,
+    /// Which request types support task augmentation
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub requests: Option<TaskRequestsCapability>,
+}
+
+/// Task cancel capability marker
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct TaskCancelCapability {}
+
+/// Task list capability marker
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct TaskListCapability {}
+
+/// Task requests capability - which methods support task augmentation
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct TaskRequestsCapability {
+    /// Sampling requests can be task-augmented
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sampling: Option<TaskSamplingCapability>,
+    /// Elicitation requests can be task-augmented
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub elicitation: Option<TaskElicitationCapability>,
+    /// Tool calls can be task-augmented
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tools: Option<TaskToolsCapability>,
+}
+
+/// Task sampling capability
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct TaskSamplingCapability {
+    /// createMessage supports task augmentation
+    #[serde(rename = "createMessage", skip_serializing_if = "Option::is_none")]
+    pub create_message: Option<TaskMethodCapability>,
+}
+
+/// Task elicitation capability
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct TaskElicitationCapability {
+    /// create supports task augmentation
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub create: Option<TaskMethodCapability>,
+}
+
+/// Task tools capability
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct TaskToolsCapability {
+    /// call supports task augmentation
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub call: Option<TaskMethodCapability>,
+}
+
+/// Marker for a method that supports task augmentation
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct TaskMethodCapability {}
+
+/// Task metadata for request augmentation (MCP 2025-11-25)
+///
+/// When included in a request's `_meta`, the server returns a `CreateTaskResult`
+/// immediately instead of blocking until completion.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskMetadata {
+    /// Optional TTL override in seconds
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ttl: Option<u64>,
+    /// Optional polling interval override in milliseconds
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub poll_interval: Option<u64>,
+}
+
+/// Result of creating a task-augmented request (MCP 2025-11-25)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateTaskResult {
+    /// The created task
+    pub task: Task,
+}
+
+/// Get task request parameters (MCP 2025-11-25)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetTaskRequestParam {
+    /// ID of the task to retrieve
+    pub task_id: String,
+}
+
+/// Get task result (MCP 2025-11-25)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GetTaskResult {
+    /// The task state
+    pub task: Task,
+}
+
+/// List tasks request parameters (MCP 2025-11-25)
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ListTasksRequestParam {
+    /// Pagination cursor
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cursor: Option<String>,
+}
+
+/// List tasks result (MCP 2025-11-25)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListTasksResult {
+    /// List of tasks
+    pub tasks: Vec<Task>,
+    /// Pagination cursor for next page
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_cursor: Option<String>,
+}
+
+/// Get task result/payload request parameters (MCP 2025-11-25)
+///
+/// Retrieves the actual result of a completed task. This may block
+/// until the task completes if it's still running.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetTaskResultRequestParam {
+    /// ID of the task to get results for
+    pub task_id: String,
+}
+
+/// Cancel task request parameters (MCP 2025-11-25)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CancelTaskRequestParam {
+    /// ID of the task to cancel
+    pub task_id: String,
+}
+
+/// Cancel task result (MCP 2025-11-25)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CancelTaskResult {
+    /// The cancelled task
+    pub task: Task,
+}
+
+/// Task status notification (MCP 2025-11-25)
+///
+/// Sent by the server when a task's status changes.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskStatusNotification {
+    /// ID of the task that changed
+    pub task_id: String,
+    /// New status
+    pub status: TaskStatus,
+    /// Optional status message
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status_message: Option<String>,
+    /// Timestamp of the status change
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_updated_at: Option<String>,
+}
+
+impl TaskStatusNotification {
+    /// Create a new task status notification
+    pub fn new(task_id: impl Into<String>, status: TaskStatus) -> Self {
+        Self {
+            task_id: task_id.into(),
+            status,
+            status_message: None,
+            last_updated_at: None,
+        }
+    }
+
+    /// Create a notification with a status message
+    pub fn with_message(
+        task_id: impl Into<String>,
+        status: TaskStatus,
+        message: impl Into<String>,
+    ) -> Self {
+        Self {
+            task_id: task_id.into(),
+            status,
+            status_message: Some(message.into()),
+            last_updated_at: None,
+        }
+    }
+}
+
+/// Tool execution configuration (MCP 2025-11-25)
+///
+/// Specifies how a tool handles task-based execution.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolExecution {
+    /// Whether this tool supports/requires task-based execution
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub task_support: Option<TaskSupport>,
+}
+
+/// Task support mode for tools (MCP 2025-11-25)
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum TaskSupport {
+    /// Tool does not support task-based execution
+    Forbidden,
+    /// Tool optionally supports task-based execution
+    Optional,
+    /// Tool requires task-based execution
+    Required,
+}
+
+impl Default for TaskSupport {
+    fn default() -> Self {
+        Self::Optional
+    }
 }
 
 /// Serde module for serializing/deserializing JSON strings as objects

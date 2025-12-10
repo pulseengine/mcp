@@ -64,7 +64,8 @@ impl McpBackend for UiBackend {
                     output_schema: None,
                     annotations: None,
                     icons: None,
-                    // 🎯 KEY FEATURE: Link this tool to a UI resource
+                    execution: None,
+                    // KEY FEATURE: Link this tool to a UI resource
                     _meta: Some(ToolMeta::with_ui_resource("ui://greetings/interactive")),
                 },
                 Tool {
@@ -84,6 +85,7 @@ impl McpBackend for UiBackend {
                     output_schema: None,
                     annotations: None,
                     icons: None,
+                    execution: None,
                     _meta: None, // No UI for this tool
                 },
             ],

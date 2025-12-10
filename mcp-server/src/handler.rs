@@ -575,6 +575,7 @@ mod tests {
                         logging: Some(LoggingCapability { level: None }),
                         sampling: None,
                         elicitation: Some(ElicitationCapability::default()),
+                        tasks: None,
                     },
                     server_info: Implementation::new("test-server", "1.0.0"),
                     instructions: None,
@@ -592,6 +593,7 @@ mod tests {
                     title: None,
                     annotations: None,
                     icons: None,
+                    execution: None,
                     _meta: None,
                 }],
                 resources: vec![Resource {
