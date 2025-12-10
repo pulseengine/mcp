@@ -777,4 +777,322 @@ mod tests {
         let code: ErrorCode = serde_json::from_str("-32042").unwrap();
         assert_eq!(code, ErrorCode::UrlElicitationRequired);
     }
+
+    // ==================== MCP 2025-11-25 Sampling Tests ====================
+
+    #[test]
+    fn test_sampling_capability_with_tools() {
+        let capability = SamplingCapability {
+            tools: Some(SamplingToolsCapability {}),
+            context: Some(SamplingContextCapability {}),
+        };
+
+        let json = serde_json::to_string(&capability).unwrap();
+        assert!(json.contains("\"tools\""));
+        assert!(json.contains("\"context\""));
+
+        let deserialized: SamplingCapability = serde_json::from_str(&json).unwrap();
+        assert!(deserialized.tools.is_some());
+        assert!(deserialized.context.is_some());
+    }
+
+    #[test]
+    fn test_sampling_capability_backwards_compatible() {
+        // Empty object should deserialize to default (no tools)
+        let json = "{}";
+        let capability: SamplingCapability = serde_json::from_str(json).unwrap();
+        assert!(capability.tools.is_none());
+        assert!(capability.context.is_none());
+    }
+
+    #[test]
+    fn test_server_capabilities_sampling_with_tools() {
+        let capabilities = ServerCapabilities::builder()
+            .enable_sampling_with_tools()
+            .build();
+
+        assert!(capabilities.sampling.is_some());
+        let sampling = capabilities.sampling.unwrap();
+        assert!(sampling.tools.is_some());
+        assert!(sampling.context.is_some());
+    }
+
+    #[test]
+    fn test_tool_choice_modes() {
+        // Auto
+        let auto = ToolChoice::auto();
+        assert_eq!(auto.mode, ToolChoiceMode::Auto);
+
+        // Required
+        let required = ToolChoice::required();
+        assert_eq!(required.mode, ToolChoiceMode::Required);
+
+        // None
+        let none = ToolChoice::none();
+        assert_eq!(none.mode, ToolChoiceMode::None);
+    }
+
+    #[test]
+    fn test_tool_choice_serialization() {
+        let choice = ToolChoice::auto();
+        let json = serde_json::to_string(&choice).unwrap();
+        assert!(json.contains("\"mode\":\"auto\""));
+
+        let choice = ToolChoice::required();
+        let json = serde_json::to_string(&choice).unwrap();
+        assert!(json.contains("\"mode\":\"required\""));
+
+        let choice = ToolChoice::none();
+        let json = serde_json::to_string(&choice).unwrap();
+        assert!(json.contains("\"mode\":\"none\""));
+    }
+
+    #[test]
+    fn test_tool_choice_default() {
+        let choice = ToolChoice::default();
+        assert_eq!(choice.mode, ToolChoiceMode::Auto);
+    }
+
+    #[test]
+    fn test_sampling_message_user() {
+        let msg = SamplingMessage::user_text("Hello, Claude!");
+        assert_eq!(msg.role, SamplingRole::User);
+        match msg.content {
+            SamplingContent::Text { text } => assert_eq!(text, "Hello, Claude!"),
+            _ => panic!("Expected text content"),
+        }
+    }
+
+    #[test]
+    fn test_sampling_message_assistant() {
+        let msg = SamplingMessage::assistant_text("Hello! How can I help?");
+        assert_eq!(msg.role, SamplingRole::Assistant);
+        match msg.content {
+            SamplingContent::Text { text } => assert_eq!(text, "Hello! How can I help?"),
+            _ => panic!("Expected text content"),
+        }
+    }
+
+    #[test]
+    fn test_sampling_role_serialization() {
+        let user_json = serde_json::to_string(&SamplingRole::User).unwrap();
+        assert_eq!(user_json, "\"user\"");
+
+        let assistant_json = serde_json::to_string(&SamplingRole::Assistant).unwrap();
+        assert_eq!(assistant_json, "\"assistant\"");
+    }
+
+    #[test]
+    fn test_create_message_request_simple() {
+        let request = CreateMessageRequestParam::simple(1024, "What is 2 + 2?");
+
+        assert_eq!(request.max_tokens, 1024);
+        assert_eq!(request.messages.len(), 1);
+        assert!(request.tools.is_none());
+        assert!(request.tool_choice.is_none());
+    }
+
+    #[test]
+    fn test_create_message_request_with_tools() {
+        let tool = Tool {
+            name: "calculator".to_string(),
+            description: "Performs calculations".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "expression": {"type": "string"}
+                }
+            }),
+            output_schema: None,
+            title: None,
+            annotations: None,
+            icons: None,
+            _meta: None,
+        };
+
+        let request = CreateMessageRequestParam::with_tools(
+            2048,
+            vec![SamplingMessage::user_text("Calculate 15 * 23")],
+            vec![tool],
+        );
+
+        assert_eq!(request.max_tokens, 2048);
+        assert!(request.tools.is_some());
+        assert_eq!(request.tools.as_ref().unwrap().len(), 1);
+        assert!(request.tool_choice.is_some());
+        assert_eq!(request.tool_choice.unwrap().mode, ToolChoiceMode::Auto);
+    }
+
+    #[test]
+    fn test_create_message_request_serialization() {
+        let request = CreateMessageRequestParam::simple(512, "Hello");
+
+        let json = serde_json::to_string(&request).unwrap();
+        assert!(json.contains("\"maxTokens\":512"));
+        assert!(json.contains("\"messages\""));
+        // Optional fields should not be serialized when None
+        assert!(!json.contains("\"tools\""));
+        assert!(!json.contains("\"toolChoice\""));
+    }
+
+    #[test]
+    fn test_create_message_result() {
+        let result = CreateMessageResult {
+            model: "claude-3-opus".to_string(),
+            stop_reason: Some("end_turn".to_string()),
+            message: SamplingMessage::assistant_text("The answer is 4."),
+        };
+
+        assert_eq!(result.model, "claude-3-opus");
+        assert!(result.is_end_turn());
+        assert!(!result.is_tool_use());
+        assert!(!result.is_max_tokens());
+    }
+
+    #[test]
+    fn test_create_message_result_tool_use() {
+        let result = CreateMessageResult {
+            model: "claude-3-sonnet".to_string(),
+            stop_reason: Some("tool_use".to_string()),
+            message: SamplingMessage::assistant_text("Let me calculate that..."),
+        };
+
+        assert!(result.is_tool_use());
+        assert!(!result.is_end_turn());
+    }
+
+    #[test]
+    fn test_content_tool_use() {
+        let content = Content::tool_use("tool_123", "calculator", json!({"expression": "15 * 23"}));
+
+        match &content {
+            Content::ToolUse {
+                id, name, input, ..
+            } => {
+                assert_eq!(id, "tool_123");
+                assert_eq!(name, "calculator");
+                assert_eq!(input["expression"], "15 * 23");
+            }
+            _ => panic!("Expected ToolUse content"),
+        }
+    }
+
+    #[test]
+    fn test_content_tool_result_text() {
+        let content = Content::tool_result_text("tool_123", "The result is 345");
+
+        match &content {
+            Content::ToolResult {
+                tool_use_id,
+                content,
+                is_error,
+                ..
+            } => {
+                assert_eq!(tool_use_id, "tool_123");
+                assert_eq!(content.len(), 1);
+                assert_eq!(*is_error, Some(false));
+                match &content[0] {
+                    ToolResultContent::Text { text } => assert_eq!(text, "The result is 345"),
+                    _ => panic!("Expected text content"),
+                }
+            }
+            _ => panic!("Expected ToolResult content"),
+        }
+    }
+
+    #[test]
+    fn test_content_tool_result_error() {
+        let content = Content::tool_result_error("tool_456", "Division by zero");
+
+        match &content {
+            Content::ToolResult {
+                tool_use_id,
+                is_error,
+                ..
+            } => {
+                assert_eq!(tool_use_id, "tool_456");
+                assert_eq!(*is_error, Some(true));
+            }
+            _ => panic!("Expected ToolResult content"),
+        }
+    }
+
+    #[test]
+    fn test_content_tool_use_serialization() {
+        let content = Content::tool_use("tu_1", "get_weather", json!({"city": "Paris"}));
+
+        let json = serde_json::to_string(&content).unwrap();
+        assert!(json.contains("\"type\":\"tool_use\""));
+        assert!(json.contains("\"id\":\"tu_1\""));
+        assert!(json.contains("\"name\":\"get_weather\""));
+        assert!(json.contains("\"city\":\"Paris\""));
+
+        // Round-trip
+        let deserialized: Content = serde_json::from_str(&json).unwrap();
+        match deserialized {
+            Content::ToolUse { id, name, .. } => {
+                assert_eq!(id, "tu_1");
+                assert_eq!(name, "get_weather");
+            }
+            _ => panic!("Expected ToolUse"),
+        }
+    }
+
+    #[test]
+    fn test_content_tool_result_serialization() {
+        let content = Content::tool_result_text("tu_1", "Sunny, 22°C");
+
+        let json = serde_json::to_string(&content).unwrap();
+        assert!(json.contains("\"type\":\"tool_result\""));
+        assert!(json.contains("\"toolUseId\":\"tu_1\""));
+        assert!(json.contains("\"isError\":false"));
+
+        // Round-trip
+        let deserialized: Content = serde_json::from_str(&json).unwrap();
+        match deserialized {
+            Content::ToolResult { tool_use_id, .. } => {
+                assert_eq!(tool_use_id, "tu_1");
+            }
+            _ => panic!("Expected ToolResult"),
+        }
+    }
+
+    #[test]
+    fn test_model_preferences() {
+        let prefs = ModelPreferences {
+            hints: Some(vec![ModelHint {
+                name: Some("claude".to_string()),
+            }]),
+            cost_priority: Some(0.3),
+            speed_priority: Some(0.5),
+            intelligence_priority: Some(0.8),
+        };
+
+        let json = serde_json::to_string(&prefs).unwrap();
+        assert!(json.contains("\"costPriority\":0.3"));
+        assert!(json.contains("\"speedPriority\":0.5"));
+        assert!(json.contains("\"intelligencePriority\":0.8"));
+    }
+
+    #[test]
+    fn test_context_inclusion_serialization() {
+        let json = serde_json::to_string(&ContextInclusion::AllServers).unwrap();
+        assert_eq!(json, "\"allServers\"");
+
+        let json = serde_json::to_string(&ContextInclusion::ThisServer).unwrap();
+        assert_eq!(json, "\"thisServer\"");
+
+        let json = serde_json::to_string(&ContextInclusion::None).unwrap();
+        assert_eq!(json, "\"none\"");
+    }
+
+    #[test]
+    fn test_stop_reasons_constants() {
+        use super::super::model::stop_reasons;
+
+        assert_eq!(stop_reasons::END_TURN, "end_turn");
+        assert_eq!(stop_reasons::STOP_SEQUENCE, "stop_sequence");
+        assert_eq!(stop_reasons::MAX_TOKENS, "max_tokens");
+        assert_eq!(stop_reasons::TOOL_USE, "tool_use");
+    }
 }

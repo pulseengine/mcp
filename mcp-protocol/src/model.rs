@@ -328,8 +328,24 @@ impl std::fmt::Display for LogLevel {
     }
 }
 
+/// Sampling capability configuration (MCP 2025-11-25)
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct SamplingCapability {}
+pub struct SamplingCapability {
+    /// Whether the client supports tool use during sampling
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tools: Option<SamplingToolsCapability>,
+    /// Whether the client supports context inclusion
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub context: Option<SamplingContextCapability>,
+}
+
+/// Sampling tools capability (MCP 2025-11-25)
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SamplingToolsCapability {}
+
+/// Sampling context capability
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SamplingContextCapability {}
 
 /// Elicitation capability configuration (MCP 2025-11-25)
 ///
@@ -401,7 +417,17 @@ impl ServerCapabilitiesBuilder {
 
     #[must_use]
     pub fn enable_sampling(mut self) -> Self {
-        self.capabilities.sampling = Some(SamplingCapability {});
+        self.capabilities.sampling = Some(SamplingCapability::default());
+        self
+    }
+
+    /// Enable sampling with tool support (MCP 2025-11-25)
+    #[must_use]
+    pub fn enable_sampling_with_tools(mut self) -> Self {
+        self.capabilities.sampling = Some(SamplingCapability {
+            tools: Some(SamplingToolsCapability {}),
+            context: Some(SamplingContextCapability {}),
+        });
         self
     }
 
@@ -536,7 +562,7 @@ pub struct CallToolRequestParam {
     pub arguments: Option<serde_json::Value>,
 }
 
-/// Content types for tool responses
+/// Content types for tool responses and sampling messages
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum Content {
@@ -561,6 +587,42 @@ pub enum Content {
         #[serde(rename = "_meta", skip_serializing_if = "Option::is_none")]
         _meta: Option<Meta>,
     },
+    /// Tool use request from LLM during sampling (MCP 2025-11-25)
+    #[serde(rename = "tool_use")]
+    ToolUse {
+        /// Unique identifier for this tool use
+        id: String,
+        /// Name of the tool to invoke
+        name: String,
+        /// Tool input arguments
+        input: serde_json::Value,
+        #[serde(rename = "_meta", skip_serializing_if = "Option::is_none")]
+        _meta: Option<Meta>,
+    },
+    /// Tool result to be passed back to LLM during sampling (MCP 2025-11-25)
+    #[serde(rename = "tool_result")]
+    ToolResult {
+        /// ID of the tool use this is a result for
+        #[serde(rename = "toolUseId")]
+        tool_use_id: String,
+        /// Content of the tool result
+        content: Vec<ToolResultContent>,
+        /// Whether the tool execution resulted in an error
+        #[serde(rename = "isError", skip_serializing_if = "Option::is_none")]
+        is_error: Option<bool>,
+        #[serde(rename = "_meta", skip_serializing_if = "Option::is_none")]
+        _meta: Option<Meta>,
+    },
+}
+
+/// Content types that can appear in tool results (MCP 2025-11-25)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum ToolResultContent {
+    #[serde(rename = "text")]
+    Text { text: String },
+    #[serde(rename = "image")]
+    Image { data: String, mime_type: String },
 }
 
 impl Content {
@@ -585,6 +647,61 @@ impl Content {
             text,
             _meta: None,
         }
+    }
+
+    /// Create a tool use content (MCP 2025-11-25)
+    ///
+    /// Used during sampling when the LLM wants to invoke a tool.
+    pub fn tool_use(
+        id: impl Into<String>,
+        name: impl Into<String>,
+        input: serde_json::Value,
+    ) -> Self {
+        Self::ToolUse {
+            id: id.into(),
+            name: name.into(),
+            input,
+            _meta: None,
+        }
+    }
+
+    /// Create a tool result content (MCP 2025-11-25)
+    ///
+    /// Used during sampling to return tool execution results to the LLM.
+    pub fn tool_result(
+        tool_use_id: impl Into<String>,
+        content: Vec<ToolResultContent>,
+        is_error: Option<bool>,
+    ) -> Self {
+        Self::ToolResult {
+            tool_use_id: tool_use_id.into(),
+            content,
+            is_error,
+            _meta: None,
+        }
+    }
+
+    /// Create a successful tool result with text content (MCP 2025-11-25)
+    pub fn tool_result_text(tool_use_id: impl Into<String>, text: impl Into<String>) -> Self {
+        Self::tool_result(
+            tool_use_id,
+            vec![ToolResultContent::Text { text: text.into() }],
+            Some(false),
+        )
+    }
+
+    /// Create an error tool result (MCP 2025-11-25)
+    pub fn tool_result_error(
+        tool_use_id: impl Into<String>,
+        error_message: impl Into<String>,
+    ) -> Self {
+        Self::tool_result(
+            tool_use_id,
+            vec![ToolResultContent::Text {
+                text: error_message.into(),
+            }],
+            Some(true),
+        )
     }
 
     /// Create a UI HTML resource content (for MCP Apps Extension / MCP-UI)
@@ -1401,6 +1518,253 @@ impl ElicitationResult {
             },
         }
     }
+}
+
+// ==================== MCP 2025-11-25 Sampling Types ====================
+
+/// Sampling message role
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum SamplingRole {
+    User,
+    Assistant,
+}
+
+/// Sampling message for create message requests (MCP 2025-11-25)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SamplingMessage {
+    /// Role of the message sender
+    pub role: SamplingRole,
+    /// Content of the message
+    pub content: SamplingContent,
+}
+
+impl SamplingMessage {
+    /// Create a user message with text
+    pub fn user_text(text: impl Into<String>) -> Self {
+        Self {
+            role: SamplingRole::User,
+            content: SamplingContent::Text { text: text.into() },
+        }
+    }
+
+    /// Create an assistant message with text
+    pub fn assistant_text(text: impl Into<String>) -> Self {
+        Self {
+            role: SamplingRole::Assistant,
+            content: SamplingContent::Text { text: text.into() },
+        }
+    }
+}
+
+/// Content types for sampling messages (MCP 2025-11-25)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum SamplingContent {
+    #[serde(rename = "text")]
+    Text { text: String },
+    #[serde(rename = "image")]
+    Image { data: String, mime_type: String },
+}
+
+/// Model preferences for sampling requests (MCP 2025-11-25)
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelPreferences {
+    /// Hints for model selection
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hints: Option<Vec<ModelHint>>,
+    /// Priority for cost optimization (0.0-1.0)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cost_priority: Option<f32>,
+    /// Priority for speed optimization (0.0-1.0)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub speed_priority: Option<f32>,
+    /// Priority for intelligence/capability (0.0-1.0)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub intelligence_priority: Option<f32>,
+}
+
+/// Model hint for model selection (MCP 2025-11-25)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ModelHint {
+    /// Name pattern to match against model names
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+
+/// Context inclusion mode for sampling (MCP 2025-11-25)
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ContextInclusion {
+    /// Include context from all connected servers
+    AllServers,
+    /// Include context from only this server
+    ThisServer,
+    /// Do not include any server context
+    None,
+}
+
+/// Tool choice configuration for sampling (MCP 2025-11-25)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ToolChoice {
+    /// How the model should use tools
+    pub mode: ToolChoiceMode,
+}
+
+impl ToolChoice {
+    /// Create auto tool choice (model decides when to use tools)
+    pub fn auto() -> Self {
+        Self {
+            mode: ToolChoiceMode::Auto,
+        }
+    }
+
+    /// Create required tool choice (model must use a tool)
+    pub fn required() -> Self {
+        Self {
+            mode: ToolChoiceMode::Required,
+        }
+    }
+
+    /// Create none tool choice (model should not use tools)
+    pub fn none() -> Self {
+        Self {
+            mode: ToolChoiceMode::None,
+        }
+    }
+}
+
+impl Default for ToolChoice {
+    fn default() -> Self {
+        Self::auto()
+    }
+}
+
+/// Tool choice mode (MCP 2025-11-25)
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ToolChoiceMode {
+    /// Model decides when to use tools
+    Auto,
+    /// Model must use a tool
+    Required,
+    /// Model should not use tools
+    None,
+}
+
+/// Create message request parameters (MCP 2025-11-25)
+///
+/// Parameters for requesting LLM sampling from the client.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateMessageRequestParam {
+    /// Maximum tokens to generate (required)
+    pub max_tokens: u32,
+    /// Conversation messages (required)
+    pub messages: Vec<SamplingMessage>,
+    /// System prompt for the model
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub system_prompt: Option<String>,
+    /// Temperature for generation (0.0-1.0)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub temperature: Option<f32>,
+    /// Stop sequences that will end generation
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stop_sequences: Option<Vec<String>>,
+    /// Model selection preferences
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model_preferences: Option<ModelPreferences>,
+    /// What server context to include
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_context: Option<ContextInclusion>,
+    /// Tools available for the model to use (MCP 2025-11-25)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tools: Option<Vec<Tool>>,
+    /// How the model should use tools (MCP 2025-11-25)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_choice: Option<ToolChoice>,
+    /// Additional request metadata
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<serde_json::Value>,
+}
+
+impl CreateMessageRequestParam {
+    /// Create a simple text completion request
+    pub fn simple(max_tokens: u32, user_message: impl Into<String>) -> Self {
+        Self {
+            max_tokens,
+            messages: vec![SamplingMessage::user_text(user_message)],
+            system_prompt: None,
+            temperature: None,
+            stop_sequences: None,
+            model_preferences: None,
+            include_context: None,
+            tools: None,
+            tool_choice: None,
+            metadata: None,
+        }
+    }
+
+    /// Create a request with tools available (MCP 2025-11-25)
+    pub fn with_tools(max_tokens: u32, messages: Vec<SamplingMessage>, tools: Vec<Tool>) -> Self {
+        Self {
+            max_tokens,
+            messages,
+            system_prompt: None,
+            temperature: None,
+            stop_sequences: None,
+            model_preferences: None,
+            include_context: None,
+            tools: Some(tools),
+            tool_choice: Some(ToolChoice::auto()),
+            metadata: None,
+        }
+    }
+}
+
+/// Create message result (MCP 2025-11-25)
+///
+/// Response from a sampling request.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateMessageResult {
+    /// Model identifier that generated the response
+    pub model: String,
+    /// Reason generation stopped
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stop_reason: Option<String>,
+    /// Generated message content
+    pub message: SamplingMessage,
+}
+
+impl CreateMessageResult {
+    /// Check if the model wants to use a tool
+    pub fn is_tool_use(&self) -> bool {
+        self.stop_reason.as_deref() == Some("tool_use")
+    }
+
+    /// Check if generation ended normally
+    pub fn is_end_turn(&self) -> bool {
+        self.stop_reason.as_deref() == Some("end_turn")
+    }
+
+    /// Check if generation hit the token limit
+    pub fn is_max_tokens(&self) -> bool {
+        self.stop_reason.as_deref() == Some("max_tokens")
+    }
+}
+
+/// Standard stop reasons for sampling (MCP 2025-11-25)
+pub mod stop_reasons {
+    /// Natural end of turn
+    pub const END_TURN: &str = "end_turn";
+    /// Stop sequence encountered
+    pub const STOP_SEQUENCE: &str = "stop_sequence";
+    /// Max tokens limit reached
+    pub const MAX_TOKENS: &str = "max_tokens";
+    /// Model wants to use a tool
+    pub const TOOL_USE: &str = "tool_use";
 }
 
 /// Serde module for serializing/deserializing JSON strings as objects
