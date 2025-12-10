@@ -73,7 +73,7 @@ impl McpBackend for MockHandlerBackend {
                     level: Some("info".to_string()),
                 }),
                 sampling: None,
-                elicitation: Some(ElicitationCapability {}),
+                elicitation: Some(ElicitationCapability::default()),
             },
             server_info: Implementation::new(self.server_name.clone(), "1.0.0"),
             instructions: Some("Mock handler backend for testing".to_string()),

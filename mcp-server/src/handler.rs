@@ -574,7 +574,7 @@ mod tests {
                         prompts: Some(PromptsCapability { list_changed: None }),
                         logging: Some(LoggingCapability { level: None }),
                         sampling: None,
-                        elicitation: Some(ElicitationCapability {}),
+                        elicitation: Some(ElicitationCapability::default()),
                     },
                     server_info: Implementation::new("test-server", "1.0.0"),
                     instructions: None,

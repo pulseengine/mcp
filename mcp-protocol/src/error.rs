@@ -123,6 +123,23 @@ impl Error {
     pub fn rate_limit_exceeded(message: impl Into<String>) -> Self {
         Self::new(ErrorCode::RateLimitExceeded, message)
     }
+
+    /// Create a URL elicitation required error (MCP 2025-11-25)
+    ///
+    /// This error indicates that a request requires URL mode elicitation
+    /// before it can proceed. The client should present the elicitation
+    /// URLs to the user and retry after completion.
+    pub fn url_elicitation_required(
+        message: impl Into<String>,
+        elicitations: Vec<crate::UrlElicitationInfo>,
+    ) -> Self {
+        let data = crate::UrlElicitationRequiredData { elicitations };
+        Self::with_data(
+            ErrorCode::UrlElicitationRequired,
+            message,
+            serde_json::to_value(data).unwrap_or_default(),
+        )
+    }
 }
 
 /// MCP error codes following JSON-RPC 2.0 specification
@@ -143,6 +160,10 @@ pub enum ErrorCode {
     ToolNotFound = -32003,
     ValidationError = -32004,
     RateLimitExceeded = -32005,
+
+    // MCP 2025-11-25 errors
+    /// URL elicitation required before request can proceed
+    UrlElicitationRequired = -32042,
 }
 
 impl Serialize for ErrorCode {
@@ -172,6 +193,7 @@ impl<'de> Deserialize<'de> for ErrorCode {
             -32003 => Ok(ErrorCode::ToolNotFound),
             -32004 => Ok(ErrorCode::ValidationError),
             -32005 => Ok(ErrorCode::RateLimitExceeded),
+            -32042 => Ok(ErrorCode::UrlElicitationRequired),
             _ => Err(serde::de::Error::custom(format!(
                 "Unknown error code: {code}"
             ))),
@@ -193,6 +215,7 @@ impl fmt::Display for ErrorCode {
             ErrorCode::ToolNotFound => "ToolNotFound",
             ErrorCode::ValidationError => "ValidationError",
             ErrorCode::RateLimitExceeded => "RateLimitExceeded",
+            ErrorCode::UrlElicitationRequired => "UrlElicitationRequired",
         };
         write!(f, "{name}")
     }
@@ -253,13 +276,17 @@ impl pulseengine_mcp_logging::ErrorClassification for Error {
             ErrorCode::ToolNotFound => "tool_not_found",
             ErrorCode::ValidationError => "validation_error",
             ErrorCode::RateLimitExceeded => "rate_limit_exceeded",
+            ErrorCode::UrlElicitationRequired => "url_elicitation_required",
         }
     }
 
     fn is_retryable(&self) -> bool {
+        // UrlElicitationRequired is retryable after the elicitation completes
         matches!(
             self.code,
-            ErrorCode::InternalError | ErrorCode::RateLimitExceeded
+            ErrorCode::InternalError
+                | ErrorCode::RateLimitExceeded
+                | ErrorCode::UrlElicitationRequired
         )
     }
 
