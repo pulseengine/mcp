@@ -30,10 +30,7 @@ impl McpBackend for UiBackend {
                 .enable_resources()
                 .enable_logging()
                 .build(),
-            server_info: Implementation {
-                name: "UI-Enabled Example Server".to_string(),
-                version: "1.0.0".to_string(),
-            },
+            server_info: Implementation::new("UI-Enabled Example Server", "1.0.0"),
             instructions: Some(
                 "Example server demonstrating MCP Apps Extension with interactive UIs".to_string(),
             ),

@@ -75,10 +75,7 @@ impl McpBackend for CliTestBackend {
                 sampling: None,
                 ..Default::default()
             },
-            server_info: Implementation {
-                name: self.name.clone(),
-                version: "1.0.0".to_string(),
-            },
+            server_info: Implementation::new(self.name.clone(), "1.0.0"),
             instructions: Some("CLI integration test backend".to_string()),
         }
     }

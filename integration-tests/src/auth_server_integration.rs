@@ -81,10 +81,7 @@ impl McpBackend for AuthTestBackend {
                 sampling: None,
                 ..Default::default()
             },
-            server_info: Implementation {
-                name: "Auth Test Backend".to_string(),
-                version: "1.0.0".to_string(),
-            },
+            server_info: Implementation::new("Auth Test Backend", "1.0.0"),
             instructions: Some("Backend for authentication integration testing".to_string()),
         }
     }

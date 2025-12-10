@@ -97,10 +97,7 @@ impl McpBackend for IntegrationTestBackend {
         ServerInfo {
             protocol_version: ProtocolVersion::default(),
             capabilities: ServerCapabilities::default(),
-            server_info: Implementation {
-                name: "Integration Test Backend".to_string(),
-                version: "1.0.0".to_string(),
-            },
+            server_info: Implementation::new("Integration Test Backend", "1.0.0"),
             instructions: Some("Backend for integration testing".to_string()),
         }
     }
@@ -381,10 +378,7 @@ fn test_library_version_consistency() {
     let server_info = ServerInfo {
         protocol_version: ProtocolVersion::default(),
         capabilities: ServerCapabilities::default(),
-        server_info: Implementation {
-            name: "Test".to_string(),
-            version: env!("CARGO_PKG_VERSION").to_string(),
-        },
+        server_info: Implementation::new("Test", env!("CARGO_PKG_VERSION")),
         instructions: None,
     };
 

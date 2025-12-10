@@ -7,19 +7,21 @@ mod tests {
 
     #[test]
     fn test_mcp_version_constant() {
-        assert_eq!(MCP_VERSION, "2025-06-18");
+        assert_eq!(MCP_VERSION, "2025-11-25");
     }
 
     #[test]
     fn test_supported_protocol_versions() {
-        assert_eq!(SUPPORTED_PROTOCOL_VERSIONS.len(), 3);
-        assert_eq!(SUPPORTED_PROTOCOL_VERSIONS[0], "2025-06-18");
-        assert_eq!(SUPPORTED_PROTOCOL_VERSIONS[1], "2025-03-26");
-        assert_eq!(SUPPORTED_PROTOCOL_VERSIONS[2], "2024-11-05");
+        assert_eq!(SUPPORTED_PROTOCOL_VERSIONS.len(), 4);
+        assert_eq!(SUPPORTED_PROTOCOL_VERSIONS[0], "2025-11-25");
+        assert_eq!(SUPPORTED_PROTOCOL_VERSIONS[1], "2025-06-18");
+        assert_eq!(SUPPORTED_PROTOCOL_VERSIONS[2], "2025-03-26");
+        assert_eq!(SUPPORTED_PROTOCOL_VERSIONS[3], "2024-11-05");
     }
 
     #[test]
     fn test_is_protocol_version_supported() {
+        assert!(is_protocol_version_supported("2025-11-25"));
         assert!(is_protocol_version_supported("2025-06-18"));
         assert!(is_protocol_version_supported("2025-03-26"));
         assert!(!is_protocol_version_supported("2024-01-01"));
@@ -29,6 +31,9 @@ mod tests {
 
     #[test]
     fn test_validate_protocol_version_success() {
+        let result = validate_protocol_version("2025-11-25");
+        assert!(result.is_ok());
+
         let result = validate_protocol_version("2025-06-18");
         assert!(result.is_ok());
 
@@ -45,7 +50,7 @@ mod tests {
         assert_eq!(error.code, ErrorCode::InvalidRequest);
         assert!(error.message.contains("Protocol version mismatch"));
         assert!(error.message.contains("2024-01-01"));
-        assert!(error.message.contains("2025-06-18"));
+        assert!(error.message.contains("2025-11-25"));
     }
 
     #[test]

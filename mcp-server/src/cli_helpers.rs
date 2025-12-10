@@ -140,10 +140,10 @@ pub fn create_server_info(name: Option<String>, version: Option<String>) -> Serv
     ServerInfo {
         protocol_version: ProtocolVersion::default(),
         capabilities: ServerCapabilities::default(),
-        server_info: Implementation {
-            name: name.unwrap_or_else(|| env!("CARGO_PKG_NAME").to_string()),
-            version: version.unwrap_or_else(|| env!("CARGO_PKG_VERSION").to_string()),
-        },
+        server_info: Implementation::new(
+            name.unwrap_or_else(|| env!("CARGO_PKG_NAME").to_string()),
+            version.unwrap_or_else(|| env!("CARGO_PKG_VERSION").to_string()),
+        ),
         instructions: None,
     }
 }

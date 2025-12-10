@@ -44,10 +44,7 @@ fn test_request_context_with_id() {
 
 #[test]
 fn test_request_context_with_client_info() {
-    let client_info = Implementation {
-        name: "Test Client".to_string(),
-        version: "1.0.0".to_string(),
-    };
+    let client_info = Implementation::new("Test Client", "1.0.0");
 
     let context = RequestContext::new().with_client_info(client_info.clone());
 
@@ -121,10 +118,7 @@ fn test_request_context_metadata_with_string() {
 
 #[test]
 fn test_request_context_builder_pattern() {
-    let client_info = Implementation {
-        name: "Builder Test Client".to_string(),
-        version: "2.0.0".to_string(),
-    };
+    let client_info = Implementation::new("Builder Test Client", "2.0.0");
 
     let context = RequestContext::new()
         .with_client_info(client_info.clone())
@@ -273,10 +267,10 @@ fn test_request_context_send_sync() {
 
 #[test]
 fn test_request_context_with_complex_client_info() {
-    let client_info = Implementation {
-        name: "Complex Client with Special Characters !@#$%".to_string(),
-        version: "1.0.0-beta.1+build.123".to_string(),
-    };
+    let client_info = Implementation::new(
+        "Complex Client with Special Characters !@#$%",
+        "1.0.0-beta.1+build.123",
+    );
 
     let context = RequestContext::new().with_client_info(client_info.clone());
 

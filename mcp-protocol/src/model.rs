@@ -186,10 +186,11 @@ impl std::fmt::Display for ProtocolVersion {
 }
 
 impl ProtocolVersion {
+    pub const V_2025_11_25: Self = Self(std::borrow::Cow::Borrowed("2025-11-25"));
     pub const V_2025_06_18: Self = Self(std::borrow::Cow::Borrowed("2025-06-18"));
     pub const V_2025_03_26: Self = Self(std::borrow::Cow::Borrowed("2025-03-26"));
     pub const V_2024_11_05: Self = Self(std::borrow::Cow::Borrowed("2024-11-05"));
-    pub const LATEST: Self = Self::V_2025_06_18;
+    pub const LATEST: Self = Self::V_2025_11_25;
 
     pub fn new(version: impl Into<std::borrow::Cow<'static, str>>) -> Self {
         Self(version.into())
@@ -201,6 +202,34 @@ impl ProtocolVersion {
 pub struct Implementation {
     pub name: String,
     pub version: String,
+    /// Optional human-readable description of the implementation (MCP 2025-11-25)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub description: Option<String>,
+}
+
+impl Implementation {
+    /// Create a new Implementation with name and version
+    pub fn new(name: impl Into<String>, version: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            version: version.into(),
+            description: None,
+        }
+    }
+
+    /// Create a new Implementation with name, version, and description
+    pub fn with_description(
+        name: impl Into<String>,
+        version: impl Into<String>,
+        description: impl Into<String>,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            version: version.into(),
+            description: Some(description.into()),
+        }
+    }
 }
 
 /// Server capabilities configuration
@@ -650,6 +679,31 @@ impl CallToolResult {
 
     pub fn error_text(text: impl Into<String>) -> Self {
         Self::error(vec![Content::text(text)])
+    }
+
+    /// Create an input validation error result (MCP 2025-11-25)
+    ///
+    /// Per the MCP 2025-11-25 spec, input validation errors should be returned
+    /// as tool execution errors (with `is_error: true`) rather than protocol
+    /// errors. This enables the LLM to self-correct based on the error feedback.
+    ///
+    /// # Example
+    /// ```rust
+    /// use pulseengine_mcp_protocol::CallToolResult;
+    ///
+    /// // When validating tool arguments fails:
+    /// let result = CallToolResult::input_validation_error(
+    ///     "location",
+    ///     "Expected a valid city name, got empty string"
+    /// );
+    /// ```
+    pub fn input_validation_error(field: impl Into<String>, message: impl Into<String>) -> Self {
+        let error_msg = format!(
+            "Input validation error for '{}': {}",
+            field.into(),
+            message.into()
+        );
+        Self::error(vec![Content::text(error_msg)])
     }
 
     /// Create a success result with structured content
