@@ -27,6 +27,13 @@ pub struct StreamableHttpConfig {
     pub port: u16,
     pub host: String,
     pub enable_cors: bool,
+    /// Allowed origins for Origin header validation (MCP 2025-11-25)
+    /// If empty, all origins are allowed. If specified, requests with
+    /// invalid Origin headers will receive HTTP 403 Forbidden.
+    pub allowed_origins: Vec<String>,
+    /// Whether to enforce Origin validation (MCP 2025-11-25)
+    /// When true, requests with invalid Origin headers receive 403
+    pub enforce_origin_validation: bool,
 }
 
 impl Default for StreamableHttpConfig {
@@ -35,6 +42,30 @@ impl Default for StreamableHttpConfig {
             port: 3001,
             host: "127.0.0.1".to_string(),
             enable_cors: true,
+            allowed_origins: Vec::new(),
+            enforce_origin_validation: false,
+        }
+    }
+}
+
+impl StreamableHttpConfig {
+    /// Create a new config with Origin validation enabled (MCP 2025-11-25)
+    ///
+    /// # Example
+    /// ```
+    /// use pulseengine_mcp_transport::streamable_http::StreamableHttpConfig;
+    ///
+    /// let config = StreamableHttpConfig::with_origin_validation(
+    ///     3001,
+    ///     vec!["https://example.com".to_string(), "http://localhost:3000".to_string()],
+    /// );
+    /// ```
+    pub fn with_origin_validation(port: u16, allowed_origins: Vec<String>) -> Self {
+        Self {
+            port,
+            allowed_origins,
+            enforce_origin_validation: true,
+            ..Default::default()
         }
     }
 }
@@ -53,6 +84,62 @@ struct SessionInfo {
 struct AppState {
     handler: Arc<RequestHandler>,
     sessions: Arc<RwLock<HashMap<String, SessionInfo>>>,
+    config: StreamableHttpConfig,
+}
+
+/// Validate Origin header against allowed origins (MCP 2025-11-25)
+///
+/// Returns None if validation passes, Some(response) with 403 Forbidden if invalid
+fn validate_origin(
+    headers: &HeaderMap,
+    config: &StreamableHttpConfig,
+) -> Option<impl IntoResponse> {
+    if !config.enforce_origin_validation || config.allowed_origins.is_empty() {
+        return None;
+    }
+
+    let origin = headers
+        .get("Origin")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+
+    match origin {
+        Some(ref o) if config.allowed_origins.contains(o) => None,
+        Some(invalid_origin) => {
+            warn!(
+                "Rejected request with invalid Origin: {} (allowed: {:?})",
+                invalid_origin, config.allowed_origins
+            );
+            Some((
+                StatusCode::FORBIDDEN,
+                Json(serde_json::json!({
+                    "jsonrpc": "2.0",
+                    "error": {
+                        "code": -32600,
+                        "message": "Forbidden: Invalid Origin header"
+                    },
+                    "id": null
+                })),
+            ))
+        }
+        None if config.enforce_origin_validation => {
+            // If Origin validation is enforced, missing Origin header is also forbidden
+            // (browser-based clients always send Origin)
+            warn!("Rejected request without Origin header");
+            Some((
+                StatusCode::FORBIDDEN,
+                Json(serde_json::json!({
+                    "jsonrpc": "2.0",
+                    "error": {
+                        "code": -32600,
+                        "message": "Forbidden: Missing Origin header"
+                    },
+                    "id": null
+                })),
+            ))
+        }
+        None => None,
+    }
 }
 
 /// Query parameters for SSE endpoint
@@ -79,9 +166,40 @@ impl StreamableHttpTransport {
         }
     }
 
+    /// Create a new transport with custom config
+    pub fn with_config(config: StreamableHttpConfig) -> Self {
+        Self {
+            config,
+            server_handle: None,
+        }
+    }
+
+    /// Create a new transport with Origin validation enabled (MCP 2025-11-25)
+    ///
+    /// # Example
+    /// ```
+    /// use pulseengine_mcp_transport::streamable_http::StreamableHttpTransport;
+    ///
+    /// let transport = StreamableHttpTransport::with_origin_validation(
+    ///     3001,
+    ///     vec!["https://example.com".to_string()],
+    /// );
+    /// ```
+    pub fn with_origin_validation(port: u16, allowed_origins: Vec<String>) -> Self {
+        Self::with_config(StreamableHttpConfig::with_origin_validation(
+            port,
+            allowed_origins,
+        ))
+    }
+
     /// Get the configuration
     pub fn config(&self) -> &StreamableHttpConfig {
         &self.config
+    }
+
+    /// Get mutable configuration
+    pub fn config_mut(&mut self) -> &mut StreamableHttpConfig {
+        &mut self.config
     }
 
     /// Create or get session
@@ -124,8 +242,13 @@ async fn handle_messages(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     body: String,
-) -> impl IntoResponse {
+) -> axum::response::Response {
     debug!("Received POST /messages: {}", body);
+
+    // MCP 2025-11-25: Validate Origin header - return 403 Forbidden for invalid origins
+    if let Some(forbidden_response) = validate_origin(&headers, &state.config) {
+        return forbidden_response.into_response();
+    }
 
     // Get or create session
     let session_id = headers
@@ -190,9 +313,15 @@ async fn handle_messages(
 /// Handle SSE requests for server-to-client streaming
 async fn handle_sse(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Query(query): Query<StreamQuery>,
-) -> impl IntoResponse {
+) -> axum::response::Response {
     info!("SSE connection request: {:?}", query);
+
+    // MCP 2025-11-25: Validate Origin header - return 403 Forbidden for invalid origins
+    if let Some(forbidden_response) = validate_origin(&headers, &state.config) {
+        return forbidden_response.into_response();
+    }
 
     // For streamable-http, we need to handle this differently
     // The client expects an immediate response, not an SSE stream
@@ -210,11 +339,11 @@ async fn handle_sse(
     });
 
     // Include session ID in response header as per MCP spec
-    let mut headers = HeaderMap::new();
-    headers.insert("Mcp-Session-Id", session_id.parse().unwrap());
+    let mut response_headers = HeaderMap::new();
+    response_headers.insert("Mcp-Session-Id", session_id.parse().unwrap());
     debug!("SSE response with session ID: {}", session_id);
 
-    (StatusCode::OK, headers, Json(response))
+    (StatusCode::OK, response_headers, Json(response)).into_response()
 }
 
 #[async_trait]
@@ -228,6 +357,7 @@ impl Transport for StreamableHttpTransport {
         let state = Arc::new(AppState {
             handler: Arc::new(handler),
             sessions: Arc::new(RwLock::new(HashMap::new())),
+            config: self.config.clone(),
         });
 
         // Build router - using /mcp endpoint for MCP-UI compatibility
