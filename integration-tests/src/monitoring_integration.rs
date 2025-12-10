@@ -78,10 +78,7 @@ impl McpBackend for MonitoringTestBackend {
                 sampling: None,
                 ..Default::default()
             },
-            server_info: Implementation {
-                name: "Monitoring Test Backend".to_string(),
-                version: "1.0.0".to_string(),
-            },
+            server_info: Implementation::new("Monitoring Test Backend", "1.0.0"),
             instructions: Some("Backend for monitoring integration testing".to_string()),
         }
     }

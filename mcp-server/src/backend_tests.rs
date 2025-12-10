@@ -124,10 +124,7 @@ impl McpBackend for MockBackend {
         ServerInfo {
             protocol_version: ProtocolVersion::default(),
             capabilities: ServerCapabilities::default(),
-            server_info: Implementation {
-                name: self.server_name.clone(),
-                version: "1.0.0".to_string(),
-            },
+            server_info: Implementation::new(self.server_name.clone(), "1.0.0"),
             instructions: Some("Mock backend for testing".to_string()),
         }
     }
@@ -394,10 +391,7 @@ async fn test_mock_backend_lifecycle_hooks() {
     assert!(backend.on_startup().await.is_ok());
     assert!(backend.on_shutdown().await.is_ok());
 
-    let client_info = Implementation {
-        name: "test_client".to_string(),
-        version: "1.0.0".to_string(),
-    };
+    let client_info = Implementation::new("test_client", "1.0.0");
 
     assert!(backend.on_client_connect(&client_info).await.is_ok());
     assert!(backend.on_client_disconnect(&client_info).await.is_ok());
@@ -420,10 +414,7 @@ impl SimpleBackend for MockSimpleBackend {
         ServerInfo {
             protocol_version: ProtocolVersion::default(),
             capabilities: ServerCapabilities::default(),
-            server_info: Implementation {
-                name: "Simple Mock Server".to_string(),
-                version: "1.0.0".to_string(),
-            },
+            server_info: Implementation::new("Simple Mock Server", "1.0.0"),
             instructions: None,
         }
     }

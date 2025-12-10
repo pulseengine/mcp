@@ -576,10 +576,7 @@ mod tests {
                         sampling: None,
                         elicitation: Some(ElicitationCapability {}),
                     },
-                    server_info: Implementation {
-                        name: "test-server".to_string(),
-                        version: "1.0.0".to_string(),
-                    },
+                    server_info: Implementation::new("test-server", "1.0.0"),
                     instructions: None,
                 },
                 tools: vec![Tool {

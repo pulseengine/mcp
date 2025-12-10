@@ -161,10 +161,10 @@ fn generate_backend_implementation(
                 pulseengine_mcp_protocol::ServerInfo {
                     protocol_version: pulseengine_mcp_protocol::ProtocolVersion::default(),
                     capabilities: #capabilities,
-                    server_info: pulseengine_mcp_protocol::Implementation {
-                        name: #server_name.to_string(),
-                        version: #server_version,
-                    },
+                    server_info: pulseengine_mcp_protocol::Implementation::new(
+                        #server_name,
+                        #server_version,
+                    ),
                     instructions: #server_description,
                 }
             }

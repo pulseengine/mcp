@@ -185,10 +185,7 @@ impl McpBackend for E2ETestBackend {
                 sampling: Some(SamplingCapability {}),
                 ..Default::default()
             },
-            server_info: Implementation {
-                name: format!("E2E Test Server: {}", self.name),
-                version: "1.0.0".to_string(),
-            },
+            server_info: Implementation::new(format!("E2E Test Server: {}", self.name), "1.0.0"),
             instructions: Some(
                 "Comprehensive end-to-end test backend with full MCP capabilities".to_string(),
             ),

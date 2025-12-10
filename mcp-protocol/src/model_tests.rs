@@ -57,7 +57,7 @@ mod tests {
     fn test_protocol_version_default() {
         let version = ProtocolVersion::default();
         assert_eq!(version, ProtocolVersion::LATEST);
-        assert_eq!(version.to_string(), "2025-06-18");
+        assert_eq!(version.to_string(), "2025-11-25");
     }
 
     #[test]
@@ -68,16 +68,66 @@ mod tests {
 
     #[test]
     fn test_protocol_version_constants() {
+        assert_eq!(ProtocolVersion::V_2025_11_25.to_string(), "2025-11-25");
         assert_eq!(ProtocolVersion::V_2025_06_18.to_string(), "2025-06-18");
         assert_eq!(ProtocolVersion::V_2025_03_26.to_string(), "2025-03-26");
         assert_eq!(ProtocolVersion::V_2024_11_05.to_string(), "2024-11-05");
-        assert_eq!(ProtocolVersion::LATEST, ProtocolVersion::V_2025_06_18);
+        assert_eq!(ProtocolVersion::LATEST, ProtocolVersion::V_2025_11_25);
     }
 
     #[test]
     fn test_protocol_version_new() {
-        let version = ProtocolVersion::new("2025-06-18");
-        assert_eq!(version.to_string(), "2025-06-18");
+        let version = ProtocolVersion::new("2025-11-25");
+        assert_eq!(version.to_string(), "2025-11-25");
+    }
+
+    #[test]
+    fn test_implementation_new() {
+        let impl_info = Implementation::new("test-server", "1.0.0");
+        assert_eq!(impl_info.name, "test-server");
+        assert_eq!(impl_info.version, "1.0.0");
+        assert!(impl_info.description.is_none());
+    }
+
+    #[test]
+    fn test_implementation_with_description() {
+        let impl_info =
+            Implementation::with_description("test-server", "1.0.0", "A test MCP server");
+        assert_eq!(impl_info.name, "test-server");
+        assert_eq!(impl_info.version, "1.0.0");
+        assert_eq!(impl_info.description, Some("A test MCP server".to_string()));
+    }
+
+    #[test]
+    fn test_implementation_serialization() {
+        // Without description - should not include description field
+        let impl_info = Implementation::new("test-server", "1.0.0");
+        let json = serde_json::to_string(&impl_info).unwrap();
+        assert!(!json.contains("description"));
+
+        // With description - should include description field
+        let impl_info =
+            Implementation::with_description("test-server", "1.0.0", "A test MCP server");
+        let json = serde_json::to_string(&impl_info).unwrap();
+        assert!(json.contains("description"));
+        assert!(json.contains("A test MCP server"));
+    }
+
+    #[test]
+    fn test_implementation_deserialization() {
+        // Without description field (backwards compatible)
+        let json = r#"{"name":"test-server","version":"1.0.0"}"#;
+        let impl_info: Implementation = serde_json::from_str(json).unwrap();
+        assert_eq!(impl_info.name, "test-server");
+        assert_eq!(impl_info.version, "1.0.0");
+        assert!(impl_info.description.is_none());
+
+        // With description field (MCP 2025-11-25)
+        let json = r#"{"name":"test-server","version":"1.0.0","description":"A test server"}"#;
+        let impl_info: Implementation = serde_json::from_str(json).unwrap();
+        assert_eq!(impl_info.name, "test-server");
+        assert_eq!(impl_info.version, "1.0.0");
+        assert_eq!(impl_info.description, Some("A test server".to_string()));
     }
 
     #[test]
@@ -190,6 +240,21 @@ mod tests {
             CallToolResult::text_with_structured("Task finished", json!({"status": "done"}));
         assert_eq!(result2.is_error, Some(false));
         assert!(result2.structured_content.is_some());
+    }
+
+    #[test]
+    fn test_call_tool_result_input_validation_error() {
+        // MCP 2025-11-25: Input validation errors should be tool errors, not protocol errors
+        let result = CallToolResult::input_validation_error("location", "cannot be empty");
+        assert_eq!(result.is_error, Some(true));
+        assert_eq!(result.content.len(), 1);
+        if let Content::Text { text, .. } = &result.content[0] {
+            assert!(text.contains("location"));
+            assert!(text.contains("cannot be empty"));
+            assert!(text.contains("Input validation error"));
+        } else {
+            panic!("Expected Text content");
+        }
     }
 
     #[test]
@@ -341,10 +406,7 @@ mod tests {
                 .enable_tools()
                 .enable_resources()
                 .build(),
-            server_info: Implementation {
-                name: "Test Server".to_string(),
-                version: "1.0.0".to_string(),
-            },
+            server_info: Implementation::new("Test Server", "1.0.0"),
             instructions: Some("Test instructions".to_string()),
         };
 
@@ -361,10 +423,7 @@ mod tests {
         let params = InitializeRequestParam {
             protocol_version: "2025-03-26".to_string(),
             capabilities: json!({"experimental": true}),
-            client_info: Implementation {
-                name: "Test Client".to_string(),
-                version: "1.0.0".to_string(),
-            },
+            client_info: Implementation::new("Test Client", "1.0.0"),
         };
 
         assert_eq!(params.protocol_version, "2025-03-26");

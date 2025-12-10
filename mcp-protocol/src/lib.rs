@@ -77,8 +77,9 @@ pub use ui::*;
 pub use validation::Validator;
 
 /// Protocol version constants
-pub const MCP_VERSION: &str = "2025-06-18";
-pub const SUPPORTED_PROTOCOL_VERSIONS: &[&str] = &["2025-06-18", "2025-03-26", "2024-11-05"];
+pub const MCP_VERSION: &str = "2025-11-25";
+pub const SUPPORTED_PROTOCOL_VERSIONS: &[&str] =
+    &["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
 
 /// Check if a protocol version is supported
 pub fn is_protocol_version_supported(version: &str) -> bool {

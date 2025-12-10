@@ -91,10 +91,7 @@ impl Default for ServerConfig {
             server_info: ServerInfo {
                 protocol_version: ProtocolVersion::default(),
                 capabilities: ServerCapabilities::default(),
-                server_info: Implementation {
-                    name: "MCP Server".to_string(),
-                    version: "1.0.0".to_string(),
-                },
+                server_info: Implementation::new("MCP Server", "1.0.0"),
                 instructions: None,
             },
             auth_config: pulseengine_mcp_auth::default_config(),

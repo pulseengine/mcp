@@ -159,10 +159,10 @@ fn generate_server_implementation(
                         sampling: None,
                         ..Default::default()
                     },
-                    server_info: pulseengine_mcp_protocol::Implementation {
-                        name: #server_name.to_string(),
-                        version: #server_version,
-                    },
+                    server_info: pulseengine_mcp_protocol::Implementation::new(
+                        #server_name,
+                        #server_version,
+                    ),
                     instructions: #server_description,
                 }
             }

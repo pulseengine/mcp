@@ -86,10 +86,7 @@ where
                 sampling: None,
                 ..Default::default()
             },
-            server_info: Implementation {
-                name: "MCP Server".to_string(),
-                version: "1.0.0".to_string(),
-            },
+            server_info: Implementation::new("MCP Server", "1.0.0"),
             instructions: Some("Generated MCP Server".to_string()),
         };
 
