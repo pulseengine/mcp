@@ -182,7 +182,7 @@ impl McpBackend for E2ETestBackend {
                 logging: Some(LoggingCapability {
                     level: Some("debug".to_string()),
                 }),
-                sampling: Some(SamplingCapability {}),
+                sampling: Some(SamplingCapability::default()),
                 ..Default::default()
             },
             server_info: Implementation::new(format!("E2E Test Server: {}", self.name), "1.0.0"),
