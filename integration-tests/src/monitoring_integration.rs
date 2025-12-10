@@ -127,6 +127,7 @@ impl McpBackend for MonitoringTestBackend {
                     title: None,
                     annotations: None,
                     icons: None,
+                    execution: None,
                     _meta: None,
                 },
                 Tool {
@@ -141,6 +142,7 @@ impl McpBackend for MonitoringTestBackend {
                     title: None,
                     annotations: None,
                     icons: None,
+                    execution: None,
                     _meta: None,
                 },
             ],

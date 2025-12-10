@@ -105,6 +105,7 @@ impl McpBackend for CliTestBackend {
                 title: None,
                 annotations: None,
                 icons: None,
+                execution: None,
                 _meta: None,
             })
             .collect();

@@ -124,8 +124,9 @@ impl McpBackend for IntegrationTestBackend {
                 output_schema: None,
                 title: None,
                 annotations: None,
-                _meta: None,
                 icons: None,
+                execution: None,
+                _meta: None,
             }],
             next_cursor: None,
         })

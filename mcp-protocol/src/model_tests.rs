@@ -279,6 +279,7 @@ mod tests {
             title: None,
             annotations: None,
             icons: None,
+            execution: None,
             _meta: None,
         };
 
@@ -303,6 +304,7 @@ mod tests {
             title: None,
             annotations: None,
             icons: None,
+            execution: None,
             _meta: None,
         };
 
@@ -325,6 +327,7 @@ mod tests {
                     title: None,
                     annotations: None,
                     icons: None,
+                    execution: None,
                     _meta: None,
                 },
                 Tool {
@@ -335,6 +338,7 @@ mod tests {
                     title: None,
                     annotations: None,
                     icons: None,
+                    execution: None,
                     _meta: None,
                 },
             ],
@@ -907,6 +911,7 @@ mod tests {
             title: None,
             annotations: None,
             icons: None,
+            execution: None,
             _meta: None,
         };
 
@@ -1094,5 +1099,356 @@ mod tests {
         assert_eq!(stop_reasons::STOP_SEQUENCE, "stop_sequence");
         assert_eq!(stop_reasons::MAX_TOKENS, "max_tokens");
         assert_eq!(stop_reasons::TOOL_USE, "tool_use");
+    }
+
+    // ==================== MCP 2025-11-25 Tasks Tests ====================
+
+    #[test]
+    fn test_task_status_serialization() {
+        let working = serde_json::to_string(&TaskStatus::Working).unwrap();
+        assert_eq!(working, "\"working\"");
+
+        let input_required = serde_json::to_string(&TaskStatus::InputRequired).unwrap();
+        assert_eq!(input_required, "\"input-required\"");
+
+        let completed = serde_json::to_string(&TaskStatus::Completed).unwrap();
+        assert_eq!(completed, "\"completed\"");
+
+        let failed = serde_json::to_string(&TaskStatus::Failed).unwrap();
+        assert_eq!(failed, "\"failed\"");
+
+        let cancelled = serde_json::to_string(&TaskStatus::Cancelled).unwrap();
+        assert_eq!(cancelled, "\"cancelled\"");
+    }
+
+    #[test]
+    fn test_task_status_deserialization() {
+        let working: TaskStatus = serde_json::from_str("\"working\"").unwrap();
+        assert_eq!(working, TaskStatus::Working);
+
+        let input_required: TaskStatus = serde_json::from_str("\"input-required\"").unwrap();
+        assert_eq!(input_required, TaskStatus::InputRequired);
+    }
+
+    #[test]
+    fn test_task_status_display() {
+        assert_eq!(TaskStatus::Working.to_string(), "working");
+        assert_eq!(TaskStatus::InputRequired.to_string(), "input-required");
+        assert_eq!(TaskStatus::Completed.to_string(), "completed");
+        assert_eq!(TaskStatus::Failed.to_string(), "failed");
+        assert_eq!(TaskStatus::Cancelled.to_string(), "cancelled");
+    }
+
+    #[test]
+    fn test_task_new() {
+        let task = Task::new("task-123");
+        assert_eq!(task.task_id, "task-123");
+        assert_eq!(task.status, TaskStatus::Working);
+        assert!(task.created_at.is_none());
+        assert!(task.is_running());
+        assert!(!task.is_terminal());
+    }
+
+    #[test]
+    fn test_task_with_timestamps() {
+        let task = Task::with_timestamps("task-456", "2025-01-15T10:30:00Z");
+        assert_eq!(task.task_id, "task-456");
+        assert_eq!(task.status, TaskStatus::Working);
+        assert_eq!(task.created_at, Some("2025-01-15T10:30:00Z".to_string()));
+        assert_eq!(
+            task.last_updated_at,
+            Some("2025-01-15T10:30:00Z".to_string())
+        );
+    }
+
+    #[test]
+    fn test_task_is_terminal() {
+        let mut task = Task::new("t1");
+        assert!(!task.is_terminal());
+
+        task.status = TaskStatus::Completed;
+        assert!(task.is_terminal());
+
+        task.status = TaskStatus::Failed;
+        assert!(task.is_terminal());
+
+        task.status = TaskStatus::Cancelled;
+        assert!(task.is_terminal());
+
+        task.status = TaskStatus::InputRequired;
+        assert!(!task.is_terminal());
+    }
+
+    #[test]
+    fn test_task_is_running() {
+        let mut task = Task::new("t1");
+        assert!(task.is_running());
+
+        task.status = TaskStatus::InputRequired;
+        assert!(task.is_running());
+
+        task.status = TaskStatus::Completed;
+        assert!(!task.is_running());
+    }
+
+    #[test]
+    fn test_task_serialization() {
+        let task = Task {
+            task_id: "task-789".to_string(),
+            status: TaskStatus::Working,
+            status_message: Some("Processing...".to_string()),
+            created_at: Some("2025-01-15T10:00:00Z".to_string()),
+            last_updated_at: Some("2025-01-15T10:05:00Z".to_string()),
+            ttl: Some(3600),
+            poll_interval: Some(1000),
+        };
+
+        let json = serde_json::to_string(&task).unwrap();
+        assert!(json.contains("\"taskId\":\"task-789\""));
+        assert!(json.contains("\"status\":\"working\""));
+        assert!(json.contains("\"statusMessage\":\"Processing...\""));
+        assert!(json.contains("\"ttl\":3600"));
+        assert!(json.contains("\"pollInterval\":1000"));
+
+        // Round-trip
+        let deserialized: Task = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.task_id, "task-789");
+        assert_eq!(deserialized.ttl, Some(3600));
+    }
+
+    #[test]
+    fn test_tasks_capability() {
+        let capability = TasksCapability {
+            cancel: Some(TaskCancelCapability {}),
+            list: Some(TaskListCapability {}),
+            requests: Some(TaskRequestsCapability {
+                sampling: Some(TaskSamplingCapability {
+                    create_message: Some(TaskMethodCapability {}),
+                }),
+                elicitation: None,
+                tools: None,
+            }),
+        };
+
+        let json = serde_json::to_string(&capability).unwrap();
+        assert!(json.contains("\"cancel\""));
+        assert!(json.contains("\"list\""));
+        assert!(json.contains("\"sampling\""));
+        assert!(json.contains("\"createMessage\""));
+    }
+
+    #[test]
+    fn test_server_capabilities_enable_tasks() {
+        let capabilities = ServerCapabilities::builder().enable_tasks().build();
+
+        assert!(capabilities.tasks.is_some());
+        let tasks = capabilities.tasks.unwrap();
+        assert!(tasks.cancel.is_some());
+        assert!(tasks.list.is_some());
+        assert!(tasks.requests.is_some());
+        let requests = tasks.requests.unwrap();
+        assert!(requests.sampling.is_some());
+        assert!(requests.elicitation.is_some());
+        assert!(requests.tools.is_some());
+    }
+
+    #[test]
+    fn test_server_capabilities_enable_tasks_basic() {
+        let capabilities = ServerCapabilities::builder().enable_tasks_basic().build();
+
+        assert!(capabilities.tasks.is_some());
+        let tasks = capabilities.tasks.unwrap();
+        assert!(tasks.cancel.is_some());
+        assert!(tasks.list.is_some());
+        assert!(tasks.requests.is_none());
+    }
+
+    #[test]
+    fn test_task_metadata() {
+        let meta = TaskMetadata {
+            ttl: Some(7200),
+            poll_interval: Some(500),
+        };
+
+        let json = serde_json::to_string(&meta).unwrap();
+        assert!(json.contains("\"ttl\":7200"));
+        assert!(json.contains("\"pollInterval\":500"));
+    }
+
+    #[test]
+    fn test_create_task_result() {
+        let result = CreateTaskResult {
+            task: Task::new("new-task"),
+        };
+
+        let json = serde_json::to_string(&result).unwrap();
+        assert!(json.contains("\"task\""));
+        assert!(json.contains("\"taskId\":\"new-task\""));
+    }
+
+    #[test]
+    fn test_get_task_request() {
+        let req = GetTaskRequestParam {
+            task_id: "task-to-get".to_string(),
+        };
+
+        let json = serde_json::to_string(&req).unwrap();
+        assert!(json.contains("\"taskId\":\"task-to-get\""));
+    }
+
+    #[test]
+    fn test_list_tasks_result() {
+        let result = ListTasksResult {
+            tasks: vec![Task::new("t1"), Task::new("t2")],
+            next_cursor: Some("cursor-abc".to_string()),
+        };
+
+        assert_eq!(result.tasks.len(), 2);
+        assert_eq!(result.next_cursor, Some("cursor-abc".to_string()));
+
+        let json = serde_json::to_string(&result).unwrap();
+        assert!(json.contains("\"tasks\""));
+        assert!(json.contains("\"nextCursor\":\"cursor-abc\""));
+    }
+
+    #[test]
+    fn test_cancel_task_request() {
+        let req = CancelTaskRequestParam {
+            task_id: "task-to-cancel".to_string(),
+        };
+
+        let json = serde_json::to_string(&req).unwrap();
+        assert!(json.contains("\"taskId\":\"task-to-cancel\""));
+    }
+
+    #[test]
+    fn test_cancel_task_result() {
+        let mut task = Task::new("cancelled-task");
+        task.status = TaskStatus::Cancelled;
+
+        let result = CancelTaskResult { task };
+
+        let json = serde_json::to_string(&result).unwrap();
+        assert!(json.contains("\"status\":\"cancelled\""));
+    }
+
+    #[test]
+    fn test_task_status_notification_new() {
+        let notification = TaskStatusNotification::new("task-123", TaskStatus::Completed);
+        assert_eq!(notification.task_id, "task-123");
+        assert_eq!(notification.status, TaskStatus::Completed);
+        assert!(notification.status_message.is_none());
+    }
+
+    #[test]
+    fn test_task_status_notification_with_message() {
+        let notification = TaskStatusNotification::with_message(
+            "task-456",
+            TaskStatus::Failed,
+            "Connection timeout",
+        );
+
+        assert_eq!(notification.task_id, "task-456");
+        assert_eq!(notification.status, TaskStatus::Failed);
+        assert_eq!(
+            notification.status_message,
+            Some("Connection timeout".to_string())
+        );
+    }
+
+    #[test]
+    fn test_task_status_notification_serialization() {
+        let notification = TaskStatusNotification {
+            task_id: "task-789".to_string(),
+            status: TaskStatus::InputRequired,
+            status_message: Some("Waiting for confirmation".to_string()),
+            last_updated_at: Some("2025-01-15T12:00:00Z".to_string()),
+        };
+
+        let json = serde_json::to_string(&notification).unwrap();
+        assert!(json.contains("\"taskId\":\"task-789\""));
+        assert!(json.contains("\"status\":\"input-required\""));
+        assert!(json.contains("\"statusMessage\":\"Waiting for confirmation\""));
+        assert!(json.contains("\"lastUpdatedAt\":\"2025-01-15T12:00:00Z\""));
+    }
+
+    #[test]
+    fn test_tool_execution() {
+        let execution = ToolExecution {
+            task_support: Some(TaskSupport::Optional),
+        };
+
+        let json = serde_json::to_string(&execution).unwrap();
+        assert!(json.contains("\"taskSupport\":\"optional\""));
+    }
+
+    #[test]
+    fn test_task_support_serialization() {
+        let forbidden = serde_json::to_string(&TaskSupport::Forbidden).unwrap();
+        assert_eq!(forbidden, "\"forbidden\"");
+
+        let optional = serde_json::to_string(&TaskSupport::Optional).unwrap();
+        assert_eq!(optional, "\"optional\"");
+
+        let required = serde_json::to_string(&TaskSupport::Required).unwrap();
+        assert_eq!(required, "\"required\"");
+    }
+
+    #[test]
+    fn test_task_support_default() {
+        let default = TaskSupport::default();
+        assert_eq!(default, TaskSupport::Optional);
+    }
+
+    #[test]
+    fn test_tool_with_execution() {
+        let tool = Tool {
+            name: "long_running_tool".to_string(),
+            description: "A tool that takes a long time".to_string(),
+            input_schema: json!({"type": "object"}),
+            output_schema: None,
+            title: None,
+            annotations: None,
+            icons: None,
+            execution: Some(ToolExecution {
+                task_support: Some(TaskSupport::Required),
+            }),
+            _meta: None,
+        };
+
+        let json = serde_json::to_string(&tool).unwrap();
+        assert!(json.contains("\"execution\""));
+        assert!(json.contains("\"taskSupport\":\"required\""));
+
+        // Round-trip
+        let deserialized: Tool = serde_json::from_str(&json).unwrap();
+        assert!(deserialized.execution.is_some());
+        let exec = deserialized.execution.unwrap();
+        assert_eq!(exec.task_support, Some(TaskSupport::Required));
+    }
+
+    #[test]
+    fn test_task_complete_workflow() {
+        // Simulate a task lifecycle
+        let mut task = Task::with_timestamps("workflow-task", "2025-01-15T10:00:00Z");
+        assert!(task.is_running());
+
+        // Update to input required
+        task.status = TaskStatus::InputRequired;
+        task.status_message = Some("Need user confirmation".to_string());
+        assert!(task.is_running());
+        assert!(!task.is_terminal());
+
+        // Resume working
+        task.status = TaskStatus::Working;
+        task.status_message = Some("Processing...".to_string());
+
+        // Complete
+        task.status = TaskStatus::Completed;
+        task.status_message = Some("Done!".to_string());
+        task.last_updated_at = Some("2025-01-15T10:30:00Z".to_string());
+
+        assert!(task.is_terminal());
+        assert!(!task.is_running());
     }
 }

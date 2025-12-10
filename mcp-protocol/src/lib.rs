@@ -34,6 +34,7 @@
 //!     title: None,
 //!     annotations: None,
 //!     icons: None,
+//!     execution: None,
 //!     _meta: None,
 //! };
 //!
