@@ -45,6 +45,8 @@ mod tests {
         assert_eq!(config.port, 3001);
         assert_eq!(config.host, "127.0.0.1");
         assert!(config.enable_cors);
+        assert!(config.allowed_origins.is_empty());
+        assert!(!config.enforce_origin_validation);
     }
 
     #[test]
@@ -53,11 +55,92 @@ mod tests {
             port: 8080,
             host: "0.0.0.0".to_string(),
             enable_cors: false,
+            allowed_origins: Vec::new(),
+            enforce_origin_validation: false,
         };
 
         assert_eq!(config.port, 8080);
         assert_eq!(config.host, "0.0.0.0");
         assert!(!config.enable_cors);
+    }
+
+    #[test]
+    fn test_streamable_http_config_with_origin_validation() {
+        // MCP 2025-11-25: Origin validation configuration
+        let config = StreamableHttpConfig::with_origin_validation(
+            3001,
+            vec![
+                "https://example.com".to_string(),
+                "http://localhost:3000".to_string(),
+            ],
+        );
+
+        assert_eq!(config.port, 3001);
+        assert!(config.enforce_origin_validation);
+        assert_eq!(config.allowed_origins.len(), 2);
+        assert!(
+            config
+                .allowed_origins
+                .contains(&"https://example.com".to_string())
+        );
+        assert!(
+            config
+                .allowed_origins
+                .contains(&"http://localhost:3000".to_string())
+        );
+    }
+
+    #[test]
+    fn test_streamable_http_transport_with_origin_validation() {
+        // MCP 2025-11-25: Transport with Origin validation
+        let transport = StreamableHttpTransport::with_origin_validation(
+            8080,
+            vec!["https://trusted-client.com".to_string()],
+        );
+
+        assert_eq!(transport.config().port, 8080);
+        assert!(transport.config().enforce_origin_validation);
+        assert_eq!(transport.config().allowed_origins.len(), 1);
+        assert!(
+            transport
+                .config()
+                .allowed_origins
+                .contains(&"https://trusted-client.com".to_string())
+        );
+    }
+
+    #[test]
+    fn test_streamable_http_transport_with_config() {
+        let config = StreamableHttpConfig {
+            port: 9000,
+            host: "0.0.0.0".to_string(),
+            enable_cors: false,
+            allowed_origins: vec!["https://app.example.com".to_string()],
+            enforce_origin_validation: true,
+        };
+
+        let transport = StreamableHttpTransport::with_config(config);
+
+        assert_eq!(transport.config().port, 9000);
+        assert_eq!(transport.config().host, "0.0.0.0");
+        assert!(!transport.config().enable_cors);
+        assert!(transport.config().enforce_origin_validation);
+        assert_eq!(transport.config().allowed_origins.len(), 1);
+    }
+
+    #[test]
+    fn test_streamable_http_transport_config_mut() {
+        let mut transport = StreamableHttpTransport::new(3001);
+
+        // Modify config via config_mut
+        transport.config_mut().enforce_origin_validation = true;
+        transport
+            .config_mut()
+            .allowed_origins
+            .push("https://example.com".to_string());
+
+        assert!(transport.config().enforce_origin_validation);
+        assert_eq!(transport.config().allowed_origins.len(), 1);
     }
 
     #[test]
@@ -77,6 +160,8 @@ mod tests {
             port: 9090,
             host: "192.168.1.100".to_string(),
             enable_cors: true,
+            allowed_origins: vec!["https://example.com".to_string()],
+            enforce_origin_validation: true,
         };
 
         let cloned = config.clone();
@@ -84,6 +169,11 @@ mod tests {
         assert_eq!(config.port, cloned.port);
         assert_eq!(config.host, cloned.host);
         assert_eq!(config.enable_cors, cloned.enable_cors);
+        assert_eq!(config.allowed_origins, cloned.allowed_origins);
+        assert_eq!(
+            config.enforce_origin_validation,
+            cloned.enforce_origin_validation
+        );
 
         // Verify they're independent String instances
         assert_ne!(config.host.as_ptr(), cloned.host.as_ptr());
@@ -125,16 +215,22 @@ mod tests {
                 port: 3001,
                 host: "127.0.0.1".to_string(),
                 enable_cors: true,
+                allowed_origins: Vec::new(),
+                enforce_origin_validation: false,
             },
             StreamableHttpConfig {
                 port: 8080,
                 host: "0.0.0.0".to_string(),
                 enable_cors: false,
+                allowed_origins: Vec::new(),
+                enforce_origin_validation: false,
             },
             StreamableHttpConfig {
                 port: 65535,
                 host: "::1".to_string(),
                 enable_cors: true,
+                allowed_origins: Vec::new(),
+                enforce_origin_validation: false,
             },
         ];
 
@@ -152,6 +248,8 @@ mod tests {
             port: 3001,
             host: "test-host".to_string(),
             enable_cors: true,
+            allowed_origins: Vec::new(),
+            enforce_origin_validation: false,
         };
 
         // Test that host string is properly stored
@@ -322,6 +420,8 @@ mod tests {
                 port,
                 host: host.to_string(),
                 enable_cors: cors,
+                allowed_origins: Vec::new(),
+                enforce_origin_validation: false,
             };
 
             assert_eq!(config.port, port);
@@ -341,6 +441,8 @@ mod tests {
             port: 0,              // System assigned port
             host: "".to_string(), // Empty host
             enable_cors: true,
+            allowed_origins: Vec::new(),
+            enforce_origin_validation: false,
         };
 
         assert_eq!(config.port, 0);
@@ -352,6 +454,8 @@ mod tests {
             port: 65535,             // Maximum port
             host: "::1".to_string(), // IPv6 localhost
             enable_cors: false,
+            allowed_origins: Vec::new(),
+            enforce_origin_validation: false,
         };
 
         assert_eq!(config.port, 65535);
@@ -379,6 +483,8 @@ mod tests {
                 port: 3001,
                 host: host.to_string(),
                 enable_cors: true,
+                allowed_origins: Vec::new(),
+                enforce_origin_validation: false,
             };
 
             assert_eq!(config.host, host);
@@ -395,6 +501,8 @@ mod tests {
                 port: 3001,
                 host: "127.0.0.1".to_string(),
                 enable_cors,
+                allowed_origins: Vec::new(),
+                enforce_origin_validation: false,
             };
 
             assert_eq!(config.enable_cors, enable_cors);
