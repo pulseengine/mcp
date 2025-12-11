@@ -24,12 +24,15 @@
 //!
 //!     fn get_server_info(&self) -> ServerInfo {
 //!         ServerInfo {
-//!             protocol_version: ProtocolVersion::default(),
-//!             capabilities: ServerCapabilities::default(),
-//!             server_info: Implementation {
-//!                 name: "My Server".to_string(),
-//!                 version: "1.0.0".to_string(),
-//!             },
+//!             protocol_version: ProtocolVersion::default(),  // MCP 2025-11-25
+//!             capabilities: ServerCapabilities::builder()
+//!                 .enable_tools()
+//!                 .build(),
+//!             server_info: Implementation::with_description(
+//!                 "My Server",
+//!                 "1.0.0",
+//!                 "Example MCP server",
+//!             ),
 //!             instructions: Some("Example server".to_string()),
 //!         }
 //!     }
@@ -39,18 +42,18 @@
 //!     }
 //!
 //!     async fn call_tool(&self, _: CallToolRequestParam) -> Result<CallToolResult, Self::Error> {
-//!         Ok(CallToolResult { content: vec![], is_error: Some(false) })
+//!         Ok(CallToolResult::empty())
 //!     }
 //!
 //!     // Implement other required methods (simplified for example)
 //! #   async fn list_resources(&self, _: PaginatedRequestParam) -> Result<ListResourcesResult, Self::Error> {
-//! #       Ok(ListResourcesResult { resources: vec![], next_cursor: String::new() })
+//! #       Ok(ListResourcesResult { resources: vec![], next_cursor: None })
 //! #   }
 //! #   async fn read_resource(&self, _: ReadResourceRequestParam) -> Result<ReadResourceResult, Self::Error> {
 //! #       Err("No resources".into())
 //! #   }
 //! #   async fn list_prompts(&self, _: PaginatedRequestParam) -> Result<ListPromptsResult, Self::Error> {
-//! #       Ok(ListPromptsResult { prompts: vec![], next_cursor: String::new() })
+//! #       Ok(ListPromptsResult { prompts: vec![], next_cursor: None })
 //! #   }
 //! #   async fn get_prompt(&self, _: GetPromptRequestParam) -> Result<GetPromptResult, Self::Error> {
 //! #       Err("No prompts".into())
