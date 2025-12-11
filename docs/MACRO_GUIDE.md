@@ -14,7 +14,7 @@ Add PulseEngine MCP Macros to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-pulseengine-mcp-macros = "0.6"
+pulseengine-mcp-macros = "0.15"
 tokio = { version = "1.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 ```
