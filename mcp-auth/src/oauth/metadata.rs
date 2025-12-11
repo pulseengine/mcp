@@ -80,7 +80,7 @@ pub async fn authorization_server_metadata() -> impl IntoResponse {
 /// - MUST include code_challenge_methods_supported for MCP compatibility
 ///
 /// # Reference
-/// https://openid.net/specs/openid-connect-discovery-1_0.html
+/// <https://openid.net/specs/openid-connect-discovery-1_0.html>
 pub async fn openid_configuration() -> impl IntoResponse {
     let base_url = get_base_url();
 

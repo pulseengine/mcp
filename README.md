@@ -9,7 +9,9 @@
 
 This framework provides everything you need to build production-ready MCP servers in Rust. It's been developed and proven through a real-world home automation server with 30+ tools that successfully integrates with MCP Inspector, Claude Desktop, and HTTP clients.
 
-**🎉 NEW: MCP Apps Extension Support** - First production Rust framework supporting [SEP-1865](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/1865) for interactive HTML user interfaces!
+**🎉 MCP 2025-11-25 Support** - Full implementation of the latest MCP specification including Tasks, Tool Calling in Sampling, and Enhanced Elicitation!
+
+**🖼️ MCP Apps Extension Support** - First production Rust framework supporting [SEP-1865](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/1865) for interactive HTML user interfaces!
 
 ## What is MCP?
 
@@ -29,8 +31,8 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-pulseengine-mcp-server = "0.4.1"
-pulseengine-mcp-protocol = "0.4.1"
+pulseengine-mcp-server = "0.15"
+pulseengine-mcp-protocol = "0.15"
 tokio = { version = "1.0", features = ["full"] }
 async-trait = "0.1"
 ```
@@ -56,16 +58,16 @@ impl McpBackend for MyBackend {
 
     fn get_server_info(&self) -> ServerInfo {
         ServerInfo {
-            protocol_version: ProtocolVersion::default(),
-            capabilities: ServerCapabilities {
-                tools: Some(ToolsCapability { list_changed: Some(false) }),
-                ..Default::default()
-            },
-            server_info: Implementation {
-                name: "My MCP Server".to_string(),
-                version: "1.0.0".to_string(),
-            },
-            instructions: Some("A simple example server".to_string()),
+            protocol_version: ProtocolVersion::default(),  // MCP 2025-11-25
+            capabilities: ServerCapabilities::builder()
+                .enable_tools()
+                .build(),
+            server_info: Implementation::with_description(
+                "My MCP Server",
+                "1.0.0",
+                "A simple example server",
+            ),
+            instructions: Some("Use 'hello' tool to greet someone".to_string()),
         }
     }
 
@@ -82,9 +84,15 @@ impl McpBackend for MyBackend {
                         },
                         "required": ["name"]
                     }),
+                    output_schema: None,
+                    title: None,
+                    annotations: None,
+                    icons: None,
+                    execution: None,
+                    _meta: None,
                 }
             ],
-            next_cursor: String::new(),
+            next_cursor: None,
         })
     }
 
@@ -96,10 +104,7 @@ impl McpBackend for MyBackend {
                     .and_then(|v| v.as_str())
                     .unwrap_or("World");
 
-                Ok(CallToolResult {
-                    content: vec![Content::text(format!("Hello, {}!", name))],
-                    is_error: Some(false),
-                })
+                Ok(CallToolResult::text(format!("Hello, {}!", name)))
             }
             _ => Err("Unknown tool".into()),
         }
@@ -107,13 +112,13 @@ impl McpBackend for MyBackend {
 
     // Simple implementations for unused features
     async fn list_resources(&self, _: PaginatedRequestParam) -> Result<ListResourcesResult, Self::Error> {
-        Ok(ListResourcesResult { resources: vec![], next_cursor: String::new() })
+        Ok(ListResourcesResult { resources: vec![], next_cursor: None })
     }
     async fn read_resource(&self, _: ReadResourceRequestParam) -> Result<ReadResourceResult, Self::Error> {
         Err("No resources".into())
     }
     async fn list_prompts(&self, _: PaginatedRequestParam) -> Result<ListPromptsResult, Self::Error> {
-        Ok(ListPromptsResult { prompts: vec![], next_cursor: String::new() })
+        Ok(ListPromptsResult { prompts: vec![], next_cursor: None })
     }
     async fn get_prompt(&self, _: GetPromptRequestParam) -> Result<GetPromptResult, Self::Error> {
         Err("No prompts".into())
@@ -163,23 +168,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 - Request size limits and parameter validation
 - CORS policies and security headers
 
-### 📊 [mcp-monitoring](mcp-monitoring/) - Observability
-
-- Health checks and metrics collection
-- Performance tracking and request tracing
-- Integration with monitoring systems
-
 ### 📝 [mcp-logging](mcp-logging/) - Structured Logging
 
 - JSON logging with correlation IDs
 - Automatic credential sanitization
+- MCP `logging/setLevel` conformance
 - Security audit trails
 
-### 🖥️ [mcp-cli](mcp-cli/) & [mcp-cli-derive](mcp-cli-derive/) - CLI Integration
+### ⚙️ [mcp-macros](mcp-macros/) - Procedural Macros
 
-- Command-line interface generation
-- Configuration management
-- Derive macros for backends
+- `#[mcp_server]` - Generate server boilerplate
+- `#[mcp_tool]` - Define tools with schema generation
+- `#[mcp_resource]` - Define parameterized resources
+- `#[mcp_backend]` - Derive backend implementations
 
 ## Examples
 
@@ -187,7 +188,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 Complete minimal MCP server demonstrating basic concepts.
 
-### 🎨 [UI-Enabled Server](examples/ui-enabled-server/) **NEW!**
+### 🔐 [Hello World with Auth](examples/hello-world-with-auth/)
+
+MCP server with full authentication and authorization.
+
+### 🎨 [UI-Enabled Server](examples/ui-enabled-server/)
 
 **MCP Apps Extension demonstration** with interactive HTML interfaces:
 
@@ -196,13 +201,13 @@ Complete minimal MCP server demonstrating basic concepts.
 - `text/html+mcp` MIME type
 - Complete testing guide
 
-### 🏗️ [Backend Example](examples/backend-example/)
+### 📁 [Resources Demo](examples/resources-demo/)
 
-Shows advanced backend implementation patterns.
+Demonstrates `#[mcp_resource]` macro for parameterized resources with URI templates.
 
-### 🖥️ [CLI Example](examples/cli-example/)
+### ⚡ [Ultra Simple](examples/ultra-simple/)
 
-Demonstrates CLI integration and configuration.
+The absolute minimum MCP server implementation.
 
 ### 🏠 Real-World Reference: Loxone MCP Server
 

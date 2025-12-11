@@ -7,7 +7,7 @@
 //! registration approach for MCP 2025-11-25.
 //!
 //! # Reference
-//! https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-00
+//! <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-00>
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;

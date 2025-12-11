@@ -16,7 +16,7 @@
 //! - SHOULD support Client ID Metadata Documents for registration
 //! - MAY support Dynamic Client Registration (for backwards compatibility)
 //!
-//! Reference: https://github.com/shuttle-hq/shuttle-examples/tree/main/mcp/mcp-sse-oauth
+//! Reference: <https://github.com/shuttle-hq/shuttle-examples/tree/main/mcp/mcp-sse-oauth>
 
 pub mod authorize;
 pub mod bearer;
