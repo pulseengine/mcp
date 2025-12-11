@@ -82,6 +82,10 @@ pub mod stdio_integration_tests;
 // Stress and performance test modules
 pub mod stdio_stress_tests;
 
+// MCP 2025-11-25 conformance tests
+#[cfg(test)]
+mod mcp_2025_11_25_tests;
+
 #[cfg(feature = "proptest")]
 pub mod proptest;
 
@@ -110,7 +114,9 @@ pub use security::SecurityTester;
 pub use fuzzing::{FuzzResult, FuzzTarget, McpFuzzer};
 
 /// Protocol version constants for testing
-pub const SUPPORTED_MCP_VERSIONS: &[&str] = &["2024-11-05", "2025-03-26", "2025-06-18"];
+/// Note: Ordered from newest to oldest
+pub const SUPPORTED_MCP_VERSIONS: &[&str] =
+    &["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
 
 /// Default timeout for external validation requests
 pub const DEFAULT_TIMEOUT_SECONDS: u64 = 30;
@@ -149,11 +155,21 @@ mod tests {
 
     #[test]
     fn test_version_support() {
+        // MCP 2025-11-25 is now the latest supported version
+        assert!(is_version_supported("2025-11-25"));
         assert!(is_version_supported("2025-06-18"));
         assert!(is_version_supported("2025-03-26"));
         assert!(is_version_supported("2024-11-05"));
         assert!(!is_version_supported("2023-01-01"));
         assert!(!is_version_supported("invalid"));
+    }
+
+    #[test]
+    fn test_supported_versions_ordering() {
+        // Versions should be ordered newest to oldest
+        assert_eq!(SUPPORTED_MCP_VERSIONS[0], "2025-11-25");
+        assert_eq!(SUPPORTED_MCP_VERSIONS[3], "2024-11-05");
+        assert_eq!(SUPPORTED_MCP_VERSIONS.len(), 4);
     }
 
     #[test]

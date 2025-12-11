@@ -398,6 +398,9 @@ mod tests {
     fn test_default_config() {
         let config = ValidationConfig::default();
         assert!(config.validate().is_ok());
+        // MCP 2025-11-25 is now the default/latest version
+        assert!(config.should_test_version("2025-11-25"));
+        assert!(config.should_test_version("2025-06-18"));
         assert!(config.should_test_version("2025-03-26"));
         assert!(!config.should_test_version("invalid"));
     }
