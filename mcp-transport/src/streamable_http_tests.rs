@@ -47,6 +47,9 @@ mod tests {
         assert!(config.enable_cors);
         assert!(config.allowed_origins.is_empty());
         assert!(!config.enforce_origin_validation);
+        // MCP 2025-11-25: SSE polling defaults
+        assert_eq!(config.sse_retry_ms, 3000);
+        assert!(config.sse_resumable);
     }
 
     #[test]
@@ -57,11 +60,15 @@ mod tests {
             enable_cors: false,
             allowed_origins: Vec::new(),
             enforce_origin_validation: false,
+            sse_retry_ms: 5000,
+            sse_resumable: false,
         };
 
         assert_eq!(config.port, 8080);
         assert_eq!(config.host, "0.0.0.0");
         assert!(!config.enable_cors);
+        assert_eq!(config.sse_retry_ms, 5000);
+        assert!(!config.sse_resumable);
     }
 
     #[test]
@@ -117,6 +124,8 @@ mod tests {
             enable_cors: false,
             allowed_origins: vec!["https://app.example.com".to_string()],
             enforce_origin_validation: true,
+            sse_retry_ms: 2000,
+            sse_resumable: true,
         };
 
         let transport = StreamableHttpTransport::with_config(config);
@@ -126,6 +135,7 @@ mod tests {
         assert!(!transport.config().enable_cors);
         assert!(transport.config().enforce_origin_validation);
         assert_eq!(transport.config().allowed_origins.len(), 1);
+        assert_eq!(transport.config().sse_retry_ms, 2000);
     }
 
     #[test]
@@ -162,6 +172,8 @@ mod tests {
             enable_cors: true,
             allowed_origins: vec!["https://example.com".to_string()],
             enforce_origin_validation: true,
+            sse_retry_ms: 4000,
+            sse_resumable: true,
         };
 
         let cloned = config.clone();
@@ -174,6 +186,8 @@ mod tests {
             config.enforce_origin_validation,
             cloned.enforce_origin_validation
         );
+        assert_eq!(config.sse_retry_ms, cloned.sse_retry_ms);
+        assert_eq!(config.sse_resumable, cloned.sse_resumable);
 
         // Verify they're independent String instances
         assert_ne!(config.host.as_ptr(), cloned.host.as_ptr());
@@ -217,6 +231,8 @@ mod tests {
                 enable_cors: true,
                 allowed_origins: Vec::new(),
                 enforce_origin_validation: false,
+                sse_retry_ms: 3000,
+                sse_resumable: true,
             },
             StreamableHttpConfig {
                 port: 8080,
@@ -224,6 +240,8 @@ mod tests {
                 enable_cors: false,
                 allowed_origins: Vec::new(),
                 enforce_origin_validation: false,
+                sse_retry_ms: 3000,
+                sse_resumable: true,
             },
             StreamableHttpConfig {
                 port: 65535,
@@ -231,6 +249,8 @@ mod tests {
                 enable_cors: true,
                 allowed_origins: Vec::new(),
                 enforce_origin_validation: false,
+                sse_retry_ms: 3000,
+                sse_resumable: true,
             },
         ];
 
@@ -250,6 +270,8 @@ mod tests {
             enable_cors: true,
             allowed_origins: Vec::new(),
             enforce_origin_validation: false,
+            sse_retry_ms: 3000,
+            sse_resumable: true,
         };
 
         // Test that host string is properly stored
@@ -422,6 +444,8 @@ mod tests {
                 enable_cors: cors,
                 allowed_origins: Vec::new(),
                 enforce_origin_validation: false,
+                sse_retry_ms: 3000,
+                sse_resumable: true,
             };
 
             assert_eq!(config.port, port);
@@ -443,6 +467,8 @@ mod tests {
             enable_cors: true,
             allowed_origins: Vec::new(),
             enforce_origin_validation: false,
+            sse_retry_ms: 3000,
+            sse_resumable: true,
         };
 
         assert_eq!(config.port, 0);
@@ -456,11 +482,15 @@ mod tests {
             enable_cors: false,
             allowed_origins: Vec::new(),
             enforce_origin_validation: false,
+            sse_retry_ms: 1000,
+            sse_resumable: false,
         };
 
         assert_eq!(config.port, 65535);
         assert_eq!(config.host, "::1");
         assert!(!config.enable_cors);
+        assert_eq!(config.sse_retry_ms, 1000);
+        assert!(!config.sse_resumable);
     }
 
     #[test]
@@ -485,6 +515,8 @@ mod tests {
                 enable_cors: true,
                 allowed_origins: Vec::new(),
                 enforce_origin_validation: false,
+                sse_retry_ms: 3000,
+                sse_resumable: true,
             };
 
             assert_eq!(config.host, host);
@@ -503,6 +535,8 @@ mod tests {
                 enable_cors,
                 allowed_origins: Vec::new(),
                 enforce_origin_validation: false,
+                sse_retry_ms: 3000,
+                sse_resumable: true,
             };
 
             assert_eq!(config.enable_cors, enable_cors);
@@ -596,5 +630,105 @@ mod tests {
             assert_eq!(id.len(), 36);
             assert!(uuid::Uuid::parse_str(&id).is_ok());
         }
+    }
+
+    // ============================================================================
+    // SSE Event ID Tests (MCP 2025-11-25)
+    // ============================================================================
+
+    #[test]
+    fn test_sse_event_id_creation() {
+        let event_id = SseEventId::new("session-123", "stream-456", 42);
+
+        assert_eq!(event_id.session_id, "session-123");
+        assert_eq!(event_id.stream_id, "stream-456");
+        assert_eq!(event_id.sequence, 42);
+    }
+
+    #[test]
+    fn test_sse_event_id_encode() {
+        let event_id = SseEventId::new("sess", "strm", 99);
+        let encoded = event_id.encode();
+
+        assert_eq!(encoded, "sess:strm:99");
+    }
+
+    #[test]
+    fn test_sse_event_id_parse() {
+        let parsed = SseEventId::parse("session-123:stream-456:42");
+
+        assert!(parsed.is_some());
+        let event_id = parsed.unwrap();
+        assert_eq!(event_id.session_id, "session-123");
+        assert_eq!(event_id.stream_id, "stream-456");
+        assert_eq!(event_id.sequence, 42);
+    }
+
+    #[test]
+    fn test_sse_event_id_parse_invalid() {
+        // Missing parts
+        assert!(SseEventId::parse("session").is_none());
+        assert!(SseEventId::parse("session:stream").is_none());
+
+        // Invalid sequence number
+        assert!(SseEventId::parse("session:stream:not-a-number").is_none());
+
+        // Empty string
+        assert!(SseEventId::parse("").is_none());
+    }
+
+    #[test]
+    fn test_sse_event_id_roundtrip() {
+        let original = SseEventId::new("my-session", "my-stream", 1000);
+        let encoded = original.encode();
+        let parsed = SseEventId::parse(&encoded).unwrap();
+
+        assert_eq!(original.session_id, parsed.session_id);
+        assert_eq!(original.stream_id, parsed.stream_id);
+        assert_eq!(original.sequence, parsed.sequence);
+    }
+
+    #[test]
+    fn test_sse_event_id_with_special_chars() {
+        // UUID-style IDs (common in real usage)
+        let event_id = SseEventId::new(
+            "550e8400-e29b-41d4-a716-446655440000",
+            "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+            12345,
+        );
+        let encoded = event_id.encode();
+
+        assert!(encoded.contains("550e8400-e29b-41d4-a716-446655440000"));
+        assert!(encoded.contains("6ba7b810-9dad-11d1-80b4-00c04fd430c8"));
+        assert!(encoded.contains("12345"));
+
+        // Roundtrip should work
+        let parsed = SseEventId::parse(&encoded).unwrap();
+        assert_eq!(parsed.sequence, 12345);
+    }
+
+    #[test]
+    fn test_sse_config_defaults() {
+        let config = StreamableHttpConfig::default();
+
+        // MCP 2025-11-25: SSE polling enabled by default
+        assert_eq!(config.sse_retry_ms, 3000);
+        assert!(config.sse_resumable);
+    }
+
+    #[test]
+    fn test_sse_config_custom_retry() {
+        let config = StreamableHttpConfig {
+            port: 3001,
+            host: "127.0.0.1".to_string(),
+            enable_cors: true,
+            allowed_origins: Vec::new(),
+            enforce_origin_validation: false,
+            sse_retry_ms: 10000, // 10 seconds
+            sse_resumable: false,
+        };
+
+        assert_eq!(config.sse_retry_ms, 10000);
+        assert!(!config.sse_resumable);
     }
 }
