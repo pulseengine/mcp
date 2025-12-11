@@ -1,13 +1,13 @@
 //! # MCP Resources Demo
 //!
-//! This example demonstrates how to use the #[mcp_resource] attribute inside
-//! #[mcp_tools] impl blocks to create dynamic, parameterized resources.
+//! This example demonstrates how to use the `#[mcp_resource]` attribute inside
+//! `#[mcp_tools]` impl blocks to create dynamic, parameterized resources.
 //!
 //! ## Key Concepts
 //!
 //! 1. **Tools vs Resources**:
-//!    - Methods WITHOUT #[mcp_resource] → become tools
-//!    - Methods WITH #[mcp_resource] → become resources
+//!    - Methods WITHOUT `#[mcp_resource]` → become tools
+//!    - Methods WITH `#[mcp_resource]` → become resources
 //!
 //! 2. **URI Templates**:
 //!    - Resources use URI templates with parameters: "scheme://{param1}/{param2}"

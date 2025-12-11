@@ -71,7 +71,7 @@ pub struct GenericServerHandler<B: McpBackend> {
     middleware: MiddlewareStack,
     /// Global subscription registry tracking subscribed resource URIs
     /// Note: This is a simplified global implementation. For per-client
-    /// subscriptions, use a HashMap<ClientId, HashSet<String>> instead.
+    /// subscriptions, use a `HashMap<ClientId, HashSet<String>>` instead.
     subscriptions: Arc<RwLock<HashSet<String>>>,
 }
 
