@@ -1,16 +1,26 @@
-//! OAuth 2.1 Authorization Server Implementation
+//! OAuth 2.1 Authorization Server Implementation (MCP 2025-11-25)
 //!
 //! MCP-compliant OAuth 2.1 implementation following:
 //! - OAuth 2.1 (draft-ietf-oauth-v2-1-13) with mandatory PKCE
-//! - RFC 7591: Dynamic Client Registration
+//! - RFC 7591: Dynamic Client Registration (optional fallback)
 //! - RFC 8414: Authorization Server Metadata
 //! - RFC 8707: Resource Indicators
 //! - RFC 9728: Protected Resource Metadata
+//! - OpenID Connect Discovery 1.0 (MCP 2025-11-25)
+//! - Client ID Metadata Documents (MCP 2025-11-25, draft-ietf-oauth-client-id-metadata-document-00)
+//!
+//! # MCP 2025-11-25 Requirements
+//! - Authorization servers MUST provide at least one discovery mechanism:
+//!   - RFC 8414: `/.well-known/oauth-authorization-server`
+//!   - OIDC: `/.well-known/openid-configuration`
+//! - SHOULD support Client ID Metadata Documents for registration
+//! - MAY support Dynamic Client Registration (for backwards compatibility)
 //!
 //! Reference: https://github.com/shuttle-hq/shuttle-examples/tree/main/mcp/mcp-sse-oauth
 
 pub mod authorize;
 pub mod bearer;
+pub mod client_metadata;
 pub mod metadata;
 pub mod models;
 pub mod pkce;
@@ -24,7 +34,11 @@ pub use bearer::{
     BearerError, BearerToken, BearerTokenConfig, WwwAuthenticate, unauthorized_response,
     validate_bearer_token,
 };
-pub use metadata::authorization_server_metadata;
+pub use client_metadata::{
+    ClientIdMetadataDocument, ClientMetadataError, is_client_id_metadata_url,
+    validate_client_id_url, validate_metadata_document, validate_redirect_uri,
+};
+pub use metadata::{authorization_server_metadata, openid_configuration};
 pub use registration::register_client;
 pub use resource::protected_resource_metadata;
 pub use storage::{InMemoryOAuthStorage, OAuthStorage, OAuthStorageError};
@@ -89,8 +103,9 @@ impl OAuthState {
 /// let app: axum::Router = oauth_router().with_state(state);
 /// ```
 ///
-/// # Endpoints
+/// # Endpoints (MCP 2025-11-25 compliant)
 /// - `GET /.well-known/oauth-authorization-server` - RFC 8414 metadata
+/// - `GET /.well-known/openid-configuration` - OpenID Connect Discovery 1.0
 /// - `GET /.well-known/oauth-protected-resource` - RFC 9728 metadata
 /// - `POST /oauth/register` - RFC 7591 dynamic client registration
 /// - `GET /oauth/authorize` - Authorization consent form
@@ -102,6 +117,11 @@ pub fn oauth_router() -> Router<OAuthState> {
         .route(
             "/.well-known/oauth-authorization-server",
             get(authorization_server_metadata),
+        )
+        // OpenID Connect Discovery 1.0 (MCP 2025-11-25)
+        .route(
+            "/.well-known/openid-configuration",
+            get(openid_configuration),
         )
         // RFC 9728: Protected Resource Metadata
         .route(

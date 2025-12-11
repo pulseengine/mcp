@@ -314,3 +314,82 @@ async fn test_protected_resource_metadata() {
     assert!(body["authorization_servers"].is_array());
     assert!(body["scopes_supported"].is_array());
 }
+
+// ============================================================================
+// OpenID Connect Discovery Tests (MCP 2025-11-25)
+// ============================================================================
+
+#[tokio::test]
+async fn test_openid_configuration() {
+    let app = test_app();
+
+    let (status, body) = get_request(app, "/.well-known/openid-configuration").await;
+
+    assert_eq!(status, StatusCode::OK);
+
+    // Common OAuth fields (also in authorization_server_metadata)
+    assert!(body["issuer"].is_string());
+    assert!(body["authorization_endpoint"].is_string());
+    assert!(body["token_endpoint"].is_string());
+    assert_eq!(body["response_types_supported"], json!(["code"]));
+    assert_eq!(
+        body["grant_types_supported"],
+        json!(["authorization_code", "refresh_token"])
+    );
+
+    // MCP 2025-11-25: MUST include code_challenge_methods_supported
+    assert_eq!(body["code_challenge_methods_supported"], json!(["S256"]));
+
+    // OIDC-specific fields
+    assert!(body["jwks_uri"].is_string());
+    assert!(body["subject_types_supported"].is_array());
+    assert!(body["id_token_signing_alg_values_supported"].is_array());
+    assert!(body["claims_supported"].is_array());
+}
+
+#[tokio::test]
+async fn test_openid_configuration_client_id_metadata_document_supported() {
+    let app = test_app();
+
+    let (status, body) = get_request(app, "/.well-known/openid-configuration").await;
+
+    assert_eq!(status, StatusCode::OK);
+
+    // MCP 2025-11-25: SHOULD advertise Client ID Metadata Document support
+    assert_eq!(body["client_id_metadata_document_supported"], json!(true));
+}
+
+#[tokio::test]
+async fn test_authorization_server_metadata_client_id_metadata_document_supported() {
+    let app = test_app();
+
+    let (status, body) = get_request(app, "/.well-known/oauth-authorization-server").await;
+
+    assert_eq!(status, StatusCode::OK);
+
+    // MCP 2025-11-25: SHOULD advertise Client ID Metadata Document support
+    assert_eq!(body["client_id_metadata_document_supported"], json!(true));
+}
+
+#[tokio::test]
+async fn test_authorization_server_metadata_token_endpoint_auth_methods() {
+    let app = test_app();
+
+    let (status, body) = get_request(app, "/.well-known/oauth-authorization-server").await;
+
+    assert_eq!(status, StatusCode::OK);
+
+    // MCP 2025-11-25: Support "none" for public CIMD clients and "private_key_jwt" for confidential
+    let auth_methods = body["token_endpoint_auth_methods_supported"]
+        .as_array()
+        .expect("token_endpoint_auth_methods_supported should be an array");
+
+    assert!(
+        auth_methods.contains(&json!("none")),
+        "Should support 'none' for public clients using CIMD"
+    );
+    assert!(
+        auth_methods.contains(&json!("private_key_jwt")),
+        "Should support 'private_key_jwt' for confidential clients"
+    );
+}
