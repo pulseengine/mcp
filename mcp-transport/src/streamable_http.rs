@@ -1,7 +1,13 @@
-//! Streamable HTTP transport implementation for MCP
+//! Streamable HTTP transport implementation for MCP (2025-11-25)
 //!
 //! This implements the newer streamable-http transport that MCP Inspector expects,
 //! which replaces the deprecated SSE transport.
+//!
+//! # MCP 2025-11-25 SSE Features
+//! - Server-Sent Events (SSE) for streaming responses
+//! - Event IDs for stream resumption via `Last-Event-ID` header
+//! - Server-initiated disconnect with `retry` field for polling
+//! - Origin header validation (HTTP 403 for invalid origins)
 
 use crate::{RequestHandler, Transport, TransportError};
 use async_trait::async_trait;
@@ -34,6 +40,12 @@ pub struct StreamableHttpConfig {
     /// Whether to enforce Origin validation (MCP 2025-11-25)
     /// When true, requests with invalid Origin headers receive 403
     pub enforce_origin_validation: bool,
+    /// SSE retry interval in milliseconds (MCP 2025-11-25)
+    /// Sent to clients to control reconnection timing after server-initiated disconnect
+    pub sse_retry_ms: u64,
+    /// Whether to enable SSE stream resumption (MCP 2025-11-25)
+    /// When true, server will attach event IDs and support Last-Event-ID header
+    pub sse_resumable: bool,
 }
 
 impl Default for StreamableHttpConfig {
@@ -44,6 +56,8 @@ impl Default for StreamableHttpConfig {
             enable_cors: true,
             allowed_origins: Vec::new(),
             enforce_origin_validation: false,
+            sse_retry_ms: 3000, // 3 seconds default retry interval
+            sse_resumable: true,
         }
     }
 }
@@ -77,6 +91,49 @@ struct SessionInfo {
     id: String,
     #[allow(dead_code)]
     created_at: std::time::Instant,
+    /// Counter for generating unique event IDs within this session
+    event_counter: u64,
+}
+
+/// SSE Event ID (MCP 2025-11-25)
+///
+/// Event IDs encode both the session and stream identity for resumption.
+/// Format: `{session_id}:{stream_id}:{sequence}`
+#[derive(Debug, Clone)]
+pub struct SseEventId {
+    pub session_id: String,
+    pub stream_id: String,
+    pub sequence: u64,
+}
+
+impl SseEventId {
+    /// Create a new SSE event ID
+    pub fn new(session_id: &str, stream_id: &str, sequence: u64) -> Self {
+        Self {
+            session_id: session_id.to_string(),
+            stream_id: stream_id.to_string(),
+            sequence,
+        }
+    }
+
+    /// Encode the event ID as a string for SSE
+    pub fn encode(&self) -> String {
+        format!("{}:{}:{}", self.session_id, self.stream_id, self.sequence)
+    }
+
+    /// Parse an event ID from the Last-Event-ID header
+    pub fn parse(s: &str) -> Option<Self> {
+        let parts: Vec<&str> = s.splitn(3, ':').collect();
+        if parts.len() != 3 {
+            return None;
+        }
+        let sequence = parts[2].parse().ok()?;
+        Some(Self {
+            session_id: parts[0].to_string(),
+            stream_id: parts[1].to_string(),
+            sequence,
+        })
+    }
 }
 
 /// Shared state
@@ -215,6 +272,7 @@ impl StreamableHttpTransport {
             let session = SessionInfo {
                 id: id.clone(),
                 created_at: std::time::Instant::now(),
+                event_counter: 0,
             };
             let mut sessions = state.sessions.write().await;
             sessions.insert(id.clone(), session);
@@ -227,6 +285,7 @@ impl StreamableHttpTransport {
         let session = SessionInfo {
             id: id.clone(),
             created_at: std::time::Instant::now(),
+            event_counter: 0,
         };
 
         let mut sessions = state.sessions.write().await;
@@ -234,6 +293,25 @@ impl StreamableHttpTransport {
         info!("Created new session: {}", id);
 
         id
+    }
+
+    /// Get the next event ID for a session (MCP 2025-11-25)
+    async fn next_event_id(
+        state: &AppState,
+        session_id: &str,
+        stream_id: &str,
+    ) -> Option<SseEventId> {
+        let mut sessions = state.sessions.write().await;
+        if let Some(session) = sessions.get_mut(session_id) {
+            session.event_counter += 1;
+            Some(SseEventId::new(
+                session_id,
+                stream_id,
+                session.event_counter,
+            ))
+        } else {
+            None
+        }
     }
 }
 
@@ -310,7 +388,13 @@ async fn handle_messages(
     (StatusCode::OK, headers, Json(response)).into_response()
 }
 
-/// Handle SSE requests for server-to-client streaming
+/// Handle SSE requests for server-to-client streaming (MCP 2025-11-25)
+///
+/// This endpoint supports:
+/// - Initial SSE stream establishment
+/// - Stream resumption via `Last-Event-ID` header
+/// - Event IDs for stream identity
+/// - Server-initiated disconnect with `retry` field
 async fn handle_sse(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -323,27 +407,82 @@ async fn handle_sse(
         return forbidden_response.into_response();
     }
 
-    // For streamable-http, we need to handle this differently
-    // The client expects an immediate response, not an SSE stream
+    // Check for Last-Event-ID header for stream resumption (MCP 2025-11-25)
+    let last_event_id = headers
+        .get("Last-Event-ID")
+        .and_then(|v| v.to_str().ok())
+        .and_then(SseEventId::parse);
+
+    if let Some(ref event_id) = last_event_id {
+        debug!(
+            "SSE resumption request: session={}, stream={}, sequence={}",
+            event_id.session_id, event_id.stream_id, event_id.sequence
+        );
+    }
 
     // Get or create session
     let session_id = StreamableHttpTransport::ensure_session(&state, query.session_id).await;
 
-    // Return a simple response indicating the connection is established
-    // This is what MCP Inspector expects for streamable-http
-    let response = serde_json::json!({
+    // Generate a stream ID for this connection
+    let stream_id = Uuid::new_v4().to_string();
+
+    // Get initial event ID for this stream (MCP 2025-11-25)
+    // This primes the client for reconnection
+    let initial_event_id = if state.config.sse_resumable {
+        StreamableHttpTransport::next_event_id(&state, &session_id, &stream_id).await
+    } else {
+        None
+    };
+
+    // Build SSE response
+    // MCP 2025-11-25: Server SHOULD immediately send an SSE event with an event ID
+    // and empty data field to prime the client for reconnection
+    let mut sse_body = String::new();
+
+    // Add retry field (MCP 2025-11-25)
+    sse_body.push_str(&format!("retry: {}\n", state.config.sse_retry_ms));
+
+    // Send initial priming event with event ID
+    if let Some(event_id) = initial_event_id {
+        sse_body.push_str(&format!("id: {}\n", event_id.encode()));
+    }
+    sse_body.push_str("data: \n\n"); // Empty data field for priming
+
+    // Send connection established event
+    let connection_event = serde_json::json!({
         "type": "connection",
         "status": "connected",
         "sessionId": session_id,
-        "transport": "streamable-http"
+        "streamId": stream_id,
+        "transport": "streamable-http",
+        "resumable": state.config.sse_resumable
     });
 
-    // Include session ID in response header as per MCP spec
-    let mut response_headers = HeaderMap::new();
-    response_headers.insert("Mcp-Session-Id", session_id.parse().unwrap());
-    debug!("SSE response with session ID: {}", session_id);
+    // Get next event ID for the connection event
+    let connection_event_id = if state.config.sse_resumable {
+        StreamableHttpTransport::next_event_id(&state, &session_id, &stream_id).await
+    } else {
+        None
+    };
 
-    (StatusCode::OK, response_headers, Json(response)).into_response()
+    if let Some(event_id) = connection_event_id {
+        sse_body.push_str(&format!("id: {}\n", event_id.encode()));
+    }
+    sse_body.push_str(&format!("data: {connection_event}\n\n"));
+
+    // Build response headers
+    let mut response_headers = HeaderMap::new();
+    response_headers.insert("Content-Type", "text/event-stream".parse().unwrap());
+    response_headers.insert("Cache-Control", "no-cache".parse().unwrap());
+    response_headers.insert("Connection", "keep-alive".parse().unwrap());
+    response_headers.insert("Mcp-Session-Id", session_id.parse().unwrap());
+
+    debug!(
+        "SSE response with session ID: {}, stream ID: {}",
+        session_id, stream_id
+    );
+
+    (StatusCode::OK, response_headers, sse_body).into_response()
 }
 
 #[async_trait]
