@@ -2,15 +2,13 @@
 /target/
 **/target/
 
-# Cargo lock file for libraries (keep for applications)
-# Cargo.lock
-
-# IDE files
+# IDE and editor files
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+.zed/
 
 # OS files
 .DS_Store
@@ -26,6 +24,7 @@ Thumbs.db
 # Environment files
 .env
 .env.local
+.env.*.local
 
 # Backup files
 *.bak
@@ -37,5 +36,19 @@ cobertura.xml
 lcov.info
 lcov-*.info
 coverage-summary.txt
-/target/llvm-cov/.claude/
+*.profraw
+*.profdata
+security-coverage.info
+
+# Node.js (from examples/ui-enabled-server)
 node_modules/
+package-lock.json
+pnpm-lock.yaml
+.pnpm-store/
+
+# Test results and artifacts
+/results/
+conformance-tests/results/
+
+# Local test configs
+test-config.json
