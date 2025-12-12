@@ -66,10 +66,7 @@ pub use profiling::{
 };
 pub use sanitization::{LogSanitizer, SanitizationConfig};
 pub use structured::{ErrorClass, StructuredContext, StructuredLogger};
-pub use telemetry::{
-    BatchProcessingConfig, JaegerConfig, OtlpConfig, SamplingConfig, SamplingStrategy,
-    TelemetryConfig, TelemetryError, TelemetryManager, ZipkinConfig, propagation, spans,
-};
+pub use telemetry::spans;
 
 /// Result type for logging operations
 ///

@@ -5,8 +5,7 @@ use crate::{backend::McpBackend, handler::GenericServerHandler, middleware::Midd
 use pulseengine_mcp_auth::{AuthConfig, AuthenticationManager};
 use pulseengine_mcp_logging::{
     AlertConfig, AlertManager, DashboardConfig, DashboardManager, PerformanceProfiler,
-    PersistenceConfig, ProfilingConfig, SanitizationConfig, StructuredLogger, TelemetryConfig,
-    TelemetryManager,
+    PersistenceConfig, ProfilingConfig, SanitizationConfig, StructuredLogger,
 };
 use pulseengine_mcp_protocol::*;
 use pulseengine_mcp_security::{SecurityConfig, SecurityMiddleware};
@@ -66,9 +65,6 @@ pub struct ServerConfig {
     /// Metrics persistence configuration
     pub persistence_config: Option<PersistenceConfig>,
 
-    /// Telemetry configuration
-    pub telemetry_config: TelemetryConfig,
-
     /// Alert configuration
     pub alert_config: AlertConfig,
 
@@ -100,7 +96,6 @@ impl Default for ServerConfig {
             monitoring_config: crate::observability::default_config(),
             sanitization_config: SanitizationConfig::default(),
             persistence_config: None,
-            telemetry_config: TelemetryConfig::default(),
             alert_config: AlertConfig::default(),
             dashboard_config: DashboardConfig::default(),
             profiling_config: ProfilingConfig::default(),
@@ -123,7 +118,6 @@ pub struct McpServer<B: McpBackend> {
     logging_metrics: Arc<pulseengine_mcp_logging::MetricsCollector>,
     #[allow(dead_code)]
     logger: StructuredLogger,
-    telemetry: Option<TelemetryManager>,
     alert_manager: Arc<AlertManager>,
     dashboard_manager: Arc<DashboardManager>,
     profiler: Option<Arc<PerformanceProfiler>>,
@@ -138,19 +132,6 @@ impl<B: McpBackend + 'static> McpServer<B> {
         let logger = StructuredLogger::new();
 
         info!("Initializing MCP server with backend");
-
-        // Initialize telemetry
-        let telemetry = if config.telemetry_config.enabled {
-            let mut telemetry_config = config.telemetry_config.clone();
-            telemetry_config.service_name = config.server_info.server_info.name.clone();
-            telemetry_config.service_version = config.server_info.server_info.version.clone();
-
-            Some(TelemetryManager::new(telemetry_config).await.map_err(|e| {
-                ServerError::Configuration(format!("Failed to initialize telemetry: {e}"))
-            })?)
-        } else {
-            None
-        };
 
         // Initialize authentication only if enabled
         let auth_manager = if config.auth_config.enabled {
@@ -226,7 +207,6 @@ impl<B: McpBackend + 'static> McpServer<B> {
             monitoring_metrics,
             logging_metrics,
             logger,
-            telemetry,
             alert_manager,
             dashboard_manager,
             profiler,
@@ -348,13 +328,6 @@ impl<B: McpBackend + 'static> McpServer<B> {
         if let Some(profiler) = &self.profiler {
             profiler.stop_session().await.map_err(|e| {
                 ServerError::Configuration(format!("Failed to stop profiling session: {e}"))
-            })?;
-        }
-
-        // Shutdown telemetry
-        if let Some(telemetry) = &self.telemetry {
-            telemetry.shutdown().await.map_err(|e| {
-                ServerError::Configuration(format!("Failed to shutdown telemetry: {e}"))
             })?;
         }
 
