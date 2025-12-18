@@ -125,6 +125,7 @@ pub mod builder_trait;
 pub mod cli_helpers;
 pub mod common_backend;
 pub mod observability;
+pub mod tool_context;
 
 pub mod backend;
 pub mod context;
@@ -163,6 +164,13 @@ pub use context::RequestContext;
 pub use handler::{GenericServerHandler, HandlerError};
 pub use middleware::{Middleware, MiddlewareStack};
 pub use server::{McpServer, ServerConfig, ServerError};
+pub use tool_context::{
+    CreateMessageRequest, CreateMessageResult, DefaultToolContext, ElicitationAction,
+    ElicitationRequest, ElicitationResult, IncludeContext, LogNotificationParams, ModelHint,
+    ModelPreferences, NoOpToolContext, NotificationSender, ProgressNotificationParams,
+    RequestSender, SamplingContent, SamplingMessage, SamplingRole, ToolContext, ToolContextError,
+    TransportBridge, create_tool_context, current_context, try_current_context, with_context,
+};
 
 // Re-export CLI helpers
 pub use cli_helpers::{CliError, DefaultLoggingConfig, LogFormat, LogOutput, create_server_info};

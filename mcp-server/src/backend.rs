@@ -184,7 +184,13 @@ pub trait McpBackend: Send + Sync + Clone {
         request: CompleteRequestParam,
     ) -> std::result::Result<CompleteResult, Self::Error> {
         let _ = request;
-        Ok(CompleteResult { completion: vec![] })
+        Ok(CompleteResult {
+            completion: CompletionValues {
+                values: vec![],
+                total: None,
+                has_more: None,
+            },
+        })
     }
 
     // Elicitation (optional)

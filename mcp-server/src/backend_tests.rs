@@ -355,16 +355,18 @@ async fn test_mock_backend_optional_methods() {
     // Test complete (default implementation)
     let complete_result = backend
         .complete(CompleteRequestParam {
-            ref_: "test://resource".to_string(),
-            argument: serde_json::json!({
-                "name": "test",
-                "value": "test"
-            }),
+            ref_: pulseengine_mcp_protocol::CompletionRef::Resource {
+                uri: "test://resource".to_string(),
+            },
+            argument: pulseengine_mcp_protocol::CompletionArgument {
+                name: "test".to_string(),
+                value: "test".to_string(),
+            },
             context: None,
         })
         .await
         .unwrap();
-    assert!(complete_result.completion.is_empty());
+    assert!(complete_result.completion.values.is_empty());
 
     // Test set level (default accepts any level)
     let set_level_result = backend

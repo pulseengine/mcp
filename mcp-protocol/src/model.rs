@@ -613,15 +613,26 @@ pub enum Content {
     #[serde(rename = "image")]
     Image {
         data: String,
+        #[serde(rename = "mimeType")]
+        mime_type: String,
+        #[serde(rename = "_meta", skip_serializing_if = "Option::is_none")]
+        _meta: Option<Meta>,
+    },
+    /// Audio content with base64-encoded data
+    #[serde(rename = "audio")]
+    Audio {
+        /// Base64-encoded audio data
+        data: String,
+        /// MIME type (e.g., "audio/wav", "audio/mp3")
+        #[serde(rename = "mimeType")]
         mime_type: String,
         #[serde(rename = "_meta", skip_serializing_if = "Option::is_none")]
         _meta: Option<Meta>,
     },
     #[serde(rename = "resource")]
     Resource {
-        #[serde(with = "serde_json_string_or_object")]
-        resource: String,
-        text: Option<String>,
+        /// The embedded resource contents
+        resource: EmbeddedResourceContents,
         #[serde(rename = "_meta", skip_serializing_if = "Option::is_none")]
         _meta: Option<Meta>,
     },
@@ -660,7 +671,11 @@ pub enum ToolResultContent {
     #[serde(rename = "text")]
     Text { text: String },
     #[serde(rename = "image")]
-    Image { data: String, mime_type: String },
+    Image {
+        data: String,
+        #[serde(rename = "mimeType")]
+        mime_type: String,
+    },
 }
 
 impl Content {
@@ -679,10 +694,37 @@ impl Content {
         }
     }
 
-    pub fn resource(resource: impl Into<String>, text: Option<String>) -> Self {
+    /// Create audio content with base64-encoded data
+    pub fn audio(data: impl Into<String>, mime_type: impl Into<String>) -> Self {
+        Self::Audio {
+            data: data.into(),
+            mime_type: mime_type.into(),
+            _meta: None,
+        }
+    }
+
+    /// Create embedded resource content
+    pub fn resource(
+        uri: impl Into<String>,
+        mime_type: Option<String>,
+        text: Option<String>,
+    ) -> Self {
         Self::Resource {
-            resource: resource.into(),
-            text,
+            resource: EmbeddedResourceContents {
+                uri: uri.into(),
+                mime_type,
+                text,
+                blob: None,
+                _meta: None,
+            },
+            _meta: None,
+        }
+    }
+
+    /// Create embedded resource content from ResourceContents
+    pub fn from_resource_contents(contents: ResourceContents) -> Self {
+        Self::Resource {
+            resource: contents,
             _meta: None,
         }
     }
@@ -769,17 +811,9 @@ impl Content {
     ///     _meta: None,
     /// }
     /// ```
+    /// Create a UI HTML resource content (for MCP Apps Extension / MCP-UI)
     pub fn ui_html(uri: impl Into<String>, html: impl Into<String>) -> Self {
-        let resource_json = serde_json::json!({
-            "uri": uri.into(),
-            "mimeType": "text/html",
-            "text": html.into()
-        });
-        Self::Resource {
-            resource: resource_json.to_string(),
-            text: None,
-            _meta: None,
-        }
+        Self::resource(uri, Some("text/html".to_string()), Some(html.into()))
     }
 
     /// Create a UI resource content with custom MIME type (for MCP Apps Extension / MCP-UI)
@@ -803,16 +837,7 @@ impl Content {
         mime_type: impl Into<String>,
         content: impl Into<String>,
     ) -> Self {
-        let resource_json = serde_json::json!({
-            "uri": uri.into(),
-            "mimeType": mime_type.into(),
-            "text": content.into()
-        });
-        Self::Resource {
-            resource: resource_json.to_string(),
-            text: None,
-            _meta: None,
-        }
+        Self::resource(uri, Some(mime_type.into()), Some(content.into()))
     }
 
     /// Get text content if this is a text content type
@@ -1136,8 +1161,11 @@ pub struct ReadResourceRequestParam {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResourceContents {
     pub uri: String,
+    #[serde(rename = "mimeType", skip_serializing_if = "Option::is_none")]
     pub mime_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub blob: Option<String>,
     #[serde(rename = "_meta", skip_serializing_if = "Option::is_none")]
     pub _meta: Option<Meta>,
@@ -1148,6 +1176,9 @@ pub struct ResourceContents {
 pub struct ReadResourceResult {
     pub contents: Vec<ResourceContents>,
 }
+
+/// Embedded resource contents for tool responses (alias for ResourceContents)
+pub type EmbeddedResourceContents = ResourceContents;
 
 /// Raw resource (for internal use)
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1183,16 +1214,50 @@ impl PromptMessage {
             },
         }
     }
+
+    /// Create a new resource message with embedded resource content
+    pub fn new_resource(
+        role: PromptMessageRole,
+        uri: impl Into<String>,
+        mime_type: Option<String>,
+        text: Option<String>,
+    ) -> Self {
+        Self {
+            role,
+            content: PromptMessageContent::Resource {
+                resource: EmbeddedResourceContents {
+                    uri: uri.into(),
+                    mime_type,
+                    text,
+                    blob: None,
+                    _meta: None,
+                },
+            },
+        }
+    }
 }
 
 impl CompleteResult {
-    /// Create a simple completion result
-    pub fn simple(completion: impl Into<String>) -> Self {
+    /// Create a simple completion result with a single value
+    pub fn simple(value: impl Into<String>) -> Self {
         Self {
-            completion: vec![CompletionInfo {
-                completion: completion.into(),
+            completion: CompletionValues {
+                values: vec![value.into()],
+                total: None,
                 has_more: Some(false),
-            }],
+            },
+        }
+    }
+
+    /// Create a completion result with multiple values
+    pub fn with_values(values: Vec<String>) -> Self {
+        let total = values.len() as u64;
+        Self {
+            completion: CompletionValues {
+                values,
+                total: Some(total),
+                has_more: Some(false),
+            },
         }
     }
 }
@@ -1203,7 +1268,9 @@ pub struct Prompt {
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub arguments: Option<Vec<PromptArgument>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub icons: Option<Vec<Icon>>,
@@ -1248,7 +1315,17 @@ pub enum PromptMessageContent {
     #[serde(rename = "text")]
     Text { text: String },
     #[serde(rename = "image")]
-    Image { data: String, mime_type: String },
+    Image {
+        data: String,
+        #[serde(rename = "mimeType")]
+        mime_type: String,
+    },
+    /// Embedded resource content in prompts
+    #[serde(rename = "resource")]
+    Resource {
+        /// The embedded resource contents
+        resource: EmbeddedResourceContents,
+    },
 }
 
 /// Prompt message
@@ -1312,28 +1389,59 @@ impl CompletionContext {
     }
 }
 
+/// Reference type for completion requests
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum CompletionRef {
+    /// Reference to a prompt for argument completion
+    #[serde(rename = "ref/prompt")]
+    Prompt { name: String },
+    /// Reference to a resource for URI completion
+    #[serde(rename = "ref/resource")]
+    Resource { uri: String },
+}
+
+/// Completion argument being completed
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompletionArgument {
+    pub name: String,
+    pub value: String,
+}
+
 /// Completion request parameters
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompleteRequestParam {
-    pub ref_: String,
-    pub argument: serde_json::Value,
+    #[serde(rename = "ref")]
+    pub ref_: CompletionRef,
+    pub argument: CompletionArgument,
     /// Optional context for context-aware completion (MCP 2025-06-18)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub context: Option<CompletionContext>,
 }
 
-/// Completion information
+/// Completion values object
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CompletionInfo {
-    pub completion: String,
+pub struct CompletionValues {
+    /// Array of completion suggestions
+    pub values: Vec<String>,
+    /// Optional total number of available matches
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total: Option<u64>,
+    /// Boolean indicating if additional results exist
+    #[serde(rename = "hasMore", skip_serializing_if = "Option::is_none")]
     pub has_more: Option<bool>,
 }
 
 /// Complete result
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompleteResult {
-    pub completion: Vec<CompletionInfo>,
+    /// The completion object containing values and metadata
+    pub completion: CompletionValues,
 }
+
+// Keep the old type for backwards compatibility
+#[deprecated(note = "Use CompletionValues instead")]
+pub type CompletionInfo = CompletionValues;
 
 /// Set logging level parameters
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -2123,31 +2231,5 @@ pub enum TaskSupport {
 impl Default for TaskSupport {
     fn default() -> Self {
         Self::Optional
-    }
-}
-
-/// Serde module for serializing/deserializing JSON strings as objects
-mod serde_json_string_or_object {
-    use serde::{Deserialize, Deserializer, Serialize, Serializer};
-    use serde_json::Value;
-
-    pub fn serialize<S>(value: &str, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        // Parse the string as JSON and serialize it as an object
-        match serde_json::from_str::<Value>(value) {
-            Ok(json_value) => json_value.serialize(serializer),
-            Err(_) => serializer.serialize_str(value), // Fall back to string if not valid JSON
-        }
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<String, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        // Deserialize as JSON Value and convert to string
-        let value = Value::deserialize(deserializer)?;
-        Ok(value.to_string())
     }
 }

@@ -75,6 +75,20 @@ mod tests {
                     assert!(display.contains("Protocol error"));
                     assert!(display.contains(msg));
                 }
+                TransportError::Timeout => {
+                    assert!(display.contains("Timeout"));
+                }
+                TransportError::SessionNotFound(msg) => {
+                    assert!(display.contains("Session not found"));
+                    assert!(display.contains(msg));
+                }
+                TransportError::ChannelClosed => {
+                    assert!(display.contains("Channel closed"));
+                }
+                TransportError::NotSupported(msg) => {
+                    assert!(display.contains("Not supported"));
+                    assert!(display.contains(msg));
+                }
             }
         }
     }

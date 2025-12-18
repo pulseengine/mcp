@@ -684,7 +684,10 @@ async fn test_handler_optional_methods() {
         ))),
         method: "completion/complete".to_string(),
         params: serde_json::json!({
-            "ref_": "test://resource",
+            "ref": {
+                "type": "ref/resource",
+                "uri": "test://resource"
+            },
             "argument": {"name": "test", "value": "test"}
         }),
     };

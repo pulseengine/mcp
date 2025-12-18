@@ -11,12 +11,13 @@ members = [
     "mcp-external-validation",
     "integration-tests",
     "conformance-tests",
-    # Examples (5 total - consolidated from 19)
+    # Examples (6 total - consolidated from 19)
     "examples/hello-world",           # Minimal starter example
     "examples/hello-world-with-auth", # Security/auth integration
     "examples/ultra-simple",          # Macro showcase (8 lines)
     "examples/ui-enabled-server",     # MCP Apps Extension (SEP-1865)
     "examples/resources-demo",        # Resource handling patterns
+    "examples/conformance-server",    # MCP conformance test server
 ]
 
 resolver = "2"

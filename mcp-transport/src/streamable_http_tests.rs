@@ -62,6 +62,7 @@ mod tests {
             enforce_origin_validation: false,
             sse_retry_ms: 5000,
             sse_resumable: false,
+            ..Default::default()
         };
 
         assert_eq!(config.port, 8080);
@@ -126,6 +127,7 @@ mod tests {
             enforce_origin_validation: true,
             sse_retry_ms: 2000,
             sse_resumable: true,
+            ..Default::default()
         };
 
         let transport = StreamableHttpTransport::with_config(config);
@@ -174,6 +176,7 @@ mod tests {
             enforce_origin_validation: true,
             sse_retry_ms: 4000,
             sse_resumable: true,
+            ..Default::default()
         };
 
         let cloned = config.clone();
@@ -233,6 +236,7 @@ mod tests {
                 enforce_origin_validation: false,
                 sse_retry_ms: 3000,
                 sse_resumable: true,
+                ..Default::default()
             },
             StreamableHttpConfig {
                 port: 8080,
@@ -242,6 +246,7 @@ mod tests {
                 enforce_origin_validation: false,
                 sse_retry_ms: 3000,
                 sse_resumable: true,
+                ..Default::default()
             },
             StreamableHttpConfig {
                 port: 65535,
@@ -251,6 +256,7 @@ mod tests {
                 enforce_origin_validation: false,
                 sse_retry_ms: 3000,
                 sse_resumable: true,
+                ..Default::default()
             },
         ];
 
@@ -272,6 +278,7 @@ mod tests {
             enforce_origin_validation: false,
             sse_retry_ms: 3000,
             sse_resumable: true,
+            ..Default::default()
         };
 
         // Test that host string is properly stored
@@ -446,6 +453,7 @@ mod tests {
                 enforce_origin_validation: false,
                 sse_retry_ms: 3000,
                 sse_resumable: true,
+                ..Default::default()
             };
 
             assert_eq!(config.port, port);
@@ -469,6 +477,7 @@ mod tests {
             enforce_origin_validation: false,
             sse_retry_ms: 3000,
             sse_resumable: true,
+            ..Default::default()
         };
 
         assert_eq!(config.port, 0);
@@ -484,6 +493,7 @@ mod tests {
             enforce_origin_validation: false,
             sse_retry_ms: 1000,
             sse_resumable: false,
+            ..Default::default()
         };
 
         assert_eq!(config.port, 65535);
@@ -517,6 +527,7 @@ mod tests {
                 enforce_origin_validation: false,
                 sse_retry_ms: 3000,
                 sse_resumable: true,
+                ..Default::default()
             };
 
             assert_eq!(config.host, host);
@@ -537,6 +548,7 @@ mod tests {
                 enforce_origin_validation: false,
                 sse_retry_ms: 3000,
                 sse_resumable: true,
+                ..Default::default()
             };
 
             assert_eq!(config.enable_cors, enable_cors);
@@ -726,6 +738,7 @@ mod tests {
             enforce_origin_validation: false,
             sse_retry_ms: 10000, // 10 seconds
             sse_resumable: false,
+            ..Default::default()
         };
 
         assert_eq!(config.sse_retry_ms, 10000);
