@@ -169,12 +169,15 @@ mod tests {
         }
 
         // Resource content
-        let resource_content =
-            Content::resource("file://path/to/resource", Some("text".to_string()));
+        let resource_content = Content::resource(
+            "file://path/to/resource",
+            Some("text/plain".to_string()),
+            Some("text".to_string()),
+        );
         match &resource_content {
-            Content::Resource { resource, text, .. } => {
-                assert_eq!(resource, "file://path/to/resource");
-                assert_eq!(text.as_ref().unwrap(), "text");
+            Content::Resource { resource, .. } => {
+                assert_eq!(resource.uri, "file://path/to/resource");
+                assert_eq!(resource.text.as_ref().unwrap(), "text");
             }
             _ => panic!("Expected resource content"),
         }
@@ -397,9 +400,9 @@ mod tests {
     #[test]
     fn test_complete_result_simple() {
         let result = CompleteResult::simple("Completion text");
-        assert_eq!(result.completion.len(), 1);
-        assert_eq!(result.completion[0].completion, "Completion text");
-        assert_eq!(result.completion[0].has_more, Some(false));
+        assert_eq!(result.completion.values.len(), 1);
+        assert_eq!(result.completion.values[0], "Completion text");
+        assert_eq!(result.completion.has_more, Some(false));
     }
 
     #[test]

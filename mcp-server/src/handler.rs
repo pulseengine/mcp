@@ -1,9 +1,11 @@
 //! Generic request handler for MCP protocol
 
+use crate::tool_context::{NoOpToolContext, ToolContext, create_tool_context, with_context};
 use crate::{backend::McpBackend, context::RequestContext, middleware::MiddlewareStack};
 use pulseengine_mcp_auth::AuthenticationManager;
 use pulseengine_mcp_logging::{get_metrics, spans};
 use pulseengine_mcp_protocol::*;
+use pulseengine_mcp_transport::{Transport, try_current_session_id};
 
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -73,6 +75,10 @@ pub struct GenericServerHandler<B: McpBackend> {
     /// Note: This is a simplified global implementation. For per-client
     /// subscriptions, use a `HashMap<ClientId, HashSet<String>>` instead.
     subscriptions: Arc<RwLock<HashSet<String>>>,
+    /// Optional transport reference for bidirectional communication (shared across clones)
+    /// When set, enables tools to send notifications and make requests to the client.
+    /// Uses Arc<RwLock<...>> so that all clones of the handler share the same transport.
+    transport: Arc<RwLock<Option<Arc<dyn Transport>>>>,
 }
 
 /// Helper to create a JSON-RPC response with a result
@@ -121,6 +127,66 @@ impl<B: McpBackend> GenericServerHandler<B> {
             auth_manager,
             middleware,
             subscriptions: Arc::new(RwLock::new(HashSet::new())),
+            transport: Arc::new(RwLock::new(None)),
+        }
+    }
+
+    /// Set the transport for bidirectional communication
+    ///
+    /// When set, tools can send notifications and make requests to the client
+    /// using the task-local ToolContext. This updates the shared transport
+    /// reference, so all clones of this handler will see the change.
+    pub fn set_transport(&self, transport: Arc<dyn Transport>) {
+        // Use try_write to avoid blocking; if we can't acquire the lock,
+        // another thread is updating it which is fine.
+        if let Ok(mut guard) = self.transport.try_write() {
+            *guard = Some(transport);
+        }
+    }
+
+    /// Create a ToolContext for the current request
+    ///
+    /// If a transport is set and supports bidirectional communication, returns
+    /// a context that can send notifications and requests. Otherwise returns
+    /// a no-op context.
+    async fn make_tool_context(
+        &self,
+        request_id: String,
+        tool_name: String,
+        progress_token: Option<String>,
+        session_id: Option<String>,
+    ) -> Arc<dyn ToolContext> {
+        // Read the transport from the shared RwLock
+        let transport_guard = self.transport.read().await;
+        if let Some(ref transport) = *transport_guard {
+            let supports_bidir = transport.supports_bidirectional();
+            eprintln!(
+                "[DEBUG] make_tool_context: tool={tool_name}, session_id={session_id:?}, supports_bidirectional={supports_bidir}"
+            );
+            debug!(
+                tool = %tool_name,
+                supports_bidirectional = %supports_bidir,
+                "Creating tool context"
+            );
+            if supports_bidir {
+                eprintln!("[DEBUG] Creating DefaultToolContext for {tool_name}");
+                // Use the factory function from tool_context module
+                create_tool_context(
+                    transport.clone(),
+                    request_id,
+                    tool_name,
+                    progress_token,
+                    session_id,
+                )
+            } else {
+                eprintln!("[DEBUG] Transport doesn't support bidirectional for {tool_name}");
+                debug!(tool = %tool_name, "Transport doesn't support bidirectional, using NoOp context");
+                Arc::new(NoOpToolContext::new(request_id, tool_name))
+            }
+        } else {
+            eprintln!("[DEBUG] No transport available for {tool_name}");
+            debug!(tool = %tool_name, "No transport available, using NoOp context");
+            Arc::new(NoOpToolContext::new(request_id, tool_name))
         }
     }
 
@@ -244,11 +310,28 @@ impl<B: McpBackend> GenericServerHandler<B> {
 
     #[instrument(skip(self, request), fields(mcp.method = "initialize"))]
     async fn handle_initialize(&self, request: Request) -> std::result::Result<Response, Error> {
-        let _params: InitializeRequestParam = serde_json::from_value(request.params)?;
+        let params: InitializeRequestParam = serde_json::from_value(request.params)?;
+
+        // Negotiate protocol version: use the client's version if we support it,
+        // otherwise fall back to the server's latest supported version
+        let negotiated_version =
+            if pulseengine_mcp_protocol::is_protocol_version_supported(&params.protocol_version) {
+                params.protocol_version.clone()
+            } else {
+                // If client version is unsupported, use our latest version
+                // The client may reject this if it doesn't support our version
+                pulseengine_mcp_protocol::MCP_VERSION.to_string()
+            };
+
+        info!(
+            client_version = %params.protocol_version,
+            negotiated_version = %negotiated_version,
+            "Protocol version negotiated"
+        );
 
         let server_info = self.backend.get_server_info();
         let result = InitializeResult {
-            protocol_version: pulseengine_mcp_protocol::MCP_VERSION.to_string(),
+            protocol_version: negotiated_version,
             capabilities: server_info.capabilities,
             server_info: server_info.server_info.clone(),
             instructions: server_info.instructions,
@@ -275,18 +358,63 @@ impl<B: McpBackend> GenericServerHandler<B> {
 
     #[instrument(skip(self, request), fields(mcp.method = "tools/call"))]
     async fn handle_call_tool(&self, request: Request) -> std::result::Result<Response, Error> {
-        let params: CallToolRequestParam = serde_json::from_value(request.params)?;
+        let params: CallToolRequestParam = serde_json::from_value(request.params.clone())?;
         let tool_name = params.name.clone();
         let start_time = Instant::now();
+
+        // Extract request ID for context
+        let request_id = request
+            .id
+            .as_ref()
+            .map(|id| match id {
+                NumberOrString::Number(n) => n.to_string(),
+                NumberOrString::String(s) => s.to_string(),
+            })
+            .unwrap_or_else(|| "unknown".to_string());
+
+        // Extract progress token if provided in the request
+        // Per MCP spec, progressToken can be either a string or integer
+        let progress_token = request
+            .params
+            .get("_meta")
+            .and_then(|m| m.get("progressToken"))
+            .and_then(|t| {
+                // Handle both string and integer tokens
+                if let Some(s) = t.as_str() {
+                    Some(s.to_string())
+                } else if let Some(n) = t.as_i64() {
+                    Some(n.to_string())
+                } else {
+                    t.as_u64().map(|n| n.to_string())
+                }
+            });
 
         // Get metrics collector for tool-specific tracking
         let metrics = get_metrics();
         metrics.record_request_start(&tool_name).await;
 
+        // Create the tool context for bidirectional communication
+        // The session ID is retrieved from task-local storage (set by the transport layer)
+        let session_id = try_current_session_id();
+        eprintln!(
+            "[DEBUG] handle_call_tool: session_id from task-local = {:?}",
+            session_id
+        );
+        let context = self
+            .make_tool_context(request_id, tool_name.clone(), progress_token, session_id)
+            .await;
+
         let result = {
             let span = spans::backend_operation_span("call_tool", Some(&tool_name));
             let _guard = span.enter();
-            match self.backend.call_tool(params).await {
+
+            // Execute the backend call within the context scope
+            // This makes the context available via try_current_context() in tools
+            let backend = self.backend.clone();
+            let tool_result =
+                with_context(context, async move { backend.call_tool(params).await }).await;
+
+            match tool_result {
                 Ok(result) => {
                     let duration = start_time.elapsed();
                     metrics.record_request_end(&tool_name, duration, true).await;
@@ -466,8 +594,8 @@ mod tests {
     use pulseengine_mcp_auth::config::AuthConfig;
     use pulseengine_mcp_logging::ErrorClassification;
     use pulseengine_mcp_protocol::{
-        CallToolRequestParam, CallToolResult, CompleteRequestParam, CompleteResult, CompletionInfo,
-        Content, Error, GetPromptRequestParam, GetPromptResult, Implementation, InitializeResult,
+        CallToolRequestParam, CallToolResult, CompleteRequestParam, CompleteResult, Content, Error,
+        GetPromptRequestParam, GetPromptResult, Implementation, InitializeResult,
         ListPromptsResult, ListResourceTemplatesResult, ListResourcesResult, ListToolsResult,
         LoggingCapability, PaginatedRequestParam, Prompt, PromptMessage, PromptMessageContent,
         PromptMessageRole, PromptsCapability, ProtocolVersion, ReadResourceRequestParam,
@@ -730,16 +858,11 @@ mod tests {
             }
 
             Ok(CompleteResult {
-                completion: vec![
-                    CompletionInfo {
-                        completion: "completion1".to_string(),
-                        has_more: Some(false),
-                    },
-                    CompletionInfo {
-                        completion: "completion2".to_string(),
-                        has_more: Some(false),
-                    },
-                ],
+                completion: CompletionValues {
+                    values: vec!["completion1".to_string(), "completion2".to_string()],
+                    total: Some(2),
+                    has_more: Some(false),
+                },
             })
         }
 
@@ -859,10 +982,8 @@ mod tests {
         assert!(response.error.is_none());
 
         let result: InitializeResult = serde_json::from_value(response.result.unwrap()).unwrap();
-        assert_eq!(
-            result.protocol_version,
-            pulseengine_mcp_protocol::MCP_VERSION
-        );
+        // Server now negotiates version with client - returns client's version if supported
+        assert_eq!(result.protocol_version, "2024-11-05");
         assert_eq!(result.server_info.name, "test-server");
     }
 
@@ -1101,7 +1222,10 @@ mod tests {
             jsonrpc: "2.0".to_string(),
             method: "completion/complete".to_string(),
             params: json!({
-                "ref_": "test_prompt",
+                "ref": {
+                    "type": "ref/prompt",
+                    "name": "test_prompt"
+                },
                 "argument": {
                     "name": "query",
                     "value": "test"
@@ -1121,7 +1245,7 @@ mod tests {
         assert!(response.error.is_none());
 
         let result: CompleteResult = serde_json::from_value(response.result.unwrap()).unwrap();
-        assert_eq!(result.completion.len(), 2);
+        assert_eq!(result.completion.values.len(), 2);
     }
 
     #[tokio::test]

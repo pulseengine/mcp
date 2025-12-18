@@ -131,10 +131,14 @@ pub fn mcp_tool_impl(attr: TokenStream, item: TokenStream) -> syn::Result<TokenS
     // Generate tool definition function
     let tool_def_fn_name = format_ident!("{}_tool_definition", fn_name);
 
-    // Extract parameter information
-    let (param_struct, param_fields) = extract_parameters(&function.sig, &tool_name)?;
+    // Extract parameter information (including ToolContext detection)
+    let ExtractedParameters {
+        param_struct,
+        param_fields,
+        has_tool_context,
+    } = extract_parameters(&function.sig, &tool_name)?;
 
-    // Generate input schema
+    // Generate input schema (ToolContext is excluded from schema)
     let input_schema = if let Some(schema_expr) = attribute.input_schema {
         quote! { #schema_expr }
     } else if param_fields.is_empty() {
@@ -143,9 +147,33 @@ pub fn mcp_tool_impl(attr: TokenStream, item: TokenStream) -> syn::Result<TokenS
         generate_schema_for_type(&param_struct)
     };
 
-    // Handle async functions
+    // Handle async functions - inject ToolContext if needed
     let (call_expr, is_async) = if function.sig.asyncness.is_some() {
-        (quote! { self.#fn_name(#(#param_fields),*).await }, true)
+        if has_tool_context {
+            // Inject ToolContext as first parameter
+            (
+                quote! {
+                    {
+                        let __tool_ctx = pulseengine_mcp_server::current_context();
+                        self.#fn_name(__tool_ctx, #(#param_fields),*).await
+                    }
+                },
+                true,
+            )
+        } else {
+            (quote! { self.#fn_name(#(#param_fields),*).await }, true)
+        }
+    } else if has_tool_context {
+        // Inject ToolContext as first parameter (sync case)
+        (
+            quote! {
+                {
+                    let __tool_ctx = pulseengine_mcp_server::current_context();
+                    self.#fn_name(__tool_ctx, #(#param_fields),*)
+                }
+            },
+            false,
+        )
     } else {
         (quote! { self.#fn_name(#(#param_fields),*) }, false)
     };
@@ -664,14 +692,28 @@ pub fn mcp_tools_impl(_attr: TokenStream, item: TokenStream) -> syn::Result<Toke
     Ok(final_impl)
 }
 
+/// Result of parameter extraction including ToolContext detection
+struct ExtractedParameters {
+    /// The synthetic struct type for parameter schema
+    param_struct: syn::Type,
+    /// Token streams for extracting each parameter from JSON
+    param_fields: Vec<TokenStream>,
+    /// Whether a ToolContext parameter was detected (first non-self param)
+    has_tool_context: bool,
+}
+
 /// Extract parameter information from function signature
-fn extract_parameters(
-    sig: &syn::Signature,
-    tool_name: &str,
-) -> syn::Result<(syn::Type, Vec<TokenStream>)> {
+///
+/// This function:
+/// 1. Detects if the first non-self parameter is a ToolContext type
+/// 2. Skips ToolContext from schema generation (it's injected at runtime)
+/// 3. Extracts remaining parameters for JSON schema and extraction code
+fn extract_parameters(sig: &syn::Signature, tool_name: &str) -> syn::Result<ExtractedParameters> {
     let mut param_fields = Vec::new();
     let mut param_types = Vec::new();
     let mut param_names = Vec::new();
+    let mut has_tool_context = false;
+    let mut first_non_self_param = true;
 
     for input in &sig.inputs {
         match input {
@@ -680,6 +722,16 @@ fn extract_parameters(
                 continue;
             }
             syn::FnArg::Typed(pat_type) => {
+                // Check if this is the first non-self param and if it's ToolContext
+                if first_non_self_param {
+                    first_non_self_param = false;
+                    if is_tool_context_type(&pat_type.ty) {
+                        has_tool_context = true;
+                        // Skip ToolContext from schema generation and JSON extraction
+                        continue;
+                    }
+                }
+
                 if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
                     let param_name = &pat_ident.ident;
                     let param_type = &*pat_type.ty;
@@ -765,7 +817,11 @@ fn extract_parameters(
         })?
     };
 
-    Ok((param_struct, param_fields))
+    Ok(ExtractedParameters {
+        param_struct,
+        param_fields,
+        has_tool_context,
+    })
 }
 
 /// Parameters for tool implementation generation
@@ -864,9 +920,12 @@ fn generate_tool_implementation(
 }
 
 /// Generate JSON schema for method parameters from function signature
+///
+/// This function filters out ToolContext parameters since they are runtime-injected
+/// and should not appear in the tool's input schema.
 fn generate_input_schema_for_method(sig: &syn::Signature) -> syn::Result<TokenStream> {
-    // Collect non-self parameters
-    let params: Vec<_> = sig
+    // Collect non-self parameters, skipping ToolContext if it's the first one
+    let all_params: Vec<_> = sig
         .inputs
         .iter()
         .filter_map(|input| {
@@ -877,6 +936,17 @@ fn generate_input_schema_for_method(sig: &syn::Signature) -> syn::Result<TokenSt
             }
         })
         .collect();
+
+    // Filter out the first parameter if it's a ToolContext
+    let params: Vec<_> = if let Some(first) = all_params.first() {
+        if is_tool_context_type(&first.ty) {
+            all_params.into_iter().skip(1).collect()
+        } else {
+            all_params
+        }
+    } else {
+        all_params
+    };
 
     match params.len() {
         0 => {
@@ -982,6 +1052,83 @@ fn extract_option_inner_type(ty: &syn::Type) -> (bool, &syn::Type) {
     (false, ty)
 }
 
+/// Check if a type is a ToolContext parameter
+///
+/// Supports the following patterns:
+/// - `Arc<dyn ToolContext>`
+/// - `&dyn ToolContext`
+/// - Custom type names containing "ToolContext" (for flexibility)
+fn is_tool_context_type(ty: &syn::Type) -> bool {
+    match ty {
+        // Handle reference types: &dyn ToolContext
+        syn::Type::Reference(type_ref) => {
+            if let syn::Type::TraitObject(trait_obj) = &*type_ref.elem {
+                return trait_obj.bounds.iter().any(|bound| {
+                    if let syn::TypeParamBound::Trait(trait_bound) = bound {
+                        trait_bound
+                            .path
+                            .segments
+                            .last()
+                            .map(|seg| seg.ident == "ToolContext")
+                            .unwrap_or(false)
+                    } else {
+                        false
+                    }
+                });
+            }
+            false
+        }
+        // Handle path types: Arc<dyn ToolContext>, Box<dyn ToolContext>, etc.
+        syn::Type::Path(type_path) => {
+            if let Some(segment) = type_path.path.segments.last() {
+                // Check if it's a wrapper like Arc, Box, Rc containing dyn ToolContext
+                if matches!(segment.ident.to_string().as_str(), "Arc" | "Box" | "Rc") {
+                    if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
+                        for arg in &args.args {
+                            // Check for dyn ToolContext (collapsed pattern)
+                            if let syn::GenericArgument::Type(syn::Type::TraitObject(trait_obj)) =
+                                arg
+                            {
+                                return trait_obj.bounds.iter().any(|bound| {
+                                    if let syn::TypeParamBound::Trait(trait_bound) = bound {
+                                        trait_bound
+                                            .path
+                                            .segments
+                                            .last()
+                                            .map(|seg| seg.ident == "ToolContext")
+                                            .unwrap_or(false)
+                                    } else {
+                                        false
+                                    }
+                                });
+                            }
+                        }
+                    }
+                }
+                // Also check if the type itself is named ToolContext (for direct use)
+                if segment.ident == "ToolContext" {
+                    return true;
+                }
+            }
+            false
+        }
+        // Handle trait objects directly: dyn ToolContext
+        syn::Type::TraitObject(trait_obj) => trait_obj.bounds.iter().any(|bound| {
+            if let syn::TypeParamBound::Trait(trait_bound) = bound {
+                trait_bound
+                    .path
+                    .segments
+                    .last()
+                    .map(|seg| seg.ident == "ToolContext")
+                    .unwrap_or(false)
+            } else {
+                false
+            }
+        }),
+        _ => false,
+    }
+}
+
 /// Check if a type is a primitive or standard library type (not a custom struct)
 fn is_primitive_or_std_type(ty: &syn::Type) -> bool {
     match ty {
@@ -1080,6 +1227,8 @@ fn generate_parameter_schema(sig: &syn::Signature) -> syn::Result<TokenStream> {
 }
 
 /// Generate parameter extraction and method call for tools
+///
+/// This function handles ToolContext detection and injection for the #[mcp_tools] macro.
 fn generate_method_call_with_params(
     sig: &syn::Signature,
     method_name: &syn::Ident,
@@ -1088,12 +1237,24 @@ fn generate_method_call_with_params(
     let mut param_declarations = Vec::new();
     let mut param_names = Vec::new();
     let mut param_types = Vec::new();
+    let mut has_tool_context = false;
+    let mut first_non_self_param = true;
 
-    // Collect all parameters (skip self)
+    // Collect all parameters (skip self and ToolContext)
     for input in &sig.inputs {
         match input {
             syn::FnArg::Receiver(_) => continue, // Skip self
             syn::FnArg::Typed(pat_type) => {
+                // Check if this is the first non-self param and if it's ToolContext
+                if first_non_self_param {
+                    first_non_self_param = false;
+                    if is_tool_context_type(&pat_type.ty) {
+                        has_tool_context = true;
+                        // Skip ToolContext from JSON extraction - it's injected at runtime
+                        continue;
+                    }
+                }
+
                 if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
                     let param_name = &pat_ident.ident;
                     let param_type = &*pat_type.ty;
@@ -1158,8 +1319,16 @@ fn generate_method_call_with_params(
         }
     }
 
-    if param_declarations.is_empty() {
-        // No parameters - call method directly
+    // Generate context acquisition if needed
+    let context_decl = if has_tool_context {
+        quote! { let __tool_ctx = pulseengine_mcp_server::current_context(); }
+    } else {
+        quote! {}
+    };
+
+    // Generate method call with optional context as first parameter
+    if param_declarations.is_empty() && !has_tool_context {
+        // No parameters and no context - call method directly
         if is_async {
             Ok(quote! {
                 self.#method_name().await
@@ -1169,8 +1338,44 @@ fn generate_method_call_with_params(
                 self.#method_name()
             })
         }
+    } else if param_declarations.is_empty() && has_tool_context {
+        // Only ToolContext parameter
+        if is_async {
+            Ok(quote! {
+                {
+                    #context_decl
+                    self.#method_name(__tool_ctx).await
+                }
+            })
+        } else {
+            Ok(quote! {
+                {
+                    #context_decl
+                    self.#method_name(__tool_ctx)
+                }
+            })
+        }
+    } else if has_tool_context {
+        // Has parameters AND ToolContext - context is first param
+        if is_async {
+            Ok(quote! {
+                {
+                    #context_decl
+                    #(#param_declarations)*
+                    self.#method_name(__tool_ctx, #(#param_names),*).await
+                }
+            })
+        } else {
+            Ok(quote! {
+                {
+                    #context_decl
+                    #(#param_declarations)*
+                    self.#method_name(__tool_ctx, #(#param_names),*)
+                }
+            })
+        }
     } else {
-        // Has parameters - extract them and call method
+        // Has parameters but no context
         if is_async {
             Ok(quote! {
                 {

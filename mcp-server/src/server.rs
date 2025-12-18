@@ -2,6 +2,7 @@
 
 use crate::observability::{MetricsCollector, MonitoringConfig};
 use crate::{backend::McpBackend, handler::GenericServerHandler, middleware::MiddlewareStack};
+use async_trait::async_trait;
 use pulseengine_mcp_auth::{AuthConfig, AuthenticationManager};
 use pulseengine_mcp_logging::{
     AlertConfig, AlertManager, DashboardConfig, DashboardManager, PerformanceProfiler,
@@ -9,12 +10,89 @@ use pulseengine_mcp_logging::{
 };
 use pulseengine_mcp_protocol::*;
 use pulseengine_mcp_security::{SecurityConfig, SecurityMiddleware};
-use pulseengine_mcp_transport::{Transport, TransportConfig};
+use pulseengine_mcp_transport::{RequestHandler, Transport, TransportConfig, TransportError};
 
 use std::sync::Arc;
+use std::time::Duration;
 use thiserror::Error;
 use tokio::signal;
+use tokio::sync::RwLock;
 use tracing::{error, info, warn};
+
+/// A wrapper around a shared transport reference that implements Transport.
+/// This allows the handler to access transport methods while the server
+/// owns the transport behind a RwLock.
+struct TransportHandle {
+    transport: Arc<RwLock<Box<dyn Transport>>>,
+}
+
+#[async_trait]
+impl Transport for TransportHandle {
+    async fn start(&mut self, _handler: RequestHandler) -> std::result::Result<(), TransportError> {
+        // The actual transport is started by the server, not through this handle
+        Err(TransportError::NotSupported(
+            "Cannot start transport through handle".to_string(),
+        ))
+    }
+
+    async fn stop(&mut self) -> std::result::Result<(), TransportError> {
+        // The actual transport is stopped by the server, not through this handle
+        Err(TransportError::NotSupported(
+            "Cannot stop transport through handle".to_string(),
+        ))
+    }
+
+    async fn health_check(&self) -> std::result::Result<(), TransportError> {
+        let transport = self.transport.read().await;
+        transport.health_check().await
+    }
+
+    fn supports_bidirectional(&self) -> bool {
+        // We need to use try_read here since we can't await in a non-async fn
+        // If we can't get the lock, assume bidirectional is not supported
+        self.transport
+            .try_read()
+            .map(|t| t.supports_bidirectional())
+            .unwrap_or(false)
+    }
+
+    async fn send_notification(
+        &self,
+        session_id: Option<&str>,
+        method: &str,
+        params: serde_json::Value,
+    ) -> std::result::Result<(), TransportError> {
+        let transport = self.transport.read().await;
+        transport
+            .send_notification(session_id, method, params)
+            .await
+    }
+
+    async fn send_request(
+        &self,
+        session_id: Option<&str>,
+        method: &str,
+        params: serde_json::Value,
+        timeout: Duration,
+    ) -> std::result::Result<serde_json::Value, TransportError> {
+        let transport = self.transport.read().await;
+        transport
+            .send_request(session_id, method, params, timeout)
+            .await
+    }
+
+    fn register_pending_request(
+        &self,
+        request_id: &str,
+    ) -> Option<tokio::sync::oneshot::Receiver<serde_json::Value>> {
+        // Delegate to the underlying transport
+        // We need to use try_read here since we can't await in a non-async fn
+        self.transport
+            .try_read()
+            .ok()
+            .and_then(|t| t.register_pending_request(request_id))
+    }
+}
 
 /// Error type for server operations
 #[derive(Debug, Error)]
@@ -110,7 +188,9 @@ pub struct McpServer<B: McpBackend> {
     backend: Arc<B>,
     handler: GenericServerHandler<B>,
     auth_manager: Arc<AuthenticationManager>,
-    transport: Box<dyn Transport>,
+    /// Transport layer - wrapped in RwLock to allow both mutable access for
+    /// start/stop and shared access for bidirectional communication
+    transport: Arc<tokio::sync::RwLock<Box<dyn Transport>>>,
     #[allow(dead_code)]
     middleware_stack: MiddlewareStack,
     monitoring_metrics: Arc<MetricsCollector>,
@@ -145,10 +225,11 @@ impl<B: McpBackend + 'static> McpServer<B> {
             Arc::new(AuthenticationManager::new_disabled())
         };
 
-        // Initialize transport
-        let transport =
+        // Initialize transport (wrap in Arc<RwLock<>> for shared access)
+        let transport = Arc::new(tokio::sync::RwLock::new(
             pulseengine_mcp_transport::create_transport(config.transport_config.clone())
-                .map_err(|e| ServerError::Transport(e.to_string()))?;
+                .map_err(|e| ServerError::Transport(e.to_string()))?,
+        ));
 
         // Initialize security middleware
         let security_middleware = SecurityMiddleware::new(config.security_config.clone());
@@ -191,7 +272,7 @@ impl<B: McpBackend + 'static> McpServer<B> {
             None
         };
 
-        // Create handler
+        // Create handler (transport will be set after transport.start())
         let handler = GenericServerHandler::new(
             backend.clone(),
             auth_manager.clone(),
@@ -262,25 +343,38 @@ impl<B: McpBackend + 'static> McpServer<B> {
         // Metrics persistence is now handled internally by the logging metrics collector
         // No need for manual snapshot saving
 
-        // Start transport
+        // Create a transport handle for the handler to use for bidirectional communication.
+        // This wraps the shared transport reference and implements Transport.
+        let transport_handle: Arc<dyn Transport> = Arc::new(TransportHandle {
+            transport: self.transport.clone(),
+        });
+
+        // Wire up transport to handler BEFORE starting, since the handler's transport
+        // reference is shared via Arc<RwLock<>> and will be accessible after start
+        self.handler.set_transport(transport_handle);
+
+        // Start transport (acquire write lock for mutable access)
         let handler = self.handler.clone();
-        self.transport
-            .start(Box::new(move |request| {
-                let handler = handler.clone();
-                Box::pin(async move {
-                    match handler.handle_request(request).await {
-                        Ok(response) => response,
-                        Err(error) => Response {
-                            jsonrpc: "2.0".to_string(),
-                            id: None,
-                            result: None,
-                            error: Some(error.into()),
-                        },
-                    }
-                })
-            }))
-            .await
-            .map_err(|e| ServerError::Transport(e.to_string()))?;
+        {
+            let mut transport_guard = self.transport.write().await;
+            transport_guard
+                .start(Box::new(move |request| {
+                    let handler = handler.clone();
+                    Box::pin(async move {
+                        match handler.handle_request(request).await {
+                            Ok(response) => response,
+                            Err(error) => Response {
+                                jsonrpc: "2.0".to_string(),
+                                id: None,
+                                result: None,
+                                error: Some(error.into()),
+                            },
+                        }
+                    })
+                }))
+                .await
+                .map_err(|e| ServerError::Transport(e.to_string()))?;
+        }
 
         info!("MCP server started successfully");
 
@@ -310,11 +404,14 @@ impl<B: McpBackend + 'static> McpServer<B> {
 
         info!("Stopping MCP server");
 
-        // Stop transport
-        self.transport
-            .stop()
-            .await
-            .map_err(|e| ServerError::Transport(e.to_string()))?;
+        // Stop transport (acquire write lock for mutable access)
+        {
+            let mut transport_guard = self.transport.write().await;
+            transport_guard
+                .stop()
+                .await
+                .map_err(|e| ServerError::Transport(e.to_string()))?;
+        }
 
         // Stop background services
         self.monitoring_metrics.stop_collection().await;
@@ -364,8 +461,11 @@ impl<B: McpBackend + 'static> McpServer<B> {
         // Check backend health
         let backend_healthy = self.backend.health_check().await.is_ok();
 
-        // Check transport health
-        let transport_healthy = self.transport.health_check().await.is_ok();
+        // Check transport health (acquire read lock to access transport)
+        let transport_healthy = {
+            let transport_guard = self.transport.read().await;
+            transport_guard.health_check().await.is_ok()
+        };
 
         // Check auth health
         let auth_healthy = self.auth_manager.health_check().await.is_ok();
