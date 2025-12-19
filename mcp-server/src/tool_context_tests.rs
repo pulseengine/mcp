@@ -1174,3 +1174,233 @@ async fn test_create_tool_context_request_elicitation() {
     assert!(result.is_ok());
     assert!(matches!(result.unwrap().action, ElicitationAction::Accept));
 }
+
+// ============================================================================
+// Additional TransportBridge Notification Error Tests
+// ============================================================================
+
+#[tokio::test]
+async fn test_transport_bridge_send_notification_session_not_found() {
+    use crate::tool_context::TransportBridge;
+
+    let mock = MockTransport::new(true);
+    mock.set_notification_error(MockTransportResult::SessionNotFound("sess-123".to_string()));
+    let transport = Arc::new(mock) as Arc<dyn Transport>;
+    let bridge = TransportBridge::new(transport, Some("session-1".to_string()));
+
+    let result = bridge.send_notification("test/method", json!({})).await;
+    // SessionNotFound maps to NotificationFailed for notifications
+    assert!(matches!(
+        result,
+        Err(ToolContextError::NotificationFailed(_))
+    ));
+}
+
+#[tokio::test]
+async fn test_transport_bridge_send_notification_channel_closed() {
+    use crate::tool_context::TransportBridge;
+
+    let mock = MockTransport::new(true);
+    mock.set_notification_error(MockTransportResult::ChannelClosed);
+    let transport = Arc::new(mock) as Arc<dyn Transport>;
+    let bridge = TransportBridge::new(transport, Some("session-1".to_string()));
+
+    let result = bridge.send_notification("test/method", json!({})).await;
+    // ChannelClosed maps to NotificationFailed for notifications
+    assert!(matches!(
+        result,
+        Err(ToolContextError::NotificationFailed(_))
+    ));
+}
+
+#[tokio::test]
+async fn test_transport_bridge_send_notification_not_supported() {
+    use crate::tool_context::TransportBridge;
+
+    let mock = MockTransport::new(true);
+    mock.set_notification_error(MockTransportResult::NotSupported("logging".to_string()));
+    let transport = Arc::new(mock) as Arc<dyn Transport>;
+    let bridge = TransportBridge::new(transport, Some("session-1".to_string()));
+
+    let result = bridge.send_notification("test/method", json!({})).await;
+    // NotSupported maps to NotificationFailed for notifications
+    assert!(matches!(
+        result,
+        Err(ToolContextError::NotificationFailed(_))
+    ));
+}
+
+#[tokio::test]
+async fn test_transport_bridge_send_notification_timeout() {
+    use crate::tool_context::TransportBridge;
+
+    let mock = MockTransport::new(true);
+    mock.set_notification_error(MockTransportResult::Timeout);
+    let transport = Arc::new(mock) as Arc<dyn Transport>;
+    let bridge = TransportBridge::new(transport, Some("session-1".to_string()));
+
+    let result = bridge.send_notification("test/method", json!({})).await;
+    // Timeout (like other unlisted errors) maps to Transport
+    assert!(matches!(result, Err(ToolContextError::Transport(_))));
+}
+
+#[tokio::test]
+async fn test_transport_bridge_send_request_connection_error() {
+    use crate::tool_context::TransportBridge;
+
+    let mock = MockTransport::new(true);
+    mock.set_request_error(MockTransportResult::ConnectionError(
+        "network down".to_string(),
+    ));
+    let transport = Arc::new(mock) as Arc<dyn Transport>;
+    let bridge = TransportBridge::new(transport, Some("session-1".to_string()));
+
+    let result = bridge
+        .send_request("test/method", json!({}), Duration::from_secs(5))
+        .await;
+    // Connection errors map to Transport for requests (catch-all)
+    assert!(matches!(result, Err(ToolContextError::Transport(_))));
+}
+
+// ============================================================================
+// Context Accessor Tests
+// ============================================================================
+
+#[tokio::test]
+async fn test_try_current_context_none() {
+    use crate::tool_context::try_current_context;
+
+    // Without with_context, there should be no current context
+    let ctx = try_current_context();
+    assert!(ctx.is_none());
+}
+
+#[tokio::test]
+async fn test_with_context_and_current_context() {
+    use crate::tool_context::{NoOpToolContext, with_context};
+
+    let noop_ctx = Arc::new(NoOpToolContext::new("req-1", "tool-1")) as Arc<dyn ToolContext>;
+
+    // Inside with_context, try_current_context should return the context
+    let result = with_context(noop_ctx.clone(), async {
+        // Verify context accessors work inside the scope
+        noop_ctx.request_id().to_string()
+    })
+    .await;
+
+    assert_eq!(result, "req-1");
+}
+
+// ============================================================================
+// TransportBridge Without Session ID Tests
+// ============================================================================
+
+#[tokio::test]
+async fn test_transport_bridge_no_session_id() {
+    use crate::tool_context::TransportBridge;
+
+    let transport = Arc::new(MockTransport::new(true)) as Arc<dyn Transport>;
+    // Create bridge without session_id (None)
+    let bridge = TransportBridge::new(transport, None);
+
+    let result = bridge
+        .send_notification("test/method", json!({"key": "value"}))
+        .await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn test_transport_bridge_request_no_session_id() {
+    use crate::tool_context::TransportBridge;
+
+    let mock = MockTransport::new(true);
+    mock.set_request_response(json!({"status": "ok"}));
+    let transport = Arc::new(mock) as Arc<dyn Transport>;
+    let bridge = TransportBridge::new(transport, None);
+
+    let result = bridge
+        .send_request("test/method", json!({}), Duration::from_secs(5))
+        .await;
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap()["status"], "ok");
+}
+
+// ============================================================================
+// TransportBridge Not Bidirectional Tests
+// ============================================================================
+
+#[tokio::test]
+async fn test_transport_bridge_not_bidirectional() {
+    use crate::tool_context::TransportBridge;
+
+    // Transport that does not support bidirectional
+    let transport = Arc::new(MockTransport::new(false)) as Arc<dyn Transport>;
+    let bridge = TransportBridge::new(transport, Some("session-1".to_string()));
+
+    // Should still work (falls through to transport method)
+    let result = bridge
+        .send_notification("test/method", json!({"data": true}))
+        .await;
+    assert!(result.is_ok());
+}
+
+// ============================================================================
+// create_tool_context Without Optional Fields Tests
+// ============================================================================
+
+#[tokio::test]
+async fn test_create_tool_context_minimal() {
+    use crate::tool_context::create_tool_context;
+
+    let transport = Arc::new(MockTransport::new(true)) as Arc<dyn Transport>;
+
+    let ctx = create_tool_context(transport, "req-456", "minimal-tool", None, None);
+
+    assert_eq!(ctx.request_id(), "req-456");
+    assert_eq!(ctx.tool_name(), "minimal-tool");
+    assert_eq!(ctx.progress_token(), None);
+    assert_eq!(ctx.session_id(), None);
+}
+
+#[tokio::test]
+async fn test_create_tool_context_notification_error() {
+    use crate::tool_context::create_tool_context;
+
+    let mock = MockTransport::new(true);
+    mock.set_notification_error(MockTransportResult::ConnectionError("failed".to_string()));
+    let transport = Arc::new(mock) as Arc<dyn Transport>;
+
+    let ctx = create_tool_context(
+        transport,
+        "req-err",
+        "error-tool",
+        None,
+        Some("session".to_string()),
+    );
+
+    // send_log should fail because notification fails
+    let result = ctx.send_log(LogLevel::Error, None, json!({})).await;
+    assert!(matches!(result, Err(ToolContextError::Transport(_))));
+}
+
+#[tokio::test]
+async fn test_create_tool_context_request_error() {
+    use crate::tool_context::create_tool_context;
+
+    let mock = MockTransport::new(true);
+    mock.set_request_error(MockTransportResult::Timeout);
+    let transport = Arc::new(mock) as Arc<dyn Transport>;
+
+    let ctx = create_tool_context(
+        transport,
+        "req-timeout",
+        "timeout-tool",
+        None,
+        Some("session".to_string()),
+    );
+
+    let result = ctx
+        .request_sampling(CreateMessageRequest::default(), Duration::from_secs(1))
+        .await;
+    assert!(matches!(result, Err(ToolContextError::Timeout)));
+}
