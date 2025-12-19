@@ -152,6 +152,8 @@ mod lib_tests;
 mod middleware_tests;
 #[cfg(test)]
 mod server_tests;
+#[cfg(test)]
+mod tool_context_tests;
 
 // Re-export core types
 pub use backend::{BackendError, McpBackend};
