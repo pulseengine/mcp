@@ -1454,4 +1454,208 @@ mod tests {
         assert!(task.is_terminal());
         assert!(!task.is_running());
     }
+
+    // ============================================================================
+    // New Content Type Tests (MCP 2025-11-25)
+    // ============================================================================
+
+    #[test]
+    fn test_content_audio() {
+        let content = Content::audio("base64audiodata", "audio/wav");
+
+        if let Content::Audio {
+            data,
+            mime_type,
+            _meta,
+        } = content
+        {
+            assert_eq!(data, "base64audiodata");
+            assert_eq!(mime_type, "audio/wav");
+            assert!(_meta.is_none());
+        } else {
+            panic!("Expected Audio variant");
+        }
+    }
+
+    #[test]
+    fn test_content_audio_serialization() {
+        let content = Content::audio("ZGF0YQ==", "audio/mp3");
+
+        let json = serde_json::to_string(&content).unwrap();
+        assert!(json.contains("\"audio\""));
+        assert!(json.contains("\"ZGF0YQ==\""));
+        assert!(json.contains("\"mimeType\":\"audio/mp3\""));
+
+        // Round-trip
+        let deserialized: Content = serde_json::from_str(&json).unwrap();
+        if let Content::Audio {
+            data, mime_type, ..
+        } = deserialized
+        {
+            assert_eq!(data, "ZGF0YQ==");
+            assert_eq!(mime_type, "audio/mp3");
+        } else {
+            panic!("Expected Audio variant");
+        }
+    }
+
+    #[test]
+    fn test_content_resource_new_signature() {
+        let content = Content::resource(
+            "file:///path/to/file.txt",
+            Some("text/plain".to_string()),
+            Some("File contents here".to_string()),
+        );
+
+        if let Content::Resource { resource, _meta } = content {
+            assert_eq!(resource.uri, "file:///path/to/file.txt");
+            assert_eq!(resource.mime_type, Some("text/plain".to_string()));
+            assert_eq!(resource.text, Some("File contents here".to_string()));
+            assert!(_meta.is_none());
+        } else {
+            panic!("Expected Resource variant");
+        }
+    }
+
+    #[test]
+    fn test_content_resource_minimal() {
+        let content = Content::resource("file:///test.bin", None, None);
+
+        if let Content::Resource { resource, _meta } = content {
+            assert_eq!(resource.uri, "file:///test.bin");
+            assert!(resource.mime_type.is_none());
+            assert!(resource.text.is_none());
+        } else {
+            panic!("Expected Resource variant");
+        }
+    }
+
+    #[test]
+    fn test_content_from_resource_contents() {
+        let resource_contents = ResourceContents {
+            uri: "http://example.com/data.json".to_string(),
+            mime_type: Some("application/json".to_string()),
+            text: Some("{\"key\": \"value\"}".to_string()),
+            blob: None,
+            _meta: None,
+        };
+
+        let content = Content::from_resource_contents(resource_contents);
+
+        if let Content::Resource { resource, _meta } = content {
+            assert_eq!(resource.uri, "http://example.com/data.json");
+            assert_eq!(resource.mime_type, Some("application/json".to_string()));
+            assert_eq!(resource.text, Some("{\"key\": \"value\"}".to_string()));
+        } else {
+            panic!("Expected Resource variant");
+        }
+    }
+
+    #[test]
+    fn test_prompt_message_new_resource() {
+        let message = PromptMessage::new_resource(
+            PromptMessageRole::User,
+            "file:///document.pdf",
+            Some("application/pdf".to_string()),
+            Some("PDF text contents".to_string()),
+        );
+
+        // Use matches! macro since PromptMessageRole doesn't implement PartialEq
+        assert!(matches!(message.role, PromptMessageRole::User));
+        if let PromptMessageContent::Resource { resource } = message.content {
+            assert_eq!(resource.uri, "file:///document.pdf");
+            assert_eq!(resource.mime_type, Some("application/pdf".to_string()));
+            assert_eq!(resource.text, Some("PDF text contents".to_string()));
+        } else {
+            panic!("Expected Resource content");
+        }
+    }
+
+    #[test]
+    fn test_prompt_message_new_resource_minimal() {
+        let message = PromptMessage::new_resource(
+            PromptMessageRole::Assistant,
+            "file:///image.png",
+            None,
+            None,
+        );
+
+        assert!(matches!(message.role, PromptMessageRole::Assistant));
+        if let PromptMessageContent::Resource { resource } = message.content {
+            assert_eq!(resource.uri, "file:///image.png");
+            assert!(resource.mime_type.is_none());
+            assert!(resource.text.is_none());
+        } else {
+            panic!("Expected Resource content");
+        }
+    }
+
+    #[test]
+    fn test_complete_result_simple_new_api() {
+        let result = CompleteResult::simple("completion_value");
+
+        assert_eq!(result.completion.values.len(), 1);
+        assert_eq!(result.completion.values[0], "completion_value");
+        assert!(result.completion.total.is_none());
+        assert_eq!(result.completion.has_more, Some(false));
+    }
+
+    #[test]
+    fn test_complete_result_with_values_new_api() {
+        let values = vec![
+            "option1".to_string(),
+            "option2".to_string(),
+            "option3".to_string(),
+        ];
+        let result = CompleteResult::with_values(values);
+
+        assert_eq!(result.completion.values.len(), 3);
+        assert_eq!(result.completion.values[0], "option1");
+        assert_eq!(result.completion.values[1], "option2");
+        assert_eq!(result.completion.values[2], "option3");
+        assert_eq!(result.completion.total, Some(3));
+        assert_eq!(result.completion.has_more, Some(false));
+    }
+
+    #[test]
+    fn test_complete_result_with_values_empty_new_api() {
+        let result = CompleteResult::with_values(vec![]);
+
+        assert!(result.completion.values.is_empty());
+        assert_eq!(result.completion.total, Some(0));
+        assert_eq!(result.completion.has_more, Some(false));
+    }
+
+    #[test]
+    fn test_complete_result_serialization_new_api() {
+        let result = CompleteResult::simple("test_completion");
+
+        let json = serde_json::to_string(&result).unwrap();
+        assert!(json.contains("\"values\""));
+        assert!(json.contains("\"test_completion\""));
+
+        // Round-trip
+        let deserialized: CompleteResult = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.completion.values.len(), 1);
+        assert_eq!(deserialized.completion.values[0], "test_completion");
+    }
+
+    #[test]
+    fn test_resource_contents_serialization() {
+        let contents = ResourceContents {
+            uri: "file:///test.txt".to_string(),
+            mime_type: Some("text/plain".to_string()),
+            text: Some("Hello".to_string()),
+            blob: None,
+            _meta: None,
+        };
+
+        let json = serde_json::to_string(&contents).unwrap();
+        assert!(json.contains("\"uri\":\"file:///test.txt\""));
+        assert!(json.contains("\"mimeType\":\"text/plain\""));
+        assert!(json.contains("\"text\":\"Hello\""));
+        // blob and _meta should not be serialized when None
+        assert!(!json.contains("\"blob\""));
+        assert!(!json.contains("\"_meta\""));
+    }
 }
