@@ -1420,4 +1420,149 @@ mod tests {
         let error = HandlerError::Backend("Test backend error".to_string());
         assert_eq!(error.to_string(), "Backend error: Test backend error");
     }
+
+    // ============================================================================
+    // Transport and ToolContext Tests
+    // ============================================================================
+
+    /// Mock transport for testing set_transport and make_tool_context
+    struct MockTestTransport {
+        supports_bidir: bool,
+    }
+
+    #[async_trait::async_trait]
+    impl pulseengine_mcp_transport::Transport for MockTestTransport {
+        async fn start(
+            &mut self,
+            _handler: pulseengine_mcp_transport::RequestHandler,
+        ) -> std::result::Result<(), pulseengine_mcp_transport::TransportError> {
+            Ok(())
+        }
+
+        async fn stop(
+            &mut self,
+        ) -> std::result::Result<(), pulseengine_mcp_transport::TransportError> {
+            Ok(())
+        }
+
+        async fn health_check(
+            &self,
+        ) -> std::result::Result<(), pulseengine_mcp_transport::TransportError> {
+            Ok(())
+        }
+
+        fn supports_bidirectional(&self) -> bool {
+            self.supports_bidir
+        }
+
+        async fn send_notification(
+            &self,
+            _session_id: Option<&str>,
+            _method: &str,
+            _params: serde_json::Value,
+        ) -> std::result::Result<(), pulseengine_mcp_transport::TransportError> {
+            Ok(())
+        }
+
+        async fn send_request(
+            &self,
+            _session_id: Option<&str>,
+            _method: &str,
+            _params: serde_json::Value,
+            _timeout: std::time::Duration,
+        ) -> std::result::Result<serde_json::Value, pulseengine_mcp_transport::TransportError>
+        {
+            Ok(serde_json::json!({}))
+        }
+    }
+
+    #[tokio::test]
+    async fn test_set_transport() {
+        let handler = create_test_handler().await;
+
+        // Initially no transport
+        {
+            let guard = handler.transport.read().await;
+            assert!(guard.is_none());
+        }
+
+        // Set transport
+        let transport = Arc::new(MockTestTransport {
+            supports_bidir: true,
+        }) as Arc<dyn pulseengine_mcp_transport::Transport>;
+        handler.set_transport(transport);
+
+        // Now transport should be set
+        {
+            let guard = handler.transport.read().await;
+            assert!(guard.is_some());
+        }
+    }
+
+    #[tokio::test]
+    async fn test_make_tool_context_no_transport() {
+        let handler = create_test_handler().await;
+
+        // Without transport, should return NoOp context
+        let ctx = handler
+            .make_tool_context(
+                "req-1".to_string(),
+                "test-tool".to_string(),
+                None,
+                Some("session-1".to_string()),
+            )
+            .await;
+
+        assert_eq!(ctx.request_id(), "req-1");
+        assert_eq!(ctx.tool_name(), "test-tool");
+    }
+
+    #[tokio::test]
+    async fn test_make_tool_context_with_bidirectional_transport() {
+        let handler = create_test_handler().await;
+
+        // Set bidirectional transport
+        let transport = Arc::new(MockTestTransport {
+            supports_bidir: true,
+        }) as Arc<dyn pulseengine_mcp_transport::Transport>;
+        handler.set_transport(transport);
+
+        let ctx = handler
+            .make_tool_context(
+                "req-2".to_string(),
+                "bidir-tool".to_string(),
+                Some("progress-token".to_string()),
+                Some("session-2".to_string()),
+            )
+            .await;
+
+        assert_eq!(ctx.request_id(), "req-2");
+        assert_eq!(ctx.tool_name(), "bidir-tool");
+        assert_eq!(ctx.progress_token(), Some("progress-token"));
+        assert_eq!(ctx.session_id(), Some("session-2"));
+    }
+
+    #[tokio::test]
+    async fn test_make_tool_context_with_non_bidirectional_transport() {
+        let handler = create_test_handler().await;
+
+        // Set non-bidirectional transport
+        let transport = Arc::new(MockTestTransport {
+            supports_bidir: false,
+        }) as Arc<dyn pulseengine_mcp_transport::Transport>;
+        handler.set_transport(transport);
+
+        // Should return NoOp context since transport doesn't support bidirectional
+        let ctx = handler
+            .make_tool_context(
+                "req-3".to_string(),
+                "non-bidir-tool".to_string(),
+                None,
+                None,
+            )
+            .await;
+
+        assert_eq!(ctx.request_id(), "req-3");
+        assert_eq!(ctx.tool_name(), "non-bidir-tool");
+    }
 }
