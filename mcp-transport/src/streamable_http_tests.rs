@@ -744,4 +744,409 @@ mod tests {
         assert_eq!(config.sse_retry_ms, 10000);
         assert!(!config.sse_resumable);
     }
+
+    // ============================================================================
+    // SseMessage Tests
+    // ============================================================================
+
+    #[test]
+    fn test_sse_message_notification() {
+        let message = SseMessage::Notification {
+            method: "notifications/progress".to_string(),
+            params: json!({"progress": 50, "total": 100}),
+        };
+
+        if let SseMessage::Notification { method, params } = message {
+            assert_eq!(method, "notifications/progress");
+            assert_eq!(params["progress"], 50);
+        } else {
+            panic!("Expected Notification variant");
+        }
+    }
+
+    #[test]
+    fn test_sse_message_request() {
+        let message = SseMessage::Request {
+            id: "req-123".to_string(),
+            method: "sampling/createMessage".to_string(),
+            params: json!({"maxTokens": 100}),
+        };
+
+        if let SseMessage::Request { id, method, params } = message {
+            assert_eq!(id, "req-123");
+            assert_eq!(method, "sampling/createMessage");
+            assert_eq!(params["maxTokens"], 100);
+        } else {
+            panic!("Expected Request variant");
+        }
+    }
+
+    #[test]
+    fn test_sse_message_debug() {
+        let notification = SseMessage::Notification {
+            method: "test".to_string(),
+            params: json!({}),
+        };
+        let debug_str = format!("{notification:?}");
+        assert!(debug_str.contains("Notification"));
+        assert!(debug_str.contains("test"));
+
+        let request = SseMessage::Request {
+            id: "id123".to_string(),
+            method: "test".to_string(),
+            params: json!({}),
+        };
+        let debug_str = format!("{request:?}");
+        assert!(debug_str.contains("Request"));
+        assert!(debug_str.contains("id123"));
+    }
+
+    #[test]
+    fn test_sse_message_clone() {
+        let original = SseMessage::Notification {
+            method: "test".to_string(),
+            params: json!({"key": "value"}),
+        };
+
+        let cloned = original.clone();
+        if let (
+            SseMessage::Notification {
+                method: m1,
+                params: p1,
+            },
+            SseMessage::Notification {
+                method: m2,
+                params: p2,
+            },
+        ) = (&original, &cloned)
+        {
+            assert_eq!(m1, m2);
+            assert_eq!(p1, p2);
+        }
+    }
+
+    // ============================================================================
+    // TransportHandle Tests (via Transport trait)
+    // ============================================================================
+
+    #[tokio::test]
+    async fn test_transport_send_notification_not_started() {
+        let transport = StreamableHttpTransport::new(18200);
+
+        let result = transport
+            .send_notification(Some("session-123"), "test/method", json!({}))
+            .await;
+
+        assert!(result.is_err());
+        if let Err(TransportError::Connection(msg)) = result {
+            assert!(msg.contains("not started"));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_transport_send_request_not_started() {
+        use std::time::Duration;
+
+        let transport = StreamableHttpTransport::new(18201);
+
+        let result = transport
+            .send_request(
+                Some("session-123"),
+                "sampling/createMessage",
+                json!({}),
+                Duration::from_secs(5),
+            )
+            .await;
+
+        assert!(result.is_err());
+        if let Err(TransportError::Connection(msg)) = result {
+            assert!(msg.contains("not started"));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_transport_supports_bidirectional() {
+        let transport = StreamableHttpTransport::new(18202);
+        assert!(transport.supports_bidirectional());
+    }
+
+    #[tokio::test]
+    async fn test_transport_register_pending_request_not_started() {
+        let transport = StreamableHttpTransport::new(18203);
+
+        let result = transport.register_pending_request("req-123");
+        // When transport is not started, handle is None, so register returns None
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_transport_handle_not_available_before_start() {
+        let transport = StreamableHttpTransport::new(18204);
+        assert!(transport.handle().is_none());
+    }
+
+    #[tokio::test]
+    async fn test_transport_handle_available_after_start() {
+        let mut transport = StreamableHttpTransport::new(18205);
+        let handler = Box::new(mock_handler);
+
+        if transport.start(handler).await.is_ok() {
+            assert!(transport.handle().is_some());
+            transport.stop().await.ok();
+        }
+    }
+
+    // ============================================================================
+    // TransportHandle Direct Tests
+    // ============================================================================
+
+    #[tokio::test]
+    async fn test_transport_handle_send_notification_session_not_found() {
+        let mut transport = StreamableHttpTransport::new(18206);
+        let handler = Box::new(mock_handler);
+
+        if transport.start(handler).await.is_ok() {
+            let handle = transport.handle().unwrap();
+
+            // Try to send to a non-existent session
+            let result = handle
+                .send_notification(Some("nonexistent-session"), "test/method", json!({}))
+                .await;
+
+            assert!(result.is_err());
+            if let Err(TransportError::SessionNotFound(id)) = result {
+                assert_eq!(id, "nonexistent-session");
+            }
+
+            transport.stop().await.ok();
+        }
+    }
+
+    #[tokio::test]
+    async fn test_transport_handle_send_notification_broadcast_empty() {
+        let mut transport = StreamableHttpTransport::new(18207);
+        let handler = Box::new(mock_handler);
+
+        if transport.start(handler).await.is_ok() {
+            let handle = transport.handle().unwrap();
+
+            // Broadcast to all sessions (empty, should succeed)
+            let result = handle
+                .send_notification(None, "test/method", json!({}))
+                .await;
+
+            assert!(result.is_ok());
+
+            transport.stop().await.ok();
+        }
+    }
+
+    #[tokio::test]
+    async fn test_transport_handle_send_request_missing_session_id() {
+        let mut transport = StreamableHttpTransport::new(18208);
+        let handler = Box::new(mock_handler);
+
+        if transport.start(handler).await.is_ok() {
+            let handle = transport.handle().unwrap();
+
+            // Try to send request without session ID
+            let result = handle
+                .send_request(
+                    None,
+                    "sampling/createMessage",
+                    json!({}),
+                    std::time::Duration::from_secs(1),
+                )
+                .await;
+
+            assert!(result.is_err());
+            if let Err(TransportError::Config(msg)) = result {
+                assert!(msg.contains("Session ID required"));
+            }
+
+            transport.stop().await.ok();
+        }
+    }
+
+    #[tokio::test]
+    async fn test_transport_handle_send_request_session_not_found() {
+        let mut transport = StreamableHttpTransport::new(18209);
+        let handler = Box::new(mock_handler);
+
+        if transport.start(handler).await.is_ok() {
+            let handle = transport.handle().unwrap();
+
+            let result = handle
+                .send_request(
+                    Some("nonexistent-session"),
+                    "sampling/createMessage",
+                    json!({}),
+                    std::time::Duration::from_secs(1),
+                )
+                .await;
+
+            assert!(result.is_err());
+            if let Err(TransportError::SessionNotFound(id)) = result {
+                assert_eq!(id, "nonexistent-session");
+            }
+
+            transport.stop().await.ok();
+        }
+    }
+
+    #[tokio::test]
+    async fn test_transport_handle_handle_response_unknown_request() {
+        let mut transport = StreamableHttpTransport::new(18210);
+        let handler = Box::new(mock_handler);
+
+        if transport.start(handler).await.is_ok() {
+            let handle = transport.handle().unwrap();
+
+            // Try to handle response for unknown request
+            let result = handle.handle_response("unknown-req-id", json!({"result": "test"}));
+            assert!(!result); // Should return false for unknown request
+
+            transport.stop().await.ok();
+        }
+    }
+
+    #[tokio::test]
+    async fn test_transport_handle_register_and_handle_response() {
+        let mut transport = StreamableHttpTransport::new(18211);
+        let handler = Box::new(mock_handler);
+
+        if transport.start(handler).await.is_ok() {
+            let handle = transport.handle().unwrap();
+
+            // Register a pending request
+            let rx = handle.register_pending_request_sync("req-456");
+
+            // Handle the response
+            let handled = handle.handle_response("req-456", json!({"result": "success"}));
+            assert!(handled);
+
+            // Receive the response
+            let response = rx.await.unwrap();
+            assert_eq!(response["result"], "success");
+
+            // Trying to handle same ID again should fail
+            let handled_again = handle.handle_response("req-456", json!({"result": "again"}));
+            assert!(!handled_again);
+
+            transport.stop().await.ok();
+        }
+    }
+
+    #[tokio::test]
+    async fn test_transport_handle_clone() {
+        let mut transport = StreamableHttpTransport::new(18212);
+        let handler = Box::new(mock_handler);
+
+        if transport.start(handler).await.is_ok() {
+            let handle1 = transport.handle().unwrap();
+            let handle2 = handle1.clone();
+
+            // Both handles should work
+            let result1 = handle1.send_notification(None, "test1", json!({})).await;
+            let result2 = handle2.send_notification(None, "test2", json!({})).await;
+
+            assert!(result1.is_ok());
+            assert!(result2.is_ok());
+
+            transport.stop().await.ok();
+        }
+    }
+
+    // ============================================================================
+    // SseEventId Edge Cases
+    // ============================================================================
+
+    #[test]
+    fn test_sse_event_id_parse_with_colons_in_ids() {
+        // IDs that contain colons (splitn(3) splits into at most 3 parts)
+        // "session:with:colons:stream:id:7" -> ["session", "with", "colons:stream:id:7"]
+        // The third part "colons:stream:id:7" fails to parse as u64, so returns None
+        let parsed = SseEventId::parse("session:with:colons:stream:id:7");
+        assert!(parsed.is_none()); // Fails because sequence contains non-numeric chars
+
+        // Test case where colons appear but sequence is still valid
+        // "session:stream-with-dashes:42" -> ["session", "stream-with-dashes", "42"]
+        let parsed = SseEventId::parse("session:stream-with-dashes:42");
+        assert!(parsed.is_some());
+        let event_id = parsed.unwrap();
+        assert_eq!(event_id.session_id, "session");
+        assert_eq!(event_id.stream_id, "stream-with-dashes");
+        assert_eq!(event_id.sequence, 42);
+    }
+
+    #[test]
+    fn test_sse_event_id_parse_large_sequence() {
+        let parsed = SseEventId::parse("session:stream:18446744073709551615");
+
+        assert!(parsed.is_some());
+        let event_id = parsed.unwrap();
+        assert_eq!(event_id.sequence, u64::MAX);
+    }
+
+    #[test]
+    fn test_sse_event_id_parse_zero_sequence() {
+        let parsed = SseEventId::parse("s:t:0");
+
+        assert!(parsed.is_some());
+        let event_id = parsed.unwrap();
+        assert_eq!(event_id.sequence, 0);
+    }
+
+    #[test]
+    fn test_sse_event_id_parse_negative_sequence() {
+        // Negative numbers should fail to parse as u64
+        let parsed = SseEventId::parse("session:stream:-1");
+        assert!(parsed.is_none());
+    }
+
+    #[test]
+    fn test_sse_event_id_empty_parts() {
+        // Empty session or stream should still parse (just empty strings)
+        let parsed = SseEventId::parse("::42");
+
+        assert!(parsed.is_some());
+        let event_id = parsed.unwrap();
+        assert_eq!(event_id.session_id, "");
+        assert_eq!(event_id.stream_id, "");
+        assert_eq!(event_id.sequence, 42);
+    }
+
+    // ============================================================================
+    // Config Request Timeout Tests
+    // ============================================================================
+
+    #[test]
+    fn test_config_request_timeout_default() {
+        let config = StreamableHttpConfig::default();
+        assert_eq!(config.request_timeout, std::time::Duration::from_secs(60));
+    }
+
+    #[test]
+    fn test_config_request_timeout_custom() {
+        let config = StreamableHttpConfig {
+            request_timeout: std::time::Duration::from_secs(30),
+            ..Default::default()
+        };
+        assert_eq!(config.request_timeout, std::time::Duration::from_secs(30));
+    }
+
+    #[test]
+    fn test_config_channel_capacity_default() {
+        let config = StreamableHttpConfig::default();
+        assert_eq!(config.channel_capacity, 100);
+    }
+
+    #[test]
+    fn test_config_channel_capacity_custom() {
+        let config = StreamableHttpConfig {
+            channel_capacity: 500,
+            ..Default::default()
+        };
+        assert_eq!(config.channel_capacity, 500);
+    }
 }

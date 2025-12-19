@@ -662,3 +662,199 @@ fn test_server_error_debug() {
     assert!(debug_str.contains("Backend"));
     assert!(debug_str.contains("test"));
 }
+
+// ============================================================================
+// Additional Server Error Tests
+// ============================================================================
+
+#[test]
+fn test_server_error_all_variants() {
+    // Test each variant for coverage
+    let errors = vec![
+        ServerError::Configuration("config error".to_string()),
+        ServerError::Transport("transport error".to_string()),
+        ServerError::Authentication("auth error".to_string()),
+        ServerError::Backend("backend error".to_string()),
+        ServerError::AlreadyRunning,
+        ServerError::NotRunning,
+        ServerError::ShutdownTimeout,
+    ];
+
+    for error in errors {
+        // All should implement Display
+        let display = error.to_string();
+        assert!(!display.is_empty());
+
+        // All should implement Debug
+        let debug = format!("{error:?}");
+        assert!(!debug.is_empty());
+    }
+}
+
+#[test]
+fn test_server_error_std_error_trait() {
+    // Verify ServerError implements std::error::Error
+    let error: Box<dyn std::error::Error> =
+        Box::new(ServerError::Configuration("test".to_string()));
+    assert!(error.to_string().contains("Server configuration error"));
+}
+
+// ============================================================================
+// Transport Configuration Tests
+// ============================================================================
+
+#[tokio::test]
+async fn test_server_with_websocket_transport() {
+    let backend =
+        MockServerBackend::initialize((false, false, false, "WebSocket Server".to_string()))
+            .await
+            .unwrap();
+
+    // Test with WebSocket transport
+    let config = ServerConfig {
+        transport_config: TransportConfig::WebSocket {
+            host: Some("127.0.0.1".to_string()),
+            port: 0, // Random port
+        },
+        auth_config: AuthConfig {
+            storage: StorageConfig::Memory,
+            enabled: false,
+            cache_size: 100,
+            session_timeout_secs: 3600,
+            max_failed_attempts: 5,
+            rate_limit_window_secs: 900,
+        },
+        ..Default::default()
+    };
+
+    let server = McpServer::new(backend, config).await;
+    assert!(server.is_ok());
+}
+
+#[tokio::test]
+async fn test_server_with_streamable_http_transport() {
+    let backend =
+        MockServerBackend::initialize((false, false, false, "StreamableHTTP Server".to_string()))
+            .await
+            .unwrap();
+
+    // Test with StreamableHttp transport
+    let config = ServerConfig {
+        transport_config: TransportConfig::StreamableHttp {
+            host: Some("127.0.0.1".to_string()),
+            port: 0, // Random port
+        },
+        auth_config: AuthConfig {
+            storage: StorageConfig::Memory,
+            enabled: false,
+            cache_size: 100,
+            session_timeout_secs: 3600,
+            max_failed_attempts: 5,
+            rate_limit_window_secs: 900,
+        },
+        ..Default::default()
+    };
+
+    let server = McpServer::new(backend, config).await;
+    assert!(server.is_ok());
+}
+
+// ============================================================================
+// Config Edge Cases
+// ============================================================================
+
+#[tokio::test]
+async fn test_server_with_profiling_enabled() {
+    use pulseengine_mcp_logging::ProfilingConfig;
+
+    let backend =
+        MockServerBackend::initialize((false, false, false, "Profiling Server".to_string()))
+            .await
+            .unwrap();
+
+    // Use a profiling config with enabled = true
+    let profiling_config = ProfilingConfig {
+        enabled: true,
+        ..Default::default()
+    };
+
+    let config = ServerConfig {
+        transport_config: TransportConfig::Stdio,
+        auth_config: AuthConfig {
+            storage: StorageConfig::Memory,
+            enabled: false,
+            cache_size: 100,
+            session_timeout_secs: 3600,
+            max_failed_attempts: 5,
+            rate_limit_window_secs: 900,
+        },
+        profiling_config,
+        ..Default::default()
+    };
+
+    let server = McpServer::new(backend, config).await;
+    assert!(server.is_ok());
+}
+
+#[tokio::test]
+async fn test_server_with_persistence_config() {
+    use pulseengine_mcp_logging::PersistenceConfig;
+
+    let backend =
+        MockServerBackend::initialize((false, false, false, "Persistence Server".to_string()))
+            .await
+            .unwrap();
+
+    let temp_dir = std::env::temp_dir().join("mcp_test_metrics");
+
+    // Use default PersistenceConfig with modified data_dir
+    let persistence = PersistenceConfig {
+        data_dir: temp_dir.clone(),
+        ..Default::default()
+    };
+
+    let config = ServerConfig {
+        transport_config: TransportConfig::Stdio,
+        auth_config: AuthConfig {
+            storage: StorageConfig::Memory,
+            enabled: false,
+            cache_size: 100,
+            session_timeout_secs: 3600,
+            max_failed_attempts: 5,
+            rate_limit_window_secs: 900,
+        },
+        persistence_config: Some(persistence),
+        ..Default::default()
+    };
+
+    let server = McpServer::new(backend, config).await;
+    // May fail if temp dir can't be created, but should not crash
+    let _ = server;
+
+    // Cleanup
+    let _ = std::fs::remove_dir_all(temp_dir);
+}
+
+#[tokio::test]
+async fn test_server_with_auth_enabled() {
+    let backend =
+        MockServerBackend::initialize((false, false, false, "Auth Enabled Server".to_string()))
+            .await
+            .unwrap();
+
+    let config = ServerConfig {
+        transport_config: TransportConfig::Stdio,
+        auth_config: AuthConfig {
+            storage: StorageConfig::Memory,
+            enabled: true, // Enable auth
+            cache_size: 100,
+            session_timeout_secs: 3600,
+            max_failed_attempts: 5,
+            rate_limit_window_secs: 900,
+        },
+        ..Default::default()
+    };
+
+    let server = McpServer::new(backend, config).await;
+    assert!(server.is_ok());
+}

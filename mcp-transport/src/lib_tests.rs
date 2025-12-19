@@ -268,4 +268,316 @@ mod tests {
         let _stdio_mod = std::any::type_name::<stdio::StdioTransport>();
         let _websocket_mod = std::any::type_name::<websocket::WebSocketTransport>();
     }
+
+    // ============================================================================
+    // Streaming Context Tests
+    // ============================================================================
+
+    #[test]
+    fn test_try_notification_sender_without_context() {
+        // Outside any streaming context, should return None
+        let sender = crate::try_notification_sender();
+        assert!(sender.is_none());
+    }
+
+    #[test]
+    fn test_send_streaming_notification_without_context() {
+        // Without context, should return false
+        let result = crate::send_streaming_notification("test/method", serde_json::json!({}));
+        assert!(!result);
+    }
+
+    #[test]
+    fn test_send_streaming_request_without_context() {
+        // Without context, should return false
+        let result = crate::send_streaming_request("req-123", "test/method", serde_json::json!({}));
+        assert!(!result);
+    }
+
+    #[test]
+    fn test_try_current_session_id_without_context() {
+        // Outside any session context, should return None
+        let session_id = crate::try_current_session_id();
+        assert!(session_id.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_with_session_context() {
+        let session_id = "test-session-123";
+
+        let result = crate::with_session(session_id.to_string(), async {
+            crate::try_current_session_id()
+        })
+        .await;
+
+        assert_eq!(result, Some(session_id.to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_with_streaming_context() {
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+
+        let result = crate::with_streaming_context("session-456".to_string(), tx, async {
+            // Inside context, should be able to send
+            let sent = crate::send_streaming_notification(
+                "test/method",
+                serde_json::json!({"key": "value"}),
+            );
+            assert!(sent);
+
+            // Try sending a request too
+            let sent_req = crate::send_streaming_request(
+                "req-789",
+                "sampling/createMessage",
+                serde_json::json!({}),
+            );
+            assert!(sent_req);
+
+            // Session ID should be available
+            crate::try_current_session_id()
+        })
+        .await;
+
+        // Session ID was captured
+        assert_eq!(result, Some("session-456".to_string()));
+
+        // Verify messages were received
+        let notification = rx.recv().await.unwrap();
+        assert!(notification.id.is_none()); // Notification has no ID
+        assert_eq!(notification.method, "test/method");
+
+        let request = rx.recv().await.unwrap();
+        assert_eq!(request.id, Some("req-789".to_string()));
+        assert_eq!(request.method, "sampling/createMessage");
+    }
+
+    #[tokio::test]
+    async fn test_streaming_notification_struct() {
+        let notification = crate::StreamingNotification {
+            id: None,
+            method: "notifications/progress".to_string(),
+            params: serde_json::json!({"progress": 50}),
+        };
+
+        assert!(notification.id.is_none());
+        assert_eq!(notification.method, "notifications/progress");
+        assert_eq!(notification.params["progress"], 50);
+
+        // Test clone
+        let cloned = notification.clone();
+        assert_eq!(cloned.method, notification.method);
+
+        // Test debug
+        let debug_str = format!("{notification:?}");
+        assert!(debug_str.contains("StreamingNotification"));
+    }
+
+    #[tokio::test]
+    async fn test_streaming_request_struct() {
+        let request = crate::StreamingNotification {
+            id: Some("req-abc".to_string()),
+            method: "sampling/createMessage".to_string(),
+            params: serde_json::json!({"maxTokens": 100}),
+        };
+
+        assert_eq!(request.id, Some("req-abc".to_string()));
+        assert_eq!(request.method, "sampling/createMessage");
+    }
+
+    // ============================================================================
+    // create_transport Tests
+    // ============================================================================
+
+    #[test]
+    fn test_create_transport_stdio() {
+        let config = TransportConfig::Stdio;
+        let transport = crate::create_transport(config);
+
+        assert!(transport.is_ok());
+    }
+
+    #[test]
+    fn test_create_transport_http() {
+        let config = TransportConfig::Http {
+            host: Some("127.0.0.1".to_string()),
+            port: 3000,
+        };
+        let transport = crate::create_transport(config);
+
+        assert!(transport.is_ok());
+    }
+
+    #[test]
+    fn test_create_transport_streamable_http() {
+        let config = TransportConfig::StreamableHttp {
+            host: Some("127.0.0.1".to_string()),
+            port: 3001,
+        };
+        let transport = crate::create_transport(config);
+
+        assert!(transport.is_ok());
+    }
+
+    #[test]
+    fn test_create_transport_websocket() {
+        let config = TransportConfig::WebSocket {
+            host: Some("127.0.0.1".to_string()),
+            port: 3002,
+        };
+        let transport = crate::create_transport(config);
+
+        assert!(transport.is_ok());
+    }
+
+    // ============================================================================
+    // Additional TransportError Tests
+    // ============================================================================
+
+    #[test]
+    fn test_transport_error_timeout() {
+        let error = TransportError::Timeout;
+        assert!(error.to_string().contains("Timeout"));
+    }
+
+    #[test]
+    fn test_transport_error_session_not_found() {
+        let error = TransportError::SessionNotFound("sess-123".to_string());
+        let msg = error.to_string();
+        assert!(msg.contains("Session not found"));
+        assert!(msg.contains("sess-123"));
+    }
+
+    #[test]
+    fn test_transport_error_channel_closed() {
+        let error = TransportError::ChannelClosed;
+        assert!(error.to_string().contains("Channel closed"));
+    }
+
+    #[test]
+    fn test_transport_error_not_supported() {
+        let error = TransportError::NotSupported("bidirectional".to_string());
+        let msg = error.to_string();
+        assert!(msg.contains("Not supported"));
+        assert!(msg.contains("bidirectional"));
+    }
+
+    // ============================================================================
+    // Transport Trait Default Implementation Tests
+    // ============================================================================
+
+    #[tokio::test]
+    async fn test_transport_default_send_notification() {
+        // Create a minimal transport that uses default implementations
+        struct MinimalTransport;
+
+        #[async_trait::async_trait]
+        impl Transport for MinimalTransport {
+            async fn start(
+                &mut self,
+                _handler: RequestHandler,
+            ) -> std::result::Result<(), TransportError> {
+                Ok(())
+            }
+            async fn stop(&mut self) -> std::result::Result<(), TransportError> {
+                Ok(())
+            }
+            async fn health_check(&self) -> std::result::Result<(), TransportError> {
+                Ok(())
+            }
+        }
+
+        let transport = MinimalTransport;
+
+        // Default implementation should return NotSupported
+        let result = transport
+            .send_notification(None, "test", serde_json::json!({}))
+            .await;
+        assert!(matches!(result, Err(TransportError::NotSupported(_))));
+    }
+
+    #[tokio::test]
+    async fn test_transport_default_send_request() {
+        struct MinimalTransport;
+
+        #[async_trait::async_trait]
+        impl Transport for MinimalTransport {
+            async fn start(
+                &mut self,
+                _handler: RequestHandler,
+            ) -> std::result::Result<(), TransportError> {
+                Ok(())
+            }
+            async fn stop(&mut self) -> std::result::Result<(), TransportError> {
+                Ok(())
+            }
+            async fn health_check(&self) -> std::result::Result<(), TransportError> {
+                Ok(())
+            }
+        }
+
+        let transport = MinimalTransport;
+
+        // Default implementation should return NotSupported
+        let result = transport
+            .send_request(
+                None,
+                "test",
+                serde_json::json!({}),
+                std::time::Duration::from_secs(1),
+            )
+            .await;
+        assert!(matches!(result, Err(TransportError::NotSupported(_))));
+    }
+
+    #[test]
+    fn test_transport_default_supports_bidirectional() {
+        struct MinimalTransport;
+
+        #[async_trait::async_trait]
+        impl Transport for MinimalTransport {
+            async fn start(
+                &mut self,
+                _handler: RequestHandler,
+            ) -> std::result::Result<(), TransportError> {
+                Ok(())
+            }
+            async fn stop(&mut self) -> std::result::Result<(), TransportError> {
+                Ok(())
+            }
+            async fn health_check(&self) -> std::result::Result<(), TransportError> {
+                Ok(())
+            }
+        }
+
+        let transport = MinimalTransport;
+
+        // Default implementation should return false
+        assert!(!transport.supports_bidirectional());
+    }
+
+    #[test]
+    fn test_transport_default_register_pending_request() {
+        struct MinimalTransport;
+
+        #[async_trait::async_trait]
+        impl Transport for MinimalTransport {
+            async fn start(
+                &mut self,
+                _handler: RequestHandler,
+            ) -> std::result::Result<(), TransportError> {
+                Ok(())
+            }
+            async fn stop(&mut self) -> std::result::Result<(), TransportError> {
+                Ok(())
+            }
+            async fn health_check(&self) -> std::result::Result<(), TransportError> {
+                Ok(())
+            }
+        }
+
+        let transport = MinimalTransport;
+
+        // Default implementation should return None
+        assert!(transport.register_pending_request("req-123").is_none());
+    }
 }
