@@ -822,3 +822,355 @@ fn test_default_context_accessors() {
     assert_eq!(ctx.progress_token(), Some("prog-token"));
     assert_eq!(ctx.session_id(), Some("sess-123"));
 }
+
+// ============================================================================
+// TransportBridge Tests
+// ============================================================================
+
+use pulseengine_mcp_transport::{Transport, TransportError};
+
+/// Mock error type for tests (String-based for clonability)
+#[derive(Clone)]
+enum MockTransportResult {
+    Ok,
+    ConnectionError(String),
+    Timeout,
+    ChannelClosed,
+    NotSupported(String),
+    SessionNotFound(String),
+}
+
+impl MockTransportResult {
+    fn to_notification_result(&self) -> Result<(), TransportError> {
+        match self {
+            MockTransportResult::Ok => Ok(()),
+            MockTransportResult::ConnectionError(msg) => {
+                Err(TransportError::Connection(msg.clone()))
+            }
+            MockTransportResult::Timeout => Err(TransportError::Timeout),
+            MockTransportResult::ChannelClosed => Err(TransportError::ChannelClosed),
+            MockTransportResult::NotSupported(msg) => {
+                Err(TransportError::NotSupported(msg.clone()))
+            }
+            MockTransportResult::SessionNotFound(id) => {
+                Err(TransportError::SessionNotFound(id.clone()))
+            }
+        }
+    }
+
+    fn to_request_result(&self, response: &Value) -> Result<Value, TransportError> {
+        match self {
+            MockTransportResult::Ok => Ok(response.clone()),
+            MockTransportResult::ConnectionError(msg) => {
+                Err(TransportError::Connection(msg.clone()))
+            }
+            MockTransportResult::Timeout => Err(TransportError::Timeout),
+            MockTransportResult::ChannelClosed => Err(TransportError::ChannelClosed),
+            MockTransportResult::NotSupported(msg) => {
+                Err(TransportError::NotSupported(msg.clone()))
+            }
+            MockTransportResult::SessionNotFound(id) => {
+                Err(TransportError::SessionNotFound(id.clone()))
+            }
+        }
+    }
+}
+
+struct MockTransport {
+    supports_bidirectional: bool,
+    notification_result: std::sync::Mutex<MockTransportResult>,
+    request_result: std::sync::Mutex<MockTransportResult>,
+    request_response: std::sync::Mutex<Value>,
+}
+
+impl MockTransport {
+    fn new(supports_bidirectional: bool) -> Self {
+        Self {
+            supports_bidirectional,
+            notification_result: std::sync::Mutex::new(MockTransportResult::Ok),
+            request_result: std::sync::Mutex::new(MockTransportResult::Ok),
+            request_response: std::sync::Mutex::new(json!({})),
+        }
+    }
+
+    fn set_notification_error(&self, result: MockTransportResult) {
+        *self.notification_result.lock().unwrap() = result;
+    }
+
+    fn set_request_error(&self, result: MockTransportResult) {
+        *self.request_result.lock().unwrap() = result;
+    }
+
+    fn set_request_response(&self, response: Value) {
+        *self.request_response.lock().unwrap() = response;
+    }
+}
+
+#[async_trait]
+impl Transport for MockTransport {
+    async fn start(
+        &mut self,
+        _handler: pulseengine_mcp_transport::RequestHandler,
+    ) -> Result<(), TransportError> {
+        Ok(())
+    }
+
+    async fn stop(&mut self) -> Result<(), TransportError> {
+        Ok(())
+    }
+
+    async fn health_check(&self) -> Result<(), TransportError> {
+        Ok(())
+    }
+
+    fn supports_bidirectional(&self) -> bool {
+        self.supports_bidirectional
+    }
+
+    async fn send_notification(
+        &self,
+        _session_id: Option<&str>,
+        _method: &str,
+        _params: Value,
+    ) -> Result<(), TransportError> {
+        self.notification_result
+            .lock()
+            .unwrap()
+            .to_notification_result()
+    }
+
+    async fn send_request(
+        &self,
+        _session_id: Option<&str>,
+        _method: &str,
+        _params: Value,
+        _timeout: Duration,
+    ) -> Result<Value, TransportError> {
+        let result = self.request_result.lock().unwrap().clone();
+        let response = self.request_response.lock().unwrap().clone();
+        result.to_request_result(&response)
+    }
+}
+
+#[tokio::test]
+async fn test_transport_bridge_send_notification_success() {
+    use crate::tool_context::TransportBridge;
+
+    let transport = Arc::new(MockTransport::new(true)) as Arc<dyn Transport>;
+    let bridge = TransportBridge::new(transport, Some("session-1".to_string()));
+
+    let result = bridge
+        .send_notification("test/method", json!({"key": "value"}))
+        .await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn test_transport_bridge_send_notification_error() {
+    use crate::tool_context::TransportBridge;
+
+    let mock = MockTransport::new(true);
+    mock.set_notification_error(MockTransportResult::ConnectionError(
+        "connection lost".to_string(),
+    ));
+    let transport = Arc::new(mock) as Arc<dyn Transport>;
+    let bridge = TransportBridge::new(transport, Some("session-1".to_string()));
+
+    let result = bridge.send_notification("test/method", json!({})).await;
+    // Connection errors map to Transport (only SessionNotFound/ChannelClosed/NotSupported map to NotificationFailed)
+    assert!(matches!(result, Err(ToolContextError::Transport(_))));
+}
+
+#[tokio::test]
+async fn test_transport_bridge_send_request_success() {
+    use crate::tool_context::TransportBridge;
+
+    let mock = MockTransport::new(true);
+    mock.set_request_response(json!({"result": "success"}));
+    let transport = Arc::new(mock) as Arc<dyn Transport>;
+    let bridge = TransportBridge::new(transport, Some("session-1".to_string()));
+
+    let result = bridge
+        .send_request("test/method", json!({}), Duration::from_secs(5))
+        .await;
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap()["result"], "success");
+}
+
+#[tokio::test]
+async fn test_transport_bridge_send_request_timeout() {
+    use crate::tool_context::TransportBridge;
+
+    let mock = MockTransport::new(true);
+    mock.set_request_error(MockTransportResult::Timeout);
+    let transport = Arc::new(mock) as Arc<dyn Transport>;
+    let bridge = TransportBridge::new(transport, Some("session-1".to_string()));
+
+    let result = bridge
+        .send_request("test/method", json!({}), Duration::from_secs(5))
+        .await;
+    assert!(matches!(result, Err(ToolContextError::Timeout)));
+}
+
+#[tokio::test]
+async fn test_transport_bridge_send_request_channel_closed() {
+    use crate::tool_context::TransportBridge;
+
+    let mock = MockTransport::new(true);
+    mock.set_request_error(MockTransportResult::ChannelClosed);
+    let transport = Arc::new(mock) as Arc<dyn Transport>;
+    let bridge = TransportBridge::new(transport, Some("session-1".to_string()));
+
+    let result = bridge
+        .send_request("test/method", json!({}), Duration::from_secs(5))
+        .await;
+    assert!(matches!(result, Err(ToolContextError::RequestFailed(_))));
+}
+
+#[tokio::test]
+async fn test_transport_bridge_send_request_not_supported() {
+    use crate::tool_context::TransportBridge;
+
+    let mock = MockTransport::new(true);
+    mock.set_request_error(MockTransportResult::NotSupported("sampling".to_string()));
+    let transport = Arc::new(mock) as Arc<dyn Transport>;
+    let bridge = TransportBridge::new(transport, Some("session-1".to_string()));
+
+    let result = bridge
+        .send_request("test/method", json!({}), Duration::from_secs(5))
+        .await;
+    assert!(matches!(result, Err(ToolContextError::RequestFailed(_))));
+}
+
+#[tokio::test]
+async fn test_transport_bridge_send_request_session_not_found() {
+    use crate::tool_context::TransportBridge;
+
+    let mock = MockTransport::new(true);
+    mock.set_request_error(MockTransportResult::SessionNotFound("sess-999".to_string()));
+    let transport = Arc::new(mock) as Arc<dyn Transport>;
+    let bridge = TransportBridge::new(transport, Some("session-1".to_string()));
+
+    let result = bridge
+        .send_request("test/method", json!({}), Duration::from_secs(5))
+        .await;
+    // SessionNotFound maps to RequestFailed for requests
+    assert!(matches!(result, Err(ToolContextError::RequestFailed(_))));
+}
+
+// ============================================================================
+// create_tool_context Tests
+// ============================================================================
+
+#[test]
+fn test_create_tool_context() {
+    use crate::tool_context::create_tool_context;
+
+    let transport = Arc::new(MockTransport::new(true)) as Arc<dyn Transport>;
+
+    let ctx = create_tool_context(
+        transport,
+        "req-123",
+        "my-tool",
+        Some("progress-token".to_string()),
+        Some("session-id".to_string()),
+    );
+
+    assert_eq!(ctx.request_id(), "req-123");
+    assert_eq!(ctx.tool_name(), "my-tool");
+    assert_eq!(ctx.progress_token(), Some("progress-token"));
+    assert_eq!(ctx.session_id(), Some("session-id"));
+}
+
+#[tokio::test]
+async fn test_create_tool_context_send_log() {
+    use crate::tool_context::create_tool_context;
+
+    let transport = Arc::new(MockTransport::new(true)) as Arc<dyn Transport>;
+
+    let ctx = create_tool_context(
+        transport,
+        "req-123",
+        "my-tool",
+        None,
+        Some("session-id".to_string()),
+    );
+
+    // This should succeed via the TransportBridge
+    let result = ctx
+        .send_log(LogLevel::Info, Some("logger"), json!({}))
+        .await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn test_create_tool_context_send_progress() {
+    use crate::tool_context::create_tool_context;
+
+    let transport = Arc::new(MockTransport::new(true)) as Arc<dyn Transport>;
+
+    let ctx = create_tool_context(
+        transport,
+        "req-123",
+        "my-tool",
+        Some("progress-token".to_string()),
+        Some("session-id".to_string()),
+    );
+
+    let result = ctx.send_progress(50, Some(100)).await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn test_create_tool_context_request_sampling() {
+    use crate::tool_context::create_tool_context;
+
+    let mock = MockTransport::new(true);
+    mock.set_request_response(json!({
+        "role": "assistant",
+        "content": {"type": "text", "text": "Hello!"},
+        "model": "test-model",
+        "stopReason": "end_turn"
+    }));
+    let transport = Arc::new(mock) as Arc<dyn Transport>;
+
+    let ctx = create_tool_context(
+        transport,
+        "req-123",
+        "my-tool",
+        None,
+        Some("session-id".to_string()),
+    );
+
+    let result = ctx
+        .request_sampling(CreateMessageRequest::default(), Duration::from_secs(5))
+        .await;
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap().model, "test-model");
+}
+
+#[tokio::test]
+async fn test_create_tool_context_request_elicitation() {
+    use crate::tool_context::create_tool_context;
+
+    let mock = MockTransport::new(true);
+    mock.set_request_response(json!({
+        "action": "accept",
+        "content": {"value": "user input"}
+    }));
+    let transport = Arc::new(mock) as Arc<dyn Transport>;
+
+    let ctx = create_tool_context(
+        transport,
+        "req-123",
+        "my-tool",
+        None,
+        Some("session-id".to_string()),
+    );
+
+    let result = ctx
+        .request_elicitation(ElicitationRequest::text("test"), Duration::from_secs(5))
+        .await;
+    assert!(result.is_ok());
+    assert!(matches!(result.unwrap().action, ElicitationAction::Accept));
+}
