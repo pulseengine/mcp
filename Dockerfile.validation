@@ -26,6 +26,7 @@ COPY mcp-security-middleware ./mcp-security-middleware/
 COPY mcp-transport ./mcp-transport/
 COPY mcp-macros ./mcp-macros/
 COPY mcp-server ./mcp-server/
+COPY mcp-client ./mcp-client/
 COPY mcp-external-validation ./mcp-external-validation/
 COPY conformance-tests ./conformance-tests/
 COPY examples ./examples/
