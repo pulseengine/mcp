@@ -1,0 +1,32 @@
+[package]
+name = "pulseengine-mcp-client"
+description = "MCP client implementation for connecting to MCP servers"
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation = "https://docs.rs/pulseengine-mcp-client"
+keywords = ["mcp", "client", "protocol", "ai", "rust"]
+categories = ["api-bindings", "development-tools", "asynchronous"]
+
+[dependencies]
+# Core dependencies from workspace
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+futures = { workspace = true }
+
+# Internal dependencies
+pulseengine-mcp-protocol = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util", "macros", "rt-multi-thread"] }
+
+[lints]
+workspace = true

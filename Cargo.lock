@@ -2146,6 +2146,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "pulseengine-mcp-client"
+version = "0.16.0"
+dependencies = [
+ "async-trait",
+ "futures",
+ "pulseengine-mcp-protocol",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.12",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "pulseengine-mcp-external-validation"
 version = "0.16.0"
 dependencies = [
