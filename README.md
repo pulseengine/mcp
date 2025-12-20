@@ -1,294 +1,70 @@
-# PulseEngine MCP Framework for Rust
+# PulseEngine MCP
 
-**Build production-ready Model Context Protocol servers with confidence**
+Rust framework for building [Model Context Protocol](https://modelcontextprotocol.io/) servers and clients.
 
-[![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
+[![Crates.io](https://img.shields.io/crates/v/pulseengine-mcp-protocol.svg)](https://crates.io/crates/pulseengine-mcp-protocol)
 [![Documentation](https://docs.rs/pulseengine-mcp-protocol/badge.svg)](https://docs.rs/pulseengine-mcp-protocol)
-[![codecov](https://codecov.io/gh/pulseengine/mcp/graph/badge.svg?token=ZGAL6V3SQR)](https://codecov.io/gh/pulseengine/mcp)
 [![CI](https://github.com/pulseengine/mcp/actions/workflows/pr-validation.yml/badge.svg)](https://github.com/pulseengine/mcp/actions/workflows/pr-validation.yml)
+[![codecov](https://codecov.io/gh/pulseengine/mcp/graph/badge.svg?token=ZGAL6V3SQR)](https://codecov.io/gh/pulseengine/mcp)
 
-This framework provides everything you need to build production-ready MCP servers in Rust. It's been developed and proven through a real-world home automation server with 30+ tools that successfully integrates with MCP Inspector, Claude Desktop, and HTTP clients.
-
-**🎉 MCP 2025-11-25 Support** - Full implementation of the latest MCP specification including Tasks, Tool Calling in Sampling, and Enhanced Elicitation!
-
-**🖼️ MCP Apps Extension Support** - First production Rust framework supporting [SEP-1865](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/1865) for interactive HTML user interfaces!
-
-## What is MCP?
-
-The [Model Context Protocol](https://modelcontextprotocol.io/) enables AI assistants to securely connect to and interact with external systems through tools, resources, and prompts. Instead of AI models having static knowledge, they can dynamically access live data and perform actions through MCP servers.
-
-## Why This Framework?
-
-**🏗️ Production-Proven:** This framework powers a working Loxone home automation server that handles real-world complexity - device control, sensor monitoring, authentication, and concurrent operations.
-
-**🔧 Complete Infrastructure:** You focus on your domain logic (databases, APIs, file systems) while the framework handles protocol compliance, transport layers, security, and monitoring.
-
-**📡 Multiple Transport Support:** Works with Claude Desktop (stdio), web applications (HTTP), real-time apps (WebSocket), and tools like MCP Inspector.
-
-## Quick Start
-
-Add to your `Cargo.toml`:
-
-```toml
-[dependencies]
-pulseengine-mcp-server = "0.15"
-pulseengine-mcp-protocol = "0.15"
-tokio = { version = "1.0", features = ["full"] }
-async-trait = "0.1"
-```
-
-Create your first MCP server:
+## Example
 
 ```rust
-use pulseengine_mcp_server::{McpServer, McpBackend, ServerConfig};
-use pulseengine_mcp_protocol::*;
-use async_trait::async_trait;
+use pulseengine_mcp_macros::{mcp_server, mcp_tools};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone)]
-struct MyBackend;
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct GreetParams {
+    pub name: Option<String>,
+}
 
-#[async_trait]
-impl McpBackend for MyBackend {
-    type Error = Box<dyn std::error::Error + Send + Sync>;
-    type Config = ();
+#[mcp_server(name = "My Server")]
+#[derive(Default, Clone)]
+pub struct MyServer;
 
-    async fn initialize(_: Self::Config) -> Result<Self, Self::Error> {
-        Ok(MyBackend)
-    }
-
-    fn get_server_info(&self) -> ServerInfo {
-        ServerInfo {
-            protocol_version: ProtocolVersion::default(),  // MCP 2025-11-25
-            capabilities: ServerCapabilities::builder()
-                .enable_tools()
-                .build(),
-            server_info: Implementation::with_description(
-                "My MCP Server",
-                "1.0.0",
-                "A simple example server",
-            ),
-            instructions: Some("Use 'hello' tool to greet someone".to_string()),
-        }
-    }
-
-    async fn list_tools(&self, _: PaginatedRequestParam) -> Result<ListToolsResult, Self::Error> {
-        Ok(ListToolsResult {
-            tools: vec![
-                Tool {
-                    name: "hello".to_string(),
-                    description: "Say hello to someone".to_string(),
-                    input_schema: serde_json::json!({
-                        "type": "object",
-                        "properties": {
-                            "name": {"type": "string", "description": "Name to greet"}
-                        },
-                        "required": ["name"]
-                    }),
-                    output_schema: None,
-                    title: None,
-                    annotations: None,
-                    icons: None,
-                    execution: None,
-                    _meta: None,
-                }
-            ],
-            next_cursor: None,
-        })
-    }
-
-    async fn call_tool(&self, request: CallToolRequestParam) -> Result<CallToolResult, Self::Error> {
-        match request.name.as_str() {
-            "hello" => {
-                let name = request.arguments
-                    .and_then(|args| args.get("name"))
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("World");
-
-                Ok(CallToolResult::text(format!("Hello, {}!", name)))
-            }
-            _ => Err("Unknown tool".into()),
-        }
-    }
-
-    // Simple implementations for unused features
-    async fn list_resources(&self, _: PaginatedRequestParam) -> Result<ListResourcesResult, Self::Error> {
-        Ok(ListResourcesResult { resources: vec![], next_cursor: None })
-    }
-    async fn read_resource(&self, _: ReadResourceRequestParam) -> Result<ReadResourceResult, Self::Error> {
-        Err("No resources".into())
-    }
-    async fn list_prompts(&self, _: PaginatedRequestParam) -> Result<ListPromptsResult, Self::Error> {
-        Ok(ListPromptsResult { prompts: vec![], next_cursor: None })
-    }
-    async fn get_prompt(&self, _: GetPromptRequestParam) -> Result<GetPromptResult, Self::Error> {
-        Err("No prompts".into())
+#[mcp_tools]
+impl MyServer {
+    /// Greet someone by name
+    pub async fn greet(&self, params: GreetParams) -> anyhow::Result<String> {
+        let name = params.name.unwrap_or_else(|| "World".to_string());
+        Ok(format!("Hello, {name}!"))
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let backend = MyBackend::initialize(()).await?;
-    let config = ServerConfig::default();
-    let mut server = McpServer::new(backend, config).await?;
-    server.run().await?;
-    Ok(())
+    MyServer::configure_stdio_logging();
+    MyServer::with_defaults().serve_stdio().await?.run().await
 }
 ```
 
-## Framework Components
+The `#[mcp_server]` and `#[mcp_tools]` macros generate the protocol implementation. Tool schemas are derived from your Rust types via `JsonSchema`.
 
-### 🔧 [mcp-protocol](mcp-protocol/) - Core Protocol Types
+## Crates
 
-- MCP request/response types with validation
-- JSON-RPC 2.0 support and error handling
-- Schema validation for tool parameters
-- **MCP Apps Extension support** - `ui://` resources, tool metadata, `text/html+mcp`
-
-### 🏗️ [mcp-server](mcp-server/) - Server Infrastructure
-
-- Pluggable backend system via `McpBackend` trait
-- Request routing and protocol compliance
-- Middleware integration for auth, security, monitoring
-
-### 📡 [mcp-transport](mcp-transport/) - Multiple Transports
-
-- stdio (Claude Desktop), HTTP (web apps), WebSocket (real-time)
-- MCP Inspector compatibility with content negotiation
-- Session management and CORS support
-
-### 🔑 [mcp-auth](mcp-auth/) - Authentication Framework
-
-- API key management with role-based access control
-- Rate limiting and IP whitelisting
-- Audit logging and security features
-
-### 🛡️ [mcp-security](mcp-security/) - Security Middleware
-
-- Input validation and XSS/injection prevention
-- Request size limits and parameter validation
-- CORS policies and security headers
-
-### 📝 [mcp-logging](mcp-logging/) - Structured Logging
-
-- JSON logging with correlation IDs
-- Automatic credential sanitization
-- MCP `logging/setLevel` conformance
-- Security audit trails
-
-### ⚙️ [mcp-macros](mcp-macros/) - Procedural Macros
-
-- `#[mcp_server]` - Generate server boilerplate
-- `#[mcp_tool]` - Define tools with schema generation
-- `#[mcp_resource]` - Define parameterized resources
-- `#[mcp_backend]` - Derive backend implementations
+| Crate                           | Description                                        |
+| ------------------------------- | -------------------------------------------------- |
+| [mcp-protocol](mcp-protocol/)   | MCP types, JSON-RPC, schema validation             |
+| [mcp-server](mcp-server/)       | Server infrastructure with `McpBackend` trait      |
+| [mcp-client](mcp-client/)       | Client for connecting to MCP servers               |
+| [mcp-transport](mcp-transport/) | stdio, HTTP, WebSocket transports                  |
+| [mcp-auth](mcp-auth/)           | Authentication, API keys, OAuth 2.1                |
+| [mcp-security](mcp-security/)   | Input validation, rate limiting                    |
+| [mcp-logging](mcp-logging/)     | Structured logging with credential sanitization    |
+| [mcp-macros](mcp-macros/)       | `#[mcp_server]`, `#[mcp_tools]`, `#[mcp_resource]` |
 
 ## Examples
 
-### 🌍 [Hello World](examples/hello-world/)
+- [hello-world](examples/hello-world/) - Minimal server
+- [hello-world-with-auth](examples/hello-world-with-auth/) - With authentication
+- [resources-demo](examples/resources-demo/) - Resource templates with `#[mcp_resource]`
+- [ui-enabled-server](examples/ui-enabled-server/) - MCP Apps extension (SEP-1865)
 
-Complete minimal MCP server demonstrating basic concepts.
+## MCP Spec
 
-### 🔐 [Hello World with Auth](examples/hello-world-with-auth/)
-
-MCP server with full authentication and authorization.
-
-### 🎨 [UI-Enabled Server](examples/ui-enabled-server/)
-
-**MCP Apps Extension demonstration** with interactive HTML interfaces:
-
-- Tool with UI resource link
-- `ui://` URI scheme usage
-- `text/html+mcp` MIME type
-- Complete testing guide
-
-### 📁 [Resources Demo](examples/resources-demo/)
-
-Demonstrates `#[mcp_resource]` macro for parameterized resources with URI templates.
-
-### ⚡ [Ultra Simple](examples/ultra-simple/)
-
-The absolute minimum MCP server implementation.
-
-### 🏠 Real-World Reference: Loxone MCP Server
-
-The framework was extracted from a production Loxone home automation server that provides:
-
-- **30+ Tools** - Complete home automation control (lighting, climate, security, energy)
-- **Multiple Transports** - Works with Claude Desktop, MCP Inspector, n8n workflows
-- **Production Security** - API keys, rate limiting, input validation, audit logging
-- **Real-Time Integration** - WebSocket support for live device status updates
-- **Proven Reliability** - Handles concurrent operations and error conditions
-
-## Development Workflow
-
-### Building the Framework
-
-```bash
-# Build all framework crates
-cargo build --workspace
-
-# Test all crates
-cargo test --workspace
-
-# Run examples
-cargo run --bin hello-world-server
-```
-
-### Creating Your MCP Server
-
-1. **Choose Your Domain** - What system do you want to make accessible via MCP?
-2. **Implement McpBackend** - Define your tools, resources, and prompts
-3. **Configure Transport** - stdio for Claude Desktop, HTTP for web clients
-4. **Add Security** - Authentication, validation, and monitoring as needed
-5. **Deploy** - Native binary, Docker container, or WebAssembly
-
-## Architecture
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   MCP Clients   │    │  Your Backend   │    │ External Systems│
-│                 │    │                 │    │                 │
-│ • Claude Desktop│    │ • Tools         │    │ • Databases     │
-│ • MCP Inspector │◄──►│ • Resources     │◄──►│ • APIs          │
-│ • Web Apps      │    │ • Prompts       │    │ • File Systems  │
-│ • Custom Clients│    │                 │    │ • Hardware      │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │
-         │              ┌─────────────────┐
-         │              │ MCP Framework   │
-         │              │                 │
-         └──────────────►│ • Protocol      │
-                        │ • Transport     │
-                        │ • Security      │
-                        │ • Monitoring    │
-                        └─────────────────┘
-```
-
-## Contributing
-
-This framework grows from real-world usage. The most valuable contributions come from:
-
-1. **New Backend Examples** - Show how to integrate different types of systems
-2. **Production Patterns** - Share patterns from your own MCP server deployments
-3. **Client Compatibility** - Test with different MCP clients and report issues
-4. **Performance Improvements** - Optimizations based on real usage patterns
-5. **Security Enhancements** - Better validation, authentication, or audit capabilities
-
-## Community
-
-- **Documentation** - [docs.rs/pulseengine-mcp-protocol](https://docs.rs/pulseengine-mcp-protocol)
-- **Issues** - [GitHub Issues](https://github.com/pulseengine/mcp/issues)
-- **Discussions** - [GitHub Discussions](https://github.com/pulseengine/mcp/discussions)
+Implements MCP 2025-11-25: tools, resources, prompts, completions, sampling, roots, logging, progress, cancellation, tasks, and elicitation.
 
 ## License
 
-Licensed under either of:
-
-- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
-- MIT license ([LICENSE-MIT](LICENSE-MIT))
-
-at your option.
-
----
-
-**Built by developers who needed a robust MCP framework for real production use.** Start building your MCP server today with confidence that the foundation has been proven in demanding real-world scenarios.
+MIT OR Apache-2.0
