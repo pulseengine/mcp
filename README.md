@@ -1,11 +1,23 @@
-# PulseEngine MCP
+<div align="center">
+
+# mcp
+
+<sup>Rust framework for Model Context Protocol</sup>
+
+&nbsp;
+
+![Rust](https://img.shields.io/badge/Rust-CE422B?style=flat-square&logo=rust&logoColor=white&labelColor=1a1b27)
+![crates.io](https://img.shields.io/crates/v/pulseengine-mcp-protocol?style=flat-square&labelColor=1a1b27)
+![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT_OR_Apache--2.0-blue?style=flat-square&labelColor=1a1b27)
+
+</div>
+
+&nbsp;
 
 Rust framework for building [Model Context Protocol](https://modelcontextprotocol.io/) servers and clients.
 
-[![Crates.io](https://img.shields.io/crates/v/pulseengine-mcp-protocol.svg)](https://crates.io/crates/pulseengine-mcp-protocol)
-[![Documentation](https://docs.rs/pulseengine-mcp-protocol/badge.svg)](https://docs.rs/pulseengine-mcp-protocol)
-[![CI](https://github.com/pulseengine/mcp/actions/workflows/pr-validation.yml/badge.svg)](https://github.com/pulseengine/mcp/actions/workflows/pr-validation.yml)
-[![codecov](https://codecov.io/gh/pulseengine/mcp/graph/badge.svg?token=ZGAL6V3SQR)](https://codecov.io/gh/pulseengine/mcp)
+> [!NOTE]
+> Part of the PulseEngine toolchain. Provides the MCP implementation used across PulseEngine's AI-assisted development infrastructure.
 
 ## Example
 
@@ -56,10 +68,10 @@ The `#[mcp_server]` and `#[mcp_tools]` macros generate the protocol implementati
 
 ## Examples
 
-- [hello-world](examples/hello-world/) - Minimal server
-- [hello-world-with-auth](examples/hello-world-with-auth/) - With authentication
-- [resources-demo](examples/resources-demo/) - Resource templates with `#[mcp_resource]`
-- [ui-enabled-server](examples/ui-enabled-server/) - MCP Apps extension (SEP-1865)
+- [hello-world](examples/hello-world/) — Minimal server
+- [hello-world-with-auth](examples/hello-world-with-auth/) — With authentication
+- [resources-demo](examples/resources-demo/) — Resource templates with `#[mcp_resource]`
+- [ui-enabled-server](examples/ui-enabled-server/) — MCP Apps extension (SEP-1865)
 
 ## MCP Spec
 
@@ -68,3 +80,11 @@ Implements MCP 2025-11-25: tools, resources, prompts, completions, sampling, roo
 ## License
 
 MIT OR Apache-2.0
+
+---
+
+<div align="center">
+
+<sub>Part of <a href="https://github.com/pulseengine">PulseEngine</a> &mdash; formally verified WebAssembly toolchain for safety-critical systems</sub>
+
+</div>
