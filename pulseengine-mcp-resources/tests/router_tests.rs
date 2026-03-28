@@ -151,10 +151,7 @@ fn template_with_multiple_params() {
         |_state: &(), uri: &str, params: &matchit::Params| {
             let section = params.get("section").unwrap_or("?");
             let key = params.get("key").unwrap_or("?");
-            ResourceContents::text(
-                format!("Config [{section}] {key} = mock_value"),
-                uri,
-            )
+            ResourceContents::text(format!("Config [{section}] {key} = mock_value"), uri)
         },
     );
 
@@ -183,10 +180,7 @@ fn handler_receives_original_uri() {
 
     let result = router.resolve(&(), "file:///path.txt");
     assert!(result.is_some());
-    assert_eq!(
-        extract_text(&result.unwrap()),
-        "file:///path.txt"
-    );
+    assert_eq!(extract_text(&result.unwrap()), "file:///path.txt");
 }
 
 #[test]
@@ -204,10 +198,7 @@ fn handler_with_state() {
         None,
         |state: &AppState, uri: &str, params: &matchit::Params| {
             let path = params.get("path").unwrap_or("?");
-            ResourceContents::text(
-                format!("{}: {path}", state.prefix),
-                uri,
-            )
+            ResourceContents::text(format!("{}: {path}", state.prefix), uri)
         },
     );
 
@@ -248,10 +239,7 @@ fn template_metadata() {
     let t = &templates[0];
     assert_eq!(t.raw.name, "file");
     assert_eq!(t.raw.uri_template, "file:///{path}");
-    assert_eq!(
-        t.raw.description.as_deref(),
-        Some("Read a file by path")
-    );
+    assert_eq!(t.raw.description.as_deref(), Some("Read a file by path"));
     assert_eq!(t.raw.mime_type.as_deref(), Some("text/plain"));
 }
 
