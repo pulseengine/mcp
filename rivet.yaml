@@ -1,0 +1,11 @@
+project:
+  name: mcp
+  version: "0.1.0"
+  schemas:
+    - common
+    - dev
+    - stpa
+
+sources:
+  - path: artifacts
+    format: generic-yaml

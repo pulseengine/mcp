@@ -1,0 +1,708 @@
+artifacts:
+  # ══════════════════════════════════════════════════════════════════════
+  # STPA Step 1a — Losses
+  # What do we NOT want to happen during/after the rmcp migration?
+  # ══════════════════════════════════════════════════════════════════════
+
+  - id: L-001
+    type: loss
+    title: Loss of downstream users
+    status: accepted
+    description: >
+      Existing users of pulseengine-mcp-* crates (e.g. Loxone MCP server)
+      are broken by the migration and abandon the ecosystem.
+    fields:
+      stakeholders: [crate-consumers, loxone-team]
+
+  - id: L-002
+    type: loss
+    title: Loss of unique functionality
+    status: accepted
+    description: >
+      Functionality that rmcp does NOT provide (security middleware,
+      resource routing, MCP Apps, credential scrubbing) is lost during
+      migration and never rebuilt.
+    fields:
+      stakeholders: [crate-consumers, maintainers]
+
+  - id: L-003
+    type: loss
+    title: Loss of crate ownership and namespace
+    status: accepted
+    description: >
+      Crates.io names (pulseengine-mcp-*) are deprecated without clear
+      migration path, confusing users and losing discoverability.
+    fields:
+      stakeholders: [crate-consumers, rust-community]
+
+  - id: L-004
+    type: loss
+    title: Prolonged maintenance burden
+    status: accepted
+    description: >
+      Migration stalls halfway, leaving maintainers with BOTH the old
+      crates and the new rmcp extensions to maintain simultaneously.
+    fields:
+      stakeholders: [maintainers]
+
+  - id: L-005
+    type: loss
+    title: Security regression
+    status: accepted
+    description: >
+      Moving from a stack with built-in security (auth, rate limiting,
+      input validation) to rmcp (which has none) introduces vulnerabilities
+      in production deployments.
+    fields:
+      stakeholders: [crate-consumers, end-users]
+
+  # ══════════════════════════════════════════════════════════════════════
+  # STPA Step 1b — Hazards
+  # System states that lead to losses
+  # ══════════════════════════════════════════════════════════════════════
+
+  - id: H-001
+    type: hazard
+    title: API incompatibility between old and new crates
+    status: accepted
+    description: >
+      The new rmcp-based extension crates expose a fundamentally different
+      API surface, making migration non-trivial for downstream consumers.
+    fields:
+      severity: critical
+    links:
+      - type: leads-to-loss
+        target: L-001
+
+  - id: H-002
+    type: hazard
+    title: rmcp type system mismatch
+    status: accepted
+    description: >
+      rmcp uses schemars v1.0 and its own protocol types. Extension crates
+      that were built around pulseengine-mcp-protocol types cannot simply
+      swap the dependency — structural differences cause compile failures
+      or semantic mismatches.
+    fields:
+      severity: critical
+    links:
+      - type: leads-to-loss
+        target: L-002
+      - type: leads-to-loss
+        target: L-004
+
+  - id: H-003
+    type: hazard
+    title: Deprecation without viable replacement
+    status: accepted
+    description: >
+      Crates are deprecated on crates.io before the replacement rmcp
+      extensions are published and stable, leaving a gap.
+    fields:
+      severity: critical
+    links:
+      - type: leads-to-loss
+        target: L-001
+      - type: leads-to-loss
+        target: L-003
+
+  - id: H-004
+    type: hazard
+    title: Security features not ported to rmcp layer
+    status: accepted
+    description: >
+      The auth middleware, input validation, rate limiting, and credential
+      scrubbing logic is tightly coupled to mcp-protocol types and cannot
+      be straightforwardly adapted to work with rmcp's type system.
+    fields:
+      severity: critical
+    links:
+      - type: leads-to-loss
+        target: L-002
+      - type: leads-to-loss
+        target: L-005
+
+  - id: H-005
+    type: hazard
+    title: Half-migrated state persists indefinitely
+    status: accepted
+    description: >
+      The migration is partially completed but stalls due to complexity,
+      leaving both old and new crates requiring maintenance.
+    fields:
+      severity: marginal
+    links:
+      - type: leads-to-loss
+        target: L-004
+
+  - id: H-006
+    type: hazard
+    title: Resource router has no rmcp integration point
+    status: accepted
+    description: >
+      rmcp's resource handling is essentially empty (resource.rs is blank).
+      There is no clear trait or hook to plug a resource router into,
+      requiring either upstream contribution or workaround.
+    fields:
+      severity: marginal
+    links:
+      - type: leads-to-loss
+        target: L-002
+
+  # ══════════════════════════════════════════════════════════════════════
+  # STPA Step 1c — System-level Constraints
+  # What must be true to prevent each hazard
+  # ══════════════════════════════════════════════════════════════════════
+
+  - id: SC-001
+    type: system-constraint
+    title: Publish replacement before deprecation
+    status: accepted
+    description: >
+      New rmcp extension crates MUST be published and documented before
+      any old crate is deprecated on crates.io. Deprecation notices must
+      include the replacement crate name and migration guide.
+    links:
+      - type: prevents
+        target: H-003
+
+  - id: SC-002
+    type: system-constraint
+    title: Security crates must be protocol-agnostic
+    status: accepted
+    description: >
+      Auth, security, and logging crates must be refactored to work at the
+      HTTP/Tower layer, not the MCP protocol layer. This makes them usable
+      with rmcp, axum, or any tower-compatible framework.
+    links:
+      - type: prevents
+        target: H-004
+
+  - id: SC-003
+    type: system-constraint
+    title: Decouple in phases with working state at each step
+    status: accepted
+    description: >
+      Migration must proceed in discrete phases, each producing a working
+      publishable state. No phase should take more than 1-2 weeks. Old
+      crates remain functional until replacement is confirmed working.
+    links:
+      - type: prevents
+        target: H-005
+
+  - id: SC-004
+    type: system-constraint
+    title: Validate rmcp integration points before committing
+    status: accepted
+    description: >
+      Before beginning the migration, build proof-of-concept integrations
+      with rmcp for each extension type (auth middleware, resource router,
+      MCP Apps) to confirm feasibility and identify API gaps.
+    links:
+      - type: prevents
+        target: H-002
+      - type: prevents
+        target: H-006
+
+  - id: SC-005
+    type: system-constraint
+    title: Provide migration guide for downstream consumers
+    status: accepted
+    description: >
+      A clear migration guide mapping old APIs to new must be published
+      alongside the deprecation. Include code examples showing before/after.
+    links:
+      - type: prevents
+        target: H-001
+
+  # ══════════════════════════════════════════════════════════════════════
+  # STPA Step 2 — Control Structure
+  # Who/what controls this migration process?
+  # ══════════════════════════════════════════════════════════════════════
+
+  - id: CTRL-001
+    type: controller
+    title: Maintainer (migration executor)
+    status: accepted
+    description: >
+      The project maintainer who decides what to migrate, when to deprecate,
+      and when to publish replacements.
+    fields:
+      controller-type: human
+      process-model:
+        - Belief about downstream usage patterns
+        - Assumption about rmcp API stability
+        - Assessment of own available time for migration
+
+  - id: CTRL-002
+    type: controller
+    title: CI/CD pipeline
+    status: accepted
+    description: >
+      Automated pipeline that builds, tests, and publishes crates.
+      Controls quality gates before publication.
+    fields:
+      controller-type: automated
+      source-file: .github/workflows/
+      process-model:
+        - Test suite passes
+        - Cargo clippy clean
+        - Cargo publish succeeds
+
+  - id: CTRL-003
+    type: controller
+    title: rmcp upstream project
+    status: accepted
+    description: >
+      The official rmcp SDK maintained by the MCP org. Controls the API
+      surface, type system, and transport layer that extensions must
+      integrate with. Not under our control.
+    fields:
+      controller-type: human-and-automated
+      process-model:
+        - Spec compliance decisions
+        - Breaking change policy (post-1.0 semver)
+        - Feature prioritization
+
+  - id: CP-001
+    type: controlled-process
+    title: Crate ecosystem (crates.io state)
+    status: accepted
+    description: >
+      The set of published crates on crates.io — their versions, deprecation
+      status, and dependency relationships.
+
+  - id: CP-002
+    type: controlled-process
+    title: Downstream projects
+    status: accepted
+    description: >
+      Projects that depend on pulseengine-mcp-* crates (e.g. Loxone MCP
+      server). Their Cargo.toml and code depend on our published API.
+
+  # ── Control Actions ──
+
+  - id: CA-001
+    type: control-action
+    title: Deprecate crate on crates.io
+    status: accepted
+    description: >
+      Mark a crate as deprecated with a message pointing to the replacement.
+    fields:
+      action: "cargo owner --add / yank old versions / publish deprecation version"
+    links:
+      - type: issued-by
+        target: CTRL-001
+      - type: acts-on
+        target: CP-001
+
+  - id: CA-002
+    type: control-action
+    title: Publish new rmcp extension crate
+    status: accepted
+    description: >
+      Publish a new crate (e.g. pulse-mcp-auth) that provides the same
+      functionality but built on rmcp types.
+    fields:
+      action: cargo publish new extension crate
+    links:
+      - type: issued-by
+        target: CTRL-001
+      - type: acts-on
+        target: CP-001
+
+  - id: CA-003
+    type: control-action
+    title: Release breaking rmcp version
+    status: accepted
+    description: >
+      rmcp upstream releases a new version with breaking changes to traits,
+      types, or transport APIs that our extensions depend on.
+    fields:
+      action: rmcp publishes new major/minor with breaking changes
+    links:
+      - type: issued-by
+        target: CTRL-003
+      - type: acts-on
+        target: CP-002
+
+  - id: CA-004
+    type: control-action
+    title: Run migration phase CI
+    status: accepted
+    description: >
+      CI pipeline validates that each migration phase compiles, passes tests,
+      and the old API is still functional.
+    fields:
+      action: cargo test --workspace && cargo clippy
+    links:
+      - type: issued-by
+        target: CTRL-002
+      - type: acts-on
+        target: CP-001
+
+  # ══════════════════════════════════════════════════════════════════════
+  # STPA Step 3 — Unsafe Control Actions
+  # ══════════════════════════════════════════════════════════════════════
+
+  - id: UCA-001
+    type: uca
+    title: Deprecating before replacement is published
+    status: accepted
+    description: >
+      Maintainer deprecates old crates on crates.io BEFORE the replacement
+      rmcp extension crates are published and functional.
+    fields:
+      uca-type: too-early-too-late
+      context: >
+        During migration, maintainer is eager to clean up and deprecates
+        old crates before new ones are ready.
+      rationale: >
+        Downstream users see deprecation warnings but have no alternative
+        to migrate to, causing confusion and potential abandonment.
+    links:
+      - type: issued-by
+        target: CTRL-001
+      - type: leads-to-hazard
+        target: H-003
+
+  - id: UCA-002
+    type: uca
+    title: Not providing migration guide
+    status: accepted
+    description: >
+      Maintainer deprecates and publishes new crates but does NOT provide
+      a migration guide showing how to adapt existing code.
+    fields:
+      uca-type: not-providing
+      context: >
+        New crates are published, old ones deprecated, but the API
+        differences are non-trivial and undocumented.
+      rationale: >
+        Users cannot figure out how to migrate and either stay on the
+        deprecated crates or abandon the ecosystem.
+    links:
+      - type: issued-by
+        target: CTRL-001
+      - type: leads-to-hazard
+        target: H-001
+
+  - id: UCA-003
+    type: uca
+    title: Porting security crate with protocol coupling intact
+    status: accepted
+    description: >
+      Maintainer ports mcp-auth to work with rmcp but keeps the tight
+      coupling to protocol types, just swapping one protocol crate for
+      another. This makes the extension fragile to rmcp changes.
+    fields:
+      uca-type: providing
+      context: >
+        During refactoring of mcp-auth, the expedient path is to replace
+        mcp-protocol imports with rmcp imports rather than making it generic.
+      rationale: >
+        Creates a new tight coupling. When rmcp releases breaking changes,
+        the extension breaks. Defeats the purpose of decoupling.
+    links:
+      - type: issued-by
+        target: CTRL-001
+      - type: leads-to-hazard
+        target: H-002
+
+  - id: UCA-004
+    type: uca
+    title: Starting too many migration phases simultaneously
+    status: accepted
+    description: >
+      Maintainer begins refactoring multiple crates at once instead of
+      completing one phase before starting the next.
+    fields:
+      uca-type: too-early-too-late
+      context: >
+        Enthusiasm for the migration leads to starting auth, security,
+        resource router, and MCP Apps refactoring all at once.
+      rationale: >
+        No single phase reaches completion. Everything is half-done.
+        Workspace is in a broken state for extended periods.
+    links:
+      - type: issued-by
+        target: CTRL-001
+      - type: leads-to-hazard
+        target: H-005
+
+  - id: UCA-005
+    type: uca
+    title: rmcp breaking change with no pinned version
+    status: accepted
+    description: >
+      Extension crates depend on rmcp without pinning a specific version
+      range. An rmcp update breaks the extensions for all users.
+    fields:
+      uca-type: providing
+      context: >
+        rmcp is post-1.0 but still iterating rapidly. A minor release
+        changes trait signatures or type definitions.
+      rationale: >
+        All downstream users who run cargo update get broken builds.
+    links:
+      - type: issued-by
+        target: CTRL-003
+      - type: leads-to-hazard
+        target: H-002
+
+  - id: UCA-006
+    type: uca
+    title: Not validating rmcp integration points upfront
+    status: accepted
+    description: >
+      Maintainer begins full migration without first building PoCs to
+      confirm that rmcp's ServerHandler, Tower integration, and type
+      system actually support the needed extension patterns.
+    fields:
+      uca-type: not-providing
+      context: >
+        rmcp's resource.rs is empty. Tower integration is a feature flag.
+        Auth is client-side only. These gaps may block the migration.
+      rationale: >
+        Discovers blockers mid-migration, after significant work is done.
+        May need to wait for rmcp upstream fixes or redesign the approach.
+    links:
+      - type: issued-by
+        target: CTRL-001
+      - type: leads-to-hazard
+        target: H-006
+      - type: leads-to-hazard
+        target: H-005
+
+  # ══════════════════════════════════════════════════════════════════════
+  # STPA Step 3b — Controller Constraints
+  # What must each controller do/not do? (inverse of UCAs)
+  # ══════════════════════════════════════════════════════════════════════
+
+  - id: CC-001
+    type: controller-constraint
+    title: Deprecate only after replacement is live
+    status: accepted
+    fields:
+      constraint: >
+        Maintainer MUST NOT deprecate any crate on crates.io until the
+        replacement crate is published, documented, and has at least one
+        working example.
+    links:
+      - type: constrains-controller
+        target: CTRL-001
+      - type: inverts-uca
+        target: UCA-001
+      - type: prevents
+        target: H-003
+
+  - id: CC-002
+    type: controller-constraint
+    title: Always publish migration guide with deprecation
+    status: accepted
+    fields:
+      constraint: >
+        Every deprecation notice MUST include a link to a migration guide.
+        The guide must show before/after code for the most common use cases.
+    links:
+      - type: constrains-controller
+        target: CTRL-001
+      - type: inverts-uca
+        target: UCA-002
+      - type: prevents
+        target: H-001
+
+  - id: CC-003
+    type: controller-constraint
+    title: Security crates must target Tower/HTTP layer
+    status: accepted
+    fields:
+      constraint: >
+        When porting security/auth crates, MUST target the Tower middleware
+        or generic HTTP layer, NOT rmcp-specific types. The crate should
+        work with any axum/tower service, not just rmcp servers.
+    links:
+      - type: constrains-controller
+        target: CTRL-001
+      - type: inverts-uca
+        target: UCA-003
+      - type: prevents
+        target: H-002
+
+  - id: CC-004
+    type: controller-constraint
+    title: One phase at a time, working state between phases
+    status: accepted
+    fields:
+      constraint: >
+        Maintainer MUST complete each migration phase (compilable, tested,
+        publishable) before starting the next. Maximum one active phase.
+    links:
+      - type: constrains-controller
+        target: CTRL-001
+      - type: inverts-uca
+        target: UCA-004
+      - type: prevents
+        target: H-005
+
+  - id: CC-005
+    type: controller-constraint
+    title: Pin rmcp dependency to compatible range
+    status: accepted
+    fields:
+      constraint: >
+        Extension crates MUST pin rmcp to a specific minor version range
+        (e.g. "~1.3") and test against that range in CI. Bump only after
+        validating compatibility.
+    links:
+      - type: constrains-controller
+        target: CTRL-001
+      - type: inverts-uca
+        target: UCA-005
+      - type: prevents
+        target: H-002
+
+  - id: CC-006
+    type: controller-constraint
+    title: Build PoCs before committing to migration
+    status: accepted
+    fields:
+      constraint: >
+        Before starting any migration phase, build a minimal proof-of-concept
+        that validates the rmcp integration point works. For resource router:
+        confirm ServerHandler can delegate resource calls. For auth: confirm
+        Tower middleware can intercept rmcp HTTP requests.
+    links:
+      - type: constrains-controller
+        target: CTRL-001
+      - type: inverts-uca
+        target: UCA-006
+      - type: prevents
+        target: H-006
+
+  - id: CC-007
+    type: controller-constraint
+    title: Security extension must ship before old security crate is deprecated
+    status: accepted
+    fields:
+      constraint: >
+        The pulse-security Tower middleware crate MUST be published and
+        validated with at least one rmcp-based server before deprecating
+        mcp-auth or mcp-security. Deprecation notice for security crates
+        MUST explicitly warn that rmcp has no built-in security and point
+        to the replacement.
+    links:
+      - type: constrains-controller
+        target: CTRL-001
+      - type: inverts-uca
+        target: UCA-001
+      - type: prevents
+        target: H-004
+
+  # ══════════════════════════════════════════════════════════════════════
+  # STPA Step 4 — Loss Scenarios
+  # How could each UCA actually happen?
+  # ══════════════════════════════════════════════════════════════════════
+
+  - id: LS-001
+    type: loss-scenario
+    title: Deprecation race condition
+    status: accepted
+    description: >
+      Maintainer publishes deprecation version of old crate and new crate
+      on the same day. Crates.io index propagation delay means some users
+      see the deprecation but can't find the replacement yet.
+    fields:
+      scenario-type: coordination-failure
+      causal-factors:
+        - Crates.io index propagation delay
+        - Publishing old deprecation and new crate simultaneously
+    links:
+      - type: caused-by-uca
+        target: UCA-001
+      - type: leads-to-hazard
+        target: H-003
+
+  - id: LS-002
+    type: loss-scenario
+    title: rmcp trait sealed or non-extensible
+    status: accepted
+    description: >
+      During PoC phase, discover that rmcp's ServerHandler trait or
+      resource handling cannot be extended from outside the crate (sealed
+      traits, private fields, or missing extension points). Resource
+      router cannot be plugged in.
+    fields:
+      scenario-type: inadequate-control-algorithm
+      causal-factors:
+        - rmcp resource.rs is empty — no established extension pattern
+        - ServerHandler may not delegate to external routers
+        - May need upstream PR to rmcp to add extension points
+    links:
+      - type: caused-by-uca
+        target: UCA-006
+      - type: leads-to-hazard
+        target: H-006
+
+  - id: LS-003
+    type: loss-scenario
+    title: schemars v0.8 vs v1.0 type incompatibility
+    status: accepted
+    description: >
+      Extension crates that generate or consume JSON schemas find that
+      schemars 0.8 (used by existing code) and schemars 1.0 (used by
+      rmcp) produce incompatible schema representations. Types cannot be
+      shared across the boundary.
+    fields:
+      scenario-type: process-model-flaw
+      causal-factors:
+        - schemars 1.0 is a major rewrite with different API
+        - Cannot have both 0.8 and 1.0 in same dependency tree easily
+        - Auth/security crates may derive JsonSchema for config types
+    links:
+      - type: leads-to-hazard
+        target: H-002
+
+  - id: LS-004
+    type: loss-scenario
+    title: Migration stalls after phase 1
+    status: accepted
+    description: >
+      Phase 1 (extract generic logging/security) completes. Maintainer
+      moves focus to CLI tooling (stated priority shift). Remaining phases
+      (auth refactor, resource router, MCP Apps) never happen. Old crates
+      are not deprecated, new extensions not published.
+    fields:
+      scenario-type: controller-failure
+      causal-factors:
+        - Maintainer explicitly moving away from MCP toward CLI
+        - Remaining phases are harder (auth refactor, new crate development)
+        - No external pressure to complete since user base is small
+    links:
+      - type: caused-by-uca
+        target: UCA-004
+      - type: leads-to-hazard
+        target: H-005
+
+  - id: LS-005
+    type: loss-scenario
+    title: Security gap during transition
+    status: accepted
+    description: >
+      During migration, downstream users adopt rmcp directly (following
+      deprecation notices) but the security extension crates aren't ready
+      yet. They deploy MCP servers without auth, rate limiting, or input
+      validation — the features they had with the old stack.
+    fields:
+      scenario-type: inadequate-feedback
+      causal-factors:
+        - Deprecation notice says "use rmcp" but rmcp has no security layer
+        - Users assume rmcp includes equivalent security features
+        - Security extension crate not yet published
+    links:
+      - type: caused-by-uca
+        target: UCA-001
+      - type: caused-by-uca
+        target: UCA-002
+      - type: leads-to-hazard
+        target: H-004
