@@ -1069,17 +1069,10 @@ name = "hello-world"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-trait",
- "pulseengine-mcp-macros",
- "pulseengine-mcp-protocol",
- "pulseengine-mcp-server",
- "pulseengine-mcp-transport",
+ "rmcp",
  "schemars 1.0.4",
  "serde",
- "serde_json",
- "thiserror 1.0.69",
  "tokio",
- "tracing",
  "tracing-subscriber",
 ]
 
@@ -2731,14 +2724,14 @@ dependencies = [
 name = "resources-demo"
 version = "0.1.0"
 dependencies = [
- "async-trait",
- "matchit 0.8.4",
- "pulseengine-mcp-macros",
- "pulseengine-mcp-protocol",
- "pulseengine-mcp-server",
+ "anyhow",
+ "pulseengine-mcp-resources",
+ "rmcp",
+ "schemars 1.0.4",
  "serde",
  "serde_json",
  "tokio",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -3825,11 +3818,14 @@ checksum = "1dccffe3ce07af9386bfd29e80c0ab1a8205a2fc34e4bcd40364df902cfa8f3f"
 name = "ui-enabled-server"
 version = "0.1.0"
 dependencies = [
- "async-trait",
- "pulseengine-mcp-protocol",
- "pulseengine-mcp-server",
+ "anyhow",
+ "pulseengine-mcp-apps",
+ "rmcp",
+ "schemars 1.0.4",
+ "serde",
  "serde_json",
  "tokio",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -3837,14 +3833,11 @@ name = "ultra-simple"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-trait",
- "pulseengine-mcp-macros",
- "pulseengine-mcp-protocol",
- "pulseengine-mcp-server",
+ "rmcp",
  "schemars 1.0.4",
  "serde",
- "serde_json",
  "tokio",
+ "tracing-subscriber",
 ]
 
 [[package]]
