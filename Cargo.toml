@@ -19,6 +19,7 @@ members = [
     "examples/ui-enabled-server",     # MCP Apps Extension (SEP-1865)
     "examples/resources-demo",        # Resource handling patterns
     "examples/conformance-server",    # MCP conformance test server
+    "pulseengine-mcp-resources",
 ]
 
 resolver = "2"
