@@ -2164,6 +2164,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "pulseengine-mcp-apps"
+version = "0.1.0"
+dependencies = [
+ "rmcp",
+ "serde_json",
+]
+
+[[package]]
 name = "pulseengine-mcp-auth"
 version = "0.17.0"
 dependencies = [

@@ -20,6 +20,7 @@ members = [
     "examples/resources-demo",        # Resource handling patterns
     "examples/conformance-server",    # MCP conformance test server
     "pulseengine-mcp-resources",
+    "pulseengine-mcp-apps",
 ]
 
 resolver = "2"
