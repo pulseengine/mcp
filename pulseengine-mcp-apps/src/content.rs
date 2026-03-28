@@ -1,8 +1,6 @@
 //! Content helpers for building HTML responses in MCP Apps.
 
-use rmcp::model::{
-    Annotated, CallToolResult, Content, RawResource, ResourceContents,
-};
+use rmcp::model::{Annotated, CallToolResult, Content, RawResource, ResourceContents};
 
 use crate::MCP_APPS_MIME_TYPE;
 

@@ -708,8 +708,7 @@ impl AuthIntegrationTester {
         }
 
         // Test dangerous input rejection
-        match pulseengine_auth::validation::validate_input_format("dangerous@input", 20, false)
-        {
+        match pulseengine_auth::validation::validate_input_format("dangerous@input", 20, false) {
             Err(_) => {
                 info!("Input validation correctly rejects dangerous characters");
                 passed_tests += 1;

@@ -89,22 +89,16 @@ impl<S> ResourceRouter<S> {
         handler: impl ResourceHandler<S> + 'static,
     ) -> &mut Self {
         let idx = self.routes.len();
-        self.router
-            .insert(route_pattern, idx)
-            .unwrap_or_else(|e| {
-                panic!(
-                    "Failed to insert route '{route_pattern}' (from '{uri_template}'): {e}"
-                )
-            });
+        self.router.insert(route_pattern, idx).unwrap_or_else(|e| {
+            panic!("Failed to insert route '{route_pattern}' (from '{uri_template}'): {e}")
+        });
 
         // Derive scheme prefix and route prefix from the uri_template and route_pattern.
         // We find the scheme portion of the URI template by locating where the
         // parameterized suffix begins — the part that matches the route_pattern suffix.
-        let (scheme_prefix, route_prefix) =
-            derive_prefixes(uri_template, route_pattern);
+        let (scheme_prefix, route_prefix) = derive_prefixes(uri_template, route_pattern);
 
-        let mut raw = RawResourceTemplate::new(uri_template, name)
-            .with_description(description);
+        let mut raw = RawResourceTemplate::new(uri_template, name).with_description(description);
         if let Some(mime) = mime_type {
             raw = raw.with_mime_type(mime);
         }
@@ -191,9 +185,7 @@ fn derive_prefixes(uri_template: &str, route_pattern: &str) -> (String, String) 
 /// assert_eq!(strip_uri_scheme("no-scheme"), "no-scheme");
 /// ```
 pub fn strip_uri_scheme(uri: &str) -> &str {
-    uri.find("://")
-        .map(|i| &uri[i + 3..])
-        .unwrap_or(uri)
+    uri.find("://").map(|i| &uri[i + 3..]).unwrap_or(uri)
 }
 
 #[cfg(test)]

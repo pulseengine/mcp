@@ -70,7 +70,12 @@ async fn test_missing_auth_required() {
         .authenticate("tools/list", Some("1".to_string()), None)
         .await;
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("Authentication required"));
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("Authentication required")
+    );
 }
 
 #[tokio::test]
@@ -89,7 +94,12 @@ async fn test_invalid_api_key() {
         .authenticate("tools/list", Some("1".to_string()), Some(&headers))
         .await;
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("Authentication required"));
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("Authentication required")
+    );
 }
 
 #[tokio::test]

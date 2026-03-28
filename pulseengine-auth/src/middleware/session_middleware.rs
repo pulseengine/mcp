@@ -6,7 +6,9 @@
 use crate::{
     AuthContext, AuthenticationManager,
     jwt::JwtError,
-    middleware::mcp_auth::{AuthExtractionError, AuthMiddlewareError, McpAuthConfig, McpRequestContext},
+    middleware::mcp_auth::{
+        AuthExtractionError, AuthMiddlewareError, McpAuthConfig, McpRequestContext,
+    },
     security::RequestSecurityValidator,
     session::{Session, SessionError, SessionManager},
 };

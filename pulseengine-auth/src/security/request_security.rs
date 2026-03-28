@@ -821,10 +821,7 @@ impl RequestSecurityValidator {
             self.log_violation(SecurityViolation {
                 violation_type: SecurityViolationType::UnauthorizedMethod,
                 severity: SecuritySeverity::High,
-                description: format!(
-                    "Anonymous user attempted non-read-only method: {}",
-                    method
-                ),
+                description: format!("Anonymous user attempted non-read-only method: {}", method),
                 field: Some("method".to_string()),
                 value: Some(method.to_string()),
                 timestamp: chrono::Utc::now(),

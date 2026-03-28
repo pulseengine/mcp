@@ -83,11 +83,16 @@ fn html_tool_result_is_successful() {
     let json = serde_json::to_value(&result).unwrap();
 
     // isError should be absent or false
-    let is_error = json.get("isError").and_then(|v| v.as_bool()).unwrap_or(false);
+    let is_error = json
+        .get("isError")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
     assert!(!is_error, "tool result should not be an error");
 
     // Should contain one content block
-    let content = json["content"].as_array().expect("content should be an array");
+    let content = json["content"]
+        .as_array()
+        .expect("content should be an array");
     assert_eq!(content.len(), 1);
     assert_eq!(content[0]["text"], "<div>chart</div>");
 }
@@ -133,10 +138,7 @@ fn app_resource_with_all_fields() {
     let title = json
         .get("title")
         .or_else(|| json.pointer("/annotations/title"));
-    assert_eq!(
-        title.and_then(|v| v.as_str()),
-        Some("My Dashboard"),
-    );
+    assert_eq!(title.and_then(|v| v.as_str()), Some("My Dashboard"),);
 
     let desc = json
         .get("description")

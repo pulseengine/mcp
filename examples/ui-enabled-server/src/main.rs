@@ -21,7 +21,9 @@ use rmcp::model::{
     ReadResourceRequestParams, ReadResourceResult, ServerCapabilities, ServerInfo,
 };
 use rmcp::service::RequestContext;
-use rmcp::{schemars, tool, tool_handler, tool_router, ErrorData, RoleServer, ServerHandler, ServiceExt};
+use rmcp::{
+    schemars, tool, tool_handler, tool_router, ErrorData, RoleServer, ServerHandler, ServiceExt,
+};
 use tracing_subscriber::EnvFilter;
 
 // ── Greeting HTML template ────────────────────────────────────────
@@ -101,10 +103,7 @@ impl UiServer {
 
     /// Simple text-only greeting (no UI)
     #[tool]
-    fn simple_greeting(
-        &self,
-        Parameters(params): Parameters<SimpleGreetParams>,
-    ) -> String {
+    fn simple_greeting(&self, Parameters(params): Parameters<SimpleGreetParams>) -> String {
         let name = params.name.as_deref().unwrap_or("World");
         format!("Hello, {name}!")
     }
@@ -157,12 +156,14 @@ impl ServerHandler for UiServer {
     ) -> Result<ReadResourceResult, ErrorData> {
         let uri = &request.uri;
         match uri.as_str() {
-            "ui://greetings/interactive" => {
-                Ok(ReadResourceResult::new(vec![html_resource(uri, GREETING_HTML)]))
-            }
-            "ui://dashboard" => {
-                Ok(ReadResourceResult::new(vec![html_resource(uri, DASHBOARD_HTML)]))
-            }
+            "ui://greetings/interactive" => Ok(ReadResourceResult::new(vec![html_resource(
+                uri,
+                GREETING_HTML,
+            )])),
+            "ui://dashboard" => Ok(ReadResourceResult::new(vec![html_resource(
+                uri,
+                DASHBOARD_HTML,
+            )])),
             _ => Err(ErrorData::resource_not_found(
                 format!("Unknown resource: {uri}"),
                 None,

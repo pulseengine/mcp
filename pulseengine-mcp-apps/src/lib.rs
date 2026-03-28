@@ -33,8 +33,8 @@ mod content;
 
 pub use content::*;
 
-use std::collections::BTreeMap;
 use serde_json::{Map, Value, json};
+use std::collections::BTreeMap;
 
 /// The MCP Apps extension key for `ServerCapabilities.extensions`.
 pub const MCP_APPS_EXTENSION_KEY: &str = "io.modelcontextprotocol/apps";

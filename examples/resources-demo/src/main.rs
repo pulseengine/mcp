@@ -19,11 +19,13 @@ use pulseengine_mcp_resources::ResourceRouter;
 use rmcp::handler::server::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{
-    Implementation, ListResourceTemplatesResult, PaginatedRequestParams,
-    ReadResourceRequestParams, ReadResourceResult, ResourceContents, ServerCapabilities, ServerInfo,
+    Implementation, ListResourceTemplatesResult, PaginatedRequestParams, ReadResourceRequestParams,
+    ReadResourceResult, ResourceContents, ServerCapabilities, ServerInfo,
 };
 use rmcp::service::RequestContext;
-use rmcp::{schemars, tool, tool_handler, tool_router, ErrorData, RoleServer, ServerHandler, ServiceExt};
+use rmcp::{
+    schemars, tool, tool_handler, tool_router, ErrorData, RoleServer, ServerHandler, ServiceExt,
+};
 use serde::{Deserialize, Serialize};
 use tracing_subscriber::EnvFilter;
 
