@@ -673,7 +673,7 @@ impl RequestSecurityValidator {
 
         // Apply method-specific restrictions based on user role
         if let Some(restricted_methods) = self.get_restricted_methods_for_user(auth_context) {
-            if restricted_methods.contains(&method.to_string()) {
+            if restricted_methods.iter().any(|m| m == method) {
                 self.log_violation(SecurityViolation {
                     violation_type: SecurityViolationType::UnauthorizedMethod,
                     severity: SecuritySeverity::Critical,

@@ -38,6 +38,7 @@ pub enum AuthError {
 
 /// Authentication manager with comprehensive key management
 pub struct AuthenticationManager {
+    #[allow(dead_code)]
     config: AuthConfig,
     /// Validation configuration for rate limiting
     validation_config: ValidationConfig,

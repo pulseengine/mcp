@@ -56,13 +56,19 @@ pub struct ResourceRouter<S = ()> {
     routes: Vec<ResourceRoute<S>>,
 }
 
-impl<S> ResourceRouter<S> {
-    /// Create a new empty resource router.
-    pub fn new() -> Self {
+impl<S> Default for ResourceRouter<S> {
+    fn default() -> Self {
         Self {
             router: matchit::Router::new(),
             routes: Vec::new(),
         }
+    }
+}
+
+impl<S> ResourceRouter<S> {
+    /// Create a new empty resource router.
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Register a resource template with a handler.

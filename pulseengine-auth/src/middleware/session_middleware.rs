@@ -150,6 +150,7 @@ pub struct SessionMiddleware {
     session_manager: Arc<SessionManager>,
 
     /// Security validator
+    #[allow(dead_code)]
     security_validator: Arc<RequestSecurityValidator>,
 
     /// Middleware configuration

@@ -733,10 +733,7 @@ impl NotificationSender for TransportBridge {
 
         // FALLBACK: Send via transport's broadcast channel (for SSE endpoint)
         // This path is used when there's no streaming context
-        eprintln!(
-            "[DEBUG] Falling back to transport notification: method={}",
-            method
-        );
+        eprintln!("[DEBUG] Falling back to transport notification: method={method}");
         let result = self
             .transport
             .send_notification(self.session_id.as_deref(), method, params)
@@ -837,10 +834,7 @@ impl RequestSender for TransportBridge {
         }
 
         // FALLBACK: Send via transport's direct method (for SSE endpoint)
-        eprintln!(
-            "[DEBUG] Falling back to transport.send_request: method={}",
-            method
-        );
+        eprintln!("[DEBUG] Falling back to transport.send_request: method={method}");
         self.transport
             .send_request(self.session_id.as_deref(), method, params, timeout)
             .await
