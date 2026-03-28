@@ -7,7 +7,7 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use pulseengine_mcp_auth::oauth::{OAuthState, oauth_router};
+use pulseengine_auth::oauth::{OAuthState, oauth_router};
 use serde_json::json;
 use tower::util::ServiceExt; // for `oneshot`
 

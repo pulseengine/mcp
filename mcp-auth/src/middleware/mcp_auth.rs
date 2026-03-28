@@ -1,16 +1,30 @@
-//! MCP Authentication Middleware
+//! Authentication Middleware
 //!
 //! This middleware provides comprehensive authentication and authorization
-//! for MCP requests, integrating with the AuthenticationManager and
+//! for incoming requests, integrating with the AuthenticationManager and
 //! permission system.
 
 use crate::{AuthContext, AuthenticationManager, models::Role, security::RequestSecurityValidator};
-use async_trait::async_trait;
-use pulseengine_mcp_protocol::{Error as McpError, Request, Response};
 use std::collections::HashMap;
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::{debug, error, warn};
+
+/// Errors returned by the auth middleware
+#[derive(Debug, Error)]
+pub enum AuthMiddlewareError {
+    #[error("Authentication required: {0}")]
+    AuthRequired(String),
+
+    #[error("Access denied: {0}")]
+    AccessDenied(String),
+
+    #[error("Security validation failed: {0}")]
+    SecurityValidation(String),
+
+    #[error("Auth extraction failed: {0}")]
+    Extraction(#[from] AuthExtractionError),
+}
 
 /// Errors that can occur during authentication extraction
 #[derive(Debug, Error)]
@@ -172,33 +186,18 @@ impl McpAuthMiddleware {
         &self.security_validator
     }
 
-    /// Process an incoming MCP request
-    pub async fn process_request(
+    /// Authenticate and authorize a request.
+    ///
+    /// Takes the method name, an optional request ID, and optional HTTP headers.
+    /// Returns the auth context on success, or an `AuthMiddlewareError` on failure.
+    pub async fn authenticate(
         &self,
-        request: Request,
+        method: &str,
+        request_id: Option<String>,
         headers: Option<&HashMap<String, String>>,
-    ) -> Result<(Request, McpRequestContext), McpError> {
-        // Step 1: Validate request security first
-        if let Err(security_error) = self
-            .security_validator
-            .validate_request(&request, None)
-            .await
-        {
-            error!("Request security validation failed: {}", security_error);
-            return Err(McpError::invalid_request(&format!(
-                "Security validation failed: {}",
-                security_error
-            )));
-        }
-
-        // Step 2: Sanitize request if needed
-        let sanitized_request = self.security_validator.sanitize_request(request).await;
-
-        let request_id = match &sanitized_request.id {
-            Some(id) => id.to_string(),
-            None => uuid::Uuid::new_v4().to_string(),
-        };
-        let mut context = McpRequestContext::new(request_id);
+    ) -> Result<McpRequestContext, AuthMiddlewareError> {
+        let id = request_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+        let mut context = McpRequestContext::new(id);
 
         // Extract client IP if available
         if let Some(headers) = headers {
@@ -210,12 +209,9 @@ impl McpAuthMiddleware {
         }
 
         // Check if authentication is required for this method
-        if self.should_skip_auth(&sanitized_request.method) {
-            debug!(
-                "Skipping authentication for method: {}",
-                sanitized_request.method
-            );
-            return Ok((sanitized_request, context));
+        if self.should_skip_auth(method) {
+            debug!("Skipping authentication for method: {}", method);
+            return Ok(context);
         }
 
         // Extract authentication from headers
@@ -231,41 +227,24 @@ impl McpAuthMiddleware {
                 context = context.with_auth(auth_context, auth_method);
 
                 // Check method-specific role requirements
-                if let Err(e) = self
-                    .check_method_permissions(&sanitized_request.method, &context)
-                    .await
-                {
+                if let Err(e) = self.check_method_permissions(method, &context).await {
                     error!("Method permission check failed: {}", e);
-                    return Err(McpError::invalid_request(&format!("Access denied: {}", e)));
+                    return Err(AuthMiddlewareError::AccessDenied(e));
                 }
 
                 debug!("Request authenticated successfully");
-                Ok((sanitized_request, context))
+                Ok(context)
             }
             Err(e) => {
                 if self.config.require_auth {
                     warn!("Authentication failed: {}", e);
-                    Err(McpError::invalid_request(&format!(
-                        "Authentication required: {}",
-                        e
-                    )))
+                    Err(AuthMiddlewareError::AuthRequired(e.to_string()))
                 } else {
                     debug!("Authentication failed but not required: {}", e);
-                    Ok((sanitized_request, context))
+                    Ok(context)
                 }
             }
         }
-    }
-
-    /// Process an outgoing MCP response
-    pub async fn process_response(
-        &self,
-        response: Response,
-        _context: &McpRequestContext,
-    ) -> Result<Response, McpError> {
-        // Add security headers or process response as needed
-        // For now, just pass through
-        Ok(response)
     }
 
     /// Extract authentication from request headers
@@ -363,45 +342,6 @@ impl McpAuthMiddleware {
         }
 
         Ok(())
-    }
-}
-
-/// Trait for middleware that can process MCP requests and responses
-#[async_trait]
-pub trait McpMiddleware: Send + Sync {
-    /// Process an incoming request
-    async fn process_request(
-        &self,
-        request: Request,
-        context: &McpRequestContext,
-    ) -> Result<Request, McpError>;
-
-    /// Process an outgoing response
-    async fn process_response(
-        &self,
-        response: Response,
-        context: &McpRequestContext,
-    ) -> Result<Response, McpError>;
-}
-
-#[async_trait]
-impl McpMiddleware for McpAuthMiddleware {
-    async fn process_request(
-        &self,
-        request: Request,
-        _context: &McpRequestContext,
-    ) -> Result<Request, McpError> {
-        // This implementation assumes context has already been created
-        // by the initial process_request call
-        Ok(request)
-    }
-
-    async fn process_response(
-        &self,
-        response: Response,
-        context: &McpRequestContext,
-    ) -> Result<Response, McpError> {
-        self.process_response(response, context).await
     }
 }
 

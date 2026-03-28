@@ -1,7 +1,7 @@
 //! Basic unit tests for OAuth 2.1 components
 
 use chrono::{Duration, Utc};
-use pulseengine_mcp_auth::oauth::{
+use pulseengine_auth::oauth::{
     models::{AuthorizationCode, OAuthClient, OAuthError, RefreshToken},
     pkce::{validate_code_challenge, validate_code_verifier, verify_pkce},
     storage::{InMemoryOAuthStorage, OAuthStorage, OAuthStorageError},

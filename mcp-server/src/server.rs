@@ -3,7 +3,7 @@
 use crate::observability::{MetricsCollector, MonitoringConfig};
 use crate::{backend::McpBackend, handler::GenericServerHandler, middleware::MiddlewareStack};
 use async_trait::async_trait;
-use pulseengine_mcp_auth::{AuthConfig, AuthenticationManager};
+use pulseengine_auth::{AuthConfig, AuthenticationManager};
 use pulseengine_logging::{
     AlertConfig, AlertManager, DashboardConfig, DashboardManager, PerformanceProfiler,
     PersistenceConfig, ProfilingConfig, SanitizationConfig, StructuredLogger,
@@ -168,7 +168,7 @@ impl Default for ServerConfig {
                 server_info: Implementation::new("MCP Server", "1.0.0"),
                 instructions: None,
             },
-            auth_config: pulseengine_mcp_auth::default_config(),
+            auth_config: pulseengine_auth::default_config(),
             transport_config: pulseengine_mcp_transport::TransportConfig::default(),
             security_config: pulseengine_mcp_security::default_config(),
             monitoring_config: crate::observability::default_config(),

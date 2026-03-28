@@ -1,10 +1,9 @@
-//! MCP Request Security Validation and Sanitization
+//! Request Security Validation and Sanitization
 //!
-//! This module provides comprehensive security validation for MCP requests,
+//! This module provides comprehensive security validation for requests,
 //! including parameter sanitization, size limits, and injection protection.
 
 use crate::AuthContext;
-use pulseengine_mcp_protocol::Request;
 use regex::Regex;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
@@ -359,32 +358,37 @@ impl RequestSecurityValidator {
         Self::new(RequestSecurityConfig::default())
     }
 
-    /// Validate an MCP request for security issues
-    pub async fn validate_request(
+    /// Validate a request for security issues.
+    ///
+    /// Takes the method name and params (as `serde_json::Value`) instead of
+    /// a protocol-specific Request type.
+    pub async fn validate_request_parts(
         &self,
-        request: &Request,
+        method: &str,
+        params: &Value,
         auth_context: Option<&AuthContext>,
     ) -> Result<(), SecurityValidationError> {
         if !self.config.enabled {
             return Ok(());
         }
 
-        debug!("Validating request security for method: {}", request.method);
+        debug!("Validating request security for method: {}", method);
 
         // Apply user-specific security rules based on authentication context
         if let Some(context) = auth_context {
-            self.validate_user_specific_rules(request, context)?;
+            self.validate_user_specific_rules(method, params, context)?;
         }
 
         // Validate method
-        self.validate_method(&request.method)?;
+        self.validate_method(method)?;
 
-        // Validate request size
-        let request_size = serde_json::to_string(request)
-            .map_err(|_| SecurityValidationError::MaliciousContent {
-                reason: "Request serialization failed".to_string(),
-            })?
-            .len();
+        // Validate request size (method + params combined)
+        let request_size = method.len()
+            + serde_json::to_string(params)
+                .map_err(|_| SecurityValidationError::MaliciousContent {
+                    reason: "Request serialization failed".to_string(),
+                })?
+                .len();
 
         if request_size > self.config.limits.max_request_size {
             self.log_violation(SecurityViolation {
@@ -406,26 +410,27 @@ impl RequestSecurityValidator {
         }
 
         // Validate parameters
-        self.validate_parameters(&request.params, "params")?;
+        self.validate_parameters(params, "params")?;
 
         // Check for injection attempts
         if self.config.enable_injection_detection {
-            self.detect_injection_attempts(&request.params, "params")?;
+            self.detect_injection_attempts(params, "params")?;
         }
 
         debug!("Request passed security validation");
         Ok(())
     }
 
-    /// Sanitize an MCP request
-    pub async fn sanitize_request(&self, mut request: Request) -> Request {
+    /// Sanitize request parameters.
+    ///
+    /// Returns sanitized params as a new `Value`.
+    pub fn sanitize_params(&self, params: &Value) -> Value {
         if !self.config.enabled || !self.config.enable_sanitization {
-            return request;
+            return params.clone();
         }
 
         debug!("Sanitizing request parameters");
-        request.params = self.sanitize_value(&request.params);
-        request
+        self.sanitize_value(params)
     }
 
     /// Validate method name
@@ -630,18 +635,20 @@ impl RequestSecurityValidator {
     /// Validate user-specific security rules based on authentication context
     fn validate_user_specific_rules(
         &self,
-        request: &Request,
+        method: &str,
+        params: &Value,
         auth_context: &AuthContext,
     ) -> Result<(), SecurityValidationError> {
         // Apply stricter limits for lower-privilege users
         let user_limits = self.get_user_specific_limits(auth_context);
 
         // Validate request size against user-specific limits
-        let request_size = serde_json::to_string(request)
-            .map_err(|_| SecurityValidationError::MaliciousContent {
-                reason: "Request serialization failed for user validation".to_string(),
-            })?
-            .len();
+        let request_size = method.len()
+            + serde_json::to_string(params)
+                .map_err(|_| SecurityValidationError::MaliciousContent {
+                    reason: "Request serialization failed for user validation".to_string(),
+                })?
+                .len();
 
         if request_size > user_limits.max_request_size {
             self.log_violation(SecurityViolation {
@@ -666,22 +673,22 @@ impl RequestSecurityValidator {
 
         // Apply method-specific restrictions based on user role
         if let Some(restricted_methods) = self.get_restricted_methods_for_user(auth_context) {
-            if restricted_methods.contains(&request.method) {
+            if restricted_methods.contains(&method.to_string()) {
                 self.log_violation(SecurityViolation {
                     violation_type: SecurityViolationType::UnauthorizedMethod,
                     severity: SecuritySeverity::Critical,
                     description: format!(
                         "User {} attempted to access restricted method: {}",
                         auth_context.user_id.as_deref().unwrap_or("unknown"),
-                        request.method
+                        method
                     ),
                     field: Some("method".to_string()),
-                    value: Some(request.method.clone()),
+                    value: Some(method.to_string()),
                     timestamp: chrono::Utc::now(),
                 });
 
                 return Err(SecurityValidationError::UnsupportedMethod {
-                    method: request.method.clone(),
+                    method: method.to_string(),
                 });
             }
         }
@@ -689,7 +696,7 @@ impl RequestSecurityValidator {
         // Apply enhanced injection detection for anonymous users
         if auth_context.user_id.is_none() {
             // Anonymous users get stricter validation
-            self.validate_anonymous_user_request(request)?;
+            self.validate_anonymous_user_request(method, params)?;
         }
 
         Ok(())
@@ -794,10 +801,11 @@ impl RequestSecurityValidator {
     /// Apply enhanced validation for anonymous users
     fn validate_anonymous_user_request(
         &self,
-        request: &Request,
+        method: &str,
+        params: &Value,
     ) -> Result<(), SecurityValidationError> {
         // Check method parameters more strictly
-        self.detect_injection_attempts_strict(&request.params, "params")?;
+        self.detect_injection_attempts_strict(params, "params")?;
 
         // Anonymous users are limited to read-only operations
         let read_only_methods = [
@@ -809,21 +817,21 @@ impl RequestSecurityValidator {
             "completion/complete",
         ];
 
-        if !read_only_methods.contains(&request.method.as_str()) {
+        if !read_only_methods.contains(&method) {
             self.log_violation(SecurityViolation {
                 violation_type: SecurityViolationType::UnauthorizedMethod,
                 severity: SecuritySeverity::High,
                 description: format!(
                     "Anonymous user attempted non-read-only method: {}",
-                    request.method
+                    method
                 ),
                 field: Some("method".to_string()),
-                value: Some(request.method.clone()),
+                value: Some(method.to_string()),
                 timestamp: chrono::Utc::now(),
             });
 
             return Err(SecurityValidationError::UnsupportedMethod {
-                method: request.method.clone(),
+                method: method.to_string(),
             });
         }
 

@@ -332,7 +332,7 @@ async fn test_handler_with_monitoring() {
     let mut auth_config = test_auth_config();
     auth_config.enabled = false;
     let auth_manager = Arc::new(
-        pulseengine_mcp_auth::AuthenticationManager::new(auth_config)
+        pulseengine_auth::AuthenticationManager::new(auth_config)
             .await
             .unwrap(),
     );
@@ -376,7 +376,7 @@ async fn test_performance_monitoring() {
     let mut auth_config = test_auth_config();
     auth_config.enabled = false;
     let auth_manager = Arc::new(
-        pulseengine_mcp_auth::AuthenticationManager::new(auth_config)
+        pulseengine_auth::AuthenticationManager::new(auth_config)
             .await
             .unwrap(),
     );

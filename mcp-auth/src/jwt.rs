@@ -119,7 +119,7 @@ pub struct JwtConfig {
 impl Default for JwtConfig {
     fn default() -> Self {
         Self {
-            issuer: "pulseengine-mcp-auth".to_string(),
+            issuer: "pulseengine-auth".to_string(),
             audience: vec!["mcp-server".to_string()],
             algorithm: Algorithm::HS256,
             signing_secret: b"default-secret-change-in-production".to_vec(),

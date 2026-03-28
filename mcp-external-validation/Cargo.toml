@@ -19,7 +19,7 @@ publish = false
 pulseengine-mcp-protocol = { workspace = true }
 pulseengine-mcp-server = { workspace = true }
 pulseengine-mcp-transport = { workspace = true }
-pulseengine-mcp-auth = { workspace = true }
+pulseengine-auth = { workspace = true }
 
 # Async runtime
 tokio = { workspace = true }

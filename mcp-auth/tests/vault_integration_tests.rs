@@ -7,7 +7,7 @@
 
 #![cfg(feature = "vault")]
 
-use pulseengine_mcp_auth::vault::{VaultConfig, VaultType};
+use pulseengine_auth::vault::{VaultConfig, VaultType};
 use std::env;
 
 #[cfg(test)]
@@ -98,7 +98,7 @@ mod vault_tests {
 #[cfg(all(test, feature = "integration-tests"))]
 mod integration_tests {
     use super::*;
-    use pulseengine_mcp_auth::vault::{VaultIntegration, create_vault_client};
+    use pulseengine_auth::vault::{VaultIntegration, create_vault_client};
 
     // Helper to check if integration test environment is available
     fn integration_env_available() -> bool {

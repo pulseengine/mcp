@@ -1,6 +1,6 @@
-//! MCP Permission System
+//! Permission System
 //!
-//! This module provides comprehensive permission management for MCP tools,
+//! This module provides comprehensive permission management for tools,
 //! resources, and custom operations with role-based access control.
 
 use crate::{AuthContext, models::Role};
@@ -25,9 +25,9 @@ pub enum PermissionError {
     RoleConfig(String),
 }
 
-/// MCP-specific permission types
+/// Permission types for tools, resources, and operations
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum McpPermission {
+pub enum Permission {
     /// Permission to use a specific tool
     UseTool(String),
 
@@ -59,7 +59,7 @@ pub enum McpPermission {
     Custom(String),
 }
 
-impl McpPermission {
+impl Permission {
     /// Create a tool permission from a tool name
     pub fn tool(name: &str) -> Self {
         Self::UseTool(name.to_string())
@@ -135,7 +135,7 @@ impl Default for PermissionAction {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PermissionRule {
     /// The permission this rule applies to
-    pub permission: McpPermission,
+    pub permission: Permission,
 
     /// Roles this rule applies to
     pub roles: Vec<Role>,
@@ -149,7 +149,7 @@ pub struct PermissionRule {
 
 impl PermissionRule {
     /// Create a new allow rule
-    pub fn allow(permission: McpPermission, roles: Vec<Role>) -> Self {
+    pub fn allow(permission: Permission, roles: Vec<Role>) -> Self {
         Self {
             permission,
             roles,
@@ -159,7 +159,7 @@ impl PermissionRule {
     }
 
     /// Create a new deny rule
-    pub fn deny(permission: McpPermission, roles: Vec<Role>) -> Self {
+    pub fn deny(permission: Permission, roles: Vec<Role>) -> Self {
         Self {
             permission,
             roles,
@@ -311,18 +311,18 @@ impl PermissionConfig {
     /// Builder pattern for denying resource access
     pub fn deny_role_resource(mut self, role: Role, resource: &str) -> Self {
         let permission_rule =
-            PermissionRule::deny(McpPermission::UseResource(resource.to_string()), vec![role]);
+            PermissionRule::deny(Permission::UseResource(resource.to_string()), vec![role]);
         self.custom_rules.push(permission_rule);
         self
     }
 }
 
-/// MCP Permission Checker
-pub struct McpPermissionChecker {
+/// Permission Checker
+pub struct PermissionChecker {
     config: PermissionConfig,
 }
 
-impl McpPermissionChecker {
+impl PermissionChecker {
     /// Create a new permission checker
     pub fn new(config: PermissionConfig) -> Self {
         Self { config }
@@ -337,7 +337,7 @@ impl McpPermissionChecker {
 
         // Check custom rules first
         for rule in &self.config.custom_rules {
-            if let McpPermission::UseTool(rule_tool) = &rule.permission {
+            if let Permission::UseTool(rule_tool) = &rule.permission {
                 if rule_tool == tool_name {
                     for role in &auth_context.roles {
                         if rule.applies_to_role(role) {
@@ -398,7 +398,7 @@ impl McpPermissionChecker {
 
         // Check custom rules first
         for rule in &self.config.custom_rules {
-            if let McpPermission::UseResource(rule_resource) = &rule.permission {
+            if let Permission::UseResource(rule_resource) = &rule.permission {
                 if self.matches_resource_pattern(rule_resource, resource_uri) {
                     for role in &auth_context.roles {
                         if rule.applies_to_role(role) {
@@ -474,7 +474,7 @@ impl McpPermissionChecker {
 
         // Check for subscription-specific rules
         for rule in &self.config.custom_rules {
-            if let McpPermission::Subscribe(rule_resource) = &rule.permission {
+            if let Permission::Subscribe(rule_resource) = &rule.permission {
                 if self.matches_resource_pattern(rule_resource, resource_uri) {
                     for role in &auth_context.roles {
                         if rule.applies_to_role(role) {
@@ -513,7 +513,7 @@ impl McpPermissionChecker {
             "completion/complete" => {
                 // Custom rules for completion
                 for rule in &self.config.custom_rules {
-                    if matches!(rule.permission, McpPermission::Complete) {
+                    if matches!(rule.permission, Permission::Complete) {
                         for role in &auth_context.roles {
                             if rule.applies_to_role(role) {
                                 return matches!(rule.action, PermissionAction::Allow);
@@ -610,17 +610,17 @@ mod tests {
 
     #[test]
     fn test_permission_string_conversion() {
-        let perm = McpPermission::tool("control_device");
+        let perm = Permission::tool("control_device");
         assert_eq!(perm.to_string(), "tool:control_device");
 
-        let parsed = McpPermission::from_string("tool:control_device").unwrap();
+        let parsed = Permission::from_string("tool:control_device").unwrap();
         assert_eq!(perm, parsed);
     }
 
     #[test]
     fn test_permission_rule_creation() {
         let rule = PermissionRule::allow(
-            McpPermission::tool("test_tool"),
+            Permission::tool("test_tool"),
             vec![Role::Admin, Role::Operator],
         );
 
@@ -632,7 +632,7 @@ mod tests {
 
     #[test]
     fn test_tool_category_extraction() {
-        let checker = McpPermissionChecker::new(PermissionConfig::default());
+        let checker = PermissionChecker::new(PermissionConfig::default());
 
         assert_eq!(
             checker.extract_tool_category("control_lights"),
@@ -654,7 +654,7 @@ mod tests {
 
     #[test]
     fn test_resource_category_extraction() {
-        let checker = McpPermissionChecker::new(PermissionConfig::default());
+        let checker = PermissionChecker::new(PermissionConfig::default());
 
         assert_eq!(
             checker.extract_resource_category("loxone://devices/all"),
@@ -668,7 +668,7 @@ mod tests {
 
     #[test]
     fn test_resource_pattern_matching() {
-        let checker = McpPermissionChecker::new(PermissionConfig::default());
+        let checker = PermissionChecker::new(PermissionConfig::default());
 
         assert!(checker.matches_resource_pattern("loxone://admin/*", "loxone://admin/keys"));
         assert!(checker.matches_resource_pattern("system://status", "system://status"));

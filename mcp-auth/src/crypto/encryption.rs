@@ -88,7 +88,7 @@ pub fn derive_encryption_key(master_key: &[u8], context: &str) -> [u8; 32] {
 
     let hkdf = Hkdf::<Sha256>::new(None, master_key);
     let mut okm = [0u8; 32];
-    let info = format!("pulseengine-mcp-auth-{context}");
+    let info = format!("pulseengine-auth-{context}");
     hkdf.expand(info.as_bytes(), &mut okm)
         .expect("32 bytes is a valid length for HKDF-SHA256");
 

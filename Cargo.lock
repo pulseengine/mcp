@@ -2146,6 +2146,45 @@ dependencies = [
 ]
 
 [[package]]
+name = "pulseengine-auth"
+version = "0.17.0"
+dependencies = [
+ "aes-gcm",
+ "anyhow",
+ "async-trait",
+ "axum",
+ "base64 0.22.1",
+ "base64-url",
+ "chrono",
+ "dirs",
+ "hkdf",
+ "hmac",
+ "inotify",
+ "jsonwebtoken",
+ "keyring",
+ "libc",
+ "pbkdf2",
+ "rand 0.8.5",
+ "regex",
+ "reqwest 0.11.27",
+ "serde",
+ "serde_json",
+ "sha2",
+ "subtle",
+ "tempfile",
+ "thiserror 2.0.12",
+ "tokio",
+ "tokio-test",
+ "tower 0.4.13",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+ "urlencoding",
+ "uuid",
+ "zeroize",
+]
+
+[[package]]
 name = "pulseengine-logging"
 version = "0.17.0"
 dependencies = [
@@ -2169,46 +2208,6 @@ version = "0.1.0"
 dependencies = [
  "rmcp",
  "serde_json",
-]
-
-[[package]]
-name = "pulseengine-mcp-auth"
-version = "0.17.0"
-dependencies = [
- "aes-gcm",
- "anyhow",
- "async-trait",
- "axum",
- "base64 0.22.1",
- "base64-url",
- "chrono",
- "dirs",
- "hkdf",
- "hmac",
- "inotify",
- "jsonwebtoken",
- "keyring",
- "libc",
- "pbkdf2",
- "pulseengine-mcp-protocol",
- "rand 0.8.5",
- "regex",
- "reqwest 0.11.27",
- "serde",
- "serde_json",
- "sha2",
- "subtle",
- "tempfile",
- "thiserror 2.0.12",
- "tokio",
- "tokio-test",
- "tower 0.4.13",
- "tracing",
- "tracing-subscriber",
- "url",
- "urlencoding",
- "uuid",
- "zeroize",
 ]
 
 [[package]]
@@ -2241,7 +2240,7 @@ dependencies = [
  "jsonschema",
  "proptest",
  "proptest-derive",
- "pulseengine-mcp-auth",
+ "pulseengine-auth",
  "pulseengine-mcp-protocol",
  "pulseengine-mcp-server",
  "pulseengine-mcp-transport",
@@ -2271,7 +2270,7 @@ dependencies = [
  "assert_matches",
  "async-trait",
  "futures",
- "pulseengine-mcp-auth",
+ "pulseengine-auth",
  "pulseengine-mcp-protocol",
  "pulseengine-mcp-security",
  "pulseengine-mcp-server",
@@ -2298,7 +2297,7 @@ dependencies = [
  "darling 0.20.11",
  "matchit 0.8.4",
  "proc-macro2",
- "pulseengine-mcp-auth",
+ "pulseengine-auth",
  "pulseengine-mcp-protocol",
  "pulseengine-mcp-server",
  "pulseengine-mcp-transport",
@@ -2373,8 +2372,8 @@ dependencies = [
  "chrono",
  "futures",
  "prometheus",
+ "pulseengine-auth",
  "pulseengine-logging",
- "pulseengine-mcp-auth",
  "pulseengine-mcp-protocol",
  "pulseengine-mcp-security",
  "pulseengine-mcp-transport",

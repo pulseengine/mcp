@@ -1,16 +1,15 @@
-//! Session-Aware MCP Authentication Middleware
+//! Session-Aware Authentication Middleware
 //!
-//! This middleware extends the basic MCP authentication to include session management,
+//! This middleware extends the basic authentication to include session management,
 //! JWT token validation, and enhanced security features.
 
 use crate::{
     AuthContext, AuthenticationManager,
     jwt::JwtError,
-    middleware::mcp_auth::{AuthExtractionError, McpAuthConfig, McpRequestContext},
+    middleware::mcp_auth::{AuthExtractionError, AuthMiddlewareError, McpAuthConfig, McpRequestContext},
     security::RequestSecurityValidator,
     session::{Session, SessionError, SessionManager},
 };
-use pulseengine_mcp_protocol::{Error as McpError, Request, Response};
 use std::collections::HashMap;
 use std::sync::Arc;
 use thiserror::Error;
@@ -184,37 +183,22 @@ impl SessionMiddleware {
         )
     }
 
-    /// Process an incoming MCP request with session awareness
-    pub async fn process_request(
+    /// Authenticate a request with session awareness.
+    ///
+    /// Takes the method name, an optional request ID, and optional HTTP headers.
+    /// Returns the session request context on success.
+    pub async fn authenticate(
         &self,
-        request: Request,
+        method: &str,
+        request_id: Option<String>,
         headers: Option<&HashMap<String, String>>,
-    ) -> Result<(Request, SessionRequestContext), McpError> {
-        // Step 1: Security validation (same as before)
-        if let Err(security_error) = self
-            .security_validator
-            .validate_request(&request, None)
-            .await
-        {
-            error!("Request security validation failed: {}", security_error);
-            return Err(McpError::invalid_request(&format!(
-                "Security validation failed: {}",
-                security_error
-            )));
-        }
+    ) -> Result<SessionRequestContext, AuthMiddlewareError> {
+        let id = request_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
 
-        let sanitized_request = self.security_validator.sanitize_request(request).await;
-
-        // Step 2: Extract request ID and create base context
-        let request_id = match &sanitized_request.id {
-            Some(id) => id.to_string(),
-            None => uuid::Uuid::new_v4().to_string(),
-        };
-
-        let mut base_context = McpRequestContext::new(request_id);
+        let mut base_context = McpRequestContext::new(id);
         let mut session_context = SessionRequestContext::new(base_context.clone());
 
-        // Step 3: Extract client IP
+        // Extract client IP
         if let Some(headers) = headers {
             if let Some(ip_header) = &self.config.auth_config.client_ip_header {
                 if let Some(client_ip) = headers.get(ip_header) {
@@ -223,17 +207,14 @@ impl SessionMiddleware {
             }
         }
 
-        // Step 4: Check if this method requires authentication/sessions
-        if self.should_skip_auth(&sanitized_request.method) {
-            debug!(
-                "Skipping authentication for method: {}",
-                sanitized_request.method
-            );
+        // Check if this method requires authentication/sessions
+        if self.should_skip_auth(method) {
+            debug!("Skipping authentication for method: {}", method);
             session_context.base_context = base_context;
-            return Ok((sanitized_request, session_context));
+            return Ok(session_context);
         }
 
-        // Step 5: Try different authentication methods
+        // Try different authentication methods
         let auth_result = self.authenticate_request(headers).await;
 
         match auth_result {
@@ -264,29 +245,23 @@ impl SessionMiddleware {
                 }
 
                 // Check method permissions
-                if let Err(e) = self
-                    .check_method_permissions(&sanitized_request.method, &base_context)
-                    .await
-                {
+                if let Err(e) = self.check_method_permissions(method, &base_context).await {
                     error!("Method permission check failed: {}", e);
-                    return Err(McpError::invalid_request(&format!("Access denied: {}", e)));
+                    return Err(AuthMiddlewareError::AccessDenied(e));
                 }
 
                 session_context.base_context = base_context;
                 debug!("Request authenticated successfully");
-                Ok((sanitized_request, session_context))
+                Ok(session_context)
             }
             Err(e) => {
                 if self.config.auth_config.require_auth {
                     warn!("Authentication failed: {}", e);
-                    Err(McpError::invalid_request(&format!(
-                        "Authentication required: {}",
-                        e
-                    )))
+                    Err(AuthMiddlewareError::AuthRequired(e.to_string()))
                 } else {
                     debug!("Authentication failed but not required: {}", e);
                     session_context.base_context = base_context;
-                    Ok((sanitized_request, session_context))
+                    Ok(session_context)
                 }
             }
         }
@@ -514,27 +489,25 @@ impl SessionMiddleware {
         Ok(())
     }
 
-    /// Process response (add session headers if needed)
-    pub async fn process_response(
-        &self,
-        response: Response,
-        context: &SessionRequestContext,
-    ) -> Result<(Response, HashMap<String, String>), McpError> {
-        let mut response_headers = HashMap::new();
+    /// Get response headers for a given session context.
+    ///
+    /// Returns headers that should be added to the HTTP response
+    /// (e.g., session ID, session-created indicator).
+    pub fn response_headers(&self, context: &SessionRequestContext) -> HashMap<String, String> {
+        let mut headers = HashMap::new();
 
-        // Add session ID to response headers if session exists
         if let Some(session) = &context.session {
-            response_headers.insert(
+            headers.insert(
                 self.config.session_header_name.clone(),
                 session.session_id.clone(),
             );
 
             if context.auto_created_session {
-                response_headers.insert("X-Session-Created".to_string(), "true".to_string());
+                headers.insert("X-Session-Created".to_string(), "true".to_string());
             }
         }
 
-        Ok((response, response_headers))
+        headers
     }
 
     /// Get session manager for external access
@@ -582,17 +555,12 @@ mod tests {
     async fn test_anonymous_request_processing() {
         let middleware = create_test_middleware().await;
 
-        let request = Request {
-            jsonrpc: "2.0".to_string(),
-            method: "initialize".to_string(), // Anonymous method
-            params: serde_json::json!({}),
-            id: Some(pulseengine_mcp_protocol::NumberOrString::Number(1)),
-        };
-
-        let result = middleware.process_request(request, None).await;
+        let result = middleware
+            .authenticate("initialize", Some("1".to_string()), None)
+            .await;
         assert!(result.is_ok());
 
-        let (_, context) = result.unwrap();
+        let context = result.unwrap();
         assert!(context.session.is_none());
         assert!(context.base_context.auth.is_anonymous);
     }

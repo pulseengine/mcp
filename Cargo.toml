@@ -106,7 +106,7 @@ serde_yaml = "0.9"
 # Framework internal dependencies (published versions)
 pulseengine-mcp-protocol = { version = "0.17.0", path = "mcp-protocol" }
 pulseengine-logging = { version = "0.17.0", path = "mcp-logging" }
-pulseengine-mcp-auth = { version = "0.17.0", path = "mcp-auth" }
+pulseengine-auth = { version = "0.17.0", path = "mcp-auth" }
 pulseengine-mcp-security = { version = "0.17.0", path = "mcp-security" }
 pulseengine-security = { version = "0.17.0", path = "mcp-security-middleware" }
 pulseengine-mcp-transport = { version = "0.17.0", path = "mcp-transport" }
@@ -149,7 +149,7 @@ lto = false
 # Patch published crates to use local versions for development
 pulseengine-mcp-protocol = { path = "mcp-protocol" }
 pulseengine-logging = { path = "mcp-logging" }
-pulseengine-mcp-auth = { path = "mcp-auth" }
+pulseengine-auth = { path = "mcp-auth" }
 pulseengine-mcp-security = { path = "mcp-security" }
 pulseengine-security = { path = "mcp-security-middleware" }
 pulseengine-mcp-transport = { path = "mcp-transport" }

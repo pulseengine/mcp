@@ -1,7 +1,7 @@
-//! Security features for MCP request/response processing
+//! Security features for request/response processing
 //!
 //! This module provides comprehensive security validation, sanitization,
-//! and protection features for MCP protocol messages.
+//! and protection features for protocol messages.
 
 pub mod request_security;
 
@@ -13,19 +13,15 @@ pub use request_security::{
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pulseengine_mcp_protocol::Request;
     use serde_json::json;
 
     #[test]
     fn test_security_module_exports() {
-        // Test that all security types are accessible
-
         let config = RequestSecurityConfig::default();
         assert!(config.limits.max_request_size > 0);
         assert!(config.limits.max_parameters > 0);
 
         let _sanitizer = InputSanitizer::new();
-        // InputSanitizer should be creatable
 
         let violation = SecurityViolation {
             violation_type: SecurityViolationType::SizeLimit,
@@ -42,10 +38,8 @@ mod tests {
 
     #[test]
     fn test_security_severity_ordering() {
-        // Test that severity levels are properly ordered
         assert!(SecuritySeverity::Critical > SecuritySeverity::High);
         assert!(SecuritySeverity::High > SecuritySeverity::Medium);
-        assert!(SecuritySeverity::Medium > SecuritySeverity::Low);
         assert!(SecuritySeverity::Medium > SecuritySeverity::Low);
     }
 
@@ -82,29 +76,21 @@ mod tests {
         let validator = RequestSecurityValidator::new(config);
 
         // Test valid request
-        let valid_request = Request {
-            jsonrpc: "2.0".to_string(),
-            method: "tools/list".to_string(),
-            id: Some(pulseengine_mcp_protocol::NumberOrString::Number(1)),
-            params: json!({}),
-        };
-
-        let result = validator.validate_request(&valid_request, None).await;
+        let result = validator
+            .validate_request_parts("tools/list", &json!({}), None)
+            .await;
         assert!(result.is_ok());
 
         // Test request with too many parameters
-        let large_params = (0..1000)
-            .map(|i| (format!("param_{}", i), json!(i)))
-            .collect::<serde_json::Map<_, _>>();
-        let large_request = Request {
-            jsonrpc: "2.0".to_string(),
-            method: "tools/call".to_string(),
-            id: Some(pulseengine_mcp_protocol::NumberOrString::Number(2)),
-            params: json!(large_params),
-        };
+        let large_params: serde_json::Value = json!(
+            (0..1000)
+                .map(|i| (format!("param_{}", i), json!(i)))
+                .collect::<serde_json::Map<_, _>>()
+        );
 
-        let result = validator.validate_request(&large_request, None).await;
-        // Should detect too many parameters (depending on limits)
+        let result = validator
+            .validate_request_parts("tools/call", &large_params, None)
+            .await;
         if result.is_err() {
             match result.unwrap_err() {
                 SecurityValidationError::TooManyParameters { current, limit } => {
@@ -119,21 +105,16 @@ mod tests {
     fn test_input_sanitizer() {
         let sanitizer = InputSanitizer::new();
 
-        // Test normal input
         let normal_input = "hello world";
         let sanitized = sanitizer.sanitize_string(normal_input);
         assert_eq!(sanitized, normal_input);
 
-        // Test input with potential issues
         let suspicious_input = "<script>alert('xss')</script>";
         let sanitized = sanitizer.sanitize_string(suspicious_input);
-        // Should be sanitized (exact behavior depends on implementation)
         assert!(sanitized != suspicious_input || sanitized.is_empty());
 
-        // Test very long input
         let long_input = "a".repeat(10000);
         let sanitized = sanitizer.sanitize_string(&long_input);
-        // Should be truncated or rejected
         assert!(sanitized.len() <= long_input.len());
     }
 
@@ -162,11 +143,9 @@ mod tests {
         let default = RequestSecurityConfig::default();
         let strict = RequestSecurityConfig::strict();
 
-        // Strict should have lower limits than default
         assert!(strict.limits.max_request_size <= default.limits.max_request_size);
         assert!(strict.limits.max_parameters <= default.limits.max_parameters);
 
-        // Permissive should have higher limits than default
         assert!(permissive.limits.max_request_size >= default.limits.max_request_size);
         assert!(permissive.limits.max_parameters >= default.limits.max_parameters);
     }
@@ -199,32 +178,25 @@ mod tests {
 
     #[tokio::test]
     async fn test_security_integration() {
-        // Test that security components work together
-
         let config = RequestSecurityConfig::strict();
         let validator = RequestSecurityValidator::new(config);
         let sanitizer = InputSanitizer::new();
 
-        // Create a potentially problematic request
-        let suspicious_request = Request {
-            jsonrpc: "2.0".to_string(),
-            method: "tools/call".to_string(),
-            id: Some(pulseengine_mcp_protocol::NumberOrString::Number(1)),
-            params: json!({
-                "name": "test_tool",
-                "arguments": {
-                    "input": "<script>alert('xss')</script>",
-                    "data": "x".repeat(10000), // Very long string
-                }
-            }),
-        };
+        let params = json!({
+            "name": "test_tool",
+            "arguments": {
+                "input": "<script>alert('xss')</script>",
+                "data": "x".repeat(10000),
+            }
+        });
 
-        // Validate the request
-        let validation_result = validator.validate_request(&suspicious_request, None).await;
+        let validation_result = validator
+            .validate_request_parts("tools/call", &params, None)
+            .await;
 
         // If validation passes, sanitize the input
-        if let Ok(_) = validation_result {
-            if let Some(args) = suspicious_request.params.get("arguments") {
+        if validation_result.is_ok() {
+            if let Some(args) = params.get("arguments") {
                 if let Some(input) = args.get("input").and_then(|v| v.as_str()) {
                     let sanitized = sanitizer.sanitize_string(input);
                     assert!(sanitized != input || sanitized.is_empty());

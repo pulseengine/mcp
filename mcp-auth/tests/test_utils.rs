@@ -6,7 +6,7 @@
 
 use async_trait::async_trait;
 use chrono::{Duration, Utc};
-use pulseengine_mcp_auth::{
+use pulseengine_auth::{
     AuthenticationManager,
     config::{AuthConfig, StorageConfig},
     models::{ApiKey, AuthContext, Role},

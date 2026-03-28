@@ -15,7 +15,7 @@ rust-version.workspace = true
 
 [dependencies]
 pulseengine-mcp-protocol = { workspace = true, features = ["logging"] }
-pulseengine-mcp-auth = { workspace = true }
+pulseengine-auth = { workspace = true }
 pulseengine-mcp-transport = { workspace = true }
 pulseengine-mcp-security = { workspace = true }
 pulseengine-logging = { workspace = true }

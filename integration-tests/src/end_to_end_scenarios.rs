@@ -2,7 +2,7 @@
 
 use crate::test_utils::*;
 use async_trait::async_trait;
-use pulseengine_mcp_auth::AuthenticationManager;
+use pulseengine_auth::AuthenticationManager;
 use pulseengine_mcp_protocol::*;
 use pulseengine_mcp_security::SecurityMiddleware;
 use pulseengine_mcp_server::observability::MetricsCollector;

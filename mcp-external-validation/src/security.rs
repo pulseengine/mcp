@@ -438,7 +438,7 @@ impl SecurityTester {
 
     /// Check for known framework authentication issues
     fn check_framework_auth_issues(&self, result: &mut SecurityResult) {
-        // Check for pulseengine_mcp_auth API key management completeness
+        // Check for pulseengine_auth API key management completeness
         result.authentication.total += 1;
 
         // Try to run the framework completeness check via the CLI
@@ -464,7 +464,7 @@ impl SecurityTester {
                                 result.issues.push(ValidationIssue::new(
                                     IssueSeverity::Info,
                                     "framework-auth".to_string(),
-                                    "✅ Authentication Framework Complete: pulseengine_mcp_auth has full API key management capabilities".to_string(),
+                                    "✅ Authentication Framework Complete: pulseengine_auth has full API key management capabilities".to_string(),
                                     "security-tester".to_string(),
                                 ).with_suggestion(
                                     "Framework is production-ready with complete authentication capabilities including API key creation, validation, and management.".to_string()
@@ -501,7 +501,7 @@ impl SecurityTester {
         result.issues.push(ValidationIssue::new(
             IssueSeverity::Critical,
             "framework-auth".to_string(),
-            "Missing API Key Management: pulseengine_mcp_auth framework lacks methods for creating/managing API keys".to_string(),
+            "Missing API Key Management: pulseengine_auth framework lacks methods for creating/managing API keys".to_string(),
             "security-tester".to_string(),
         ).with_suggestion(
             "Framework issue: AuthenticationManager needs create_key(), list_keys(), and revoke_key() methods. Currently forces servers to disable authentication entirely.".to_string()

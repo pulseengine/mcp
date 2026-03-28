@@ -1,6 +1,6 @@
-//! # MCP Authentication and Authorization Framework
+//! # Authentication and Authorization Framework
 //!
-//! A comprehensive, drop-in security framework for Model Context Protocol (MCP) servers
+//! A comprehensive, drop-in security framework for Axum/Tower services
 //! providing enterprise-grade authentication, authorization, session management, and security monitoring.
 //!
 #![allow(clippy::uninlined_format_args)]
@@ -19,7 +19,7 @@
 //! ### Creating an Authentication Manager
 //!
 //! ```rust,ignore
-//! use pulseengine_mcp_auth::{AuthenticationManager, AuthConfig};
+//! use pulseengine_auth::{AuthenticationManager, AuthConfig};
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -38,7 +38,7 @@
 //! ### Creating and Validating API Keys
 //!
 //! ```rust,ignore
-//! use pulseengine_mcp_auth::{AuthenticationManager, Role};
+//! use pulseengine_auth::{AuthenticationManager, Role};
 //!
 //! // Create an API key
 //! let api_key = auth_manager.create_api_key(
@@ -91,7 +91,7 @@
 //! ## Session Management
 //!
 //! ```rust,ignore
-//! use pulseengine_mcp_auth::{SessionManager, SessionConfig};
+//! use pulseengine_auth::{SessionManager, SessionConfig};
 //!
 //! // Create a session manager
 //! let session_manager = SessionManager::new(SessionConfig::default()).await?;
@@ -117,7 +117,7 @@
 //! Enable features in Cargo.toml:
 //! ```toml
 //! [dependencies]
-//! pulseengine-mcp-auth = { version = "*", features = ["monitoring", "vault"] }
+//! pulseengine-auth = { version = "*", features = ["monitoring", "vault"] }
 //! ```
 
 pub mod audit;
@@ -159,7 +159,7 @@ pub use manager::{
 #[cfg(feature = "vault")]
 pub use manager_vault::{VaultAuthManagerError, VaultAuthenticationManager, VaultStatus};
 pub use middleware::{
-    AuthExtractionError, McpAuthConfig, McpAuthMiddleware, SessionMiddleware,
+    AuthExtractionError, AuthMiddlewareError, McpAuthConfig, McpAuthMiddleware, SessionMiddleware,
     SessionMiddlewareConfig, SessionMiddlewareError, SessionRequestContext,
 };
 pub use models::{
@@ -173,7 +173,7 @@ pub use monitoring::{
     SystemHealth, create_default_alert_rules,
 };
 pub use permissions::{
-    McpPermission, McpPermissionChecker, PermissionAction, PermissionConfig, PermissionError,
+    Permission, PermissionAction, PermissionChecker, PermissionConfig, PermissionError,
     PermissionRule, ResourcePermissionConfig, ToolPermissionConfig,
 };
 pub use security::{

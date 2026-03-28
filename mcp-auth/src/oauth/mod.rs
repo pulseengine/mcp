@@ -64,7 +64,7 @@ impl OAuthState {
     ///
     /// # Example
     /// ```no_run
-    /// use pulseengine_mcp_auth::oauth::{OAuthState, oauth_router};
+    /// use pulseengine_auth::oauth::{OAuthState, oauth_router};
     ///
     /// let state = OAuthState::new_in_memory();
     /// let app: axum::Router = oauth_router().with_state(state);
@@ -79,7 +79,7 @@ impl OAuthState {
     ///
     /// # Example
     /// ```no_run
-    /// use pulseengine_mcp_auth::oauth::{OAuthState, OAuthStorage, oauth_router};
+    /// use pulseengine_auth::oauth::{OAuthState, OAuthStorage, oauth_router};
     /// use std::sync::Arc;
     ///
     /// // Bring your own storage implementation
@@ -96,7 +96,7 @@ impl OAuthState {
 ///
 /// # Easy Setup (Python-like simplicity)
 /// ```no_run
-/// use pulseengine_mcp_auth::oauth::{OAuthState, oauth_router};
+/// use pulseengine_auth::oauth::{OAuthState, oauth_router};
 ///
 /// // That's it! One line to create OAuth state, one line to create the router
 /// let state = OAuthState::new_in_memory();

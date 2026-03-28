@@ -78,7 +78,7 @@
 //!
 //! ```rust,ignore
 //! use pulseengine_mcp_server::{McpServer, ServerConfig, AuthConfig};
-//! use pulseengine_mcp_auth::config::StorageConfig;
+//! use pulseengine_auth::config::StorageConfig;
 //! use std::path::PathBuf;
 //!
 //! let auth_config = AuthConfig {
@@ -105,7 +105,7 @@
 //!
 //! ```rust,ignore
 //! use pulseengine_mcp_server::{McpServer, ServerConfig, AuthConfig};
-//! use pulseengine_mcp_auth::config::StorageConfig;
+//! use pulseengine_auth::config::StorageConfig;
 //!
 //! let auth_config = AuthConfig {
 //!     storage: StorageConfig::Environment {
@@ -178,7 +178,7 @@ pub use tool_context::{
 pub use cli_helpers::{CliError, DefaultLoggingConfig, LogFormat, LogOutput, create_server_info};
 
 // Re-export from dependencies for convenience
-pub use pulseengine_mcp_auth::{self as auth, AuthConfig, AuthenticationManager};
+pub use pulseengine_auth::{self as auth, AuthConfig, AuthenticationManager};
 pub use pulseengine_mcp_protocol::{self as protocol, *};
 pub use pulseengine_mcp_security::{self as security, SecurityConfig, SecurityMiddleware};
 pub use pulseengine_mcp_transport::{self as transport, Transport, TransportConfig};

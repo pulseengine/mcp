@@ -8,7 +8,6 @@ use crate::{
     storage::{StorageBackend, create_storage_backend},
 };
 use chrono::{DateTime, Utc};
-use pulseengine_mcp_protocol::{Request, Response};
 use std::collections::HashMap;
 use std::sync::Arc;
 use thiserror::Error;
@@ -1185,27 +1184,6 @@ impl AuthenticationManager {
 
     pub async fn health_check(&self) -> Result<(), AuthError> {
         Ok(())
-    }
-
-    pub async fn process_request(
-        &self,
-        request: Request,
-        _context: &RequestContext,
-    ) -> Result<Request, AuthError> {
-        if !self.config.enabled {
-            return Ok(request);
-        }
-
-        // For now, just pass through - implement authentication logic later
-        Ok(request)
-    }
-
-    pub async fn process_response(
-        &self,
-        response: Response,
-        _context: &RequestContext,
-    ) -> Result<Response, AuthError> {
-        Ok(response)
     }
 
     // JWT Token-based Authentication Methods

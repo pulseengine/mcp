@@ -8,7 +8,7 @@ use axum::{
     http::{Request, StatusCode},
 };
 use chrono::{Duration, Utc};
-use pulseengine_mcp_auth::oauth::{
+use pulseengine_auth::oauth::{
     OAuthState,
     models::{AuthorizationCode, RefreshToken},
     oauth_router,
@@ -130,7 +130,7 @@ async fn test_authorize_get_displays_consent_form() {
     let (app, state) = test_app();
 
     // First register a client
-    let client = pulseengine_mcp_auth::oauth::models::OAuthClient {
+    let client = pulseengine_auth::oauth::models::OAuthClient {
         client_id: "test_client".to_string(),
         client_secret: "secret".to_string(),
         client_name: "Test App".to_string(),
@@ -172,7 +172,7 @@ async fn test_authorize_get_displays_consent_form() {
 async fn test_authorize_get_invalid_response_type() {
     let (app, state) = test_app();
 
-    let client = pulseengine_mcp_auth::oauth::models::OAuthClient {
+    let client = pulseengine_auth::oauth::models::OAuthClient {
         client_id: "test_client".to_string(),
         client_secret: "secret".to_string(),
         client_name: "Test App".to_string(),
@@ -205,7 +205,7 @@ async fn test_authorize_get_invalid_response_type() {
 async fn test_authorize_get_invalid_code_challenge_method() {
     let (app, state) = test_app();
 
-    let client = pulseengine_mcp_auth::oauth::models::OAuthClient {
+    let client = pulseengine_auth::oauth::models::OAuthClient {
         client_id: "test_client".to_string(),
         client_secret: "secret".to_string(),
         client_name: "Test App".to_string(),
@@ -232,7 +232,7 @@ async fn test_authorize_get_invalid_code_challenge_method() {
 async fn test_authorize_post_user_approval() {
     let (app, state) = test_app();
 
-    let client = pulseengine_mcp_auth::oauth::models::OAuthClient {
+    let client = pulseengine_auth::oauth::models::OAuthClient {
         client_id: "test_client".to_string(),
         client_secret: "secret".to_string(),
         client_name: "Test App".to_string(),
@@ -267,7 +267,7 @@ async fn test_authorize_post_user_approval() {
 async fn test_authorize_post_user_denial() {
     let (app, state) = test_app();
 
-    let client = pulseengine_mcp_auth::oauth::models::OAuthClient {
+    let client = pulseengine_auth::oauth::models::OAuthClient {
         client_id: "test_client".to_string(),
         client_secret: "secret".to_string(),
         client_name: "Test App".to_string(),
@@ -305,7 +305,7 @@ async fn test_full_authorization_code_flow() {
     let (_, state) = test_app();
 
     // 1. Register client
-    let client = pulseengine_mcp_auth::oauth::models::OAuthClient {
+    let client = pulseengine_auth::oauth::models::OAuthClient {
         client_id: "test_client".to_string(),
         client_secret: "test_secret".to_string(),
         client_name: "Test App".to_string(),
@@ -362,7 +362,7 @@ async fn test_refresh_token_flow() {
     let (_, state) = test_app();
 
     // 1. Register client
-    let client = pulseengine_mcp_auth::oauth::models::OAuthClient {
+    let client = pulseengine_auth::oauth::models::OAuthClient {
         client_id: "test_client".to_string(),
         client_secret: "test_secret".to_string(),
         client_name: "Test App".to_string(),
@@ -410,7 +410,7 @@ async fn test_refresh_token_flow() {
 async fn test_token_endpoint_wrong_code_verifier() {
     let (_, state) = test_app();
 
-    let client = pulseengine_mcp_auth::oauth::models::OAuthClient {
+    let client = pulseengine_auth::oauth::models::OAuthClient {
         client_id: "test_client".to_string(),
         client_secret: "test_secret".to_string(),
         client_name: "Test App".to_string(),
@@ -470,7 +470,7 @@ async fn test_token_endpoint_wrong_code_verifier() {
 async fn test_token_endpoint_expired_code() {
     let (_, state) = test_app();
 
-    let client = pulseengine_mcp_auth::oauth::models::OAuthClient {
+    let client = pulseengine_auth::oauth::models::OAuthClient {
         client_id: "test_client".to_string(),
         client_secret: "test_secret".to_string(),
         client_name: "Test App".to_string(),
@@ -529,7 +529,7 @@ async fn test_token_endpoint_expired_code() {
 async fn test_token_endpoint_wrong_redirect_uri() {
     let (_, state) = test_app();
 
-    let client = pulseengine_mcp_auth::oauth::models::OAuthClient {
+    let client = pulseengine_auth::oauth::models::OAuthClient {
         client_id: "test_client".to_string(),
         client_secret: "test_secret".to_string(),
         client_name: "Test App".to_string(),

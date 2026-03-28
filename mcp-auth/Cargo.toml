@@ -1,20 +1,22 @@
 [package]
-name = "pulseengine-mcp-auth"
+name = "pulseengine-auth"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
-description = "Authentication and authorization framework for MCP servers - PulseEngine MCP Framework"
+description = "Authentication, authorization, and session management middleware for Axum/Tower services"
 homepage.workspace = true
 repository.workspace = true
-documentation = "https://docs.rs/pulseengine-mcp-auth"
+documentation = "https://docs.rs/pulseengine-auth"
 readme = "README.md"
-keywords = ["mcp", "authentication", "authorization", "security", "auth"]
+keywords = ["auth", "middleware", "rbac", "jwt", "tower"]
 categories = ["authentication", "web-programming"]
 rust-version.workspace = true
 
+[lib]
+name = "pulseengine_auth"
+
 [dependencies]
-pulseengine-mcp-protocol = { workspace = true }
 
 tokio = { workspace = true }
 serde = { workspace = true }

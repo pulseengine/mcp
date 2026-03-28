@@ -2,7 +2,7 @@
 
 use crate::tool_context::{NoOpToolContext, ToolContext, create_tool_context, with_context};
 use crate::{backend::McpBackend, context::RequestContext, middleware::MiddlewareStack};
-use pulseengine_mcp_auth::AuthenticationManager;
+use pulseengine_auth::AuthenticationManager;
 use pulseengine_logging::{get_metrics, spans};
 use pulseengine_mcp_protocol::*;
 use pulseengine_mcp_transport::{Transport, try_current_session_id};
@@ -590,8 +590,8 @@ mod tests {
     use crate::backend::McpBackend;
     use crate::middleware::MiddlewareStack;
     use async_trait::async_trait;
-    use pulseengine_mcp_auth::AuthenticationManager;
-    use pulseengine_mcp_auth::config::AuthConfig;
+    use pulseengine_auth::AuthenticationManager;
+    use pulseengine_auth::config::AuthConfig;
     use pulseengine_logging::ErrorClassification;
     use pulseengine_mcp_protocol::{
         CallToolRequestParam, CallToolResult, CompleteRequestParam, CompleteResult, Content, Error,
