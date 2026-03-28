@@ -1,7 +1,0 @@
-[workspace]
-members = [
-    "tower-auth",
-    "resource-router",
-    "mcp-apps",
-]
-resolver = "2"
