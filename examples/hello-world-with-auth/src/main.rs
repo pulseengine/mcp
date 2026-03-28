@@ -1,166 +1,123 @@
-//! Hello World MCP Server with Authentication
+//! # Hello World MCP Server with Authentication
 //!
-//! This example demonstrates how to add zero-config authentication to an MCP server.
-//! It builds on the basic hello-world example by adding security middleware.
+//! Demonstrates an rmcp MCP server wrapped in `pulseengine-security` middleware
+//! via Axum's Streamable HTTP transport.
 //!
-//! Key features demonstrated:
-//! - Development security profile (permissive settings)
-//! - Auto-generated API keys for easy development
-//! - Simple API key authentication
-//! - Request logging and audit trails
-//!
-//! ## Running the Example
+//! ## Running
 //!
 //! ```bash
-//! cargo run --bin hello-world-with-auth
+//! cargo run -p hello-world-with-auth
 //! ```
 //!
-//! The server will start with auto-generated API keys. Check the logs for the generated API key.
-//!
-//! ## Testing Authentication
+//! ## Testing
 //!
 //! ```bash
-//! # Without authentication (should work in development mode)
-//! curl http://localhost:8080/mcp/tools/list
-//!
-//! # With API key (check logs for generated key)
-//! curl -H "Authorization: ApiKey mcp_generated_key_here" http://localhost:8080/mcp/tools/call
+//! # The dev profile generates an API key — check the logs for it, then:
+//! curl -H "Authorization: ApiKey <key>" http://127.0.0.1:8080/mcp
 //! ```
 
-use pulseengine_mcp_macros::{mcp_server, mcp_tools};
-use pulseengine_security::*;
+use std::sync::Arc;
+
+use axum::middleware::from_fn;
+use axum::Router;
+use pulseengine_security::SecurityConfig;
+use rmcp::handler::server::tool::ToolRouter;
+use rmcp::handler::server::wrapper::Parameters;
+use rmcp::model::{Implementation, ServerCapabilities, ServerInfo};
+use rmcp::transport::streamable_http_server::{
+    session::local::LocalSessionManager, StreamableHttpServerConfig, StreamableHttpService,
+};
+use rmcp::{schemars, tool, tool_handler, tool_router, ServerHandler};
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
-use tracing::{info, warn};
+use serde::Deserialize;
+use tracing::info;
+use tracing_subscriber::EnvFilter;
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct SayHelloParams {
+// ── Tool parameters ───────────────────────────────────────────────
+
+#[derive(Debug, Deserialize, JsonSchema)]
+struct SayHelloParams {
     /// The name to greet (optional)
-    pub name: Option<String>,
+    name: Option<String>,
 }
 
-#[mcp_server(name = "Hello World with Auth")]
-#[derive(Default, Clone)]
-pub struct HelloWorldAuth;
+// ── MCP server ────────────────────────────────────────────────────
 
-#[mcp_tools]
+struct HelloWorldAuth {
+    tool_router: ToolRouter<Self>,
+}
+
+#[tool_router]
 impl HelloWorldAuth {
-    /// Say hello to someone (with authentication)
-    ///
-    /// This tool demonstrates how authentication context can be used in tools.
-    /// In development mode, authentication is optional but logged when present.
-    pub async fn say_hello(&self, params: SayHelloParams) -> anyhow::Result<String> {
-        let name = params
-            .name
-            .unwrap_or_else(|| "Authenticated World".to_string());
-
-        info!("Hello tool called with name: {}", name);
-        Ok(format!(
-            "Hello, {name}! 🔐 (Secured with MCP Security Middleware)"
-        ))
-    }
-
-    /// Get authentication status
-    ///
-    /// This tool shows information about the current authentication state.
-    pub async fn auth_status(&self) -> anyhow::Result<String> {
-        // In development mode, this will work without authentication
-        // In production mode, it would require valid credentials
-
-        info!("Auth status requested");
-        Ok("Authentication: Development mode - optional auth enabled".to_string())
-    }
-
-    /// Protected tool (demonstrates different security levels)
-    ///
-    /// This tool would require authentication in all modes except development.
-    pub async fn protected_operation(&self) -> anyhow::Result<String> {
-        // This would be protected in staging/production modes
-        warn!("Protected operation accessed - ensure proper authentication in production!");
-        Ok("This is a protected operation - authentication recommended".to_string())
+    /// Say hello to someone (secured by pulseengine-security)
+    #[tool]
+    fn say_hello(&self, Parameters(params): Parameters<SayHelloParams>) -> String {
+        let name = params.name.as_deref().unwrap_or("Authenticated World");
+        format!("Hello, {name}!")
     }
 }
+
+#[tool_handler]
+impl ServerHandler for HelloWorldAuth {
+    fn get_info(&self) -> ServerInfo {
+        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+            .with_server_info(Implementation::new("hello-world-with-auth", "0.1.0"))
+    }
+}
+
+// ── Main ──────────────────────────────────────────────────────────
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize logging
+async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
-        .with_env_filter("hello_world_with_auth=info,pulseengine_security=info")
+        .with_env_filter(
+            EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| EnvFilter::new("info,hello_world_with_auth=debug")),
+        )
         .init();
 
-    info!("Starting Hello World MCP Server with Authentication");
+    // 1. Security setup — zero-config development profile
+    let security = SecurityConfig::development();
+    info!("Security profile: {:?}", security.profile);
 
-    // Create development security configuration
-    // This enables authentication but with permissive settings for development
-    let security_config = SecurityConfig::development();
-
-    // Log the configuration for demonstration
-    let summary = security_config.summary();
-    info!("Security configuration:\n{}", summary);
-
-    // Create the security middleware
-    let security_middleware = security_config.create_middleware().await?;
-
-    // Log the generated API key for testing
-    if let Some(ref api_key) = security_config.api_key {
-        info!("🔑 Generated API key for development: {}", api_key);
-        info!(
-            "💡 Test with: curl -H 'Authorization: ApiKey {}' http://localhost:8080/",
-            api_key
-        );
+    if let Some(ref key) = security.api_key {
+        info!("Development API key: {key}");
+        info!("Test with: curl -H 'Authorization: ApiKey {key}' http://127.0.0.1:8080/mcp");
     }
 
-    // Create the MCP server with security middleware
-    let _server_backend = HelloWorldAuth;
+    let middleware = security.create_middleware().await?;
 
-    // Note: This is a simplified example. In the actual implementation,
-    // you would integrate the security middleware with the MCP server's HTTP transport
-    info!("🚀 Server would start here with security middleware integrated");
-    info!("📡 Available endpoints:");
-    info!("  - GET  /health (health check)");
-    info!("  - POST /mcp/initialize (MCP initialization)");
-    info!("  - POST /mcp/tools/list (list available tools)");
-    info!("  - POST /mcp/tools/call (call a tool)");
+    // 2. Build the rmcp Streamable HTTP service
+    let ct = tokio_util::sync::CancellationToken::new();
 
-    info!("🔒 Security Features:");
-    info!("  - Development profile: Authentication optional but logged");
-    info!(
-        "  - Auto-generated API key: {}",
-        security_config
-            .api_key
-            .as_ref()
-            .unwrap_or(&"None".to_string())
+    let mcp_service = StreamableHttpService::new(
+        || {
+            Ok(HelloWorldAuth {
+                tool_router: HelloWorldAuth::tool_router(),
+            })
+        },
+        Arc::new(LocalSessionManager::default()),
+        StreamableHttpServerConfig::default().with_cancellation_token(ct.child_token()),
     );
-    info!("  - Rate limiting: Disabled (development mode)");
-    info!("  - CORS: Permissive (development mode)");
-    info!("  - Audit logging: Enabled");
 
-    // For demonstration, just show what the middleware would do
-    demonstrate_security_features(&security_middleware).await?;
+    // 3. Mount MCP under /mcp, wrap the whole router with security middleware
+    let app = Router::new()
+        .nest_service("/mcp", mcp_service)
+        .layer(from_fn(move |req, next| {
+            let mw = middleware.clone();
+            async move { mw.process(req, next).await }
+        }));
 
-    info!("Example completed successfully!");
-    info!("In a real implementation, this would be integrated with the full MCP server");
+    // 4. Serve
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:8080").await?;
+    info!("Listening on http://127.0.0.1:8080/mcp");
 
-    Ok(())
-}
-
-/// Demonstrate security middleware features
-async fn demonstrate_security_features(_middleware: &SecurityMiddleware) -> anyhow::Result<()> {
-    info!("🔍 Demonstrating security middleware features...");
-
-    // Create a mock request for demonstration
-    let _test_request = axum::http::Request::builder()
-        .method(axum::http::Method::GET)
-        .uri("/test")
-        .header("host", "localhost:8080")
-        .body(axum::body::Body::empty())?;
-
-    // This would normally be handled by the middleware in the HTTP server
-    info!("✅ Request would be processed through security middleware");
-    info!("✅ Rate limiting would be checked (disabled in development)");
-    info!("✅ Authentication would be verified (optional in development)");
-    info!("✅ Security headers would be added to response");
-    info!("✅ Request would be logged for audit trail");
+    axum::serve(listener, app)
+        .with_graceful_shutdown(async move {
+            tokio::signal::ctrl_c().await.ok();
+            ct.cancel();
+        })
+        .await?;
 
     Ok(())
 }
