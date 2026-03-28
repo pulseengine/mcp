@@ -765,7 +765,7 @@ async fn test_server_with_streamable_http_transport() {
 
 #[tokio::test]
 async fn test_server_with_profiling_enabled() {
-    use pulseengine_mcp_logging::ProfilingConfig;
+    use pulseengine_logging::ProfilingConfig;
 
     let backend =
         MockServerBackend::initialize((false, false, false, "Profiling Server".to_string()))
@@ -798,7 +798,7 @@ async fn test_server_with_profiling_enabled() {
 
 #[tokio::test]
 async fn test_server_with_persistence_config() {
-    use pulseengine_mcp_logging::PersistenceConfig;
+    use pulseengine_logging::PersistenceConfig;
 
     let backend =
         MockServerBackend::initialize((false, false, false, "Persistence Server".to_string()))

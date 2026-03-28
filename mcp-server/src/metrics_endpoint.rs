@@ -3,7 +3,7 @@
 use crate::observability::MetricsCollector;
 use axum::{Router, extract::State, http::StatusCode, response::IntoResponse, routing::get};
 use prometheus::{Counter, Encoder, Gauge, Histogram, Registry, TextEncoder};
-use pulseengine_mcp_logging::get_metrics as get_logging_metrics;
+use pulseengine_logging::get_metrics as get_logging_metrics;
 use std::sync::Arc;
 
 /// Prometheus metrics registry

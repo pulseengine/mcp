@@ -1,17 +1,21 @@
 [package]
-name = "pulseengine-mcp-logging"
+name = "pulseengine-logging"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
-description = "Structured logging framework for MCP servers - PulseEngine MCP Framework"
+description = "Structured logging with credential scrubbing, metrics, alerting, and correlation IDs"
 homepage.workspace = true
 repository.workspace = true
-documentation = "https://docs.rs/pulseengine-mcp-logging"
+documentation = "https://docs.rs/pulseengine-logging"
 readme = "README.md"
-keywords = ["mcp", "logging", "structured", "metrics", "tracing"]
+keywords = ["logging", "structured", "metrics", "tracing", "security"]
 categories = ["development-tools::debugging"]
 rust-version.workspace = true
+
+[lib]
+name = "pulseengine_logging"
+path = "src/lib.rs"
 
 [dependencies]
 # Logging

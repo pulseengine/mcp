@@ -2106,6 +2106,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "pulseengine-logging"
+version = "0.17.0"
+dependencies = [
+ "chrono",
+ "hex",
+ "once_cell",
+ "regex",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.12",
+ "tokio",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "pulseengine-mcp-auth"
 version = "0.17.0"
 dependencies = [
@@ -2224,24 +2242,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pulseengine-mcp-logging"
-version = "0.17.0"
-dependencies = [
- "chrono",
- "hex",
- "once_cell",
- "regex",
- "serde",
- "serde_json",
- "thiserror 2.0.12",
- "tokio",
- "tracing",
- "tracing-appender",
- "tracing-subscriber",
- "uuid",
-]
-
-[[package]]
 name = "pulseengine-mcp-macros"
 version = "0.17.0"
 dependencies = [
@@ -2274,7 +2274,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "jsonschema",
- "pulseengine-mcp-logging",
+ "pulseengine-logging",
  "schemars 0.8.22",
  "serde",
  "serde_json",
@@ -2350,8 +2350,8 @@ dependencies = [
  "chrono",
  "futures",
  "prometheus",
+ "pulseengine-logging",
  "pulseengine-mcp-auth",
- "pulseengine-mcp-logging",
  "pulseengine-mcp-protocol",
  "pulseengine-mcp-security",
  "pulseengine-mcp-transport",

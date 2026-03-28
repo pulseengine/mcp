@@ -1,6 +1,6 @@
-//! Structured logging framework for MCP servers
+//! Structured logging framework with security-aware features
 //!
-//! This crate provides comprehensive logging capabilities for MCP servers including:
+//! This crate provides comprehensive logging capabilities including:
 //! - Structured logging with tracing
 //! - Metrics collection and reporting
 //! - Log sanitization for security
@@ -9,7 +9,7 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use pulseengine_mcp_logging::{MetricsCollector, StructuredLogger};
+//! use pulseengine_logging::{MetricsCollector, StructuredLogger};
 //!
 //! #[tokio::main]
 //! async fn main() {

@@ -7,7 +7,7 @@ use axum::{
     response::{Html, IntoResponse, Json},
     routing::get,
 };
-use pulseengine_mcp_logging::DashboardManager;
+use pulseengine_logging::DashboardManager;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -19,7 +19,7 @@ pub struct DashboardState {
 /// Dashboard data response
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DashboardDataResponse {
-    pub charts: std::collections::HashMap<String, pulseengine_mcp_logging::ChartData>,
+    pub charts: std::collections::HashMap<String, pulseengine_logging::ChartData>,
     pub last_updated: chrono::DateTime<chrono::Utc>,
 }
 
@@ -128,7 +128,7 @@ mod tests {
     use super::*;
     use axum::http::StatusCode;
     use axum_test::TestServer;
-    use pulseengine_mcp_logging::DashboardConfig;
+    use pulseengine_logging::DashboardConfig;
 
     #[tokio::test]
     async fn test_dashboard_config_endpoint() {
