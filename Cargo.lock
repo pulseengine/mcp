@@ -1058,8 +1058,8 @@ dependencies = [
  "axum",
  "pulseengine-mcp-macros",
  "pulseengine-mcp-protocol",
- "pulseengine-mcp-security-middleware",
  "pulseengine-mcp-server",
+ "pulseengine-security",
  "schemars 0.8.22",
  "serde",
  "serde_json",
@@ -2307,39 +2307,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pulseengine-mcp-security-middleware"
-version = "0.17.0"
-dependencies = [
- "anyhow",
- "assert_matches",
- "async-trait",
- "axum",
- "base64 0.22.1",
- "chrono",
- "dirs",
- "futures",
- "hyper 1.6.0",
- "jsonwebtoken",
- "keyring",
- "once_cell",
- "pulseengine-mcp-protocol",
- "rand 0.8.5",
- "serde",
- "serde_json",
- "serial_test",
- "sha2",
- "tempfile",
- "thiserror 2.0.12",
- "tokio",
- "tokio-test",
- "tower 0.4.13",
- "tower-http 0.5.2",
- "tracing",
- "uuid",
- "validator",
-]
-
-[[package]]
 name = "pulseengine-mcp-server"
 version = "0.17.0"
 dependencies = [
@@ -2393,6 +2360,38 @@ dependencies = [
  "tracing-subscriber",
  "tungstenite 0.24.0",
  "uuid",
+]
+
+[[package]]
+name = "pulseengine-security"
+version = "0.17.0"
+dependencies = [
+ "anyhow",
+ "assert_matches",
+ "async-trait",
+ "axum",
+ "base64 0.22.1",
+ "chrono",
+ "dirs",
+ "futures",
+ "hyper 1.6.0",
+ "jsonwebtoken",
+ "keyring",
+ "once_cell",
+ "rand 0.8.5",
+ "serde",
+ "serde_json",
+ "serial_test",
+ "sha2",
+ "tempfile",
+ "thiserror 2.0.12",
+ "tokio",
+ "tokio-test",
+ "tower 0.4.13",
+ "tower-http 0.5.2",
+ "tracing",
+ "uuid",
+ "validator",
 ]
 
 [[package]]

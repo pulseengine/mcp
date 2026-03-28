@@ -1,6 +1,6 @@
-//! # PulseEngine MCP Security Middleware
+//! # PulseEngine Security Middleware
 //!
-//! Zero-configuration security middleware for MCP servers with Axum integration.
+//! Zero-configuration security middleware for Axum/Tower services.
 //!
 //! This crate provides a simple, secure-by-default authentication and authorization
 //! middleware system that can be integrated into MCP servers with minimal configuration.
@@ -12,12 +12,12 @@
 //! - **Environment-Based Config**: Configure via environment variables without CLI tools
 //! - **Auto-Generation**: Automatically generates API keys and JWT secrets securely
 //! - **Axum Integration**: Built on `middleware::from_fn` for seamless integration
-//! - **MCP Compliance**: Follows 2025 MCP security best practices
+//! - **Standards Compliant**: Follows OWASP security best practices
 //!
 //! ## Quick Start
 //!
 //! ```rust,no_run
-//! use pulseengine_mcp_security_middleware::*;
+//! use pulseengine_security::*;
 //! use axum::{Router, routing::get};
 //! use axum::middleware::from_fn;
 //!
@@ -43,7 +43,7 @@
 //!
 //! ### Development Profile
 //! ```rust
-//! use pulseengine_mcp_security_middleware::SecurityConfig;
+//! use pulseengine_security::SecurityConfig;
 //!
 //! let config = SecurityConfig::development();
 //! // - Permissive settings for local development
@@ -54,7 +54,7 @@
 //!
 //! ### Production Profile
 //! ```rust
-//! use pulseengine_mcp_security_middleware::SecurityConfig;
+//! use pulseengine_security::SecurityConfig;
 //! let config = SecurityConfig::production();
 //! // - Strict security settings
 //! // - JWT authentication with secure secrets
@@ -107,7 +107,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 ///
 /// # Example
 /// ```rust
-/// use pulseengine_mcp_security_middleware::dev_security;
+/// use pulseengine_security::dev_security;
 ///
 /// let config = dev_security();
 /// // Ready to use with permissive development settings
@@ -122,7 +122,7 @@ pub fn dev_security() -> SecurityConfig {
 ///
 /// # Example
 /// ```rust
-/// use pulseengine_mcp_security_middleware::prod_security;
+/// use pulseengine_security::prod_security;
 ///
 /// let config = prod_security();
 /// // Ready to use with strict production security
@@ -138,7 +138,7 @@ pub fn prod_security() -> SecurityConfig {
 ///
 /// # Example
 /// ```rust
-/// use pulseengine_mcp_security_middleware::env_security;
+/// use pulseengine_security::env_security;
 ///
 /// // Reads MCP_SECURITY_PROFILE=production from environment
 /// let config = env_security().unwrap();

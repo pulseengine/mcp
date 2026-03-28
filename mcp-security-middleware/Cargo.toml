@@ -1,5 +1,5 @@
 [package]
-name = "pulseengine-mcp-security-middleware"
+name = "pulseengine-security"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true
@@ -7,10 +7,10 @@ license.workspace = true
 authors.workspace = true
 repository.workspace = true
 homepage.workspace = true
-documentation = "https://docs.rs/pulseengine-mcp-security-middleware"
-keywords = ["mcp", "security", "middleware", "authentication", "framework"]
+documentation = "https://docs.rs/pulseengine-security"
+keywords = ["security", "middleware", "authentication", "axum", "tower"]
 categories = ["api-bindings", "development-tools", "asynchronous", "web-programming"]
-description = "Zero-configuration security middleware for MCP servers with Axum integration"
+description = "Zero-configuration security middleware for Axum/Tower with API key, JWT, CORS, and rate limiting"
 
 [dependencies]
 # Core async and utilities
@@ -54,9 +54,6 @@ dirs = { workspace = true }
 # Validation
 validator = { workspace = true }
 
-# Framework internal dependencies
-pulseengine-mcp-protocol = { workspace = true }
-
 [dev-dependencies]
 tempfile = { workspace = true }
 assert_matches = { workspace = true }
@@ -73,5 +70,5 @@ version = "3.5"
 optional = true
 
 [lib]
-name = "pulseengine_mcp_security_middleware"
+name = "pulseengine_security"
 path = "src/lib.rs"

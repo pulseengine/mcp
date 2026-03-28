@@ -28,7 +28,7 @@
 //! ```
 
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
-use pulseengine_mcp_security_middleware::*;
+use pulseengine_security::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
@@ -85,7 +85,7 @@ impl HelloWorldAuth {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging
     tracing_subscriber::fmt()
-        .with_env_filter("hello_world_with_auth=info,pulseengine_mcp_security_middleware=info")
+        .with_env_filter("hello_world_with_auth=info,pulseengine_security=info")
         .init();
 
     info!("Starting Hello World MCP Server with Authentication");

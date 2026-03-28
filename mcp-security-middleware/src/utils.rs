@@ -45,7 +45,7 @@ impl SecureRandom {
 ///
 /// # Example
 /// ```rust
-/// use pulseengine_mcp_security_middleware::generate_api_key;
+/// use pulseengine_security::generate_api_key;
 ///
 /// let api_key = generate_api_key();
 /// assert!(api_key.starts_with("mcp_"));
@@ -63,7 +63,7 @@ pub fn generate_api_key() -> String {
 ///
 /// # Example
 /// ```rust
-/// use pulseengine_mcp_security_middleware::generate_jwt_secret;
+/// use pulseengine_security::generate_jwt_secret;
 ///
 /// let secret = generate_jwt_secret();
 /// assert!(secret.len() >= 64); // At least 64 characters for security

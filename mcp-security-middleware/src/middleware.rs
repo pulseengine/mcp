@@ -407,7 +407,7 @@ impl RateLimiter {
 /// # Example
 /// ```rust,no_run
 /// use axum::{Router, routing::get, middleware::from_fn};
-/// use pulseengine_mcp_security_middleware::*;
+/// use pulseengine_security::*;
 ///
 /// #[tokio::main]
 /// async fn main() {
