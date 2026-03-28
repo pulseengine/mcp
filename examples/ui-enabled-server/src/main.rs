@@ -1,232 +1,192 @@
-//! Example MCP server with UI resources (MCP Apps Extension)
+//! # UI-Enabled MCP Server
 //!
-//! This demonstrates how to create an MCP server that exposes interactive
-//! HTML interfaces through the MCP Apps Extension (SEP-1865).
+//! Demonstrates how to use `pulseengine-mcp-apps` with rmcp to build an MCP
+//! server that exposes interactive HTML interfaces through the MCP Apps
+//! Extension.
 //!
-//! Run with: cargo run --bin ui-enabled-server
+//! ## Key Concepts
+//!
+//! 1. **MCP Apps capability** is declared via `mcp_apps_capabilities()` in the
+//!    `ServerCapabilities` extensions.
+//! 2. **HTML tool results** are returned with `html_tool_result()`.
+//! 3. **HTML resources** are served with `html_resource()` in `read_resource`.
+//! 4. **App resource descriptors** for `list_resources` use `app_resource()`.
+//! 5. Transport is stdio — connect with MCP Inspector or Claude Desktop.
 
-use async_trait::async_trait;
-use pulseengine_mcp_protocol::*;
-use pulseengine_mcp_server::common_backend::CommonMcpError;
-use pulseengine_mcp_server::{McpBackend, McpServer, ServerConfig, TransportConfig};
+use pulseengine_mcp_apps::{app_resource, html_resource, html_tool_result, mcp_apps_capabilities};
+use rmcp::handler::server::tool::ToolRouter;
+use rmcp::handler::server::wrapper::Parameters;
+use rmcp::model::{
+    CallToolResult, Implementation, ListResourcesResult, PaginatedRequestParams,
+    ReadResourceRequestParams, ReadResourceResult, ServerCapabilities, ServerInfo,
+};
+use rmcp::service::RequestContext;
+use rmcp::{
+    schemars, tool, tool_handler, tool_router, ErrorData, RoleServer, ServerHandler, ServiceExt,
+};
+use tracing_subscriber::EnvFilter;
 
-#[derive(Clone)]
-struct UiBackend;
+// ── Greeting HTML template ────────────────────────────────────────
 
-#[async_trait]
-impl McpBackend for UiBackend {
-    type Error = CommonMcpError;
-    type Config = ();
+const GREETING_HTML: &str = include_str!("../templates/greeting.html");
 
-    async fn initialize(_config: Self::Config) -> std::result::Result<Self, Self::Error> {
-        Ok(Self)
+// ── Dashboard HTML ────────────────────────────────────────────────
+
+const DASHBOARD_HTML: &str = r#"<!DOCTYPE html>
+<html>
+<head>
+    <title>MCP Dashboard</title>
+    <style>
+        body { font-family: system-ui; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+        .card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
+        .metric { font-size: 2rem; font-weight: bold; color: #2563eb; }
+    </style>
+</head>
+<body>
+    <h1>MCP Server Dashboard</h1>
+    <div class="card">
+        <h3>Active Connections</h3>
+        <div class="metric">42</div>
+    </div>
+    <div class="card">
+        <h3>Tools Called</h3>
+        <div class="metric">1,337</div>
+    </div>
+</body>
+</html>"#;
+
+// ── Tool params ───────────────────────────────────────────────────
+
+#[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
+struct GreetParams {
+    /// Name to greet
+    name: Option<String>,
+}
+
+#[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
+struct SimpleGreetParams {
+    /// Name to greet
+    name: Option<String>,
+}
+
+// ── Server ────────────────────────────────────────────────────────
+
+struct UiServer {
+    tool_router: ToolRouter<Self>,
+}
+
+impl UiServer {
+    fn new() -> Self {
+        Self {
+            tool_router: Self::tool_router(),
+        }
+    }
+}
+
+// ── Tools ─────────────────────────────────────────────────────────
+
+#[tool_router]
+impl UiServer {
+    /// Greet someone with an interactive HTML UI
+    #[tool]
+    fn greet_with_ui(
+        &self,
+        Parameters(params): Parameters<GreetParams>,
+    ) -> Result<CallToolResult, ErrorData> {
+        let name = params.name.as_deref().unwrap_or("World");
+        let html = GREETING_HTML.replace(
+            "Click the button to greet someone!",
+            &format!("Hello, {name}!"),
+        );
+        Ok(html_tool_result(html))
     }
 
-    fn get_server_info(&self) -> ServerInfo {
-        ServerInfo {
-            protocol_version: ProtocolVersion::default(),
-            capabilities: ServerCapabilities::builder()
+    /// Simple text-only greeting (no UI)
+    #[tool]
+    fn simple_greeting(&self, Parameters(params): Parameters<SimpleGreetParams>) -> String {
+        let name = params.name.as_deref().unwrap_or("World");
+        format!("Hello, {name}!")
+    }
+}
+
+// ── ServerHandler (tools + resources) ─────────────────────────────
+
+#[tool_handler]
+impl ServerHandler for UiServer {
+    fn get_info(&self) -> ServerInfo {
+        ServerInfo::new(
+            ServerCapabilities::builder()
                 .enable_tools()
                 .enable_resources()
-                .enable_logging()
+                .enable_extensions_with(mcp_apps_capabilities())
                 .build(),
-            server_info: Implementation::new("UI-Enabled Example Server", "1.0.0"),
-            instructions: Some(
-                "Example server demonstrating MCP Apps Extension with interactive UIs".to_string(),
-            ),
-        }
-    }
-
-    async fn health_check(&self) -> std::result::Result<(), Self::Error> {
-        Ok(())
-    }
-
-    async fn list_tools(
-        &self,
-        _params: PaginatedRequestParam,
-    ) -> std::result::Result<ListToolsResult, Self::Error> {
-        Ok(ListToolsResult {
-            tools: vec![
-                Tool {
-                    name: "greet_with_ui".to_string(),
-                    title: Some("Greet with Interactive UI".to_string()),
-                    description: "Greet someone with an interactive button UI".to_string(),
-                    input_schema: serde_json::json!({
-                        "type": "object",
-                        "properties": {
-                            "name": {
-                                "type": "string",
-                                "description": "Name to greet"
-                            }
-                        },
-                        "required": ["name"]
-                    }),
-                    output_schema: None,
-                    annotations: None,
-                    icons: None,
-                    execution: None,
-                    // KEY FEATURE: Link this tool to a UI resource
-                    _meta: Some(ToolMeta::with_ui_resource("ui://greetings/interactive")),
-                },
-                Tool {
-                    name: "simple_greeting".to_string(),
-                    title: None,
-                    description: "Simple text-only greeting (no UI)".to_string(),
-                    input_schema: serde_json::json!({
-                        "type": "object",
-                        "properties": {
-                            "name": {
-                                "type": "string",
-                                "description": "Name to greet"
-                            }
-                        },
-                        "required": ["name"]
-                    }),
-                    output_schema: None,
-                    annotations: None,
-                    icons: None,
-                    execution: None,
-                    _meta: None, // No UI for this tool
-                },
-            ],
-            next_cursor: None,
-        })
-    }
-
-    async fn call_tool(
-        &self,
-        request: CallToolRequestParam,
-    ) -> std::result::Result<CallToolResult, Self::Error> {
-        match request.name.as_str() {
-            "greet_with_ui" => {
-                let name = request
-                    .arguments
-                    .as_ref()
-                    .and_then(|args| args.get("name"))
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("World");
-
-                // Use the self-contained template HTML (no external assets)
-                // TODO: Configure Vite to inline all assets for a true single-file React build
-                let html = include_str!("../templates/greeting.html");
-
-                // ✨ NEW: Use the convenient Content::ui_html() helper!
-                // This is much cleaner than manually constructing the resource JSON
-                Ok(CallToolResult {
-                    content: vec![
-                        Content::text(format!("Hello, {name}!")),
-                        Content::ui_html("ui://greetings/interactive", html),
-                    ],
-                    is_error: Some(false),
-                    structured_content: None,
-                    _meta: None,
-                })
-            }
-            "simple_greeting" => {
-                let name = request
-                    .arguments
-                    .as_ref()
-                    .and_then(|args| args.get("name"))
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("World");
-
-                Ok(CallToolResult {
-                    content: vec![Content::text(format!("Hello, {name}!"))],
-                    is_error: Some(false),
-                    structured_content: None,
-                    _meta: None,
-                })
-            }
-            _ => Err(CommonMcpError::InvalidParams("Unknown tool".to_string())),
-        }
+        )
+        .with_server_info(Implementation::new("ui-enabled-server", "0.1.0"))
     }
 
     async fn list_resources(
         &self,
-        _params: PaginatedRequestParam,
-    ) -> std::result::Result<ListResourcesResult, Self::Error> {
+        _request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ListResourcesResult, ErrorData> {
         Ok(ListResourcesResult {
             resources: vec![
-                // 🎯 KEY FEATURE: UI resource with ui:// scheme
-                Resource::ui_resource(
+                app_resource(
                     "ui://greetings/interactive",
-                    "Interactive Greeting UI",
-                    "Interactive HTML interface for greeting with a button",
+                    "greeting-ui",
+                    Some("Interactive Greeting UI"),
+                    Some("Interactive HTML interface for greeting with a button"),
+                ),
+                app_resource(
+                    "ui://dashboard",
+                    "dashboard",
+                    Some("Server Dashboard"),
+                    Some("Interactive HTML dashboard with server metrics"),
                 ),
             ],
             next_cursor: None,
+            meta: None,
         })
     }
 
     async fn read_resource(
         &self,
-        params: ReadResourceRequestParam,
-    ) -> std::result::Result<ReadResourceResult, Self::Error> {
-        match params.uri.as_str() {
-            "ui://greetings/interactive" => {
-                // Use the self-contained template HTML (no external assets)
-                // TODO: Configure Vite to inline all assets for a true single-file React build
-                let html = include_str!("../templates/greeting.html");
-
-                // 🎯 KEY FEATURE: Serve HTML with text/html+mcp MIME type
-                Ok(ReadResourceResult {
-                    contents: vec![ResourceContents::html_ui(params.uri, html)],
-                })
-            }
-            _ => Err(CommonMcpError::InvalidParams(
-                "Resource not found".to_string(),
+        request: ReadResourceRequestParams,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ReadResourceResult, ErrorData> {
+        let uri = &request.uri;
+        match uri.as_str() {
+            "ui://greetings/interactive" => Ok(ReadResourceResult::new(vec![html_resource(
+                uri,
+                GREETING_HTML,
+            )])),
+            "ui://dashboard" => Ok(ReadResourceResult::new(vec![html_resource(
+                uri,
+                DASHBOARD_HTML,
+            )])),
+            _ => Err(ErrorData::resource_not_found(
+                format!("Unknown resource: {uri}"),
+                None,
             )),
         }
     }
-
-    async fn list_prompts(
-        &self,
-        _params: PaginatedRequestParam,
-    ) -> std::result::Result<ListPromptsResult, Self::Error> {
-        Ok(ListPromptsResult {
-            prompts: vec![],
-            next_cursor: None,
-        })
-    }
-
-    async fn get_prompt(
-        &self,
-        _params: GetPromptRequestParam,
-    ) -> std::result::Result<GetPromptResult, Self::Error> {
-        Err(CommonMcpError::InvalidParams(
-            "No prompts available".to_string(),
-        ))
-    }
-
-    // Note: set_level uses the default implementation from McpBackend which accepts
-    // any log level. Override this if you want to filter notifications/message logs.
 }
 
+// ── Main ──────────────────────────────────────────────────────────
+
 #[tokio::main]
-async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
-    // NOTE: No println! allowed in stdio mode - MCP protocol uses stdout for JSON-RPC
-    // All informational messages should go to stderr or logs
+async fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .with_writer(std::io::stderr)
+        .init();
 
-    let backend = UiBackend::initialize(()).await?;
+    tracing::info!("UI-Enabled MCP Server: starting on stdio");
 
-    // Create config with auth disabled and HTTP transport for UI testing
-    let mut config = ServerConfig::default();
-    config.auth_config.enabled = false;
-    config.transport_config = TransportConfig::StreamableHttp {
-        port: 3001,
-        host: None,
-    };
+    let server = UiServer::new();
+    let transport = rmcp::transport::io::stdio();
+    let service = server.serve(transport).await?;
+    service.waiting().await?;
 
-    let mut server = McpServer::new(backend, config).await?;
-
-    eprintln!("🚀 UI-Enabled MCP Server running on http://localhost:3001");
-    eprintln!("📋 Connect with UI Inspector:");
-    eprintln!("   1. Open http://localhost:6274");
-    eprintln!("   2. Select 'Streamable HTTP' transport");
-    eprintln!("   3. Enter URL: http://localhost:3001/mcp");
-    eprintln!("   4. Click Connect");
-    eprintln!();
-
-    server.run().await?;
     Ok(())
 }

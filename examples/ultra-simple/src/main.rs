@@ -1,59 +1,47 @@
-//! Ultra-Simple MCP Server - Just 8 Lines! 🚀
-//! This demonstrates the simplest possible MCP server with the current PulseEngine framework.
-//! While we work on the mcp_app macro, this shows competitive simplicity vs official SDKs.
-
-use pulseengine_mcp_macros::{mcp_server, mcp_tools};
-use pulseengine_mcp_server::McpServerBuilder;
+use rmcp::handler::server::tool::ToolRouter;
+use rmcp::handler::server::wrapper::Parameters;
+use rmcp::model::{Implementation, ServerCapabilities, ServerInfo};
+use rmcp::schemars;
+use rmcp::{tool, tool_handler, tool_router, ServerHandler, ServiceExt};
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct SayHelloParams {
-    /// The name to greet
-    pub name: String,
-    /// Optional greeting to use (defaults to "Hello")
-    pub greeting: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct AddParams {
+#[derive(Debug, Deserialize, JsonSchema)]
+struct AddParams {
     /// First number
-    pub a: i32,
+    a: i32,
     /// Second number
-    pub b: i32,
+    b: i32,
 }
 
-#[mcp_server(name = "Ultra Simple")]
-#[derive(Default, Clone)]
-pub struct UltraSimple;
+struct UltraSimple {
+    tool_router: ToolRouter<Self>,
+}
 
-#[mcp_tools]
+#[tool_router]
 impl UltraSimple {
-    /// Say hello to someone with customizable greeting
-    pub async fn say_hello(&self, params: SayHelloParams) -> anyhow::Result<String> {
-        let greeting = params.greeting.unwrap_or_else(|| "Hello".to_string());
-        Ok(format!("{greeting}, {}! 👋", params.name))
+    /// Add two numbers
+    #[tool]
+    fn add(&self, Parameters(params): Parameters<AddParams>) -> String {
+        format!("{}", params.a + params.b)
     }
+}
 
-    /// Add two numbers together
-    pub fn add(&self, params: AddParams) -> i32 {
-        params.a + params.b
-    }
-
-    /// Get the answer to the ultimate question
-    pub fn answer(&self) -> i32 {
-        42
+#[tool_handler]
+impl ServerHandler for UltraSimple {
+    fn get_info(&self) -> ServerInfo {
+        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+            .with_server_info(Implementation::new("ultra-simple", "0.1.0"))
     }
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    UltraSimple::configure_stdio_logging();
-    let mut server = UltraSimple::with_defaults().serve_stdio().await?;
-    server.run().await?;
+async fn main() -> anyhow::Result<()> {
+    let server = UltraSimple {
+        tool_router: UltraSimple::tool_router(),
+    };
+    let transport = rmcp::transport::io::stdio();
+    let service = server.serve(transport).await?;
+    service.waiting().await?;
     Ok(())
 }
-
-// 🎉 Complete MCP server in 8 meaningful lines! (struct + impl + main)
-// Features: Auto JSON schema generation, type safety, enterprise capabilities
-// Compare: TypeScript SDK ~10 lines, Official Rust SDK ~15-20 lines

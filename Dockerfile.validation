@@ -19,16 +19,18 @@ RUN rustup show && rustc --version && cargo --version && cargo clippy --version
 # Copy workspace files
 COPY Cargo.toml ./
 COPY mcp-protocol ./mcp-protocol/
-COPY mcp-logging ./mcp-logging/
-COPY mcp-auth ./mcp-auth/
+COPY pulseengine-logging ./pulseengine-logging/
+COPY pulseengine-auth ./pulseengine-auth/
 COPY mcp-security ./mcp-security/
-COPY mcp-security-middleware ./mcp-security-middleware/
+COPY pulseengine-security ./pulseengine-security/
 COPY mcp-transport ./mcp-transport/
 COPY mcp-macros ./mcp-macros/
 COPY mcp-server ./mcp-server/
 COPY mcp-client ./mcp-client/
 COPY mcp-external-validation ./mcp-external-validation/
 COPY conformance-tests ./conformance-tests/
+COPY pulseengine-mcp-resources ./pulseengine-mcp-resources/
+COPY pulseengine-mcp-apps ./pulseengine-mcp-apps/
 COPY examples ./examples/
 COPY integration-tests ./integration-tests/
 

@@ -4,7 +4,7 @@ use crate::backend::{BackendError, McpBackend};
 use crate::handler::{GenericServerHandler, HandlerError};
 use crate::middleware::MiddlewareStack;
 use async_trait::async_trait;
-use pulseengine_mcp_auth::{AuthConfig, AuthenticationManager, config::StorageConfig};
+use pulseengine_auth::{AuthConfig, AuthenticationManager, config::StorageConfig};
 use pulseengine_mcp_protocol::error::ErrorCode;
 use pulseengine_mcp_protocol::*;
 use std::error::Error as StdError;

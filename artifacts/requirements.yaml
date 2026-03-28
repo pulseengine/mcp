@@ -1,0 +1,28 @@
+artifacts:
+  - id: REQ-001
+    type: requirement
+    title: Sustainable MCP ecosystem participation
+    status: accepted
+    description: >
+      PulseEngine must participate in the Rust MCP ecosystem in a way that
+      is sustainable for a small team, leverages official SDK momentum,
+      and preserves unique value (security, observability, resource routing,
+      MCP Apps).
+    tags: [core, migration]
+    fields:
+      priority: must
+      category: functional
+
+  - id: FEAT-001
+    type: feature
+    title: rmcp-based extension architecture
+    status: draft
+    description: >
+      Replace full parallel MCP implementation with targeted extensions
+      built on top of the official rmcp SDK, providing production-hardening
+      features that rmcp lacks.
+    fields:
+      phase: phase-1
+    links:
+      - type: satisfies
+        target: REQ-001

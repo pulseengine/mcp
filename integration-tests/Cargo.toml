@@ -30,7 +30,7 @@ rand = { workspace = true }
 
 # MCP framework crates
 pulseengine-mcp-protocol = { workspace = true }
-pulseengine-mcp-auth = { workspace = true }
+pulseengine-auth = { workspace = true }
 pulseengine-mcp-security = { workspace = true }
 pulseengine-mcp-transport = { workspace = true }
 pulseengine-mcp-server = { workspace = true }

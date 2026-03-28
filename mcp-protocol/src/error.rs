@@ -241,19 +241,19 @@ impl From<validator::ValidationErrors> for Error {
 }
 
 #[cfg(feature = "logging")]
-impl From<pulseengine_mcp_logging::LoggingError> for Error {
-    fn from(err: pulseengine_mcp_logging::LoggingError) -> Self {
+impl From<pulseengine_logging::LoggingError> for Error {
+    fn from(err: pulseengine_logging::LoggingError) -> Self {
         match err {
-            pulseengine_mcp_logging::LoggingError::Config(msg) => {
+            pulseengine_logging::LoggingError::Config(msg) => {
                 Error::invalid_request(format!("Logging config: {msg}"))
             }
-            pulseengine_mcp_logging::LoggingError::Io(io_err) => {
+            pulseengine_logging::LoggingError::Io(io_err) => {
                 Error::internal_error(format!("Logging I/O: {io_err}"))
             }
-            pulseengine_mcp_logging::LoggingError::Serialization(serde_err) => {
+            pulseengine_logging::LoggingError::Serialization(serde_err) => {
                 Error::internal_error(format!("Logging serialization: {serde_err}"))
             }
-            pulseengine_mcp_logging::LoggingError::Tracing(msg) => {
+            pulseengine_logging::LoggingError::Tracing(msg) => {
                 Error::internal_error(format!("Tracing: {msg}"))
             }
         }
@@ -262,7 +262,7 @@ impl From<pulseengine_mcp_logging::LoggingError> for Error {
 
 // Optional ErrorClassification implementation when logging feature is enabled
 #[cfg(feature = "logging")]
-impl pulseengine_mcp_logging::ErrorClassification for Error {
+impl pulseengine_logging::ErrorClassification for Error {
     fn error_type(&self) -> &str {
         match self.code {
             ErrorCode::ParseError => "parse_error",

@@ -1,46 +1,51 @@
-//! Minimal Hello World MCP Server - Easy as Pi!
-//!
-//! This is the simplest possible MCP server that actually works.
-//! Only 25 lines of code, 10 dependencies, works out of the box.
-
-use pulseengine_mcp_macros::{mcp_server, mcp_tools};
-use pulseengine_mcp_server::McpServerBuilder;
+use rmcp::handler::server::tool::ToolRouter;
+use rmcp::handler::server::wrapper::Parameters;
+use rmcp::model::{Implementation, ServerCapabilities, ServerInfo};
+use rmcp::schemars;
+use rmcp::{tool, tool_handler, tool_router, ServerHandler, ServiceExt};
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct SayHelloParams {
+#[derive(Debug, Deserialize, JsonSchema)]
+struct SayHelloParams {
     /// The name to greet (optional)
-    pub name: Option<String>,
+    name: Option<String>,
 }
 
-#[mcp_server(name = "Hello World")]
-#[derive(Default, Clone)]
-pub struct HelloWorld;
+struct HelloWorld {
+    tool_router: ToolRouter<Self>,
+}
 
-#[mcp_tools]
+#[tool_router]
 impl HelloWorld {
     /// Say hello to someone
-    ///
-    /// AI agents send flat arguments: `{"name": "Alice"}`
-    /// NOT nested: `{"params": {"name": "Alice"}}`
-    ///
-    /// The parameter name "params" is just an internal variable -
-    /// AI agents see the struct's fields directly in the schema.
-    pub async fn say_hello(&self, params: SayHelloParams) -> anyhow::Result<String> {
-        let name = params.name.unwrap_or_else(|| "World".to_string());
-        Ok(format!("Hello, {name}!"))
+    #[tool]
+    async fn say_hello(&self, Parameters(params): Parameters<SayHelloParams>) -> String {
+        let name = params.name.unwrap_or_else(|| "World".into());
+        format!("Hello, {name}!")
+    }
+}
+
+#[tool_handler]
+impl ServerHandler for HelloWorld {
+    fn get_info(&self) -> ServerInfo {
+        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+            .with_server_info(Implementation::new("hello-world", "0.1.0"))
     }
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Configure logging for STDIO transport
-    HelloWorld::configure_stdio_logging();
+async fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .with_writer(std::io::stderr)
+        .init();
 
-    // Start the server
-    let mut server = HelloWorld::with_defaults().serve_stdio().await?;
-    server.run().await?;
-
+    let server = HelloWorld {
+        tool_router: HelloWorld::tool_router(),
+    };
+    let transport = rmcp::transport::io::stdio();
+    let service = server.serve(transport).await?;
+    service.waiting().await?;
     Ok(())
 }

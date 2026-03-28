@@ -4,7 +4,7 @@ use crate::context::RequestContext;
 use crate::middleware::{Middleware, MiddlewareStack};
 use crate::observability::{MetricsCollector, MonitoringConfig};
 use async_trait::async_trait;
-use pulseengine_mcp_auth::{AuthConfig, AuthenticationManager, config::StorageConfig};
+use pulseengine_auth::{AuthConfig, AuthenticationManager, config::StorageConfig};
 use pulseengine_mcp_protocol::*;
 use pulseengine_mcp_security::{SecurityConfig, SecurityMiddleware};
 use std::sync::Arc;

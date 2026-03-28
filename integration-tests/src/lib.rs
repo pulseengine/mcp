@@ -14,7 +14,7 @@ pub mod transport_server_integration;
 
 /// Common test utilities for integration tests
 pub mod test_utils {
-    use pulseengine_mcp_auth::{AuthConfig, config::StorageConfig};
+    use pulseengine_auth::{AuthConfig, config::StorageConfig};
     use pulseengine_mcp_security::SecurityConfig;
     use pulseengine_mcp_server::observability::MonitoringConfig;
     use std::time::Duration;

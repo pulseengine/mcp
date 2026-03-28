@@ -2,7 +2,7 @@
 
 use crate::context::RequestContext;
 use crate::observability::MetricsCollector;
-use pulseengine_mcp_auth::AuthenticationManager;
+use pulseengine_auth::AuthenticationManager;
 use pulseengine_mcp_protocol::*;
 use pulseengine_mcp_security::SecurityMiddleware;
 
@@ -80,27 +80,8 @@ impl MiddlewareStack {
             request = security.process_request(request, &sec_context)?;
         }
 
-        // Authentication middleware
-        if let Some(auth) = &self.auth {
-            let auth_context = pulseengine_mcp_auth::manager::RequestContext {
-                user_id: context.authenticated_user.clone(),
-                roles: context
-                    .roles
-                    .iter()
-                    .map(|r| match r.as_str() {
-                        "admin" => pulseengine_mcp_auth::models::Role::Admin,
-                        "operator" => pulseengine_mcp_auth::models::Role::Operator,
-                        "monitor" => pulseengine_mcp_auth::models::Role::Monitor,
-                        _ => pulseengine_mcp_auth::models::Role::Monitor, // Default to monitor for unknown roles
-                    })
-                    .collect(),
-            };
-
-            request = auth
-                .process_request(request, &auth_context)
-                .await
-                .map_err(|e| crate::handler::HandlerError::Authentication(e.to_string()))?;
-        }
+        // Authentication is handled at the transport layer via pulseengine_auth.
+        // The AuthenticationManager is stored for downstream access (e.g., key validation).
 
         // Monitoring middleware (last)
         if let Some(monitoring) = &self.monitoring {
@@ -127,27 +108,6 @@ impl MiddlewareStack {
                 request_id: context.request_id,
             };
             response = monitoring.process_response(response, &mon_context)?;
-        }
-
-        // Authentication middleware
-        if let Some(auth) = &self.auth {
-            let auth_context = pulseengine_mcp_auth::manager::RequestContext {
-                user_id: context.authenticated_user.clone(),
-                roles: context
-                    .roles
-                    .iter()
-                    .map(|r| match r.as_str() {
-                        "admin" => pulseengine_mcp_auth::models::Role::Admin,
-                        "operator" => pulseengine_mcp_auth::models::Role::Operator,
-                        "monitor" => pulseengine_mcp_auth::models::Role::Monitor,
-                        _ => pulseengine_mcp_auth::models::Role::Monitor, // Default to monitor for unknown roles
-                    })
-                    .collect(),
-            };
-            response = auth
-                .process_response(response, &auth_context)
-                .await
-                .map_err(|e| crate::handler::HandlerError::Authentication(e.to_string()))?;
         }
 
         // Security middleware (last on response)

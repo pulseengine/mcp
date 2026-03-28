@@ -3,8 +3,8 @@
 use crate::observability::{MetricsCollector, MonitoringConfig};
 use crate::{backend::McpBackend, handler::GenericServerHandler, middleware::MiddlewareStack};
 use async_trait::async_trait;
-use pulseengine_mcp_auth::{AuthConfig, AuthenticationManager};
-use pulseengine_mcp_logging::{
+use pulseengine_auth::{AuthConfig, AuthenticationManager};
+use pulseengine_logging::{
     AlertConfig, AlertManager, DashboardConfig, DashboardManager, PerformanceProfiler,
     PersistenceConfig, ProfilingConfig, SanitizationConfig, StructuredLogger,
 };
@@ -168,7 +168,7 @@ impl Default for ServerConfig {
                 server_info: Implementation::new("MCP Server", "1.0.0"),
                 instructions: None,
             },
-            auth_config: pulseengine_mcp_auth::default_config(),
+            auth_config: pulseengine_auth::default_config(),
             transport_config: pulseengine_mcp_transport::TransportConfig::default(),
             security_config: pulseengine_mcp_security::default_config(),
             monitoring_config: crate::observability::default_config(),
@@ -195,7 +195,7 @@ pub struct McpServer<B: McpBackend> {
     middleware_stack: MiddlewareStack,
     monitoring_metrics: Arc<MetricsCollector>,
     #[allow(dead_code)]
-    logging_metrics: Arc<pulseengine_mcp_logging::MetricsCollector>,
+    logging_metrics: Arc<pulseengine_logging::MetricsCollector>,
     #[allow(dead_code)]
     logger: StructuredLogger,
     alert_manager: Arc<AlertManager>,
@@ -238,7 +238,7 @@ impl<B: McpBackend + 'static> McpServer<B> {
         let monitoring_metrics = Arc::new(MetricsCollector::new(config.monitoring_config.clone()));
 
         // Initialize logging metrics with optional persistence
-        let logging_metrics = Arc::new(pulseengine_mcp_logging::MetricsCollector::new());
+        let logging_metrics = Arc::new(pulseengine_logging::MetricsCollector::new());
         if let Some(persistence_config) = config.persistence_config.clone() {
             logging_metrics
                 .enable_persistence(persistence_config.clone())
@@ -332,7 +332,7 @@ impl<B: McpBackend + 'static> McpServer<B> {
             profiler
                 .start_session(
                     format!("server_session_{}", chrono::Utc::now().timestamp()),
-                    pulseengine_mcp_logging::ProfilingSessionType::Continuous,
+                    pulseengine_logging::ProfilingSessionType::Continuous,
                 )
                 .await
                 .map_err(|e| {

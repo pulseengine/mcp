@@ -2,7 +2,7 @@
 
 use crate::*;
 use async_trait::async_trait;
-use pulseengine_mcp_auth::config::StorageConfig;
+use pulseengine_auth::config::StorageConfig;
 use pulseengine_mcp_protocol::error::ErrorCode;
 use std::error::Error as StdError;
 use std::fmt;

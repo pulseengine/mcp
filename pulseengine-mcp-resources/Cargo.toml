@@ -1,0 +1,13 @@
+[package]
+name = "pulseengine-mcp-resources"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+description = "Resource URI template router for rmcp MCP servers"
+keywords = ["mcp", "resources", "router", "rmcp"]
+categories = ["web-programming"]
+repository = "https://github.com/pulseengine/mcp"
+
+[dependencies]
+rmcp = { version = "1.3", features = ["server"] }
+matchit = "0.8"

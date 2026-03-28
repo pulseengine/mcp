@@ -7,7 +7,7 @@ use axum::{
     response::{IntoResponse, Json},
     routing::{get, post},
 };
-use pulseengine_mcp_logging::{AlertManager, AlertSeverity, AlertState};
+use pulseengine_logging::{AlertManager, AlertSeverity, AlertState};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -174,7 +174,7 @@ mod tests {
     use super::*;
     use axum::http::StatusCode;
     use axum_test::TestServer;
-    use pulseengine_mcp_logging::{Alert, AlertConfig};
+    use pulseengine_logging::{Alert, AlertConfig};
 
     #[tokio::test]
     async fn test_alert_summary_endpoint() {

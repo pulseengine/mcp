@@ -2,8 +2,8 @@
 
 use crate::tool_context::{NoOpToolContext, ToolContext, create_tool_context, with_context};
 use crate::{backend::McpBackend, context::RequestContext, middleware::MiddlewareStack};
-use pulseengine_mcp_auth::AuthenticationManager;
-use pulseengine_mcp_logging::{get_metrics, spans};
+use pulseengine_auth::AuthenticationManager;
+use pulseengine_logging::{get_metrics, spans};
 use pulseengine_mcp_protocol::*;
 use pulseengine_mcp_transport::{Transport, try_current_session_id};
 
@@ -31,7 +31,7 @@ pub enum HandlerError {
 }
 
 // Implement ErrorClassification for HandlerError
-impl pulseengine_mcp_logging::ErrorClassification for HandlerError {
+impl pulseengine_logging::ErrorClassification for HandlerError {
     fn error_type(&self) -> &str {
         match self {
             HandlerError::Authentication(_) => "authentication",
@@ -590,9 +590,9 @@ mod tests {
     use crate::backend::McpBackend;
     use crate::middleware::MiddlewareStack;
     use async_trait::async_trait;
-    use pulseengine_mcp_auth::AuthenticationManager;
-    use pulseengine_mcp_auth::config::AuthConfig;
-    use pulseengine_mcp_logging::ErrorClassification;
+    use pulseengine_auth::AuthenticationManager;
+    use pulseengine_auth::config::AuthConfig;
+    use pulseengine_logging::ErrorClassification;
     use pulseengine_mcp_protocol::{
         CallToolRequestParam, CallToolResult, CompleteRequestParam, CompleteResult, Content, Error,
         GetPromptRequestParam, GetPromptResult, Implementation, InitializeResult,

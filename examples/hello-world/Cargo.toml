@@ -2,22 +2,12 @@
 name = "hello-world"
 version = "0.1.0"
 edition = "2021"
-description = "Minimal Hello World MCP Server - Easy as Pi!"
+description = "Minimal Hello World MCP Server using rmcp"
 
 [dependencies]
-# Core MCP Framework (only 4 dependencies!)
-pulseengine-mcp-macros = { path = "../../mcp-macros", features = ["stdio-logging"] }
-pulseengine-mcp-protocol = { path = "../../mcp-protocol" }
-pulseengine-mcp-server = { path = "../../mcp-server" }
-pulseengine-mcp-transport = { path = "../../mcp-transport" }
-
-# Minimal runtime dependencies
-tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
-anyhow = "1.0"
-async-trait = "0.1"
-thiserror = "1.0"
-tracing = "0.1"
-tracing-subscriber = "0.3"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-schemars = { version = "1.0", features = ["derive"] }
+rmcp = { version = "1.3", features = ["server", "macros", "transport-io"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+schemars = "1.0"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1"

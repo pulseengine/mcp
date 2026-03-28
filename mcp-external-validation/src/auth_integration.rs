@@ -8,7 +8,7 @@ use crate::{
     ValidationConfig, ValidationError, ValidationResult,
     report::{IssueSeverity, TestScore, ValidationIssue},
 };
-use pulseengine_mcp_auth::{
+use pulseengine_auth::{
     AuthenticationManager, RateLimitStats, Role, ValidationConfig as AuthValidationConfig,
     validation::permissions,
 };
@@ -148,7 +148,7 @@ impl AuthIntegrationTester {
 
     /// Initialize authentication manager for testing
     pub async fn initialize_auth_manager(&mut self) -> ValidationResult<()> {
-        use pulseengine_mcp_auth::{AuthConfig, config::StorageConfig};
+        use pulseengine_auth::{AuthConfig, config::StorageConfig};
 
         // Create temporary in-memory authentication configuration for testing
         let auth_config = AuthConfig {
@@ -629,7 +629,7 @@ impl AuthIntegrationTester {
         );
 
         // Test authentication header extraction
-        let extracted_token = pulseengine_mcp_auth::validation::extract_api_key(&headers, None);
+        let extracted_token = pulseengine_auth::validation::extract_api_key(&headers, None);
         if extracted_token == Some("test_token_123".to_string()) {
             info!("Authentication header extraction works correctly");
             passed_tests += 1;
@@ -643,7 +643,7 @@ impl AuthIntegrationTester {
         }
 
         // Test IP extraction
-        let extracted_ip = pulseengine_mcp_auth::validation::extract_client_ip(&headers);
+        let extracted_ip = pulseengine_auth::validation::extract_client_ip(&headers);
         if extracted_ip == "192.168.1.1" {
             info!("Client IP extraction works correctly");
             passed_tests += 1;
@@ -657,11 +657,11 @@ impl AuthIntegrationTester {
         }
 
         // Test input validation utilities
-        if pulseengine_mcp_auth::validation::is_valid_uuid("550e8400-e29b-41d4-a716-446655440000") {
+        if pulseengine_auth::validation::is_valid_uuid("550e8400-e29b-41d4-a716-446655440000") {
             passed_tests += 1;
         }
 
-        if pulseengine_mcp_auth::validation::is_valid_ip_address("192.168.1.1") {
+        if pulseengine_auth::validation::is_valid_ip_address("192.168.1.1") {
             passed_tests += 1;
         }
 
@@ -679,7 +679,7 @@ impl AuthIntegrationTester {
 
         // Test input sanitization
         let dangerous_input = "test<script>alert('xss')</script>";
-        let sanitized = pulseengine_mcp_auth::validation::sanitize_input(dangerous_input);
+        let sanitized = pulseengine_auth::validation::sanitize_input(dangerous_input);
         if !sanitized.contains("<script>") {
             info!("Input sanitization works correctly");
             passed_tests += 1;
@@ -693,7 +693,7 @@ impl AuthIntegrationTester {
         }
 
         // Test input format validation
-        match pulseengine_mcp_auth::validation::validate_input_format("valid_input", 20, false) {
+        match pulseengine_auth::validation::validate_input_format("valid_input", 20, false) {
             Ok(_) => {
                 passed_tests += 1;
             }
@@ -708,8 +708,7 @@ impl AuthIntegrationTester {
         }
 
         // Test dangerous input rejection
-        match pulseengine_mcp_auth::validation::validate_input_format("dangerous@input", 20, false)
-        {
+        match pulseengine_auth::validation::validate_input_format("dangerous@input", 20, false) {
             Err(_) => {
                 info!("Input validation correctly rejects dangerous characters");
                 passed_tests += 1;

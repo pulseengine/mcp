@@ -1,0 +1,311 @@
+artifacts:
+  # ══════════════════════════════════════════════════════════════════════
+  # Design Decisions — Migration Architecture
+  # ══════════════════════════════════════════════════════════════════════
+
+  - id: DD-001
+    type: design-decision
+    title: Use rmcp as protocol/transport base, PulseEngine as extension layer
+    status: accepted
+    description: >
+      Stop maintaining parallel MCP protocol types, server framework,
+      transport layer, and proc macros. Use rmcp for these. Retain and
+      evolve only the crates that provide functionality rmcp lacks:
+      security middleware, auth, observability, resource routing, MCP Apps.
+    fields:
+      rationale: >
+        rmcp has 6.3M downloads, dedicated maintainers, and tracks the
+        MCP spec within days of changes. Maintaining a parallel
+        implementation is unsustainable for a small team, especially when
+        the maintainer is moving focus toward CLI tooling.
+      alternatives:
+        - Continue maintaining full parallel stack (rejected: unsustainable)
+        - Abandon entirely and contribute to rmcp (rejected: loses unique value)
+        - Fork rmcp and merge our features (rejected: fork maintenance worse than current state)
+    links:
+      - type: satisfies
+        target: REQ-001
+
+  - id: DD-002
+    type: design-decision
+    title: Target Tower/HTTP layer for security crates, not rmcp types
+    status: accepted
+    description: >
+      Refactored auth and security crates MUST operate at the Tower
+      middleware or HTTP request/response level, not at the MCP protocol
+      type level. This makes them framework-agnostic and resilient to
+      rmcp breaking changes.
+    fields:
+      rationale: >
+        rmcp uses Axum and supports Tower middleware via feature flag.
+        Operating at the HTTP layer means our security crates work with
+        rmcp, raw Axum, or any other Tower-compatible server. This also
+        eliminates the schemars 0.8 vs 1.0 problem since security
+        middleware doesn't need JSON schema generation.
+      alternatives:
+        - Couple directly to rmcp types (rejected: creates new tight coupling per UCA-003)
+        - Provide both generic and rmcp-specific APIs (rejected: doubles maintenance)
+    links:
+      - type: satisfies
+        target: REQ-030
+
+  - id: DD-003
+    type: design-decision
+    title: Phased migration with deprecation-last ordering
+    status: accepted
+    description: >
+      Execute migration in 5 phases. Each phase produces a publishable
+      working state. Old crates are only deprecated in the final phase,
+      after all replacements are live and documented.
+    fields:
+      rationale: >
+        Per STPA constraints SC-001/SC-003, we must not deprecate before
+        replacements exist, and each phase must be independently completable.
+        This ordering minimizes risk of the half-migrated state (H-005).
+      alternatives:
+        - Big-bang migration (rejected: too risky, violates SC-003)
+        - Deprecate first to force migration (rejected: violates SC-001, CC-001)
+    links:
+      - type: satisfies
+        target: REQ-050
+
+  # ══════════════════════════════════════════════════════════════════════
+  # Requirements — Migration Phases
+  # ══════════════════════════════════════════════════════════════════════
+
+  - id: REQ-010
+    type: requirement
+    title: "Phase 0: PoC validation of rmcp integration points"
+    status: draft
+    description: >
+      Before any migration work, build minimal proof-of-concepts to
+      validate that the planned rmcp extensions are actually feasible.
+
+      PoCs needed:
+      1. Tower middleware intercepting rmcp streamable HTTP requests
+         (confirms auth/security can work at HTTP layer)
+      2. ServerHandler implementing resource routing with matchit
+         (confirms resource router is possible)
+      3. Content::text() returning HTML for MCP Apps
+         (confirms UI extension pattern works with rmcp types)
+
+      Gate: All 3 PoCs must compile and demonstrate the pattern before
+      proceeding to Phase 1.
+    tags: [migration, phase-0]
+    fields:
+      priority: must
+      category: functional
+    links:
+      - type: satisfies
+        target: SC-004
+
+  - id: REQ-020
+    type: requirement
+    title: "Phase 1: Extract generic crates (logging, security-middleware)"
+    status: draft
+    description: >
+      Extract the already-generic crates into standalone publishable form.
+
+      Tasks:
+      1. pulse-logging: Rename from mcp-logging. Remove any residual MCP
+         references from docs/types. Publish as standalone observability
+         crate (structured logging, credential scrubbing, metrics, alerting).
+
+      2. pulse-security: Rename from mcp-security-middleware. Remove the
+         unused mcp-protocol dependency from Cargo.toml. Publish as
+         standalone Axum/Tower security middleware (API key, JWT, CORS,
+         rate limiting, security headers).
+
+      Neither crate requires any code changes — just Cargo.toml cleanup,
+      renaming, and documentation updates.
+
+      Gate: Both crates published to crates.io and usable without any
+      mcp-* or rmcp dependency.
+    tags: [migration, phase-1]
+    fields:
+      priority: must
+      category: functional
+    links:
+      - type: satisfies
+        target: SC-003
+      - type: depends-on
+        target: REQ-010
+
+  - id: REQ-030
+    type: requirement
+    title: "Phase 2: Refactor auth crate to Tower layer"
+    status: draft
+    description: >
+      Refactor mcp-auth into pulse-auth, operating at the Tower/HTTP layer.
+
+      Tasks:
+      1. Extract generic auth core: AuthManager, RBAC, sessions, permissions,
+         crypto utilities. These have no MCP dependency.
+      2. Replace McpAuthMiddleware (takes mcp Request) with Tower middleware
+         (takes http::Request). Auth decisions based on HTTP headers,
+         not MCP protocol content.
+      3. Keep: API key management, role-based access, JWT sessions,
+         rate limiting, audit logging, credential scrubbing.
+      4. Drop: MCP Request/Response processing, protocol-level validation
+         (this is now rmcp's job).
+      5. Optional: thin pulse-auth-rmcp adapter crate if any rmcp-specific
+         integration is needed beyond Tower middleware.
+
+      Gate: pulse-auth works as Tower middleware with a vanilla rmcp
+      streamable HTTP server.
+    tags: [migration, phase-2]
+    fields:
+      priority: must
+      category: functional
+    links:
+      - type: satisfies
+        target: SC-002
+      - type: depends-on
+        target: REQ-020
+
+  - id: REQ-040
+    type: requirement
+    title: "Phase 3: Build rmcp extension crates"
+    status: draft
+    description: >
+      Build the new crates that extend rmcp with unique PulseEngine
+      functionality.
+
+      Tasks:
+      1. pulse-mcp-resources: Resource router for rmcp. Uses matchit for
+         URI template routing. Implements ServerHandler delegation for
+         list_resources, read_resource, list_resource_templates.
+         Fills a real gap in the rmcp ecosystem.
+
+      2. pulse-mcp-apps: MCP Apps / UI Resources extension. Provides
+         helpers for serving interactive HTML via MCP resources/tools.
+         Port of the SEP-1865 implementation.
+
+      Gate: Both crates work with rmcp ~1.3 and have working examples.
+    tags: [migration, phase-3]
+    fields:
+      priority: should
+      category: functional
+    links:
+      - type: depends-on
+        target: REQ-010
+
+  - id: REQ-050
+    type: requirement
+    title: "Phase 4: Examples, migration guide, and deprecation"
+    status: draft
+    description: >
+      Finalize the migration and deprecate old crates.
+
+      Tasks:
+      1. Rewrite examples using rmcp + pulse-* crates:
+         - hello-world (rmcp + pulse-logging)
+         - hello-world-with-auth (rmcp + pulse-auth + pulse-security)
+         - resources-demo (rmcp + pulse-mcp-resources)
+         - ui-enabled-server (rmcp + pulse-mcp-apps)
+
+      2. Write migration guide documenting:
+         - Which old crate maps to which new crate
+         - Before/after code examples for common patterns
+         - What rmcp covers vs what pulse-* covers
+
+      3. Deprecate old crates on crates.io:
+         - Publish final version of each old crate with deprecation notice
+           in lib.rs (#![deprecated]) and README
+         - Deprecation message includes: replacement crate name, migration
+           guide URL, and explicit warning about security gaps if applicable
+         - Deprecate in order: protocol, transport, macros, server, client
+           (dependencies first)
+
+      Gate: Migration guide reviewed, all examples working, deprecation
+      notices published.
+    tags: [migration, phase-4]
+    fields:
+      priority: must
+      category: functional
+    links:
+      - type: satisfies
+        target: SC-001
+      - type: satisfies
+        target: SC-005
+      - type: depends-on
+        target: REQ-020
+      - type: depends-on
+        target: REQ-030
+      - type: depends-on
+        target: REQ-040
+
+  # ══════════════════════════════════════════════════════════════════════
+  # Features — New Crate Structure
+  # ══════════════════════════════════════════════════════════════════════
+
+  - id: FEAT-010
+    type: feature
+    title: pulse-logging — standalone structured logging
+    status: draft
+    description: >
+      Structured logging with credential scrubbing, metrics collection,
+      alerting, correlation IDs, and performance profiling. Works with
+      any Rust service, not MCP-specific.
+    fields:
+      phase: phase-1
+    links:
+      - type: satisfies
+        target: REQ-020
+
+  - id: FEAT-020
+    type: feature
+    title: pulse-security — standalone Axum/Tower security middleware
+    status: draft
+    description: >
+      Zero-config security middleware: API key validation, JWT auth,
+      CORS, rate limiting, security headers. Development/staging/production
+      profiles. Works with any Axum/Tower service.
+    fields:
+      phase: phase-1
+    links:
+      - type: satisfies
+        target: REQ-020
+
+  - id: FEAT-030
+    type: feature
+    title: pulse-auth — generic authentication and authorization
+    status: draft
+    description: >
+      Authentication manager, RBAC (Admin/Operator/Monitor/Device/Custom),
+      session management, permission system, crypto utilities, audit
+      logging. Tower middleware interface.
+    fields:
+      phase: phase-2
+    links:
+      - type: satisfies
+        target: REQ-030
+
+  - id: FEAT-040
+    type: feature
+    title: pulse-mcp-resources — resource router for rmcp
+    status: draft
+    description: >
+      matchit-based URI template router for MCP resources. Plugs into
+      rmcp's ServerHandler. Provides automatic parameter extraction,
+      resource template registration, and subscription management.
+      Fills a gap in the rmcp ecosystem (their resource.rs is empty).
+    fields:
+      phase: phase-3
+    links:
+      - type: satisfies
+        target: REQ-040
+
+  - id: FEAT-050
+    type: feature
+    title: pulse-mcp-apps — MCP Apps / UI Resources for rmcp
+    status: draft
+    description: >
+      MCP Apps extension (SEP-1865) for rmcp. Helpers for serving
+      interactive HTML UIs via MCP resources and tool responses.
+      Unique capability not available in any other MCP SDK.
+    fields:
+      phase: phase-3
+    links:
+      - type: satisfies
+        target: REQ-040

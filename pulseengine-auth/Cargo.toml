@@ -1,0 +1,90 @@
+[package]
+name = "pulseengine-auth"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Authentication, authorization, and session management middleware for Axum/Tower services"
+homepage.workspace = true
+repository.workspace = true
+documentation = "https://docs.rs/pulseengine-auth"
+readme = "README.md"
+keywords = ["auth", "middleware", "rbac", "jwt", "tower"]
+categories = ["authentication", "web-programming"]
+rust-version.workspace = true
+
+[lib]
+name = "pulseengine_auth"
+
+[dependencies]
+
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+async-trait = { workspace = true }
+uuid = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+
+sha2 = { workspace = true }
+base64 = { workspace = true }
+base64-url = "3.0"
+rand = { workspace = true }
+chrono = { workspace = true }
+dirs = { workspace = true }
+url = { workspace = true }
+urlencoding = "2.1"
+
+# HTTP framework for OAuth endpoints
+axum = { workspace = true }
+
+# Crypto dependencies
+aes-gcm = "0.10"
+hmac = "0.12"
+hkdf = "0.12"
+pbkdf2 = "0.12"
+subtle = "2.5"
+zeroize = "1.7"
+
+keyring = { workspace = true, optional = true }
+tracing-subscriber = "0.3"
+
+# JWT dependencies
+jsonwebtoken = "9.2"
+
+# Vault integration dependencies (optional)
+reqwest = { version = "0.11", features = ["json"], optional = true }
+
+# Security dependencies for request validation
+regex = "1.10"
+
+# Unix-specific dependencies for file ownership checks in storage
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+# Linux-specific dependencies for filesystem monitoring
+[target.'cfg(target_os = "linux")'.dependencies]
+inotify = "0.10"
+
+[features]
+default = []
+
+# Optional feature flags
+monitoring = []
+vault = ["dep:reqwest"]
+consent = []
+
+# Convenience combinations
+production = ["monitoring", "vault"]
+compliance = ["consent", "monitoring"]
+full = ["monitoring", "vault", "consent"]
+
+# Testing features
+integration-tests = []
+keyring = ["dep:keyring"]
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3.8"
+tower = { workspace = true, features = ["util"] }
