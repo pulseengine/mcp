@@ -90,10 +90,10 @@ impl VaultAuthenticationManager {
         }
 
         // Try to get additional configuration from vault
-        if let Some(vault) = &vault_integration {
-            if let Ok(vault_config) = vault.get_api_config().await {
-                Self::apply_vault_config(&mut auth_config, &vault_config);
-            }
+        if let Some(vault) = &vault_integration
+            && let Ok(vault_config) = vault.get_api_config().await
+        {
+            Self::apply_vault_config(&mut auth_config, &vault_config);
         }
 
         // Use provided validation config or try to create from vault config
@@ -129,31 +129,31 @@ impl VaultAuthenticationManager {
 
     /// Apply vault configuration to auth config
     fn apply_vault_config(auth_config: &mut AuthConfig, vault_config: &HashMap<String, String>) {
-        if let Some(timeout) = vault_config.get("PULSEENGINE_MCP_SESSION_TIMEOUT") {
-            if let Ok(timeout_secs) = timeout.parse::<u64>() {
-                auth_config.session_timeout_secs = timeout_secs;
-                debug!(
-                    "Applied vault config: session_timeout_secs = {}",
-                    timeout_secs
-                );
-            }
+        if let Some(timeout) = vault_config.get("PULSEENGINE_MCP_SESSION_TIMEOUT")
+            && let Ok(timeout_secs) = timeout.parse::<u64>()
+        {
+            auth_config.session_timeout_secs = timeout_secs;
+            debug!(
+                "Applied vault config: session_timeout_secs = {}",
+                timeout_secs
+            );
         }
 
-        if let Some(max_attempts) = vault_config.get("PULSEENGINE_MCP_MAX_FAILED_ATTEMPTS") {
-            if let Ok(attempts) = max_attempts.parse::<u32>() {
-                auth_config.max_failed_attempts = attempts;
-                debug!("Applied vault config: max_failed_attempts = {}", attempts);
-            }
+        if let Some(max_attempts) = vault_config.get("PULSEENGINE_MCP_MAX_FAILED_ATTEMPTS")
+            && let Ok(attempts) = max_attempts.parse::<u32>()
+        {
+            auth_config.max_failed_attempts = attempts;
+            debug!("Applied vault config: max_failed_attempts = {}", attempts);
         }
 
-        if let Some(rate_limit) = vault_config.get("PULSEENGINE_MCP_RATE_LIMIT_WINDOW") {
-            if let Ok(window_secs) = rate_limit.parse::<u64>() {
-                auth_config.rate_limit_window_secs = window_secs;
-                debug!(
-                    "Applied vault config: rate_limit_window_secs = {}",
-                    window_secs
-                );
-            }
+        if let Some(rate_limit) = vault_config.get("PULSEENGINE_MCP_RATE_LIMIT_WINDOW")
+            && let Ok(window_secs) = rate_limit.parse::<u64>()
+        {
+            auth_config.rate_limit_window_secs = window_secs;
+            debug!(
+                "Applied vault config: rate_limit_window_secs = {}",
+                window_secs
+            );
         }
 
         if let Some(storage_path) = vault_config.get("PULSEENGINE_MCP_STORAGE_PATH") {
