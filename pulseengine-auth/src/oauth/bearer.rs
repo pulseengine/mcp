@@ -424,9 +424,9 @@ mod tests {
         let result = validate_bearer_token(&auth_header, &config);
         // When no expected audience is configured, validation should succeed
         // Note: This may fail if jsonwebtoken still requires audience - we test that the config works
-        if result.is_err() {
+        if let Err(err) = result {
             // If it fails, ensure it's not a signature or expiration error
-            match result.unwrap_err() {
+            match err {
                 BearerError::ExpiredToken => panic!("Should not be expired"),
                 BearerError::InvalidToken(msg) if msg.contains("signature") => {
                     panic!("Signature should be valid")

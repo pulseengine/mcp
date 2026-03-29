@@ -250,15 +250,14 @@ async fn test_multi_param_still_works() {
         result.err()
     );
 
-    if let Ok(call_result) = result {
-        if let Some(pulseengine_mcp_protocol::Content::Text { text, .. }) =
+    if let Ok(call_result) = result
+        && let Some(pulseengine_mcp_protocol::Content::Text { text, .. }) =
             call_result.content.first()
-        {
-            assert!(text.contains("Alice"));
-            assert!(text.contains("30"));
-            assert!(text.contains("true"));
-            println!("✅ Multi-parameter tool works correctly!");
-        }
+    {
+        assert!(text.contains("Alice"));
+        assert!(text.contains("30"));
+        assert!(text.contains("true"));
+        println!("✅ Multi-parameter tool works correctly!");
     }
 }
 
