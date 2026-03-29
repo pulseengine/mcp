@@ -450,18 +450,17 @@ impl SecurityTester {
         {
             Ok(output) if output.status.success() => {
                 // Parse the JSON output to check completeness
-                if let Ok(completeness_str) = String::from_utf8(output.stdout) {
-                    if let Ok(completeness) =
+                if let Ok(completeness_str) = String::from_utf8(output.stdout)
+                    && let Ok(completeness) =
                         serde_json::from_str::<serde_json::Value>(&completeness_str)
-                    {
-                        if let Some(production_ready) = completeness
-                            .get("production_ready")
-                            .and_then(|v| v.as_bool())
-                        {
-                            if production_ready {
-                                // Framework has complete API key management
-                                result.authentication.passed += 1;
-                                result.issues.push(ValidationIssue::new(
+                    && let Some(production_ready) = completeness
+                        .get("production_ready")
+                        .and_then(|v| v.as_bool())
+                    && production_ready
+                {
+                    // Framework has complete API key management
+                    result.authentication.passed += 1;
+                    result.issues.push(ValidationIssue::new(
                                     IssueSeverity::Info,
                                     "framework-auth".to_string(),
                                     "✅ Authentication Framework Complete: pulseengine_auth has full API key management capabilities".to_string(),
@@ -486,10 +485,7 @@ impl SecurityTester {
                                         "Bulk operations"
                                     ])
                                 ));
-                                return;
-                            }
-                        }
-                    }
+                    return;
                 }
             }
             _ => {

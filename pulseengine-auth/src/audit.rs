@@ -394,15 +394,15 @@ impl AuditLogger {
                 .log_file
                 .with_extension(format!("log.{}", i + 1));
 
-            if old_file.exists() {
-                if let Err(e) = fs::rename(&old_file, &new_file).await {
-                    warn!(
-                        "Failed to rotate log file {} to {}: {}",
-                        old_file.display(),
-                        new_file.display(),
-                        e
-                    );
-                }
+            if old_file.exists()
+                && let Err(e) = fs::rename(&old_file, &new_file).await
+            {
+                warn!(
+                    "Failed to rotate log file {} to {}: {}",
+                    old_file.display(),
+                    new_file.display(),
+                    e
+                );
             }
         }
 
@@ -418,14 +418,14 @@ impl AuditLogger {
             .config
             .log_file
             .with_extension(format!("log.{}", self.config.max_files));
-        if oldest_file.exists() {
-            if let Err(e) = fs::remove_file(&oldest_file).await {
-                warn!(
-                    "Failed to remove oldest log file {}: {}",
-                    oldest_file.display(),
-                    e
-                );
-            }
+        if oldest_file.exists()
+            && let Err(e) = fs::remove_file(&oldest_file).await
+        {
+            warn!(
+                "Failed to remove oldest log file {}: {}",
+                oldest_file.display(),
+                e
+            );
         }
 
         debug!(

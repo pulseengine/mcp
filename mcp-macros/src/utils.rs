@@ -67,16 +67,14 @@ pub fn extract_doc_comment(attrs: &[Attribute]) -> Option<String> {
     let mut docs = Vec::new();
 
     for attr in attrs {
-        if let Meta::NameValue(meta) = &attr.meta {
-            if meta.path.is_ident("doc") {
-                if let Expr::Lit(expr_lit) = &meta.value {
-                    if let Lit::Str(lit_str) = &expr_lit.lit {
-                        let content = lit_str.value().trim().to_string();
-                        if !content.is_empty() {
-                            docs.push(content);
-                        }
-                    }
-                }
+        if let Meta::NameValue(meta) = &attr.meta
+            && meta.path.is_ident("doc")
+            && let Expr::Lit(expr_lit) = &meta.value
+            && let Lit::Str(lit_str) = &expr_lit.lit
+        {
+            let content = lit_str.value().trim().to_string();
+            if !content.is_empty() {
+                docs.push(content);
             }
         }
     }
@@ -114,10 +112,10 @@ pub fn generate_tool_id(base_name: &str) -> syn::Ident {
 
 /// Check if a type is an Option<T>
 pub fn is_option_type(ty: &syn::Type) -> bool {
-    if let syn::Type::Path(type_path) = ty {
-        if let Some(segment) = type_path.path.segments.last() {
-            return segment.ident == "Option";
-        }
+    if let syn::Type::Path(type_path) = ty
+        && let Some(segment) = type_path.path.segments.last()
+    {
+        return segment.ident == "Option";
     }
     false
 }
@@ -125,16 +123,13 @@ pub fn is_option_type(ty: &syn::Type) -> bool {
 /// Extract the inner type from Option<T>
 #[allow(dead_code)]
 pub fn extract_option_inner_type(ty: &syn::Type) -> Option<&syn::Type> {
-    if let syn::Type::Path(type_path) = ty {
-        if let Some(segment) = type_path.path.segments.last() {
-            if segment.ident == "Option" {
-                if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
-                    if let Some(syn::GenericArgument::Type(inner_ty)) = args.args.first() {
-                        return Some(inner_ty);
-                    }
-                }
-            }
-        }
+    if let syn::Type::Path(type_path) = ty
+        && let Some(segment) = type_path.path.segments.last()
+        && segment.ident == "Option"
+        && let syn::PathArguments::AngleBracketed(args) = &segment.arguments
+        && let Some(syn::GenericArgument::Type(inner_ty)) = args.args.first()
+    {
+        return Some(inner_ty);
     }
     None
 }
@@ -154,40 +149,39 @@ pub fn generate_error_handling(return_type: &syn::ReturnType) -> TokenStream {
         }
         syn::ReturnType::Type(_, ty) => {
             // Check if it's a Result type
-            if let syn::Type::Path(type_path) = &**ty {
-                if let Some(segment) = type_path.path.segments.last() {
-                    if segment.ident == "Result" {
-                        // It's already a Result, wrap it properly for the dispatch context
-                        // Use JSON serialization for structured data, with fallback
-                        return quote! {
-                            match result {
-                                Ok(value) => {
-                                    // Try JSON serialization first (for structured data)
-                                    let (text_content, structured) = match serde_json::to_value(&value) {
-                                        Ok(json_value) => {
-                                            // Serialize as JSON string for text content
-                                            let text = serde_json::to_string(&value)
-                                                .unwrap_or_else(|_| format!("{:?}", value));
-                                            (text, Some(json_value))
-                                        }
-                                        Err(_) => {
-                                            // Fallback to Debug if not serializable
-                                            (format!("{:?}", value), None)
-                                        }
-                                    };
-
-                                    Ok(pulseengine_mcp_protocol::CallToolResult {
-                                        content: vec![pulseengine_mcp_protocol::Content::text(text_content)],
-                                        is_error: Some(false),
-                                        structured_content: structured,
-                                        _meta: None,
-                                    })
+            if let syn::Type::Path(type_path) = &**ty
+                && let Some(segment) = type_path.path.segments.last()
+                && segment.ident == "Result"
+            {
+                // It's already a Result, wrap it properly for the dispatch context
+                // Use JSON serialization for structured data, with fallback
+                return quote! {
+                    match result {
+                        Ok(value) => {
+                            // Try JSON serialization first (for structured data)
+                            let (text_content, structured) = match serde_json::to_value(&value) {
+                                Ok(json_value) => {
+                                    // Serialize as JSON string for text content
+                                    let text = serde_json::to_string(&value)
+                                        .unwrap_or_else(|_| format!("{:?}", value));
+                                    (text, Some(json_value))
                                 }
-                                Err(e) => Err(pulseengine_mcp_protocol::Error::internal_error(e.to_string())),
-                            }
-                        };
+                                Err(_) => {
+                                    // Fallback to Debug if not serializable
+                                    (format!("{:?}", value), None)
+                                }
+                            };
+
+                            Ok(pulseengine_mcp_protocol::CallToolResult {
+                                content: vec![pulseengine_mcp_protocol::Content::text(text_content)],
+                                is_error: Some(false),
+                                structured_content: structured,
+                                _meta: None,
+                            })
+                        }
+                        Err(e) => Err(pulseengine_mcp_protocol::Error::internal_error(e.to_string())),
                     }
-                }
+                };
             }
 
             // Not a Result, wrap it with JSON serialization (preferred) or Display formatting

@@ -595,10 +595,10 @@ impl AlertManager {
 
         while let Some(notification) = rx.recv().await {
             for channel_id in &notification.channels {
-                if let Some(channel) = config.channels.get(channel_id) {
-                    if let Err(e) = Self::send_notification(channel, &notification).await {
-                        error!("Failed to send notification to {}: {}", channel_id, e);
-                    }
+                if let Some(channel) = config.channels.get(channel_id)
+                    && let Err(e) = Self::send_notification(channel, &notification).await
+                {
+                    error!("Failed to send notification to {}: {}", channel_id, e);
                 }
             }
         }

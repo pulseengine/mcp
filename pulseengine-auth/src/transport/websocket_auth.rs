@@ -99,20 +99,19 @@ impl WebSocketAuthExtractor {
         if let Some(auth_header) = headers
             .get("Authorization")
             .or_else(|| headers.get("authorization"))
+            && auth_header.starts_with("Bearer ")
         {
-            if auth_header.starts_with("Bearer ") {
-                match AuthUtils::extract_bearer_token(auth_header) {
-                    Ok(token) => {
-                        AuthUtils::validate_api_key_format(&token)?;
-                        let context = TransportAuthContext::new(
-                            token,
-                            "HandshakeHeaders".to_string(),
-                            TransportType::WebSocket,
-                        );
-                        return Ok(Some(context));
-                    }
-                    Err(e) => return Err(e),
+            match AuthUtils::extract_bearer_token(auth_header) {
+                Ok(token) => {
+                    AuthUtils::validate_api_key_format(&token)?;
+                    let context = TransportAuthContext::new(
+                        token,
+                        "HandshakeHeaders".to_string(),
+                        TransportType::WebSocket,
+                    );
+                    return Ok(Some(context));
                 }
+                Err(e) => return Err(e),
             }
         }
 
@@ -128,16 +127,16 @@ impl WebSocketAuthExtractor {
         }
 
         // Try WebSocket-specific headers
-        if let Some(api_key) = headers.get("Sec-WebSocket-Protocol") {
-            if let Some(auth_token) = self.extract_from_subprotocol(api_key) {
-                AuthUtils::validate_api_key_format(&auth_token)?;
-                let context = TransportAuthContext::new(
-                    auth_token,
-                    "Subprotocol".to_string(),
-                    TransportType::WebSocket,
-                );
-                return Ok(Some(context));
-            }
+        if let Some(api_key) = headers.get("Sec-WebSocket-Protocol")
+            && let Some(auth_token) = self.extract_from_subprotocol(api_key)
+        {
+            AuthUtils::validate_api_key_format(&auth_token)?;
+            let context = TransportAuthContext::new(
+                auth_token,
+                "Subprotocol".to_string(),
+                TransportType::WebSocket,
+            );
+            return Ok(Some(context));
         }
 
         Ok(None)
@@ -232,12 +231,11 @@ impl WebSocketAuthExtractor {
             }
 
             // Try nested in clientInfo
-            if let Some(client_info) = params.get("clientInfo") {
-                if let Some(auth) = client_info.get("authentication") {
-                    if let Some(api_key) = auth.get("api_key").and_then(|v| v.as_str()) {
-                        return Some(api_key.to_string());
-                    }
-                }
+            if let Some(client_info) = params.get("clientInfo")
+                && let Some(auth) = client_info.get("authentication")
+                && let Some(api_key) = auth.get("api_key").and_then(|v| v.as_str())
+            {
+                return Some(api_key.to_string());
             }
         }
 
@@ -298,12 +296,11 @@ impl WebSocketAuthExtractor {
         }
 
         // Check subprotocol for auth
-        if let Some(protocols) = request.get_header("Sec-WebSocket-Protocol") {
-            if let Some(auth_protocol) = &self.config.auth_subprotocol {
-                if protocols.contains(auth_protocol) {
-                    return true;
-                }
-            }
+        if let Some(protocols) = request.get_header("Sec-WebSocket-Protocol")
+            && let Some(auth_protocol) = &self.config.auth_subprotocol
+            && protocols.contains(auth_protocol)
+        {
+            return true;
         }
 
         false

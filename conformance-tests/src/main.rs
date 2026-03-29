@@ -163,14 +163,14 @@ fn list_servers() -> Result<()> {
         let entry = entry?;
         let path = entry.path();
 
-        if path.extension().and_then(|s| s.to_str()) == Some("json") {
-            if let Some(name) = path.file_stem().and_then(|s| s.to_str()) {
-                // Try to load config to get description
-                if let Ok(config) = ServerConfig::load(&path) {
-                    println!("  {} - {}", name.green(), config.description);
-                } else {
-                    println!("  {name}");
-                }
+        if path.extension().and_then(|s| s.to_str()) == Some("json")
+            && let Some(name) = path.file_stem().and_then(|s| s.to_str())
+        {
+            // Try to load config to get description
+            if let Ok(config) = ServerConfig::load(&path) {
+                println!("  {} - {}", name.green(), config.description);
+            } else {
+                println!("  {name}");
             }
         }
     }

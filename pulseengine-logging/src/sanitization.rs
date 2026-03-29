@@ -161,17 +161,17 @@ impl LogSanitizer {
         }
 
         // Replace IP addresses if not preserved
-        if !self.config.preserve_ips {
-            if let Some(regex) = IP_REGEX.get() {
-                sanitized = regex.replace_all(&sanitized, "[IP_REDACTED]").to_string();
-            }
+        if !self.config.preserve_ips
+            && let Some(regex) = IP_REGEX.get()
+        {
+            sanitized = regex.replace_all(&sanitized, "[IP_REDACTED]").to_string();
         }
 
         // Replace UUIDs if not preserved
-        if !self.config.preserve_uuids {
-            if let Some(regex) = UUID_REGEX.get() {
-                sanitized = regex.replace_all(&sanitized, "[UUID_REDACTED]").to_string();
-            }
+        if !self.config.preserve_uuids
+            && let Some(regex) = UUID_REGEX.get()
+        {
+            sanitized = regex.replace_all(&sanitized, "[UUID_REDACTED]").to_string();
         }
 
         sanitized

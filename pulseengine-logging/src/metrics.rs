@@ -364,10 +364,10 @@ impl MetricsCollector {
             .push(duration_ms);
 
         // Keep only last 1000 response times per tool for memory efficiency
-        if let Some(times) = metrics.response_times_by_tool.get_mut(tool_name) {
-            if times.len() > 1000 {
-                times.drain(..times.len() - 1000);
-            }
+        if let Some(times) = metrics.response_times_by_tool.get_mut(tool_name)
+            && times.len() > 1000
+        {
+            times.drain(..times.len() - 1000);
         }
 
         // Recalculate averages and percentiles

@@ -337,14 +337,14 @@ impl PermissionChecker {
 
         // Check custom rules first
         for rule in &self.config.custom_rules {
-            if let Permission::UseTool(rule_tool) = &rule.permission {
-                if rule_tool == tool_name {
-                    for role in &auth_context.roles {
-                        if rule.applies_to_role(role) {
-                            match rule.action {
-                                PermissionAction::Allow => return true,
-                                PermissionAction::Deny => return false,
-                            }
+            if let Permission::UseTool(rule_tool) = &rule.permission
+                && rule_tool == tool_name
+            {
+                for role in &auth_context.roles {
+                    if rule.applies_to_role(role) {
+                        match rule.action {
+                            PermissionAction::Allow => return true,
+                            PermissionAction::Deny => return false,
                         }
                     }
                 }
@@ -373,13 +373,13 @@ impl PermissionChecker {
         }
 
         // Check tool category permissions
-        if let Some(category) = self.extract_tool_category(tool_name) {
-            if let Some(allowed_roles) = self.config.tools.category_permissions.get(&category) {
-                return auth_context
-                    .roles
-                    .iter()
-                    .any(|role| allowed_roles.contains(role));
-            }
+        if let Some(category) = self.extract_tool_category(tool_name)
+            && let Some(allowed_roles) = self.config.tools.category_permissions.get(&category)
+        {
+            return auth_context
+                .roles
+                .iter()
+                .any(|role| allowed_roles.contains(role));
         }
 
         // Fall back to default action
@@ -398,14 +398,14 @@ impl PermissionChecker {
 
         // Check custom rules first
         for rule in &self.config.custom_rules {
-            if let Permission::UseResource(rule_resource) = &rule.permission {
-                if self.matches_resource_pattern(rule_resource, resource_uri) {
-                    for role in &auth_context.roles {
-                        if rule.applies_to_role(role) {
-                            match rule.action {
-                                PermissionAction::Allow => return true,
-                                PermissionAction::Deny => return false,
-                            }
+            if let Permission::UseResource(rule_resource) = &rule.permission
+                && self.matches_resource_pattern(rule_resource, resource_uri)
+            {
+                for role in &auth_context.roles {
+                    if rule.applies_to_role(role) {
+                        match rule.action {
+                            PermissionAction::Allow => return true,
+                            PermissionAction::Deny => return false,
                         }
                     }
                 }
@@ -443,13 +443,13 @@ impl PermissionChecker {
         }
 
         // Check resource category permissions
-        if let Some(category) = self.extract_resource_category(resource_uri) {
-            if let Some(allowed_roles) = self.config.resources.category_permissions.get(&category) {
-                return auth_context
-                    .roles
-                    .iter()
-                    .any(|role| allowed_roles.contains(role));
-            }
+        if let Some(category) = self.extract_resource_category(resource_uri)
+            && let Some(allowed_roles) = self.config.resources.category_permissions.get(&category)
+        {
+            return auth_context
+                .roles
+                .iter()
+                .any(|role| allowed_roles.contains(role));
         }
 
         // Fall back to default action
@@ -474,14 +474,14 @@ impl PermissionChecker {
 
         // Check for subscription-specific rules
         for rule in &self.config.custom_rules {
-            if let Permission::Subscribe(rule_resource) = &rule.permission {
-                if self.matches_resource_pattern(rule_resource, resource_uri) {
-                    for role in &auth_context.roles {
-                        if rule.applies_to_role(role) {
-                            match rule.action {
-                                PermissionAction::Allow => return true,
-                                PermissionAction::Deny => return false,
-                            }
+            if let Permission::Subscribe(rule_resource) = &rule.permission
+                && self.matches_resource_pattern(rule_resource, resource_uri)
+            {
+                for role in &auth_context.roles {
+                    if rule.applies_to_role(role) {
+                        match rule.action {
+                            PermissionAction::Allow => return true,
+                            PermissionAction::Deny => return false,
                         }
                     }
                 }

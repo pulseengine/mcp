@@ -460,10 +460,10 @@ impl CorrelationManager {
                         completed_entry.end_time = Some(Utc::now());
 
                         let mut completed = completed_requests.write().await;
-                        if completed.len() >= config.max_completed_requests {
-                            if let Some(oldest_key) = completed.keys().next().cloned() {
-                                completed.remove(&oldest_key);
-                            }
+                        if completed.len() >= config.max_completed_requests
+                            && let Some(oldest_key) = completed.keys().next().cloned()
+                        {
+                            completed.remove(&oldest_key);
                         }
                         completed.insert(key, completed_entry);
                     }

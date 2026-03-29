@@ -111,7 +111,8 @@
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(p[''''name''''], p[''''version'''']\\) for p in d[''''packages''''] if p[''''name'''']==''''rmcp'''']\")",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(p[''''name''''], p[''''version'''']\\) for p in d[''''packages''''] if p[''''name'''']==''''rmcp'''']\")",
       "Bash(git push:*)",
-      "Bash(gh pr:*)"
+      "Bash(gh pr:*)",
+      "Bash(do head:*)"
     ],
     "deny": []
   }

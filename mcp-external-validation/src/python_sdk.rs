@@ -210,10 +210,10 @@ impl PythonSdkTester {
         for cmd in &python_commands {
             let output = Command::new(cmd).arg("--version").output();
 
-            if let Ok(output) = output {
-                if output.status.success() {
-                    return Ok(cmd.to_string());
-                }
+            if let Ok(output) = output
+                && output.status.success()
+            {
+                return Ok(cmd.to_string());
             }
         }
 

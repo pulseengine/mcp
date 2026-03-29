@@ -449,26 +449,22 @@ fn generate_matchit_resource_impl(
 /// Extract URI template from mcp_resource attribute
 fn extract_uri_template_from_attr(attrs: &[syn::Attribute]) -> Option<String> {
     for attr in attrs {
-        if attr.path().is_ident("mcp_resource") {
-            if let Ok(meta_list) = attr.meta.require_list() {
-                // Parse the meta list tokens properly
-                if let Ok(nested_meta) =
-                    darling::ast::NestedMeta::parse_meta_list(meta_list.tokens.clone())
-                {
-                    for nested in nested_meta {
-                        if let darling::ast::NestedMeta::Meta(syn::Meta::NameValue(name_value)) =
-                            nested
-                        {
-                            if name_value.path.is_ident("uri_template") {
-                                if let syn::Expr::Lit(syn::ExprLit {
-                                    lit: syn::Lit::Str(lit_str),
-                                    ..
-                                }) = name_value.value
-                                {
-                                    return Some(lit_str.value());
-                                }
-                            }
-                        }
+        if attr.path().is_ident("mcp_resource")
+            && let Ok(meta_list) = attr.meta.require_list()
+        {
+            // Parse the meta list tokens properly
+            if let Ok(nested_meta) =
+                darling::ast::NestedMeta::parse_meta_list(meta_list.tokens.clone())
+            {
+                for nested in nested_meta {
+                    if let darling::ast::NestedMeta::Meta(syn::Meta::NameValue(name_value)) = nested
+                        && name_value.path.is_ident("uri_template")
+                        && let syn::Expr::Lit(syn::ExprLit {
+                            lit: syn::Lit::Str(lit_str),
+                            ..
+                        }) = name_value.value
+                    {
+                        return Some(lit_str.value());
                     }
                 }
             }
@@ -1038,16 +1034,13 @@ fn generate_multi_parameter_schema(params: &[&syn::PatType]) -> syn::Result<Toke
 
 /// Check if a type is Option<T> and extract the inner type T
 fn extract_option_inner_type(ty: &syn::Type) -> (bool, &syn::Type) {
-    if let syn::Type::Path(type_path) = ty {
-        if let Some(segment) = type_path.path.segments.last() {
-            if segment.ident == "Option" {
-                if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
-                    if let Some(syn::GenericArgument::Type(inner_ty)) = args.args.first() {
-                        return (true, inner_ty);
-                    }
-                }
-            }
-        }
+    if let syn::Type::Path(type_path) = ty
+        && let Some(segment) = type_path.path.segments.last()
+        && segment.ident == "Option"
+        && let syn::PathArguments::AngleBracketed(args) = &segment.arguments
+        && let Some(syn::GenericArgument::Type(inner_ty)) = args.args.first()
+    {
+        return (true, inner_ty);
     }
     (false, ty)
 }
@@ -1082,26 +1075,24 @@ fn is_tool_context_type(ty: &syn::Type) -> bool {
         syn::Type::Path(type_path) => {
             if let Some(segment) = type_path.path.segments.last() {
                 // Check if it's a wrapper like Arc, Box, Rc containing dyn ToolContext
-                if matches!(segment.ident.to_string().as_str(), "Arc" | "Box" | "Rc") {
-                    if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
-                        for arg in &args.args {
-                            // Check for dyn ToolContext (collapsed pattern)
-                            if let syn::GenericArgument::Type(syn::Type::TraitObject(trait_obj)) =
-                                arg
-                            {
-                                return trait_obj.bounds.iter().any(|bound| {
-                                    if let syn::TypeParamBound::Trait(trait_bound) = bound {
-                                        trait_bound
-                                            .path
-                                            .segments
-                                            .last()
-                                            .map(|seg| seg.ident == "ToolContext")
-                                            .unwrap_or(false)
-                                    } else {
-                                        false
-                                    }
-                                });
-                            }
+                if matches!(segment.ident.to_string().as_str(), "Arc" | "Box" | "Rc")
+                    && let syn::PathArguments::AngleBracketed(args) = &segment.arguments
+                {
+                    for arg in &args.args {
+                        // Check for dyn ToolContext (collapsed pattern)
+                        if let syn::GenericArgument::Type(syn::Type::TraitObject(trait_obj)) = arg {
+                            return trait_obj.bounds.iter().any(|bound| {
+                                if let syn::TypeParamBound::Trait(trait_bound) = bound {
+                                    trait_bound
+                                        .path
+                                        .segments
+                                        .last()
+                                        .map(|seg| seg.ident == "ToolContext")
+                                        .unwrap_or(false)
+                                } else {
+                                    false
+                                }
+                            });
                         }
                     }
                 }
@@ -1185,11 +1176,11 @@ fn generate_type_schema_for_type(ty: &syn::Type) -> TokenStream {
                     "bool" => quote! { ::serde_json::json!({"type": "boolean"}) },
                     "Vec" => {
                         // Handle Vec<T> - extract T and create array schema
-                        if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
-                            if let Some(syn::GenericArgument::Type(inner_ty)) = args.args.first() {
-                                let items_schema = generate_type_schema_for_type(inner_ty);
-                                return quote! { ::serde_json::json!({"type": "array", "items": #items_schema}) };
-                            }
+                        if let syn::PathArguments::AngleBracketed(args) = &segment.arguments
+                            && let Some(syn::GenericArgument::Type(inner_ty)) = args.args.first()
+                        {
+                            let items_schema = generate_type_schema_for_type(inner_ty);
+                            return quote! { ::serde_json::json!({"type": "array", "items": #items_schema}) };
                         }
                         quote! { ::serde_json::json!({"type": "array"}) }
                     }

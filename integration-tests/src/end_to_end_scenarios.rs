@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! End-to-end integration scenarios that test the complete MCP framework
 
 use crate::test_utils::*;

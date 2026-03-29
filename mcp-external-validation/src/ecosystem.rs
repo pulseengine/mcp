@@ -280,17 +280,17 @@ impl EcosystemTester {
 
     /// Detect Cline CLI
     fn detect_cline(&self) -> ValidationResult<ComponentInfo> {
-        if let Ok(output) = Command::new("cline").arg("--version").output() {
-            if output.status.success() {
-                let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                return Ok(ComponentInfo {
-                    component: EcosystemComponent::Cline,
-                    available: true,
-                    version: Some(version),
-                    location: None,
-                    metadata: HashMap::new(),
-                });
-            }
+        if let Ok(output) = Command::new("cline").arg("--version").output()
+            && output.status.success()
+        {
+            let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            return Ok(ComponentInfo {
+                component: EcosystemComponent::Cline,
+                available: true,
+                version: Some(version),
+                location: None,
+                metadata: HashMap::new(),
+            });
         }
 
         Err(ValidationError::ConfigurationError {

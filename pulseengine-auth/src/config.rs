@@ -136,10 +136,10 @@ impl AuthConfig {
     /// Get the default storage path for an application
     fn get_app_storage_path(app_name: &str) -> PathBuf {
         // Check for environment variable override first
-        if let Ok(app_name_override) = std::env::var("PULSEENGINE_MCP_APP_NAME") {
-            if !app_name_override.trim().is_empty() {
-                return Self::build_storage_path(&app_name_override);
-            }
+        if let Ok(app_name_override) = std::env::var("PULSEENGINE_MCP_APP_NAME")
+            && !app_name_override.trim().is_empty()
+        {
+            return Self::build_storage_path(&app_name_override);
         }
 
         Self::build_storage_path(app_name)

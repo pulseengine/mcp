@@ -295,12 +295,12 @@ impl ValidationConfig {
             });
         }
 
-        if let Some(ref url) = self.jsonrpc.validator_url {
-            if !url.starts_with("http") {
-                return Err(ValidationError::ConfigurationError {
-                    message: "JSON-RPC validator URL must start with http or https".to_string(),
-                });
-            }
+        if let Some(ref url) = self.jsonrpc.validator_url
+            && !url.starts_with("http")
+        {
+            return Err(ValidationError::ConfigurationError {
+                message: "JSON-RPC validator URL must start with http or https".to_string(),
+            });
         }
 
         // Validate port ranges

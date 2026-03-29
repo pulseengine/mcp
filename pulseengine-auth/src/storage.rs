@@ -178,35 +178,34 @@ impl FileStorage {
         {
             use std::os::unix::fs::MetadataExt;
 
-            if let Some(parent) = path.parent() {
-                if parent.exists() {
-                    let metadata = fs::metadata(parent).await?;
+            if let Some(parent) = path.parent()
+                && parent.exists()
+            {
+                let metadata = fs::metadata(parent).await?;
 
-                    // Check if this is a network filesystem (basic check)
-                    let _dev = metadata.dev();
+                // Check if this is a network filesystem (basic check)
+                let _dev = metadata.dev();
 
-                    // On many Unix systems, network filesystems have device IDs that indicate remote storage
-                    // This is a basic check - in production you might want more sophisticated detection
-                    if let Ok(mount_info) = fs::read_to_string("/proc/mounts").await {
-                        let path_str = parent.to_string_lossy();
-                        for line in mount_info.lines() {
-                            let parts: Vec<&str> = line.split_whitespace().collect();
-                            if parts.len() >= 3 {
-                                let mount_point = parts[1];
-                                let fs_type = parts[2];
+                // On many Unix systems, network filesystems have device IDs that indicate remote storage
+                // This is a basic check - in production you might want more sophisticated detection
+                if let Ok(mount_info) = fs::read_to_string("/proc/mounts").await {
+                    let path_str = parent.to_string_lossy();
+                    for line in mount_info.lines() {
+                        let parts: Vec<&str> = line.split_whitespace().collect();
+                        if parts.len() >= 3 {
+                            let mount_point = parts[1];
+                            let fs_type = parts[2];
 
-                                if path_str.starts_with(mount_point) {
-                                    // Check for network filesystem types
-                                    match fs_type {
-                                        "nfs" | "nfs4" | "cifs" | "smb" | "smbfs"
-                                        | "fuse.sshfs" => {
-                                            return Err(StorageError::Permission(format!(
-                                                "Storage path {} is on insecure network filesystem: {}",
-                                                path_str, fs_type
-                                            )));
-                                        }
-                                        _ => {}
+                            if path_str.starts_with(mount_point) {
+                                // Check for network filesystem types
+                                match fs_type {
+                                    "nfs" | "nfs4" | "cifs" | "smb" | "smbfs" | "fuse.sshfs" => {
+                                        return Err(StorageError::Permission(format!(
+                                            "Storage path {} is on insecure network filesystem: {}",
+                                            path_str, fs_type
+                                        )));
                                     }
+                                    _ => {}
                                 }
                             }
                         }
@@ -382,17 +381,16 @@ impl FileStorage {
 
             while let Some(entry) = entries.next_entry().await? {
                 let path = entry.path();
-                if let Some(filename) = path.file_name().and_then(|n| n.to_str()) {
-                    if filename.starts_with(&format!("{}.backup_", filename_stem)) {
-                        if let Ok(metadata) = entry.metadata().await {
-                            backups.push((
-                                path,
-                                metadata
-                                    .modified()
-                                    .unwrap_or(std::time::SystemTime::UNIX_EPOCH),
-                            ));
-                        }
-                    }
+                if let Some(filename) = path.file_name().and_then(|n| n.to_str())
+                    && filename.starts_with(&format!("{}.backup_", filename_stem))
+                    && let Ok(metadata) = entry.metadata().await
+                {
+                    backups.push((
+                        path,
+                        metadata
+                            .modified()
+                            .unwrap_or(std::time::SystemTime::UNIX_EPOCH),
+                    ));
                 }
             }
 

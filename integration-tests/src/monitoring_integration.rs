@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! Integration tests for monitoring across multiple components
 
 use crate::test_utils::*;

@@ -59,16 +59,13 @@ impl StdioAuthExtractor {
 
     /// Extract authentication from environment variables
     fn extract_env_auth(&self) -> AuthExtractionResult {
-        if let Ok(api_key) = std::env::var(&self.config.api_key_env_var) {
-            if !api_key.is_empty() {
-                AuthUtils::validate_api_key_format(&api_key)?;
-                let context = TransportAuthContext::new(
-                    api_key,
-                    "Environment".to_string(),
-                    TransportType::Stdio,
-                );
-                return Ok(Some(context));
-            }
+        if let Ok(api_key) = std::env::var(&self.config.api_key_env_var)
+            && !api_key.is_empty()
+        {
+            AuthUtils::validate_api_key_format(&api_key)?;
+            let context =
+                TransportAuthContext::new(api_key, "Environment".to_string(), TransportType::Stdio);
+            return Ok(Some(context));
         }
 
         Ok(None)
@@ -113,22 +110,20 @@ impl StdioAuthExtractor {
             }
 
             // Try in capabilities
-            if let Some(capabilities) = client_info.get("capabilities") {
-                if let Some(auth) = capabilities.get("authentication") {
-                    if let Some(api_key) = auth.get("api_key").and_then(|v| v.as_str()) {
-                        return Some(api_key.to_string());
-                    }
-                }
+            if let Some(capabilities) = client_info.get("capabilities")
+                && let Some(auth) = capabilities.get("authentication")
+                && let Some(api_key) = auth.get("api_key").and_then(|v| v.as_str())
+            {
+                return Some(api_key.to_string());
             }
         }
 
         // Try in server capabilities/config
-        if let Some(capabilities) = params.get("capabilities") {
-            if let Some(auth) = capabilities.get("authentication") {
-                if let Some(api_key) = auth.get("api_key").and_then(|v| v.as_str()) {
-                    return Some(api_key.to_string());
-                }
-            }
+        if let Some(capabilities) = params.get("capabilities")
+            && let Some(auth) = capabilities.get("authentication")
+            && let Some(api_key) = auth.get("api_key").and_then(|v| v.as_str())
+        {
+            return Some(api_key.to_string());
         }
 
         None
@@ -192,10 +187,10 @@ impl StdioAuthExtractor {
         _request: &TransportRequest,
     ) -> TransportAuthContext {
         // Add process information
-        if let Ok(current_exe) = std::env::current_exe() {
-            if let Some(exe_name) = current_exe.file_name().and_then(|n| n.to_str()) {
-                context = context.with_metadata("process".to_string(), exe_name.to_string());
-            }
+        if let Ok(current_exe) = std::env::current_exe()
+            && let Some(exe_name) = current_exe.file_name().and_then(|n| n.to_str())
+        {
+            context = context.with_metadata("process".to_string(), exe_name.to_string());
         }
 
         // Add working directory

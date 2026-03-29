@@ -424,25 +424,25 @@ impl AuthenticationManager {
         }
 
         // Check role-based rate limiting
-        if let Ok(is_rate_limited) = self.check_role_rate_limit(&key.role, client_ip).await {
-            if is_rate_limited {
-                self.record_failed_attempt(client_ip).await;
+        if let Ok(is_rate_limited) = self.check_role_rate_limit(&key.role, client_ip).await
+            && is_rate_limited
+        {
+            self.record_failed_attempt(client_ip).await;
 
-                // Log role-based rate limiting
-                let audit_event = events::auth_failure(
-                    client_ip,
-                    &format!(
-                        "Role-based rate limit exceeded for role {}",
-                        self.get_role_key(&key.role)
-                    ),
-                );
-                let _ = self.audit_logger.log(audit_event).await;
-
-                return Err(AuthError::Failed(format!(
-                    "Rate limit exceeded for role {}",
+            // Log role-based rate limiting
+            let audit_event = events::auth_failure(
+                client_ip,
+                &format!(
+                    "Role-based rate limit exceeded for role {}",
                     self.get_role_key(&key.role)
-                )));
-            }
+                ),
+            );
+            let _ = self.audit_logger.log(audit_event).await;
+
+            return Err(AuthError::Failed(format!(
+                "Rate limit exceeded for role {}",
+                self.get_role_key(&key.role)
+            )));
         }
 
         // Clear any failed attempts for this IP
@@ -542,12 +542,11 @@ impl AuthenticationManager {
     async fn check_rate_limit(&self, client_ip: &str) -> Option<DateTime<Utc>> {
         let rate_limits = self.rate_limit_state.read().await;
 
-        if let Some(state) = rate_limits.get(client_ip) {
-            if let Some(blocked_until) = state.blocked_until {
-                if Utc::now() < blocked_until {
-                    return Some(blocked_until);
-                }
-            }
+        if let Some(state) = rate_limits.get(client_ip)
+            && let Some(blocked_until) = state.blocked_until
+            && Utc::now() < blocked_until
+        {
+            return Some(blocked_until);
         }
 
         None
@@ -615,10 +614,10 @@ impl AuthenticationManager {
         }
 
         // Check if key has expired
-        if let Some(expires_at) = key.expires_at {
-            if Utc::now() > expires_at {
-                return Err("API key has expired".to_string());
-            }
+        if let Some(expires_at) = key.expires_at
+            && Utc::now() > expires_at
+        {
+            return Err("API key has expired".to_string());
         }
 
         // Check IP whitelist
@@ -680,10 +679,10 @@ impl AuthenticationManager {
         for state in rate_limits.values() {
             stats.total_failed_attempts += state.failed_attempts as u64;
 
-            if let Some(blocked_until) = state.blocked_until {
-                if now < blocked_until {
-                    stats.currently_blocked_ips += 1;
-                }
+            if let Some(blocked_until) = state.blocked_until
+                && now < blocked_until
+            {
+                stats.currently_blocked_ips += 1;
             }
         }
 
@@ -704,14 +703,14 @@ impl AuthenticationManager {
                 role_statistics.total_requests += state.total_requests;
 
                 // Check if any IP is in cooldown for this role
-                if let Some(cooldown_end) = state.cooldown_ends_at {
-                    if now < cooldown_end {
-                        role_statistics.in_cooldown = true;
-                        if role_statistics.cooldown_ends_at.is_none()
-                            || cooldown_end > role_statistics.cooldown_ends_at.unwrap()
-                        {
-                            role_statistics.cooldown_ends_at = Some(cooldown_end);
-                        }
+                if let Some(cooldown_end) = state.cooldown_ends_at
+                    && now < cooldown_end
+                {
+                    role_statistics.in_cooldown = true;
+                    if role_statistics.cooldown_ends_at.is_none()
+                        || cooldown_end > role_statistics.cooldown_ends_at.unwrap()
+                    {
+                        role_statistics.cooldown_ends_at = Some(cooldown_end);
                     }
                 }
             }
@@ -731,10 +730,10 @@ impl AuthenticationManager {
         let initial_count = rate_limits.len();
         rate_limits.retain(|_ip, state| {
             // Keep if blocked and still in block period
-            if let Some(blocked_until) = state.blocked_until {
-                if now < blocked_until {
-                    return true;
-                }
+            if let Some(blocked_until) = state.blocked_until
+                && now < blocked_until
+            {
+                return true;
             }
 
             // Keep if within the tracking window
@@ -936,17 +935,17 @@ impl AuthenticationManager {
             let initial_count = ip_states.len();
             ip_states.retain(|_ip, state| {
                 // Keep if in cooldown
-                if let Some(cooldown_end) = state.cooldown_ends_at {
-                    if now < cooldown_end {
-                        return true;
-                    }
+                if let Some(cooldown_end) = state.cooldown_ends_at
+                    && now < cooldown_end
+                {
+                    return true;
                 }
 
                 // Keep if window started recently
-                if let Some(window_start) = state.last_window_start {
-                    if now.signed_duration_since(window_start) < cleanup_threshold {
-                        return true;
-                    }
+                if let Some(window_start) = state.last_window_start
+                    && now.signed_duration_since(window_start) < cleanup_threshold
+                {
+                    return true;
                 }
 
                 // Remove old inactive entries

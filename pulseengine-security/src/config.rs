@@ -170,17 +170,17 @@ impl SecurityConfig {
         }
 
         // JWT expiry
-        if let Ok(jwt_expiry) = env::var("MCP_JWT_EXPIRY") {
-            if let Ok(expiry_seconds) = jwt_expiry.parse::<u64>() {
-                self.settings.jwt_expiry_seconds = expiry_seconds;
-            }
+        if let Ok(jwt_expiry) = env::var("MCP_JWT_EXPIRY")
+            && let Ok(expiry_seconds) = jwt_expiry.parse::<u64>()
+        {
+            self.settings.jwt_expiry_seconds = expiry_seconds;
         }
 
         // Rate limiting
-        if let Ok(rate_limit) = env::var("MCP_RATE_LIMIT") {
-            if let Some(config) = parse_rate_limit(&rate_limit) {
-                self.settings.rate_limit = config;
-            }
+        if let Ok(rate_limit) = env::var("MCP_RATE_LIMIT")
+            && let Some(config) = parse_rate_limit(&rate_limit)
+        {
+            self.settings.rate_limit = config;
         }
 
         // CORS origins

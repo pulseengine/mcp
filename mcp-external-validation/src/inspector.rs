@@ -419,10 +419,10 @@ impl InspectorClient {
     fn extract_session_token(&self, stderr: &str) -> Option<String> {
         // Look for lines like "🔑 Session token: 3a1c267fad21f7150b7d624c..."
         for line in stderr.lines() {
-            if line.contains("Session token:") {
-                if let Some(token_part) = line.split("Session token:").nth(1) {
-                    return Some(token_part.trim().to_string());
-                }
+            if line.contains("Session token:")
+                && let Some(token_part) = line.split("Session token:").nth(1)
+            {
+                return Some(token_part.trim().to_string());
             }
         }
         None

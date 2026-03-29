@@ -85,22 +85,22 @@ impl StdioTransport {
         stdout: &mut tokio::io::Stdout,
     ) -> Result<(), TransportError> {
         // Validate message according to MCP spec
-        if self.config.validate_messages {
-            if let Err(e) = validate_message_string(line, Some(self.config.max_message_size)) {
-                warn!("Message validation failed: {}", e);
+        if self.config.validate_messages
+            && let Err(e) = validate_message_string(line, Some(self.config.max_message_size))
+        {
+            warn!("Message validation failed: {}", e);
 
-                // Try to extract ID for error response
-                let request_id = extract_id_from_malformed(line);
-                let error_response = create_error_response(
-                    pulseengine_mcp_protocol::Error::invalid_request(format!(
-                        "Message validation failed: {e}"
-                    )),
-                    request_id,
-                );
+            // Try to extract ID for error response
+            let request_id = extract_id_from_malformed(line);
+            let error_response = create_error_response(
+                pulseengine_mcp_protocol::Error::invalid_request(format!(
+                    "Message validation failed: {e}"
+                )),
+                request_id,
+            );
 
-                self.send_response(stdout, &error_response).await?;
-                return Ok(());
-            }
+            self.send_response(stdout, &error_response).await?;
+            return Ok(());
         }
 
         debug!("Processing message: {}", line);
@@ -188,12 +188,12 @@ impl StdioTransport {
         line: &str,
     ) -> Result<(), TransportError> {
         // Validate outgoing message
-        if self.config.validate_messages {
-            if let Err(e) = validate_message_string(line, Some(self.config.max_message_size)) {
-                return Err(TransportError::Protocol(format!(
-                    "Outgoing message validation failed: {e}"
-                )));
-            }
+        if self.config.validate_messages
+            && let Err(e) = validate_message_string(line, Some(self.config.max_message_size))
+        {
+            return Err(TransportError::Protocol(format!(
+                "Outgoing message validation failed: {e}"
+            )));
         }
 
         debug!("Sending response: {}", line);

@@ -107,10 +107,10 @@ impl ConformanceRunner {
 
         // Copy conformance results if they exist
         let conformance_results = PathBuf::from("results");
-        if conformance_results.exists() {
-            if let Err(e) = copy_dir_all(&conformance_results, &self.results_dir) {
-                eprintln!("{} Failed to copy conformance results: {}", "⚠".yellow(), e);
-            }
+        if conformance_results.exists()
+            && let Err(e) = copy_dir_all(&conformance_results, &self.results_dir)
+        {
+            eprintln!("{} Failed to copy conformance results: {}", "⚠".yellow(), e);
         }
 
         // Generate summary
@@ -172,12 +172,11 @@ impl ConformanceRunner {
             if failures > 0 {
                 println!("{} Failed checks:", "⚠".yellow());
                 for check in checks_array {
-                    if check["status"] == "FAILURE" {
-                        if let (Some(name), Some(desc)) =
+                    if check["status"] == "FAILURE"
+                        && let (Some(name), Some(desc)) =
                             (check["name"].as_str(), check["description"].as_str())
-                        {
-                            println!("  - {name}: {desc}");
-                        }
+                    {
+                        println!("  - {name}: {desc}");
                     }
                 }
             }

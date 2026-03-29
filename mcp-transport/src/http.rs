@@ -358,12 +358,11 @@ async fn handle_post(
     // Validate message
     let message_json = serde_json::to_string(&message).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    if state.config.validate_messages {
-        if let Err(e) = validate_message_string(&message_json, Some(state.config.max_message_size))
-        {
-            warn!("Message validation failed: {}", e);
-            return Err(StatusCode::BAD_REQUEST);
-        }
+    if state.config.validate_messages
+        && let Err(e) = validate_message_string(&message_json, Some(state.config.max_message_size))
+    {
+        warn!("Message validation failed: {}", e);
+        return Err(StatusCode::BAD_REQUEST);
     }
 
     // Parse and process message

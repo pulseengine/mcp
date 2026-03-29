@@ -202,12 +202,11 @@ impl SessionMiddleware {
         let mut session_context = SessionRequestContext::new(base_context.clone());
 
         // Extract client IP
-        if let Some(headers) = headers {
-            if let Some(ip_header) = &self.config.auth_config.client_ip_header {
-                if let Some(client_ip) = headers.get(ip_header) {
-                    base_context = base_context.with_client_ip(client_ip.clone());
-                }
-            }
+        if let Some(headers) = headers
+            && let Some(ip_header) = &self.config.auth_config.client_ip_header
+            && let Some(client_ip) = headers.get(ip_header)
+        {
+            base_context = base_context.with_client_ip(client_ip.clone());
         }
 
         // Check if this method requires authentication/sessions
@@ -277,18 +276,17 @@ impl SessionMiddleware {
     ) -> Result<(AuthContext, String, Option<Session>), SessionMiddlewareError> {
         if let Some(headers) = headers {
             // Try JWT authentication first
-            if self.config.enable_jwt_auth {
-                if let Ok((auth_context, method)) = self.try_jwt_authentication(headers).await {
-                    return Ok((auth_context, method, None));
-                }
+            if self.config.enable_jwt_auth
+                && let Ok((auth_context, method)) = self.try_jwt_authentication(headers).await
+            {
+                return Ok((auth_context, method, None));
             }
 
             // Try session ID authentication
-            if self.config.enable_sessions {
-                if let Ok((auth_context, session)) = self.try_session_authentication(headers).await
-                {
-                    return Ok((auth_context, "Session".to_string(), Some(session)));
-                }
+            if self.config.enable_sessions
+                && let Ok((auth_context, session)) = self.try_session_authentication(headers).await
+            {
+                return Ok((auth_context, "Session".to_string(), Some(session)));
             }
 
             // Fall back to traditional API key authentication
@@ -307,12 +305,12 @@ impl SessionMiddleware {
         &self,
         headers: &HashMap<String, String>,
     ) -> Result<(AuthContext, String), SessionMiddlewareError> {
-        if let Some(auth_header) = headers.get(&self.config.jwt_header_name) {
-            if auth_header.starts_with("Bearer ") {
-                let token = &auth_header[7..];
-                let auth_context = self.session_manager.validate_jwt_token(token).await?;
-                return Ok((auth_context, "JWT".to_string()));
-            }
+        if let Some(auth_header) = headers.get(&self.config.jwt_header_name)
+            && auth_header.starts_with("Bearer ")
+        {
+            let token = &auth_header[7..];
+            let auth_context = self.session_manager.validate_jwt_token(token).await?;
+            return Ok((auth_context, "JWT".to_string()));
         }
 
         Err(SessionMiddlewareError::AuthError(
@@ -341,17 +339,17 @@ impl SessionMiddleware {
         headers: &HashMap<String, String>,
     ) -> Result<(AuthContext, String), SessionMiddlewareError> {
         // Try Authorization header
-        if let Some(auth_header) = headers.get(&self.config.auth_config.auth_header_name) {
-            if let Ok((auth_context, method)) = self.parse_auth_header(auth_header).await {
-                return Ok((auth_context, method));
-            }
+        if let Some(auth_header) = headers.get(&self.config.auth_config.auth_header_name)
+            && let Ok((auth_context, method)) = self.parse_auth_header(auth_header).await
+        {
+            return Ok((auth_context, method));
         }
 
         // Try X-API-Key header
-        if let Some(api_key) = headers.get("X-API-Key") {
-            if let Ok(auth_context) = self.validate_api_key(api_key).await {
-                return Ok((auth_context, "X-API-Key".to_string()));
-            }
+        if let Some(api_key) = headers.get("X-API-Key")
+            && let Ok(auth_context) = self.validate_api_key(api_key).await
+        {
+            return Ok((auth_context, "X-API-Key".to_string()));
         }
 
         Err(SessionMiddlewareError::AuthError(

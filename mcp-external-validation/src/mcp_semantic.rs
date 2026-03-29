@@ -303,18 +303,18 @@ impl McpSemanticValidator {
             self.validate_required_field(params, "clientInfo", index, result)?;
 
             // Validate protocol version
-            if let Some(version) = params.get("protocolVersion").and_then(|v| v.as_str()) {
-                if !self.is_supported_protocol_version(version) {
-                    result.issues.push(ValidationIssue::new(
-                        IssueSeverity::Warning,
-                        "initialization".to_string(),
-                        format!(
-                            "Message {}: Unsupported protocol version: {}",
-                            index, version
-                        ),
-                        "mcp-semantic".to_string(),
-                    ));
-                }
+            if let Some(version) = params.get("protocolVersion").and_then(|v| v.as_str())
+                && !self.is_supported_protocol_version(version)
+            {
+                result.issues.push(ValidationIssue::new(
+                    IssueSeverity::Warning,
+                    "initialization".to_string(),
+                    format!(
+                        "Message {}: Unsupported protocol version: {}",
+                        index, version
+                    ),
+                    "mcp-semantic".to_string(),
+                ));
             }
 
             // Store client capabilities
@@ -424,15 +424,15 @@ impl McpSemanticValidator {
             self.validate_required_field(error, "message", index, result)?;
 
             // Validate error codes are within MCP specification
-            if let Some(code) = error.get("code").and_then(|c| c.as_i64()) {
-                if !self.is_valid_mcp_error_code(code) {
-                    result.issues.push(ValidationIssue::new(
-                        IssueSeverity::Warning,
-                        "error_handling".to_string(),
-                        format!("Message {}: Non-standard MCP error code: {}", index, code),
-                        "mcp-semantic".to_string(),
-                    ));
-                }
+            if let Some(code) = error.get("code").and_then(|c| c.as_i64())
+                && !self.is_valid_mcp_error_code(code)
+            {
+                result.issues.push(ValidationIssue::new(
+                    IssueSeverity::Warning,
+                    "error_handling".to_string(),
+                    format!("Message {}: Non-standard MCP error code: {}", index, code),
+                    "mcp-semantic".to_string(),
+                ));
             }
         }
 
@@ -459,18 +459,18 @@ impl McpSemanticValidator {
             // Check that no non-initialization messages come before initialize
             if let Some(init_index) = first_initialize_index {
                 for (i, msg) in self.message_sequence.iter().enumerate() {
-                    if i < init_index && msg.message_type == MessageType::Request {
-                        if let Some(method) = &msg.method {
-                            if method != "initialize" {
-                                result.issues.push(ValidationIssue::new(
-                                    IssueSeverity::Error,
-                                    "state_transitions".to_string(),
-                                    format!("Method '{}' called before initialization", method),
-                                    "mcp-semantic".to_string(),
-                                ));
-                                return Ok(());
-                            }
-                        }
+                    if i < init_index
+                        && msg.message_type == MessageType::Request
+                        && let Some(method) = &msg.method
+                        && method != "initialize"
+                    {
+                        result.issues.push(ValidationIssue::new(
+                            IssueSeverity::Error,
+                            "state_transitions".to_string(),
+                            format!("Method '{}' called before initialization", method),
+                            "mcp-semantic".to_string(),
+                        ));
+                        return Ok(());
                     }
                 }
             }
@@ -687,18 +687,18 @@ impl McpSemanticValidator {
         }
 
         // Validate URI is provided
-        if let Some(params) = message.get("params") {
-            if params.get("uri").is_none() {
-                result.issues.push(ValidationIssue::new(
-                    IssueSeverity::Error,
-                    "method_compliance".to_string(),
-                    format!(
-                        "Message {}: resources/read missing required 'uri' parameter",
-                        index
-                    ),
-                    "mcp-semantic".to_string(),
-                ));
-            }
+        if let Some(params) = message.get("params")
+            && params.get("uri").is_none()
+        {
+            result.issues.push(ValidationIssue::new(
+                IssueSeverity::Error,
+                "method_compliance".to_string(),
+                format!(
+                    "Message {}: resources/read missing required 'uri' parameter",
+                    index
+                ),
+                "mcp-semantic".to_string(),
+            ));
         }
         Ok(())
     }
@@ -743,18 +743,18 @@ impl McpSemanticValidator {
         }
 
         // Validate name is provided
-        if let Some(params) = message.get("params") {
-            if params.get("name").is_none() {
-                result.issues.push(ValidationIssue::new(
-                    IssueSeverity::Error,
-                    "method_compliance".to_string(),
-                    format!(
-                        "Message {}: prompts/get missing required 'name' parameter",
-                        index
-                    ),
-                    "mcp-semantic".to_string(),
-                ));
-            }
+        if let Some(params) = message.get("params")
+            && params.get("name").is_none()
+        {
+            result.issues.push(ValidationIssue::new(
+                IssueSeverity::Error,
+                "method_compliance".to_string(),
+                format!(
+                    "Message {}: prompts/get missing required 'name' parameter",
+                    index
+                ),
+                "mcp-semantic".to_string(),
+            ));
         }
         Ok(())
     }
@@ -776,17 +776,16 @@ impl McpSemanticValidator {
         result: &mut McpSemanticResult,
     ) -> ValidationResult<()> {
         // Validate log level if provided
-        if let Some(params) = message.get("params") {
-            if let Some(level) = params.get("level").and_then(|l| l.as_str()) {
-                if !matches!(level, "debug" | "info" | "warning" | "error") {
-                    result.issues.push(ValidationIssue::new(
-                        IssueSeverity::Warning,
-                        "method_compliance".to_string(),
-                        format!("Message {}: Invalid logging level '{}'", index, level),
-                        "mcp-semantic".to_string(),
-                    ));
-                }
-            }
+        if let Some(params) = message.get("params")
+            && let Some(level) = params.get("level").and_then(|l| l.as_str())
+            && !matches!(level, "debug" | "info" | "warning" | "error")
+        {
+            result.issues.push(ValidationIssue::new(
+                IssueSeverity::Warning,
+                "method_compliance".to_string(),
+                format!("Message {}: Invalid logging level '{}'", index, level),
+                "mcp-semantic".to_string(),
+            ));
         }
         Ok(())
     }
@@ -867,12 +866,12 @@ impl McpSemanticValidator {
         _index: usize,
         _result: &mut McpSemanticResult,
     ) -> ValidationResult<()> {
-        if let Some(response_result) = message.get("result") {
-            if let Some(tools) = response_result.get("tools").and_then(|t| t.as_array()) {
-                for tool in tools {
-                    if let Some(name) = tool.get("name").and_then(|n| n.as_str()) {
-                        self.available_tools.insert(name.to_string());
-                    }
+        if let Some(response_result) = message.get("result")
+            && let Some(tools) = response_result.get("tools").and_then(|t| t.as_array())
+        {
+            for tool in tools {
+                if let Some(name) = tool.get("name").and_then(|n| n.as_str()) {
+                    self.available_tools.insert(name.to_string());
                 }
             }
         }
@@ -885,12 +884,12 @@ impl McpSemanticValidator {
         _index: usize,
         _result: &mut McpSemanticResult,
     ) -> ValidationResult<()> {
-        if let Some(response_result) = message.get("result") {
-            if let Some(resources) = response_result.get("resources").and_then(|r| r.as_array()) {
-                for resource in resources {
-                    if let Some(uri) = resource.get("uri").and_then(|u| u.as_str()) {
-                        self.available_resources.insert(uri.to_string());
-                    }
+        if let Some(response_result) = message.get("result")
+            && let Some(resources) = response_result.get("resources").and_then(|r| r.as_array())
+        {
+            for resource in resources {
+                if let Some(uri) = resource.get("uri").and_then(|u| u.as_str()) {
+                    self.available_resources.insert(uri.to_string());
                 }
             }
         }
@@ -903,12 +902,12 @@ impl McpSemanticValidator {
         _index: usize,
         _result: &mut McpSemanticResult,
     ) -> ValidationResult<()> {
-        if let Some(response_result) = message.get("result") {
-            if let Some(prompts) = response_result.get("prompts").and_then(|p| p.as_array()) {
-                for prompt in prompts {
-                    if let Some(name) = prompt.get("name").and_then(|n| n.as_str()) {
-                        self.available_prompts.insert(name.to_string());
-                    }
+        if let Some(response_result) = message.get("result")
+            && let Some(prompts) = response_result.get("prompts").and_then(|p| p.as_array())
+        {
+            for prompt in prompts {
+                if let Some(name) = prompt.get("name").and_then(|n| n.as_str()) {
+                    self.available_prompts.insert(name.to_string());
                 }
             }
         }
@@ -943,18 +942,18 @@ impl McpSemanticValidator {
         result: &mut McpSemanticResult,
     ) -> ValidationResult<()> {
         // Validate request ID is provided
-        if let Some(params) = message.get("params") {
-            if params.get("requestId").is_none() {
-                result.issues.push(ValidationIssue::new(
-                    IssueSeverity::Error,
-                    "method_compliance".to_string(),
-                    format!(
-                        "Message {}: cancelled notification missing 'requestId'",
-                        index
-                    ),
-                    "mcp-semantic".to_string(),
-                ));
-            }
+        if let Some(params) = message.get("params")
+            && params.get("requestId").is_none()
+        {
+            result.issues.push(ValidationIssue::new(
+                IssueSeverity::Error,
+                "method_compliance".to_string(),
+                format!(
+                    "Message {}: cancelled notification missing 'requestId'",
+                    index
+                ),
+                "mcp-semantic".to_string(),
+            ));
         }
         Ok(())
     }
@@ -966,18 +965,18 @@ impl McpSemanticValidator {
         result: &mut McpSemanticResult,
     ) -> ValidationResult<()> {
         // Validate progress token and value
-        if let Some(params) = message.get("params") {
-            if params.get("progressToken").is_none() {
-                result.issues.push(ValidationIssue::new(
-                    IssueSeverity::Error,
-                    "method_compliance".to_string(),
-                    format!(
-                        "Message {}: progress notification missing 'progressToken'",
-                        index
-                    ),
-                    "mcp-semantic".to_string(),
-                ));
-            }
+        if let Some(params) = message.get("params")
+            && params.get("progressToken").is_none()
+        {
+            result.issues.push(ValidationIssue::new(
+                IssueSeverity::Error,
+                "method_compliance".to_string(),
+                format!(
+                    "Message {}: progress notification missing 'progressToken'",
+                    index
+                ),
+                "mcp-semantic".to_string(),
+            ));
         }
         Ok(())
     }

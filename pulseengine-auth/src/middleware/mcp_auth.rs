@@ -200,12 +200,11 @@ impl McpAuthMiddleware {
         let mut context = McpRequestContext::new(id);
 
         // Extract client IP if available
-        if let Some(headers) = headers {
-            if let Some(ip_header) = &self.config.client_ip_header {
-                if let Some(client_ip) = headers.get(ip_header) {
-                    context = context.with_client_ip(client_ip.clone());
-                }
-            }
+        if let Some(headers) = headers
+            && let Some(ip_header) = &self.config.client_ip_header
+            && let Some(client_ip) = headers.get(ip_header)
+        {
+            context = context.with_client_ip(client_ip.clone());
         }
 
         // Check if authentication is required for this method
