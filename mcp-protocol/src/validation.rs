@@ -133,18 +133,17 @@ impl Validator {
     /// Returns an error if required arguments are missing from the provided arguments
     pub fn validate_tool_arguments(args: &HashMap<String, Value>, schema: &Value) -> Result<()> {
         // Basic validation - check required properties if defined
-        if let Some(schema_obj) = schema.as_object() {
-            if let Some(_properties) = schema_obj.get("properties").and_then(|p| p.as_object()) {
-                if let Some(required) = schema_obj.get("required").and_then(|r| r.as_array()) {
-                    for req_field in required {
-                        if let Some(field_name) = req_field.as_str() {
-                            if !args.contains_key(field_name) {
-                                return Err(Error::validation_error(format!(
-                                    "Required argument '{field_name}' is missing"
-                                )));
-                            }
-                        }
-                    }
+        if let Some(schema_obj) = schema.as_object()
+            && let Some(_properties) = schema_obj.get("properties").and_then(|p| p.as_object())
+            && let Some(required) = schema_obj.get("required").and_then(|r| r.as_array())
+        {
+            for req_field in required {
+                if let Some(field_name) = req_field.as_str()
+                    && !args.contains_key(field_name)
+                {
+                    return Err(Error::validation_error(format!(
+                        "Required argument '{field_name}' is missing"
+                    )));
                 }
             }
         }

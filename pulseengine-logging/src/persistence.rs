@@ -331,10 +331,10 @@ async fn cleanup_old_files(data_dir: &Path, max_files: usize) -> Result<(), std:
         let entry = entry?;
         let path = entry.path();
 
-        if path.extension().and_then(|s| s.to_str()) == Some("jsonl") {
-            if let Ok(metadata) = entry.metadata() {
-                files.push((path, metadata.modified()?));
-            }
+        if path.extension().and_then(|s| s.to_str()) == Some("jsonl")
+            && let Ok(metadata) = entry.metadata()
+        {
+            files.push((path, metadata.modified()?));
         }
     }
 

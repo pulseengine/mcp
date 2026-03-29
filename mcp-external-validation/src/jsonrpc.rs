@@ -332,15 +332,15 @@ impl JsonRpcValidator {
             }
 
             // Check for empty string IDs
-            if let Some(id_str) = id.as_str() {
-                if id_str.is_empty() {
-                    issues.push(ValidationIssue::new(
-                        IssueSeverity::Warning,
-                        "id_format".to_string(),
-                        format!("Message {}: Empty string ID is not recommended", index),
-                        "jsonrpc-validator".to_string(),
-                    ));
-                }
+            if let Some(id_str) = id.as_str()
+                && id_str.is_empty()
+            {
+                issues.push(ValidationIssue::new(
+                    IssueSeverity::Warning,
+                    "id_format".to_string(),
+                    format!("Message {}: Empty string ID is not recommended", index),
+                    "jsonrpc-validator".to_string(),
+                ));
             }
         }
     }
@@ -352,43 +352,43 @@ impl JsonRpcValidator {
         index: usize,
         issues: &mut Vec<ValidationIssue>,
     ) {
-        if let Some(method) = message.get("method") {
-            if let Some(method_str) = method.as_str() {
-                // Check for reserved method names (starting with rpc.)
-                if method_str.starts_with("rpc.") && !self.is_allowed_rpc_method(method_str) {
-                    issues.push(ValidationIssue::new(
-                        IssueSeverity::Error,
-                        "method_naming".to_string(),
-                        format!(
-                            "Message {}: Method name '{}' is reserved",
-                            index, method_str
-                        ),
-                        "jsonrpc-validator".to_string(),
-                    ));
-                }
+        if let Some(method) = message.get("method")
+            && let Some(method_str) = method.as_str()
+        {
+            // Check for reserved method names (starting with rpc.)
+            if method_str.starts_with("rpc.") && !self.is_allowed_rpc_method(method_str) {
+                issues.push(ValidationIssue::new(
+                    IssueSeverity::Error,
+                    "method_naming".to_string(),
+                    format!(
+                        "Message {}: Method name '{}' is reserved",
+                        index, method_str
+                    ),
+                    "jsonrpc-validator".to_string(),
+                ));
+            }
 
-                // Check for method name conventions
-                if method_str.is_empty() {
-                    issues.push(ValidationIssue::new(
-                        IssueSeverity::Error,
-                        "method_naming".to_string(),
-                        format!("Message {}: Method name cannot be empty", index),
-                        "jsonrpc-validator".to_string(),
-                    ));
-                }
+            // Check for method name conventions
+            if method_str.is_empty() {
+                issues.push(ValidationIssue::new(
+                    IssueSeverity::Error,
+                    "method_naming".to_string(),
+                    format!("Message {}: Method name cannot be empty", index),
+                    "jsonrpc-validator".to_string(),
+                ));
+            }
 
-                // Check for non-ASCII characters
-                if !method_str.is_ascii() {
-                    issues.push(ValidationIssue::new(
-                        IssueSeverity::Warning,
-                        "method_naming".to_string(),
-                        format!(
-                            "Message {}: Method name contains non-ASCII characters",
-                            index
-                        ),
-                        "jsonrpc-validator".to_string(),
-                    ));
-                }
+            // Check for non-ASCII characters
+            if !method_str.is_ascii() {
+                issues.push(ValidationIssue::new(
+                    IssueSeverity::Warning,
+                    "method_naming".to_string(),
+                    format!(
+                        "Message {}: Method name contains non-ASCII characters",
+                        index
+                    ),
+                    "jsonrpc-validator".to_string(),
+                ));
             }
         }
     }
@@ -434,21 +434,21 @@ impl JsonRpcValidator {
 
     /// Check error codes
     fn check_error_codes(&self, message: &Value, index: usize, issues: &mut Vec<ValidationIssue>) {
-        if let Some(error) = message.get("error") {
-            if let Some(error_obj) = error.as_object() {
-                if let Some(code) = error_obj.get("code") {
-                    if let Some(code_num) = code.as_i64() {
-                        if !self.is_valid_error_code(code_num) {
-                            issues.push(ValidationIssue::new(
-                                IssueSeverity::Warning,
-                                "error_codes".to_string(),
-                                format!("Message {}: Error code {} is not a standard JSON-RPC error code", index, code_num),
-                                "jsonrpc-validator".to_string(),
-                            ));
-                        }
-                    }
-                }
-            }
+        if let Some(error) = message.get("error")
+            && let Some(error_obj) = error.as_object()
+            && let Some(code) = error_obj.get("code")
+            && let Some(code_num) = code.as_i64()
+            && !self.is_valid_error_code(code_num)
+        {
+            issues.push(ValidationIssue::new(
+                IssueSeverity::Warning,
+                "error_codes".to_string(),
+                format!(
+                    "Message {}: Error code {} is not a standard JSON-RPC error code",
+                    index, code_num
+                ),
+                "jsonrpc-validator".to_string(),
+            ));
         }
     }
 
@@ -801,10 +801,10 @@ impl JsonRpcValidator {
                         // Parse stdout for JSON-RPC responses
                         let stdout_str = String::from_utf8_lossy(&output.stdout);
                         for line in stdout_str.lines() {
-                            if let Ok(parsed) = serde_json::from_str::<Value>(line) {
-                                if self.is_jsonrpc_message(&parsed) {
-                                    messages.push(parsed);
-                                }
+                            if let Ok(parsed) = serde_json::from_str::<Value>(line)
+                                && self.is_jsonrpc_message(&parsed)
+                            {
+                                messages.push(parsed);
                             }
                         }
                     }
@@ -871,10 +871,10 @@ impl JsonRpcValidator {
             // Send request and collect response
             match client.post(server_url).json(&request).send().await {
                 Ok(response) => {
-                    if response.status().is_success() {
-                        if let Ok(response_json) = response.json::<Value>().await {
-                            messages.push(response_json);
-                        }
+                    if response.status().is_success()
+                        && let Ok(response_json) = response.json::<Value>().await
+                    {
+                        messages.push(response_json);
                     }
                 }
                 Err(_) => {

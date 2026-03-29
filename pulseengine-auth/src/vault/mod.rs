@@ -171,10 +171,10 @@ impl VaultIntegration {
         // Check cache first
         {
             let cache = self.secret_cache.read().await;
-            if let Some((value, timestamp)) = cache.get(name) {
-                if timestamp.elapsed() < self.cache_ttl {
-                    return Ok(value.clone());
-                }
+            if let Some((value, timestamp)) = cache.get(name)
+                && timestamp.elapsed() < self.cache_ttl
+            {
+                return Ok(value.clone());
             }
         }
 

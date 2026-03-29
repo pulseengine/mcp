@@ -35,13 +35,13 @@ pub fn validate_message_string(
     }
 
     // Check message size limit
-    if let Some(max) = max_size {
-        if message.len() > max {
-            return Err(ValidationError::MessageTooLarge {
-                size: message.len(),
-                max,
-            });
-        }
+    if let Some(max) = max_size
+        && message.len() > max
+    {
+        return Err(ValidationError::MessageTooLarge {
+            size: message.len(),
+            max,
+        });
     }
 
     // UTF-8 validation is implicit in Rust strings, but we validate the bytes
@@ -116,12 +116,11 @@ pub fn extract_id_from_malformed(text: &str) -> Option<pulseengine_mcp_protocol:
     use pulseengine_mcp_protocol::NumberOrString;
 
     // Try to parse as JSON object and extract ID
-    if let Ok(value) = serde_json::from_str::<Value>(text) {
-        if let Some(obj) = value.as_object() {
-            if let Some(id) = obj.get("id") {
-                return NumberOrString::from_json_value(id.clone());
-            }
-        }
+    if let Ok(value) = serde_json::from_str::<Value>(text)
+        && let Some(obj) = value.as_object()
+        && let Some(id) = obj.get("id")
+    {
+        return NumberOrString::from_json_value(id.clone());
     }
 
     // Try regex-based extraction as fallback
@@ -169,25 +168,24 @@ fn extract_id_with_regex(text: &str) -> Option<Value> {
     ];
 
     for pattern in &patterns {
-        if let Ok(re) = Regex::new(pattern) {
-            if let Some(captures) = re.captures(text) {
-                if let Some(id_str) = captures.get(1) {
-                    let id_text = id_str.as_str();
+        if let Ok(re) = Regex::new(pattern)
+            && let Some(captures) = re.captures(text)
+            && let Some(id_str) = captures.get(1)
+        {
+            let id_text = id_str.as_str();
 
-                    // Try to parse as number first
-                    if let Ok(num) = id_text.parse::<i64>() {
-                        return Some(Value::Number(num.into()));
-                    }
-
-                    // Check for null
-                    if id_text == "null" {
-                        return Some(Value::Null);
-                    }
-
-                    // Default to string
-                    return Some(Value::String(id_text.to_string()));
-                }
+            // Try to parse as number first
+            if let Ok(num) = id_text.parse::<i64>() {
+                return Some(Value::Number(num.into()));
             }
+
+            // Check for null
+            if id_text == "null" {
+                return Some(Value::Null);
+            }
+
+            // Default to string
+            return Some(Value::String(id_text.to_string()));
         }
     }
 

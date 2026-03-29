@@ -195,13 +195,12 @@ mod tests {
             .await;
 
         // If validation passes, sanitize the input
-        if validation_result.is_ok() {
-            if let Some(args) = params.get("arguments") {
-                if let Some(input) = args.get("input").and_then(|v| v.as_str()) {
-                    let sanitized = sanitizer.sanitize_string(input);
-                    assert!(sanitized != input || sanitized.is_empty());
-                }
-            }
+        if validation_result.is_ok()
+            && let Some(args) = params.get("arguments")
+            && let Some(input) = args.get("input").and_then(|v| v.as_str())
+        {
+            let sanitized = sanitizer.sanitize_string(input);
+            assert!(sanitized != input || sanitized.is_empty());
         }
         // If validation fails, that's also acceptable for strict config
     }

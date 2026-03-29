@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! Integration tests for CLI and server interaction
 
 use crate::test_utils::*;

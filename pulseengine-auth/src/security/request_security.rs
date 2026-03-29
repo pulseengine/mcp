@@ -672,25 +672,25 @@ impl RequestSecurityValidator {
         }
 
         // Apply method-specific restrictions based on user role
-        if let Some(restricted_methods) = self.get_restricted_methods_for_user(auth_context) {
-            if restricted_methods.iter().any(|m| m == method) {
-                self.log_violation(SecurityViolation {
-                    violation_type: SecurityViolationType::UnauthorizedMethod,
-                    severity: SecuritySeverity::Critical,
-                    description: format!(
-                        "User {} attempted to access restricted method: {}",
-                        auth_context.user_id.as_deref().unwrap_or("unknown"),
-                        method
-                    ),
-                    field: Some("method".to_string()),
-                    value: Some(method.to_string()),
-                    timestamp: chrono::Utc::now(),
-                });
+        if let Some(restricted_methods) = self.get_restricted_methods_for_user(auth_context)
+            && restricted_methods.iter().any(|m| m == method)
+        {
+            self.log_violation(SecurityViolation {
+                violation_type: SecurityViolationType::UnauthorizedMethod,
+                severity: SecuritySeverity::Critical,
+                description: format!(
+                    "User {} attempted to access restricted method: {}",
+                    auth_context.user_id.as_deref().unwrap_or("unknown"),
+                    method
+                ),
+                field: Some("method".to_string()),
+                value: Some(method.to_string()),
+                timestamp: chrono::Utc::now(),
+            });
 
-                return Err(SecurityValidationError::UnsupportedMethod {
-                    method: method.to_string(),
-                });
-            }
+            return Err(SecurityValidationError::UnsupportedMethod {
+                method: method.to_string(),
+            });
         }
 
         // Apply enhanced injection detection for anonymous users

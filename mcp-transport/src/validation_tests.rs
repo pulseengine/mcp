@@ -86,8 +86,7 @@ mod tests {
             // Note: Rust's String type actually ensures valid UTF-8,
             // so this test may pass. In practice, invalid UTF-8 would
             // come from external sources (network, files, etc.)
-            if result.is_err() {
-                let error = result.unwrap_err();
+            if let Err(error) = result {
                 assert!(error.to_string().contains("not valid UTF-8"));
             }
         }

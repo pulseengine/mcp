@@ -445,23 +445,22 @@ impl ConsentManager {
         let subject_prefix = format!("consent:{subject_id}:");
 
         for key in all_keys {
-            if key.starts_with(&subject_prefix) {
-                if let Ok(consent_data) = self.storage.get(&key).await {
-                    if let Ok(record) = serde_json::from_str::<ConsentRecord>(&consent_data) {
-                        consents.insert(record.consent_type.clone(), record.status.clone());
+            if key.starts_with(&subject_prefix)
+                && let Ok(consent_data) = self.storage.get(&key).await
+                && let Ok(record) = serde_json::from_str::<ConsentRecord>(&consent_data)
+            {
+                consents.insert(record.consent_type.clone(), record.status.clone());
 
-                        if record.status == ConsentStatus::Pending {
-                            pending_requests += 1;
-                        }
+                if record.status == ConsentStatus::Pending {
+                    pending_requests += 1;
+                }
 
-                        if record.is_expired() {
-                            expired_consents += 1;
-                        }
+                if record.is_expired() {
+                    expired_consents += 1;
+                }
 
-                        if record.updated_at > last_updated {
-                            last_updated = record.updated_at;
-                        }
-                    }
+                if record.updated_at > last_updated {
+                    last_updated = record.updated_at;
                 }
             }
         }
@@ -493,26 +492,25 @@ impl ConsentManager {
             .map_err(|e| ConsentError::StorageError(e.to_string()))?;
 
         for key in all_keys {
-            if key.starts_with("consent:") {
-                if let Ok(consent_data) = self.storage.get(&key).await {
-                    if let Ok(record) = serde_json::from_str::<ConsentRecord>(&consent_data) {
-                        if record.is_expired() && record.updated_at < cutoff_date {
-                            self.storage
-                                .delete(&key)
-                                .await
-                                .map_err(|e| ConsentError::StorageError(e.to_string()))?;
+            if key.starts_with("consent:")
+                && let Ok(consent_data) = self.storage.get(&key).await
+                && let Ok(record) = serde_json::from_str::<ConsentRecord>(&consent_data)
+                && record.is_expired()
+                && record.updated_at < cutoff_date
+            {
+                self.storage
+                    .delete(&key)
+                    .await
+                    .map_err(|e| ConsentError::StorageError(e.to_string()))?;
 
-                            // Remove from cache
-                            {
-                                let mut cache = self.consent_cache.write().await;
-                                cache.remove(&record.id);
-                            }
-
-                            cleaned_count += 1;
-                            debug!("Cleaned up expired consent record: {}", record.id);
-                        }
-                    }
+                // Remove from cache
+                {
+                    let mut cache = self.consent_cache.write().await;
+                    cache.remove(&record.id);
                 }
+
+                cleaned_count += 1;
+                debug!("Cleaned up expired consent record: {}", record.id);
             }
         }
 

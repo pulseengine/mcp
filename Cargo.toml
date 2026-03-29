@@ -26,7 +26,7 @@ resolver = "2"
 
 [workspace.package]
 version = "0.17.0"
-rust-version = "1.88"
+rust-version = "1.89"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 authors = ["PulseEngine Contributors"]

@@ -216,25 +216,25 @@ impl CrossLanguageTester {
         let python_commands = ["python3", "python"];
 
         for cmd in &python_commands {
-            if let Ok(output) = Command::new(cmd).arg("--version").output() {
-                if output.status.success() {
-                    let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if let Ok(output) = Command::new(cmd).arg("--version").output()
+                && output.status.success()
+            {
+                let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
 
-                    // Check if MCP package is available
-                    let sdk_check = Command::new(cmd)
-                        .args(&["-c", "import mcp; print('available')"])
-                        .output();
+                // Check if MCP package is available
+                let sdk_check = Command::new(cmd)
+                    .args(&["-c", "import mcp; print('available')"])
+                    .output();
 
-                    let sdk_available = sdk_check.map(|o| o.status.success()).unwrap_or(false);
+                let sdk_available = sdk_check.map(|o| o.status.success()).unwrap_or(false);
 
-                    return Ok(LanguageRuntime {
-                        language: Language::Python,
-                        executable: cmd.to_string(),
-                        version,
-                        sdk_available,
-                        test_scripts_dir: Some(std::env::temp_dir().join("mcp_python_cross_tests")),
-                    });
-                }
+                return Ok(LanguageRuntime {
+                    language: Language::Python,
+                    executable: cmd.to_string(),
+                    version,
+                    sdk_available,
+                    test_scripts_dir: Some(std::env::temp_dir().join("mcp_python_cross_tests")),
+                });
             }
         }
 
@@ -828,17 +828,17 @@ async function testMcpCrossLanguage(serverUrl, protocolVersion) {{
             if needs_setup {
                 match language {
                     Language::Python => {
-                        if let Some(runtime) = self.available_languages.get_mut(&language) {
-                            if let Err(e) = Self::setup_python_environment(runtime).await {
-                                warn!("Failed to setup Python environment: {}", e);
-                            }
+                        if let Some(runtime) = self.available_languages.get_mut(&language)
+                            && let Err(e) = Self::setup_python_environment(runtime).await
+                        {
+                            warn!("Failed to setup Python environment: {}", e);
                         }
                     }
                     Language::JavaScript | Language::TypeScript => {
-                        if let Some(runtime) = self.available_languages.get_mut(&language) {
-                            if let Err(e) = Self::setup_javascript_environment(runtime).await {
-                                warn!("Failed to setup JavaScript environment: {}", e);
-                            }
+                        if let Some(runtime) = self.available_languages.get_mut(&language)
+                            && let Err(e) = Self::setup_javascript_environment(runtime).await
+                        {
+                            warn!("Failed to setup JavaScript environment: {}", e);
                         }
                     }
                     _ => {

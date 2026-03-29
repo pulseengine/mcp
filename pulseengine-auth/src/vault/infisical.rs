@@ -327,10 +327,10 @@ impl VaultClient for InfisicalClient {
         let mut tags = HashMap::new();
 
         // Include secret comment as a tag if present
-        if let Some(comment) = &secret.secret_comment {
-            if !comment.is_empty() {
-                tags.insert("comment".to_string(), comment.clone());
-            }
+        if let Some(comment) = &secret.secret_comment
+            && !comment.is_empty()
+        {
+            tags.insert("comment".to_string(), comment.clone());
         }
 
         // Include version as a tag if present
@@ -639,10 +639,10 @@ impl InfisicalClient {
         let mut tags = HashMap::new();
 
         // Include secret comment as a tag if present
-        if let Some(comment) = &secret.secret_comment {
-            if !comment.is_empty() {
-                tags.insert("comment".to_string(), comment.clone());
-            }
+        if let Some(comment) = &secret.secret_comment
+            && !comment.is_empty()
+        {
+            tags.insert("comment".to_string(), comment.clone());
         }
 
         // Include version as a tag
@@ -672,10 +672,10 @@ impl InfisicalClient {
         // Try to get the current secret and extract version info
         match self.get_secret_with_metadata(name).await {
             Ok((_, metadata)) => {
-                if let Some(version_str) = metadata.version {
-                    if let Ok(version) = version_str.parse::<u32>() {
-                        return Ok(vec![version]);
-                    }
+                if let Some(version_str) = metadata.version
+                    && let Ok(version) = version_str.parse::<u32>()
+                {
+                    return Ok(vec![version]);
                 }
                 Ok(vec![1]) // Default to version 1 if no version info
             }

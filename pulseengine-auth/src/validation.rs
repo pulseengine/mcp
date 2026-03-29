@@ -46,10 +46,10 @@ pub fn extract_client_ip(headers: &HashMap<String, String>) -> String {
 /// Helper function to extract API key from request headers or query parameters
 pub fn extract_api_key(headers: &HashMap<String, String>, query: Option<&str>) -> Option<String> {
     // Try Authorization header with Bearer token
-    if let Some(auth_header) = headers.get("authorization") {
-        if let Some(token) = auth_header.strip_prefix("Bearer ") {
-            return Some(token.to_string());
-        }
+    if let Some(auth_header) = headers.get("authorization")
+        && let Some(token) = auth_header.strip_prefix("Bearer ")
+    {
+        return Some(token.to_string());
     }
 
     // Try X-API-Key header
@@ -60,10 +60,10 @@ pub fn extract_api_key(headers: &HashMap<String, String>, query: Option<&str>) -
     // Try query parameter
     if let Some(query_string) = query {
         for param in query_string.split('&') {
-            if let Some((key, value)) = param.split_once('=') {
-                if key == "api_key" {
-                    return Some(urlencoding::decode(value).unwrap_or_default().to_string());
-                }
+            if let Some((key, value)) = param.split_once('=')
+                && key == "api_key"
+            {
+                return Some(urlencoding::decode(value).unwrap_or_default().to_string());
             }
         }
     }

@@ -52,34 +52,33 @@ impl SecurityMiddleware {
         }
 
         // Try API key authentication first
-        if let Some(ref validator) = self.api_key_validator {
-            if let Some(api_key) = extract_api_key(headers) {
-                match validator.validate_api_key(&api_key) {
-                    Ok(user_id) => {
-                        let auth_context = AuthContext::new(user_id)
-                            .with_api_key(api_key)
-                            .with_role("api_user");
-                        return Ok(Some(auth_context));
-                    }
-                    Err(e) => {
-                        debug!("API key validation failed: {}", e);
-                    }
+        if let Some(ref validator) = self.api_key_validator
+            && let Some(api_key) = extract_api_key(headers)
+        {
+            match validator.validate_api_key(&api_key) {
+                Ok(user_id) => {
+                    let auth_context = AuthContext::new(user_id)
+                        .with_api_key(api_key)
+                        .with_role("api_user");
+                    return Ok(Some(auth_context));
+                }
+                Err(e) => {
+                    debug!("API key validation failed: {}", e);
                 }
             }
         }
 
         // Try JWT token authentication
-        if let Some(ref validator) = self.token_validator {
-            if let Some(token) = extract_bearer_token(headers) {
-                match validator.validate_token(&token) {
-                    Ok(claims) => {
-                        let auth_context =
-                            AuthContext::new(claims.sub.clone()).with_jwt_claims(claims);
-                        return Ok(Some(auth_context));
-                    }
-                    Err(e) => {
-                        debug!("JWT validation failed: {}", e);
-                    }
+        if let Some(ref validator) = self.token_validator
+            && let Some(token) = extract_bearer_token(headers)
+        {
+            match validator.validate_token(&token) {
+                Ok(claims) => {
+                    let auth_context = AuthContext::new(claims.sub.clone()).with_jwt_claims(claims);
+                    return Ok(Some(auth_context));
+                }
+                Err(e) => {
+                    debug!("JWT validation failed: {}", e);
                 }
             }
         }
@@ -202,24 +201,24 @@ pub struct RequestId(pub String);
 /// Extract API key from request headers
 fn extract_api_key(headers: &HeaderMap) -> Option<String> {
     // Try Authorization header first
-    if let Some(auth_header) = headers.get("authorization") {
-        if let Ok(auth_str) = auth_header.to_str() {
-            if let Some(key) = auth_str.strip_prefix("ApiKey ") {
-                return Some(key.to_string());
-            }
-            if let Some(key) = auth_str.strip_prefix("Bearer ") {
-                if key.starts_with("mcp_") {
-                    return Some(key.to_string());
-                }
-            }
+    if let Some(auth_header) = headers.get("authorization")
+        && let Ok(auth_str) = auth_header.to_str()
+    {
+        if let Some(key) = auth_str.strip_prefix("ApiKey ") {
+            return Some(key.to_string());
+        }
+        if let Some(key) = auth_str.strip_prefix("Bearer ")
+            && key.starts_with("mcp_")
+        {
+            return Some(key.to_string());
         }
     }
 
     // Try X-API-Key header
-    if let Some(key_header) = headers.get("x-api-key") {
-        if let Ok(key_str) = key_header.to_str() {
-            return Some(key_str.to_string());
-        }
+    if let Some(key_header) = headers.get("x-api-key")
+        && let Ok(key_str) = key_header.to_str()
+    {
+        return Some(key_str.to_string());
     }
 
     None
@@ -227,14 +226,13 @@ fn extract_api_key(headers: &HeaderMap) -> Option<String> {
 
 /// Extract Bearer token from request headers
 fn extract_bearer_token(headers: &HeaderMap) -> Option<String> {
-    if let Some(auth_header) = headers.get("authorization") {
-        if let Ok(auth_str) = auth_header.to_str() {
-            if let Some(token) = auth_str.strip_prefix("Bearer ") {
-                // Make sure it's not an API key
-                if !token.starts_with("mcp_") {
-                    return Some(token.to_string());
-                }
-            }
+    if let Some(auth_header) = headers.get("authorization")
+        && let Ok(auth_str) = auth_header.to_str()
+        && let Some(token) = auth_str.strip_prefix("Bearer ")
+    {
+        // Make sure it's not an API key
+        if !token.starts_with("mcp_") {
+            return Some(token.to_string());
         }
     }
 
@@ -246,18 +244,17 @@ fn extract_client_id(request: &Request) -> String {
     // Try to get client IP from headers (proxy headers)
     let headers = request.headers();
 
-    if let Some(forwarded_for) = headers.get("x-forwarded-for") {
-        if let Ok(ip_str) = forwarded_for.to_str() {
-            if let Some(first_ip) = ip_str.split(',').next() {
-                return first_ip.trim().to_string();
-            }
-        }
+    if let Some(forwarded_for) = headers.get("x-forwarded-for")
+        && let Ok(ip_str) = forwarded_for.to_str()
+        && let Some(first_ip) = ip_str.split(',').next()
+    {
+        return first_ip.trim().to_string();
     }
 
-    if let Some(real_ip) = headers.get("x-real-ip") {
-        if let Ok(ip_str) = real_ip.to_str() {
-            return ip_str.to_string();
-        }
+    if let Some(real_ip) = headers.get("x-real-ip")
+        && let Ok(ip_str) = real_ip.to_str()
+    {
+        return ip_str.to_string();
     }
 
     // Fallback to connection info (if available)
@@ -275,25 +272,24 @@ fn is_https_request(request: &Request) -> bool {
     // Check forwarded protocol headers (common in proxy setups)
     let headers = request.headers();
 
-    if let Some(forwarded_proto) = headers.get("x-forwarded-proto") {
-        if let Ok(proto_str) = forwarded_proto.to_str() {
-            return proto_str.to_lowercase() == "https";
-        }
+    if let Some(forwarded_proto) = headers.get("x-forwarded-proto")
+        && let Ok(proto_str) = forwarded_proto.to_str()
+    {
+        return proto_str.to_lowercase() == "https";
     }
 
-    if let Some(forwarded_ssl) = headers.get("x-forwarded-ssl") {
-        if let Ok(ssl_str) = forwarded_ssl.to_str() {
-            return ssl_str.to_lowercase() == "on";
-        }
+    if let Some(forwarded_ssl) = headers.get("x-forwarded-ssl")
+        && let Ok(ssl_str) = forwarded_ssl.to_str()
+    {
+        return ssl_str.to_lowercase() == "on";
     }
 
     // For development, assume localhost connections are acceptable
-    if let Some(host) = headers.get("host") {
-        if let Ok(host_str) = host.to_str() {
-            if host_str.starts_with("localhost") || host_str.starts_with("127.0.0.1") {
-                return true;
-            }
-        }
+    if let Some(host) = headers.get("host")
+        && let Ok(host_str) = host.to_str()
+        && (host_str.starts_with("localhost") || host_str.starts_with("127.0.0.1"))
+    {
+        return true;
     }
 
     false
