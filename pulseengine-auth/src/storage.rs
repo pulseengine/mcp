@@ -451,27 +451,26 @@ impl FileStorage {
                     match inotify.read_events_blocking(&mut buffer) {
                         Ok(events) => {
                             for event in events {
-                                if let Some(name) = event.name {
-                                    if name.to_string_lossy().contains("keys") {
-                                        warn!(
-                                            "Detected unauthorized change to auth storage: {:?} (mask: {:?})",
-                                            name, event.mask
-                                        );
+                                if let Some(name) = event.name
+                                    && name.to_string_lossy().contains("keys")
+                                {
+                                    warn!(
+                                        "Detected unauthorized change to auth storage: {:?} (mask: {:?})",
+                                        name, event.mask
+                                    );
 
-                                        // Verify file permissions haven't been changed
-                                        if path.exists() {
-                                            #[cfg(unix)]
-                                            {
-                                                use std::os::unix::fs::PermissionsExt;
-                                                if let Ok(metadata) = std::fs::metadata(&path) {
-                                                    let mode =
-                                                        metadata.permissions().mode() & 0o777;
-                                                    if mode != file_permissions {
-                                                        error!(
-                                                            "Security violation: File permissions changed from {:o} to {:o}",
-                                                            file_permissions, mode
-                                                        );
-                                                    }
+                                    // Verify file permissions haven't been changed
+                                    if path.exists() {
+                                        #[cfg(unix)]
+                                        {
+                                            use std::os::unix::fs::PermissionsExt;
+                                            if let Ok(metadata) = std::fs::metadata(&path) {
+                                                let mode = metadata.permissions().mode() & 0o777;
+                                                if mode != file_permissions {
+                                                    error!(
+                                                        "Security violation: File permissions changed from {:o} to {:o}",
+                                                        file_permissions, mode
+                                                    );
                                                 }
                                             }
                                         }
