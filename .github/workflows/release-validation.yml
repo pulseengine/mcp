@@ -20,7 +20,7 @@ permissions:
 jobs:
   validate-release:
     name: Validate Release
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, rust-cpu]
 
     steps:
       - name: Checkout code
@@ -118,6 +118,7 @@ jobs:
 
   cross-platform-validation:
     name: Cross-Platform Release Validation
+    # Stays on ubuntu-latest/macos-latest/windows-latest: matrix spans macOS + Windows; smithy is Linux-only.
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
