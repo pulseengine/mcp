@@ -14,6 +14,7 @@ env:
 jobs:
   build-validation-image:
     name: Build Validation Docker Image
+    # Stays on ubuntu-latest: docker buildx + GHCR push; smithy's podman-docker shim is untested for this.
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -68,6 +69,7 @@ jobs:
   validate-in-container:
     name: Run Validation in Container
     needs: build-validation-image
+    # Stays on ubuntu-latest: pulls + runs a container image; smithy podman-docker shim is untested.
     runs-on: ubuntu-latest
     if: success()
 
@@ -102,7 +104,7 @@ jobs:
 
   multi-version-testing:
     name: Multi-Version Protocol Testing
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, rust-cpu]
     strategy:
       matrix:
         protocol_version: ["2024-11-05", "2025-03-26"]

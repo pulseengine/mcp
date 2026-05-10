@@ -21,7 +21,7 @@ env:
 jobs:
   changes:
     name: Detect Changes
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, light]
     outputs:
       validation: ${{ steps.filter.outputs.validation }}
       core: ${{ steps.filter.outputs.core }}
@@ -40,7 +40,7 @@ jobs:
 
   quick-validation:
     name: Quick PR Validation
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, rust-cpu]
     needs: changes
 
     steps:
@@ -62,6 +62,8 @@ jobs:
           echo "Rustfmt version: $(cargo fmt --version)"
 
       - name: Free up disk space
+        # Only needed on github-hosted; smithy redirects TMPDIR to a 500G volume.
+        if: runner.environment == 'github-hosted'
         run: |
           # Remove unnecessary tools and files to free up ~10GB
           sudo rm -rf /usr/share/dotnet
@@ -142,7 +144,7 @@ jobs:
 
   validation-specific-tests:
     name: Validation Framework Tests
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, rust-cpu]
     needs: changes
     if: needs.changes.outputs.validation == 'true'
 
@@ -180,7 +182,7 @@ jobs:
 
   compatibility-check:
     name: Compatibility Check
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, rust-cpu]
     needs: changes
     if: needs.changes.outputs.core == 'true'
 
@@ -205,7 +207,7 @@ jobs:
 
   pr-report:
     name: Generate PR Report
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, light]
     needs: [quick-validation, validation-specific-tests, compatibility-check]
     if: always()
 

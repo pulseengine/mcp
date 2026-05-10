@@ -26,7 +26,7 @@ permissions:
 jobs:
   validate-external-servers:
     name: Validate External MCP Servers
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, rust-cpu]
 
     steps:
       - name: Checkout code
@@ -148,7 +148,7 @@ jobs:
 
   update-compatibility-matrix:
     name: Update Compatibility Matrix
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, light]
     needs: validate-external-servers
 
     steps:

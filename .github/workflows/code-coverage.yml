@@ -23,7 +23,7 @@ env:
 jobs:
   coverage:
     name: Code Coverage
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, rust-cpu]
     permissions:
       contents: read
       pull-requests: write
@@ -49,6 +49,8 @@ jobs:
         uses: taiki-e/install-action@cargo-llvm-cov
 
       - name: Free up disk space
+        # Only needed on github-hosted; smithy redirects TMPDIR to a 500G volume.
+        if: runner.environment == 'github-hosted'
         run: |
           # Remove unnecessary tools and files to free up ~10GB
           sudo rm -rf /usr/share/dotnet

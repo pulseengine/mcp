@@ -33,7 +33,7 @@ jobs:
   # Fast validation for PRs - Ubuntu only
   validate-framework-fast:
     name: Fast Framework Validation
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, rust-cpu]
     timeout-minutes: 25
     if: github.event_name == 'pull_request'
 
@@ -86,6 +86,7 @@ jobs:
   # Full cross-platform validation for main branch and scheduled runs
   validate-framework:
     name: Full Framework Validation
+    # Stays on ubuntu-latest/macos-latest/windows-latest: matrix spans macOS + Windows; smithy is Linux-only.
     runs-on: ${{ matrix.os }}
     timeout-minutes: 35
     if: github.event_name != 'pull_request'
@@ -270,7 +271,7 @@ jobs:
 
   stdio-integration-tests:
     name: Stdio + Inspector Integration Tests
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, rust-cpu]
     timeout-minutes: 20
     if: github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
 
@@ -354,7 +355,7 @@ jobs:
 
   python-sdk-compatibility:
     name: Python SDK Compatibility
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, rust-cpu]
     timeout-minutes: 15
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
 
@@ -392,7 +393,7 @@ jobs:
 
   external-validator-integration:
     name: External Validator Integration
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, rust-cpu]
     timeout-minutes: 20
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
 
@@ -432,6 +433,8 @@ jobs:
 
   security-validation:
     name: Security Validation
+    # Stays on ubuntu-latest: runs cargo audit; smithy's pinned cargo-audit (0.21.x) rejects CVSS 4.0
+    # advisories (e.g. RUSTSEC-2026-0037). Move once smithy bumps cargo-audit to >=0.22.1.
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
@@ -461,7 +464,7 @@ jobs:
 
   benchmark-validation:
     name: Performance Benchmarks
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, rust-cpu]
     timeout-minutes: 25
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
