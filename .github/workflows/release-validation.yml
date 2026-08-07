@@ -55,7 +55,7 @@ jobs:
           cargo tarpaulin --out Xml --all-features --package pulseengine-mcp-external-validation
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v7
         with:
           files: ./cobertura.xml
           flags: validation
