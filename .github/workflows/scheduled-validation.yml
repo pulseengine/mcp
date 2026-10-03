@@ -191,7 +191,7 @@ jobs:
           fi
 
       - name: Commit compatibility matrix
-        uses: EndBug/add-and-commit@v9
+        uses: EndBug/add-and-commit@v10
         with:
           add: "COMPATIBILITY.md"
           message: "Update compatibility matrix [skip ci]"
