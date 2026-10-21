@@ -2247,7 +2247,7 @@ dependencies = [
  "keyring",
  "libc",
  "pbkdf2",
- "rand 0.8.5",
+ "rand 0.10.0",
  "regex",
  "reqwest 0.11.27",
  "serde",
@@ -2358,7 +2358,7 @@ dependencies = [
  "pulseengine-mcp-security",
  "pulseengine-mcp-server",
  "pulseengine-mcp-transport",
- "rand 0.8.5",
+ "rand 0.10.0",
  "reqwest 0.11.27",
  "serde",
  "serde_json",
@@ -2431,7 +2431,7 @@ dependencies = [
  "axum",
  "chrono",
  "pulseengine-mcp-protocol",
- "rand 0.8.5",
+ "rand 0.10.0",
  "serde",
  "serde_json",
  "thiserror 2.0.12",
@@ -2516,7 +2516,7 @@ dependencies = [
  "jsonwebtoken",
  "keyring",
  "once_cell",
- "rand 0.8.5",
+ "rand 0.10.0",
  "serde",
  "serde_json",
  "serial_test",
@@ -2561,9 +2561,9 @@ checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
 
 [[package]]
 name = "rand"
-version = "0.8.5"
+version = "0.8.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34af8d1a0e25924bc5b7c43c079c942339d8f0a8b57c39049bef581b46327404"
+checksum = "22f6172bdec972074665ed81ed53b71da00bfc44b65a753cfde883ec4c702a1a"
 dependencies = [
  "libc",
  "rand_chacha 0.3.1",
@@ -2919,7 +2919,7 @@ dependencies = [
  "http 0.2.12",
  "mime",
  "mime_guess",
- "rand 0.8.5",
+ "rand 0.8.7",
  "thiserror 1.0.69",
 ]
 
@@ -3912,7 +3912,7 @@ dependencies = [
  "http 0.2.12",
  "httparse",
  "log",
- "rand 0.8.5",
+ "rand 0.8.7",
  "rustls",
  "sha1",
  "thiserror 1.0.69",
@@ -3932,7 +3932,7 @@ dependencies = [
  "http 1.3.1",
  "httparse",
  "log",
- "rand 0.8.5",
+ "rand 0.8.7",
  "sha1",
  "thiserror 1.0.69",
  "utf-8",
