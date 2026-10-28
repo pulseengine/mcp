@@ -23,17 +23,20 @@ env:
 jobs:
   coverage:
     name: Code Coverage
-    runs-on: [self-hosted, linux, x64, rust-cpu]
+    # Routes fork PRs to GitHub-hosted runners by default. This is NOT a security
+    # boundary: a fork PR can edit this file. Isolation is enforced by the org's
+    # smithy runner-group policy and fork-PR approval (pulseengine/warte#35).
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || fromJSON('["self-hosted","linux","x64","rust-cpu"]') }}
     permissions:
       contents: read
       pull-requests: write
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@1.88
+        uses: dtolnay/rust-toolchain@360a4e93673de6630fac2478bc9e35244b01a759 # 1.88
         with:
           components: llvm-tools-preview
 
@@ -46,7 +49,7 @@ jobs:
           echo "LLVM tools: $(rustc --print sysroot)/lib/rustlib/x86_64-unknown-linux-gnu/bin/"
 
       - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@cargo-llvm-cov
+        uses: taiki-e/install-action@2409e52fd2fc8a8601d0d900fab9d85ae1fe714a # cargo-llvm-cov
 
       - name: Free up disk space
         # Only needed on github-hosted; smithy redirects TMPDIR to a 500G volume.
@@ -60,7 +63,7 @@ jobs:
           df -h
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             ~/.cargo/registry
@@ -90,8 +93,9 @@ jobs:
           # Merge coverage files
           cargo llvm-cov report --lcov --output-path lcov-merged.info
 
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v7
+      - if: github.event.pull_request.head.repo.fork != true
+        name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           files: lcov-merged.info
           flags: unittests
@@ -141,7 +145,7 @@ jobs:
 
       - name: Post coverage comment
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         with:
           script: |
             const coverage = process.env.COVERAGE_PERCENT;
@@ -193,7 +197,7 @@ jobs:
             }
 
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage-report
           path: |

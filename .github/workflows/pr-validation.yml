@@ -21,7 +21,10 @@ env:
 jobs:
   changes:
     name: Detect Changes
-    runs-on: [self-hosted, linux, x64, light]
+    # Routes fork PRs to GitHub-hosted runners by default. This is NOT a security
+    # boundary: a fork PR can edit this file. Isolation is enforced by the org's
+    # smithy runner-group policy and fork-PR approval (pulseengine/warte#35).
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || fromJSON('["self-hosted","linux","x64","light"]') }}
     outputs:
       validation: ${{ steps.filter.outputs.validation }}
       core: ${{ steps.filter.outputs.core }}
@@ -40,7 +43,7 @@ jobs:
 
   quick-validation:
     name: Quick PR Validation
-    runs-on: [self-hosted, linux, x64, rust-cpu]
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || fromJSON('["self-hosted","linux","x64","rust-cpu"]') }}
     needs: changes
 
     steps:
@@ -144,7 +147,7 @@ jobs:
 
   validation-specific-tests:
     name: Validation Framework Tests
-    runs-on: [self-hosted, linux, x64, rust-cpu]
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || fromJSON('["self-hosted","linux","x64","rust-cpu"]') }}
     needs: changes
     if: needs.changes.outputs.validation == 'true'
 
@@ -182,7 +185,7 @@ jobs:
 
   compatibility-check:
     name: Compatibility Check
-    runs-on: [self-hosted, linux, x64, rust-cpu]
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || fromJSON('["self-hosted","linux","x64","rust-cpu"]') }}
     needs: changes
     if: needs.changes.outputs.core == 'true'
 
@@ -207,7 +210,7 @@ jobs:
 
   pr-report:
     name: Generate PR Report
-    runs-on: [self-hosted, linux, x64, light]
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || fromJSON('["self-hosted","linux","x64","light"]') }}
     needs: [quick-validation, validation-specific-tests, compatibility-check]
     if: always()
 
