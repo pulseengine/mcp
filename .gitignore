@@ -52,3 +52,6 @@ conformance-tests/results/
 
 # Local test configs
 test-config.json
+
+# Per-user agent settings (local permissions); never committed.
+.claude/settings.local.json
