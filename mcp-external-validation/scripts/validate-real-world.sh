@@ -36,13 +36,15 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Known MCP server implementations for testing
-declare -A MCP_SERVERS=(
-    ["anthropic/mcp-server-sqlite"]="https://github.com/anthropic/mcp-server-sqlite"
-    ["anthropic/mcp-server-filesystem"]="https://github.com/anthropic/mcp-server-filesystem"
-    ["anthropic/mcp-server-git"]="https://github.com/anthropic/mcp-server-git"
-    ["modelcontextprotocol/python-sdk"]="https://github.com/modelcontextprotocol/python-sdk"
-    ["modelcontextprotocol/typescript-sdk"]="https://github.com/modelcontextprotocol/typescript-sdk"
+# Known MCP server implementations for testing, as GitHub owner/repo. A plain
+# array, not `declare -A`: this is #!/bin/bash, which on macOS is bash 3.2 (no
+# associative arrays), and every URL was https://github.com/<key> anyway.
+MCP_SERVERS=(
+    "anthropic/mcp-server-sqlite"
+    "anthropic/mcp-server-filesystem"
+    "anthropic/mcp-server-git"
+    "modelcontextprotocol/python-sdk"
+    "modelcontextprotocol/typescript-sdk"
 )
 
 # Create results directory
@@ -70,7 +72,8 @@ validate_server() {
 
     # Clone and set up the server if it's a GitHub repository
     if [[ "$server_url" == https://github.com/* ]]; then
-        local repo_dir="/tmp/mcp_validation_$(basename "$server_url")"
+        local repo_dir
+        repo_dir="/tmp/mcp_validation_$(basename "$server_url")"
 
         log_info "Cloning $server_url to $repo_dir"
         if git clone --depth 1 "$server_url" "$repo_dir" 2>/dev/null; then
@@ -275,7 +278,8 @@ test_public_endpoints() {
     fi
 
     for endpoint in "${public_endpoints[@]}"; do
-        local endpoint_name=$(echo "$endpoint" | sed 's|https\?://||' | sed 's|/.*||' | tr '.' '_')
+        local endpoint_name
+        endpoint_name=$(echo "$endpoint" | sed 's|https\?://||' | sed 's|/.*||' | tr '.' '_')
         local result_file="$RESULTS_DIR/public_${endpoint_name}_${TIMESTAMP}.json"
 
         log_info "Testing public endpoint: $endpoint"
@@ -314,8 +318,11 @@ EOF
         if [ -f "$result_file" ]; then
             total_tests=$((total_tests + 1))
 
-            local server_name=$(basename "$result_file" | sed "s/_${TIMESTAMP}.json$//" | tr '_' '/')
-            local status=$(jq -r '.status // "unknown"' "$result_file" 2>/dev/null || echo "unknown")
+            local server_name
+
+            server_name=$(basename "$result_file" | sed "s/_${TIMESTAMP}.json$//" | tr '_' '/')
+            local status
+            status=$(jq -r '.status // "unknown"' "$result_file" 2>/dev/null || echo "unknown")
 
             echo "### $server_name" >> "$summary_file"
             echo "- **Status:** $status" >> "$summary_file"
@@ -329,7 +336,8 @@ EOF
             fi
 
             # Add compliance score if available
-            local score=$(jq -r '.compliance_score // "N/A"' "$result_file" 2>/dev/null || echo "N/A")
+            local score
+            score=$(jq -r '.compliance_score // "N/A"' "$result_file" 2>/dev/null || echo "N/A")
             if [ "$score" != "N/A" ]; then
                 echo "- **Compliance Score:** ${score}%" >> "$summary_file"
             fi
@@ -385,8 +393,8 @@ main() {
     log_info "Real-world MCP validation starting..."
 
     # Validate against known server implementations
-    for server_name in "${!MCP_SERVERS[@]}"; do
-        validate_server "$server_name" "${MCP_SERVERS[$server_name]}"
+    for server_name in "${MCP_SERVERS[@]}"; do
+        validate_server "$server_name" "https://github.com/$server_name"
     done
 
     # Run protocol fuzzing
