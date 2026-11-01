@@ -5,7 +5,7 @@
 
 use aes_gcm::{
     Aes256Gcm, Key, Nonce,
-    aead::{Aead, AeadCore, KeyInit, OsRng},
+    aead::{Aead, Generate, KeyInit},
 };
 use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
 use serde::{Deserialize, Serialize};
@@ -39,8 +39,10 @@ pub enum EncryptionError {
 
 /// Encrypt data using AES-256-GCM
 pub fn encrypt_data(data: &[u8], key: &[u8; 32]) -> Result<EncryptedData, EncryptionError> {
-    let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key));
-    let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
+    let cipher = Aes256Gcm::new(&Key::<Aes256Gcm>::from(*key));
+    // 96-bit random nonce from the OS CSPRNG (getrandom), as before the aead 0.6 bump.
+    let nonce = Nonce::try_generate()
+        .map_err(|e| EncryptionError::EncryptionFailed(format!("Nonce generation failed: {e}")))?;
 
     let ciphertext = cipher
         .encrypt(&nonce, data)
@@ -70,11 +72,12 @@ pub fn decrypt_data(encrypted: &EncryptedData, key: &[u8; 32]) -> Result<Vec<u8>
         .decode(&encrypted.nonce)
         .map_err(|e| EncryptionError::InvalidFormat(format!("Invalid nonce base64: {e}")))?;
 
-    let nonce = Nonce::from_slice(&nonce_bytes);
-    let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key));
+    let nonce = Nonce::try_from(nonce_bytes.as_slice())
+        .map_err(|_| EncryptionError::InvalidFormat("Invalid nonce length".to_string()))?;
+    let cipher = Aes256Gcm::new(&Key::<Aes256Gcm>::from(*key));
 
     cipher
-        .decrypt(nonce, ciphertext.as_ref())
+        .decrypt(&nonce, ciphertext.as_ref())
         .map_err(|e| EncryptionError::DecryptionFailed(e.to_string()))
 }
 
