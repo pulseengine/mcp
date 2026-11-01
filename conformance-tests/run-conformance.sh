@@ -67,6 +67,8 @@ AUTH_ONLY=false
 SERVER_ONLY=false
 LIST_SCENARIOS=false
 VERBOSE=false
+# Parsed from --timeout but not yet passed to the runner.
+# shellcheck disable=SC2034
 TIMEOUT=30000
 PORT=""
 
@@ -93,6 +95,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --timeout)
+            # shellcheck disable=SC2034  # see TIMEOUT above
             TIMEOUT="$2"
             shift 2
             ;;
@@ -132,7 +135,13 @@ SERVER_CONFIG="$SERVERS_DIR/$SERVER_NAME.json"
 if [[ ! -f "$SERVER_CONFIG" ]]; then
     log_error "Server config not found: $SERVER_CONFIG"
     log_info "Available servers:"
-    ls -1 "$SERVERS_DIR"/*.json 2>/dev/null | xargs -n1 basename | sed 's/.json$//' || echo "  (none)"
+    found=0
+    for cfg in "$SERVERS_DIR"/*.json; do
+        [[ -e "$cfg" ]] || continue
+        basename "$cfg" .json
+        found=1
+    done
+    [[ $found -eq 1 ]] || echo "  (none)"
     exit 1
 fi
 
