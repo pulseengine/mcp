@@ -54,7 +54,7 @@ jobs:
           echo "LLVM tools: $(rustc --print sysroot)/lib/rustlib/x86_64-unknown-linux-gnu/bin/"
 
       - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@2409e52fd2fc8a8601d0d900fab9d85ae1fe714a # cargo-llvm-cov
+        uses: taiki-e/install-action@3f7c3597aa4e6da3f315e128de702ce61e7b2877 # cargo-llvm-cov
 
       - name: Free up disk space
         # Only needed on github-hosted; smithy redirects TMPDIR to a 500G volume.
