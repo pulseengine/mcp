@@ -33,7 +33,10 @@ jobs:
   # Fast validation for PRs - Ubuntu only
   validate-framework-fast:
     name: Fast Framework Validation
-    runs-on: [self-hosted, linux, x64, rust-cpu]
+    # Routes fork PRs to GitHub-hosted runners by default. This is NOT a security
+    # boundary: a fork PR can edit this file. Isolation is enforced by the org's
+    # smithy runner-group policy and fork-PR approval (pulseengine/warte#35).
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || fromJSON('["self-hosted","linux","x64","rust-cpu"]') }}
     timeout-minutes: 25
     if: github.event_name == 'pull_request'
 
@@ -271,7 +274,7 @@ jobs:
 
   stdio-integration-tests:
     name: Stdio + Inspector Integration Tests
-    runs-on: [self-hosted, linux, x64, rust-cpu]
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || fromJSON('["self-hosted","linux","x64","rust-cpu"]') }}
     timeout-minutes: 20
     if: github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
 
@@ -355,7 +358,7 @@ jobs:
 
   python-sdk-compatibility:
     name: Python SDK Compatibility
-    runs-on: [self-hosted, linux, x64, rust-cpu]
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || fromJSON('["self-hosted","linux","x64","rust-cpu"]') }}
     timeout-minutes: 15
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
 
@@ -393,7 +396,7 @@ jobs:
 
   external-validator-integration:
     name: External Validator Integration
-    runs-on: [self-hosted, linux, x64, rust-cpu]
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || fromJSON('["self-hosted","linux","x64","rust-cpu"]') }}
     timeout-minutes: 20
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
 
@@ -464,7 +467,7 @@ jobs:
 
   benchmark-validation:
     name: Performance Benchmarks
-    runs-on: [self-hosted, linux, x64, rust-cpu]
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || fromJSON('["self-hosted","linux","x64","rust-cpu"]') }}
     timeout-minutes: 25
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
