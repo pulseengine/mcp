@@ -3,9 +3,8 @@ version: 2
 # one CI-hygiene PR is easier to review than four.
 groups:
   github-actions-all:
-    package-ecosystem: github-actions
     patterns:
-      - "*"
+      - "^[^@]+/"
 updates:
   - package-ecosystem: github-actions
     directory: /
