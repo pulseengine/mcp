@@ -1,4 +1,11 @@
 version: 2
+# All github-actions pins in / land as one PR — they are independent pins but
+# one CI-hygiene PR is easier to review than four.
+groups:
+  github-actions-all:
+    package-ecosystem: github-actions
+    patterns:
+      - "*"
 updates:
   - package-ecosystem: github-actions
     directory: /
