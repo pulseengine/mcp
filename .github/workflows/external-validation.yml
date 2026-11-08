@@ -53,7 +53,7 @@ jobs:
           python-version: "3.11"
 
       - name: Cache Rust dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
@@ -133,7 +133,7 @@ jobs:
           df -h
 
       - name: Cache Rust dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
@@ -144,7 +144,7 @@ jobs:
             ${{ runner.os }}-cargo-external-full-${{ matrix.rust }}-1.88-
 
       - name: Cache Python dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cache/pip
@@ -291,7 +291,7 @@ jobs:
           node-version: "18"
 
       - name: Cache Rust dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
