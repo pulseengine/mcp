@@ -7,7 +7,7 @@ use crate::{
     ValidationConfig, ValidationError, ValidationResult,
     report::{IssueSeverity, JsonRpcValidatorResult, TestScore, ValidationIssue},
 };
-use jsonschema::{Draft, JSONSchema};
+use jsonschema::{Draft, Validator};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use tokio::io::AsyncWriteExt;
@@ -23,16 +23,16 @@ pub struct JsonRpcValidator {
 #[derive(Debug)]
 struct JsonRpcSchemas {
     /// Request message schema
-    request_schema: JSONSchema,
+    request_schema: Validator,
 
     /// Response message schema
-    response_schema: JSONSchema,
+    response_schema: Validator,
 
     /// Error object schema
-    error_schema: JSONSchema,
+    error_schema: Validator,
 
     /// Notification schema
-    notification_schema: JSONSchema,
+    notification_schema: Validator,
 }
 
 // Removed old external API structures - now using local validation
@@ -1077,14 +1077,12 @@ impl JsonRpcValidator {
     }
 
     /// Validate with a JSON schema
-    fn validate_with_schema(
-        &self,
-        schema: &JSONSchema,
-        message: &Value,
-    ) -> Result<(), Vec<String>> {
-        match schema.validate(message) {
-            Ok(_) => Ok(()),
-            Err(errors) => Err(errors.map(|e| e.to_string()).collect()),
+    fn validate_with_schema(&self, schema: &Validator, message: &Value) -> Result<(), Vec<String>> {
+        let errors: Vec<String> = schema.iter_errors(message).map(|e| e.to_string()).collect();
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
         }
     }
 
@@ -1190,30 +1188,30 @@ impl JsonRpcValidator {
 impl JsonRpcSchemas {
     /// Create new JSON-RPC schemas
     fn new() -> ValidationResult<Self> {
-        let request_schema = JSONSchema::options()
+        let request_schema = Validator::options()
             .with_draft(Draft::Draft7)
-            .compile(&Self::request_schema_json())
+            .build(&Self::request_schema_json())
             .map_err(|e| ValidationError::ConfigurationError {
                 message: format!("Failed to compile request schema: {}", e),
             })?;
 
-        let response_schema = JSONSchema::options()
+        let response_schema = Validator::options()
             .with_draft(Draft::Draft7)
-            .compile(&Self::response_schema_json())
+            .build(&Self::response_schema_json())
             .map_err(|e| ValidationError::ConfigurationError {
                 message: format!("Failed to compile response schema: {}", e),
             })?;
 
-        let error_schema = JSONSchema::options()
+        let error_schema = Validator::options()
             .with_draft(Draft::Draft7)
-            .compile(&Self::error_schema_json())
+            .build(&Self::error_schema_json())
             .map_err(|e| ValidationError::ConfigurationError {
                 message: format!("Failed to compile error schema: {}", e),
             })?;
 
-        let notification_schema = JSONSchema::options()
+        let notification_schema = Validator::options()
             .with_draft(Draft::Draft7)
-            .compile(&Self::notification_schema_json())
+            .build(&Self::notification_schema_json())
             .map_err(|e| ValidationError::ConfigurationError {
                 message: format!("Failed to compile notification schema: {}", e),
             })?;
