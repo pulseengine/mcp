@@ -96,7 +96,7 @@ jobs:
     name: Full Framework Validation
     # Stays on ubuntu-latest/macos-latest/windows-latest: matrix spans macOS + Windows; smithy is Linux-only.
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 35
+    timeout-minutes: 60
     if: github.event_name != 'pull_request'
     strategy:
       fail-fast: false
