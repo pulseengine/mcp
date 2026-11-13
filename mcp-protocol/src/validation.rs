@@ -1,7 +1,7 @@
 //! Validation utilities for MCP protocol types
 
 use crate::{Error, Result};
-use jsonschema::{JSONSchema, ValidationError};
+use jsonschema::ValidationError;
 use serde_json::Value;
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -213,14 +213,15 @@ impl Validator {
         Self::validate_json_schema(output_schema)?;
 
         // Compile the schema
-        let schema = JSONSchema::compile(output_schema)
+        let schema = jsonschema::validator_for(output_schema)
             .map_err(|e| Error::validation_error(format!("Invalid JSON schema: {e}")))?;
 
         // Validate the content against the schema
-        if let Err(errors) = schema.validate(content) {
-            let error_messages: Vec<String> = errors
-                .map(|e| format!("{}: {}", e.instance_path, e))
-                .collect();
+        let error_messages: Vec<String> = schema
+            .iter_errors(content)
+            .map(|e| format!("{}: {}", e.instance_path, e))
+            .collect();
+        if !error_messages.is_empty() {
             return Err(Error::validation_error(format!(
                 "Structured content validation failed: {}",
                 error_messages.join(", ")
