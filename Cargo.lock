@@ -2327,7 +2327,7 @@ version = "0.17.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "darling 0.20.11",
+ "darling 0.23.0",
  "matchit 0.8.4",
  "proc-macro2",
  "pulseengine-auth",
