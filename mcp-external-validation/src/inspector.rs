@@ -14,6 +14,10 @@ use tokio::process::Command as TokioCommand;
 use tokio::time::timeout;
 use tracing::{debug, info, warn};
 
+/// `npx` is a `.cmd` shim on Windows, which `Command::new` does not resolve
+/// without the extension.
+const NPX: &str = if cfg!(windows) { "npx.cmd" } else { "npx" };
+
 /// MCP Inspector client for automated testing
 pub struct InspectorClient {
     config: ValidationConfig,
@@ -190,7 +194,7 @@ impl InspectorClient {
     /// Create a new inspector client
     pub fn new(config: ValidationConfig) -> ValidationResult<Self> {
         // Check if npx is available
-        let npx_check = Command::new("npx")
+        let npx_check = Command::new(NPX)
             .arg("--version")
             .stdout(Stdio::null())
             .stderr(Stdio::null())
@@ -204,7 +208,7 @@ impl InspectorClient {
 
         Ok(Self {
             config,
-            inspector_executable: PathBuf::from("npx"),
+            inspector_executable: PathBuf::from(NPX),
             session_token: None,
         })
     }
@@ -213,7 +217,7 @@ impl InspectorClient {
     pub async fn check_inspector_availability(&self) -> ValidationResult<bool> {
         info!("Checking MCP Inspector availability...");
 
-        let output = TokioCommand::new("npx")
+        let output = TokioCommand::new(NPX)
             .arg("@modelcontextprotocol/inspector")
             .arg("--help")
             .stdout(Stdio::piped())
@@ -243,7 +247,7 @@ impl InspectorClient {
     pub async fn get_inspector_version(&self) -> ValidationResult<String> {
         info!("Getting MCP Inspector version...");
 
-        let output = TokioCommand::new("npx")
+        let output = TokioCommand::new(NPX)
             .arg("@modelcontextprotocol/inspector")
             .arg("--version")
             .stdout(Stdio::piped())
@@ -286,7 +290,7 @@ impl InspectorClient {
         }
 
         // Run the real MCP Inspector
-        let mut cmd = TokioCommand::new("npx");
+        let mut cmd = TokioCommand::new(NPX);
         cmd.arg("@modelcontextprotocol/inspector");
 
         // Add server command parts
