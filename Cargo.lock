@@ -2338,7 +2338,7 @@ dependencies = [
  "schemars 1.0.4",
  "serde",
  "serde_json",
- "syn 3.0.9",
+ "syn 2.0.119",
  "thiserror 2.0.12",
  "tokio",
  "tokio-test",
