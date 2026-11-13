@@ -16,8 +16,13 @@
 
 Rust framework for building [Model Context Protocol](https://modelcontextprotocol.io/) servers and clients.
 
-> [!NOTE]
-> Part of the PulseEngine toolchain. Provides the MCP implementation used across PulseEngine's AI-assisted development infrastructure.
+> [!WARNING]
+> **Archived on 2026-11-13.** This repository is read-only and gets no further releases, fixes or dependency updates. For new Rust MCP work, use the official SDK, [rmcp](https://github.com/modelcontextprotocol/rust-sdk).
+>
+> - The `pulseengine-mcp-*` crates on crates.io are deprecated. Existing 0.17.x versions stay downloadable and are not yanked.
+> - The rmcp-based crates in this tree (`pulseengine-logging`, `pulseengine-auth`, `pulseengine-security`, `pulseengine-mcp-resources`, `pulseengine-mcp-apps`) were never published to crates.io.
+>
+> The text below describes the 0.17 framework as it was when archived.
 
 ## Example
 
